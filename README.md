@@ -83,7 +83,23 @@ docker compose down               # 종료 (make down)
 - Docker 없이 실행할 때는 Python 3.12 가상환경에서 `pip install -r requirements-dev.txt`를 실행한다.
 - `make help`로 공용 명령 목록을 확인한다. 상세 내용은 [docs/development.md](docs/development.md)를 참고한다.
 
-## 환경변수
+## Streamlit 화면 시연
+
+UI 담당자는 Python 3.12 가상환경에서 다음 명령으로 화면을 실행한다.
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements-ui.txt
+.\.venv\Scripts\python.exe -m streamlit run frontend/app.py
+```
+
+현재는 API 키가 필요 없는 **시연용 화면**이다. 아이디어 입력, 경영진 요약,
+R&D 근거 보기, 다음 검증 과제와 Markdown 다운로드를 제공한다.
+문헌은 가상 예시이며 실제 검색·분석 결과가 아니다.
+화면 실행·시연은 [UI 가이드](docs/ui-guide.md), 역할별 협업과 서비스 제안은
+[UI 협업 가이드](docs/ui-collaboration.md)를 참고한다.
+`frontend/demo.py`는 시연 데이터와 보고서를, `tests/test_frontend.py`는 화면 동작 검증을 담당한다.
+
+## API 환경변수
 
 `.env.example`을 `.env`로 복사해 값을 채운다. `.env`는 Git에 커밋하지 않는다.
 
