@@ -1,8 +1,5 @@
 # LG-CNS-RAG-Project
-LG CNS 1팀 RAG 프로젝트
-Alarm TEST1
-=======
-# IdeaLens
+: IdeaLens
 
 - 특허·기술·기업·산업 근거를 조사하여 기술 아이디어 검토를 지원하는 RAG 프로젝트.
 - 주요 사용자: 신규 기술·사업 과제를 검토하는 경영진과 R&D 연구원.
