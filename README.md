@@ -1,8 +1,3 @@
-<<<<<<< Updated upstream
-# LG-CNS-RAG-Project
-LG CNS 1팀 RAG 프로젝트
-Alarm TEST1
-=======
 # IdeaLens
 
 - 특허·기술·기업·산업 근거를 조사하여 기술 아이디어 검토를 지원하는 RAG 프로젝트.
@@ -61,4 +56,20 @@ Alarm TEST1
 - 검색 품질: Hit Rate@K, Recall@K, MRR.
 - 답변 품질: 정확성, 근거 충실성, 인용 정확성.
 - 동일 자료집에서 검색 방식을 비교하고, 동일 질문의 일반 LLM 응답과 RAG 응답을 평가.
->>>>>>> Stashed changes
+
+## 브랜치 운영
+
+- main: 테스트가 끝난 발표·배포용 코드
+- develop: 기능 통합 및 테스트
+- feature/작업이름: 개별 기능 개발
+
+## 작업 순서
+
+1. develop에서 최신 코드를 받습니다.
+2. develop을 기준으로 feature/작업이름 브랜치를 만듭니다.
+3. 코드를 수정하고 커밋·푸시합니다.
+4. develop으로 Pull Request(PR)를 만듭니다.
+5. 다른 팀원 1명이 검토·승인한 뒤 병합합니다.
+6. 통합 테스트가 끝나면 develop → main PR로 반영합니다.
+
+※ 무료 비공개 저장소이므로 승인 절차는 팀원 간 규칙으로 지킵니다.
