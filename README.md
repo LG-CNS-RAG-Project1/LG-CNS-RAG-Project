@@ -1,4 +1,3 @@
-<<<<<<< Updated upstream
 # LG-CNS-RAG-Project
 LG CNS 1팀 RAG 프로젝트
 Alarm TEST1
@@ -61,4 +60,3 @@ Alarm TEST1
 - 검색 품질: Hit Rate@K, Recall@K, MRR.
 - 답변 품질: 정확성, 근거 충실성, 인용 정확성.
 - 동일 자료집에서 검색 방식을 비교하고, 동일 질문의 일반 LLM 응답과 RAG 응답을 평가.
->>>>>>> Stashed changes
