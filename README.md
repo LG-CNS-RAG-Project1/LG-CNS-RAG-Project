@@ -82,6 +82,16 @@ docker compose down               # 종료 (make down)
 - Docker 없이 실행할 때는 Python 3.12 가상환경에서 `pip install -r requirements-dev.txt`를 실행한다.
 - `make help`로 공용 명령 목록을 확인한다. 상세 내용은 [docs/development.md](docs/development.md)를 참고한다.
 
+### 시장 뉴스 수집
+
+```bash
+python -m src.ingestion.news_client --keyword-id smart_factory --max-items 10   # 키워드 1개
+python -m src.ingestion.news_client                                             # 전체 키워드
+```
+
+- 키워드·수집 기준은 `configs/market_keywords.yaml`에서 관리한다.
+- NAVER API HUB 뉴스 검색 API의 제목·요약·링크·발행일만 `data/market/raw/news_{keyword_id}_{수집일}.json`에 저장한다.
+
 ## 환경변수
 
 `.env.example`을 `.env`로 복사해 값을 채운다. `.env`는 Git에 커밋하지 않는다.
@@ -91,6 +101,7 @@ docker compose down               # 종료 (make down)
 | `OPENAI_API_KEY` | 임베딩·답변 생성용 OpenAI API 키 |
 | `KIPRIS_API_KEY` | KIPRIS Plus 특허 API 키 |
 | `DART_API_KEY` | DART OpenAPI 공시 API 키 |
+| `NAVER_CLIENT_ID` · `NAVER_CLIENT_SECRET` | NAVER API HUB(네이버클라우드) Application의 Client ID·Secret. 해당 Application에서 뉴스 검색 API 활성화 필요 |
 
 GitHub Actions용 `NOTION_API_TOKEN`은 `.env`가 아니라 저장소의 **Settings → Secrets and variables → Actions**에 저장한다.
 
