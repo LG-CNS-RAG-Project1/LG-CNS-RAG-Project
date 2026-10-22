@@ -1,0 +1,17 @@
+# 로컬 개발용 서비스 구성
+# - app: Python 개발 컨테이너. 저장소 전체를 /app에 마운트하므로 수집 데이터와
+#   Chroma 로컬 저장소(data/patents/chroma)가 호스트에 그대로 유지된다.
+# API 키 등 환경변수는 .env에서 읽으며, .env가 없어도 컨테이너는 실행된다.
+name: lg-cns-rag
+
+services:
+  app:
+    build:
+      context: .
+      target: dev
+    image: lg-cns-rag-app:dev
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      - .:/app

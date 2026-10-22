@@ -1,0 +1,37 @@
+name: Assign Reviewer
+
+# PR에 리뷰어가 한 명도 없으면 작성자를 제외한 후보 중 한 명을 무작위로 지정한다.
+# 후보는 저장소 변수 REVIEWER_POOL(쉼표 구분 GitHub ID)로 바꿀 수 있고,
+# 설정하지 않으면 아래 기본 목록을 사용한다.
+on:
+  pull_request_target:
+    types: [opened, reopened, ready_for_review, review_request_removed]
+    branches: [develop, main]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: assign-reviewer-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  assign:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out trusted base branch scripts
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout: scripts/github
+
+      - name: Request a random reviewer
+        uses: actions/github-script@v9
+        env:
+          REVIEWER_POOL: ${{ vars.REVIEWER_POOL || 'Ryu-Jemu, hyunmin990513-stack, 5aro, gabihyun' }}
+        with:
+          script: |
+            const { run } = await import(`${process.env.GITHUB_WORKSPACE}/scripts/github/assign_reviewer.mjs`);
+            await run({ github, context, core });
