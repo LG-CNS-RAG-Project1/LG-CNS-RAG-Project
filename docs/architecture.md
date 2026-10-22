@@ -1,3 +1,73 @@
+# 시스템 설계
+
+## 서비스 연결 구조
+
+- 계획 기준의 모듈·외부 서비스 연결 구조. 실제 구현이 바뀌면 함께 갱신한다.
+- 로컬 개발은 Docker `app` 컨테이너 하나에서 실행하며, 벡터 저장소는 로컬 Chroma(`data/patents/chroma/`)를 사용한다.
+- `%% map <경로> <노드ID>` 주석은 Notion PR 문서화 자동화가 변경 파일에 해당하는 노드를 강조할 때 사용한다. 새 모듈을 추가하면 노드와 매핑을 함께 추가한다.
+
+```mermaid
+flowchart LR
+  user["사용자<br/>경영진·R&D"]
+
+  subgraph app["app 컨테이너 (Python 3.12)"]
+    frontend["frontend/<br/>Streamlit UI"]
+    api["src/main.py<br/>FastAPI"]
+    services["src/services/<br/>특허·시장 진입점"]
+    pipeline["src/pipeline.py<br/>분석 흐름"]
+    ingestion["src/ingestion/<br/>수집·전처리"]
+    retrieval["src/retrieval/<br/>색인·검색"]
+    generation["src/generation/<br/>근거 검증·보고서"]
+    prompts["prompts/<br/>프롬프트"]
+    evaluation["evaluation/<br/>검색·답변 평가"]
+    runtime["configs/ · requirements<br/>Dockerfile · compose.yaml"]
+  end
+
+  chroma[("data/patents/chroma/<br/>Chroma 벡터 저장소")]
+  datastore[("data/<br/>원문·가공 데이터")]
+  kipris["KIPRIS Plus API"]
+  dart["DART OpenAPI"]
+  openai["OpenAI API<br/>임베딩·생성"]
+
+  user --> frontend
+  frontend --> api
+  api --> services
+  services --> pipeline
+  pipeline --> ingestion
+  pipeline --> retrieval
+  pipeline --> generation
+  ingestion --> kipris
+  ingestion --> dart
+  ingestion --> datastore
+  retrieval --> chroma
+  retrieval --> openai
+  generation --> prompts
+  generation --> openai
+  evaluation -.-> retrieval
+  evaluation -.-> generation
+
+  %% map frontend/ frontend
+  %% map src/main.py api
+  %% map src/services/ services
+  %% map src/pipeline.py pipeline
+  %% map src/schemas.py pipeline
+  %% map src/ingestion/ ingestion
+  %% map scripts/collect_patents.py ingestion
+  %% map src/retrieval/ retrieval
+  %% map scripts/build_patent_index.py retrieval
+  %% map src/generation/ generation
+  %% map prompts/ prompts
+  %% map evaluation/ evaluation
+  %% map configs/ runtime
+  %% map Dockerfile runtime
+  %% map compose.yaml runtime
+  %% map requirements.txt runtime
+  %% map requirements-dev.txt runtime
+```
+
+## 디렉토리 구조
+
+```text
 IdeaLens/
 │
 ├── configs/
@@ -83,9 +153,11 @@ IdeaLens/
 ├── AGENTS.md
 ├── README.md
 └── requirements.txt
+```
 
+## .gitignore 필수 목록 (현재 폴더 구조 기준)
 
-.gitignore (현재폴더구조상필수목록)
+```gitignore
 # Python
 .venv/
 __pycache__/
@@ -109,3 +181,4 @@ data/market/raw/*
 
 # OS
 .DS_Store
+```
