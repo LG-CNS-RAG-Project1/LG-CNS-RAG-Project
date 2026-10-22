@@ -71,7 +71,13 @@ def test_valid_market_report():
             MarketDimensionResult(
                 dimension="demand",
                 verdict="signal_only",
-                claims=[MarketClaim(statement="도입 사례 기사 확인", claim_type="fact", citation_ids=[1])],
+                claims=[
+                    MarketClaim(
+                        statement="도입 사례 기사 확인",
+                        claim_type="fact",
+                        citation_ids=[1],
+                    )
+                ],
             ),
             MarketDimensionResult(
                 dimension="price",
@@ -95,7 +101,11 @@ def test_demand_confirmed_requires_direct_evidence():
                 MarketDimensionResult(
                     dimension="demand",
                     verdict="confirmed",
-                    claims=[MarketClaim(statement="수요 확인", claim_type="fact", citation_ids=[1])],
+                    claims=[
+                        MarketClaim(
+                            statement="수요 확인", claim_type="fact", citation_ids=[1]
+                        )
+                    ],
                 )
             ],
         )
@@ -111,7 +121,13 @@ def test_unknown_citation():
                 MarketDimensionResult(
                     dimension="competition",
                     verdict="signal_only",
-                    claims=[MarketClaim(statement="경쟁사 존재", claim_type="fact", citation_ids=[99])],
+                    claims=[
+                        MarketClaim(
+                            statement="경쟁사 존재",
+                            claim_type="fact",
+                            citation_ids=[99],
+                        )
+                    ],
                 )
             ],
         )
