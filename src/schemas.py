@@ -100,28 +100,34 @@ class PatentReport(BaseModel):
 # ──────────────────────────────────────────────
 
 MarketSourceType = Literal[
-    "dart",                 # DART 공시
-    "news",                 # 언론 기사
-    "press_release",        # 기업 보도자료·IR
-    "public_stats",         # 공공 통계·정부 자료
-    "procurement",          # 조달·지원사업 공고
-    "research_report",      # 산업·연구기관 보고서
+    "dart",  # DART 공시
+    "news",  # 언론 기사
+    "press_release",  # 기업 보도자료·IR
+    "public_stats",  # 공공 통계·정부 자료
+    "procurement",  # 조달·지원사업 공고
+    "research_report",  # 산업·연구기관 보고서
     "customer_validation",  # 고객 검증 자료(인터뷰·설문·파일럿·LOI)
 ]
 MarketDimension = Literal["demand", "competition", "price", "buyer", "adoption_barrier"]
 EvidenceNature = Literal[
-    "direct_demand",    # 고객의 구매·지불 의사를 직접 보여줌
+    "direct_demand",  # 고객의 구매·지불 의사를 직접 보여줌
     "purchase_signal",  # 조달·구매 요건 등 구매 신호
     "indirect_demand",  # 보급 현황 등 간접 수요 신호
     "business_signal",  # 기업 투자·출시·제휴·정책 등 사업 신호
-    "estimate",         # 시장 규모 등 추정치
-    "company_claim",    # 기업 자체 주장
+    "estimate",  # 시장 규모 등 추정치
+    "company_claim",  # 기업 자체 주장
 ]
 Grade = Literal["high", "medium", "low"]
 MarketVerdict = Literal["confirmed", "signal_only", "unverified"]
 ClaimType = Literal["fact", "user_claim", "ai_hypothesis"]
 
-ALL_DIMENSIONS: list[MarketDimension] = ["demand", "competition", "price", "buyer", "adoption_barrier"]
+ALL_DIMENSIONS: list[MarketDimension] = [
+    "demand",
+    "competition",
+    "price",
+    "buyer",
+    "adoption_barrier",
+]
 
 
 def _check_yyyymmdd(value: int | None, field_name: str) -> None:
@@ -129,6 +135,7 @@ def _check_yyyymmdd(value: int | None, field_name: str) -> None:
     if value is None:
         return
     from datetime import datetime
+
     try:
         datetime.strptime(str(value), "%Y%m%d")
     except ValueError:
@@ -138,7 +145,9 @@ def _check_yyyymmdd(value: int | None, field_name: str) -> None:
 # 8. 시장 근거 검색 요청
 class MarketSearchRequest(BaseModel):
     idea: StructuredIdea
-    dimensions: list[MarketDimension] = Field(default_factory=lambda: list(ALL_DIMENSIONS))
+    dimensions: list[MarketDimension] = Field(
+        default_factory=lambda: list(ALL_DIMENSIONS)
+    )
     source_types: list[MarketSourceType] | None = None
     date_from: int | None = None
     top_k: int = Field(default=5, ge=1, le=5)
@@ -158,17 +167,17 @@ class MarketDocument(BaseModel):
     text: str = Field(min_length=1)
 
     url: str | None = None
-    published_at: int                 # 발행일 YYYYMMDD
-    period: str | None = None         # 회계기간·조사 기준연도 (예: FY2025)
-    collected_at: int                 # 수집일 YYYYMMDD
+    published_at: int  # 발행일 YYYYMMDD
+    period: str | None = None  # 회계기간·조사 기준연도 (예: FY2025)
+    collected_at: int  # 수집일 YYYYMMDD
     region: Literal["domestic", "overseas", "global"] = "domestic"
     lang: str = "ko"
-    section: str | None = None        # 원문 위치 (페이지·섹션·문단)
+    section: str | None = None  # 원문 위치 (페이지·섹션·문단)
 
     reliability: Grade
     evidence_nature: EvidenceNature
-    dup_group: str | None = None      # 같은 사건을 다룬 기사 묶음
-    license: str | None = None        # 저장·가공·공유 조건
+    dup_group: str | None = None  # 같은 사건을 다룬 기사 묶음
+    license: str | None = None  # 저장·가공·공유 조건
     idea_ids: list[str] = Field(default_factory=list)
 
     @model_validator(mode="after")
@@ -177,8 +186,13 @@ class MarketDocument(BaseModel):
         _check_yyyymmdd(self.collected_at, "collected_at")
         if self.collected_at < self.published_at:
             raise ValueError("collected_at is earlier than published_at")
-        if self.evidence_nature == "direct_demand" and self.source_type != "customer_validation":
-            raise ValueError("direct_demand is only allowed for customer_validation sources")
+        if (
+            self.evidence_nature == "direct_demand"
+            and self.source_type != "customer_validation"
+        ):
+            raise ValueError(
+                "direct_demand is only allowed for customer_validation sources"
+            )
         return self
 
     def to_chroma_metadata(self) -> dict:
@@ -190,7 +204,7 @@ class MarketDocument(BaseModel):
 
 # 10. 임베딩 대상 시장 청크
 class MarketChunk(BaseModel):
-    chunk_id: str                     # "{source_id}#{chunk_index}"
+    chunk_id: str  # "{source_id}#{chunk_index}"
     source_id: str
     text: str = Field(min_length=1)
     chunk_index: int = Field(ge=0)
@@ -237,13 +251,15 @@ class MarketDimensionResult(BaseModel):
     dimension: MarketDimension
     verdict: MarketVerdict
     claims: list[MarketClaim] = Field(default_factory=list, max_length=3)
-    next_check: str | None = None     # 미확인일 때 다음 검증 과제
+    next_check: str | None = None  # 미확인일 때 다음 검증 과제
 
     @model_validator(mode="after")
     def validate_verdict(self):
         cited = [c for c in self.claims if c.citation_ids]
         if self.verdict in ("confirmed", "signal_only") and not cited:
-            raise ValueError(f"{self.dimension}: verdict '{self.verdict}' requires cited claims")
+            raise ValueError(
+                f"{self.dimension}: verdict '{self.verdict}' requires cited claims"
+            )
         if self.verdict == "unverified" and not self.next_check:
             raise ValueError(f"{self.dimension}: unverified result requires next_check")
         return self
@@ -258,7 +274,7 @@ class MarketReport(BaseModel):
     unknowns: list[str] = Field(default_factory=list)
 
     search_scope: str
-    data_as_of: int | None = None     # 분석 기준일 YYYYMMDD
+    data_as_of: int | None = None  # 분석 기준일 YYYYMMDD
     error_message: str | None = None
 
     @model_validator(mode="after")
@@ -283,8 +299,12 @@ class MarketReport(BaseModel):
             # 수요 '확인'은 직접 수요 근거(고객 검증 자료)가 있어야 한다
             if d.dimension == "demand" and d.verdict == "confirmed":
                 cited = {cid for c in d.claims for cid in c.citation_ids}
-                if not any(by_id[cid].evidence_nature == "direct_demand" for cid in cited):
-                    raise ValueError("demand 'confirmed' requires direct_demand evidence")
+                if not any(
+                    by_id[cid].evidence_nature == "direct_demand" for cid in cited
+                ):
+                    raise ValueError(
+                        "demand 'confirmed' requires direct_demand evidence"
+                    )
 
         if self.status == "no_results" and self.evidence:
             raise ValueError("no_results report must not contain evidence")
