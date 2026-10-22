@@ -15,6 +15,10 @@ permissions:
   contents: read
   pull-requests: read
 
+concurrency:
+  group: notion-pr-${{ github.event_name == 'workflow_dispatch' && inputs.pull_request_number || github.event.pull_request.number }}
+  cancel-in-progress: false
+
 jobs:
   create-notion-record:
     if: >-
@@ -23,9 +27,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out trusted develop workflow code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: develop
+          persist-credentials: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
 
       - name: Create a Notion page for the merged PR
         env:

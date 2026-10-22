@@ -1,0 +1,10 @@
+# 운영체제와 관계없이 저장소의 텍스트 파일 줄바꿈을 LF로 통일
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.pdf binary
+*.xlsx binary
+*.docx binary

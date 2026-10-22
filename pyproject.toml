@@ -1,0 +1,11 @@
+# 코드 포매터와 테스트 도구의 공통 설정
+
+[tool.black]
+line-length = 88
+target-version = ["py312"]
+required-version = "26"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-ra"
