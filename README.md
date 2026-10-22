@@ -24,24 +24,85 @@
 
 ```text
 .
-├── AGENTS.md            # 팀 공용 Git·GitHub 및 코딩 에이전트 작업 규칙
-├── configs/             # 산업별 검색어·분류·검색 설정
+├── .github/
+│   ├── workflows/           # CI, 리뷰어 자동 지정, Notion PR 문서화
+│   ├── ISSUE_TEMPLATE/      # 작업·버그 이슈 양식
+│   └── pull_request_template.md
+├── .vscode/                 # 저장 시 black 적용 등 공용 편집기 설정
+├── AGENTS.md                # 팀 공용 Git·GitHub 및 코딩 에이전트 작업 규칙
+├── configs/                 # 산업별 검색어·분류·검색 설정
 ├── data/
-│   ├── raw/             # 수집한 원문
-│   ├── processed/       # 정규화 문서와 검색 청크
-│   └── indexes/         # 검색 색인
-├── docs/                # 기획·설계 문서
-├── evaluation/          # 평가 질문·정답 근거·평가 결과
-├── prompts/             # 아이디어 구조화·근거 검증·보고서 프롬프트
-├── reports/             # 생성한 경영진·R&D 보고서
+│   ├── raw/                 # 수집한 원문
+│   ├── processed/           # 정규화 문서와 검색 청크
+│   ├── indexes/             # 검색 색인
+│   ├── patents/             # 특허 원문·정제 데이터·Chroma 벡터 저장소
+│   ├── market/              # 시장 자료 원문·정제 데이터
+│   └── samples/             # 시연용 샘플
+├── docs/                    # 기획·설계·개발 환경 문서
+├── evaluation/              # 평가 질문·정답 근거·평가 실행
+├── frontend/                # Streamlit UI
+├── prompts/                 # 아이디어 구조화·근거 검증·보고서 프롬프트
+├── reports/                 # 생성한 경영진·R&D 보고서
+├── scripts/
+│   ├── *.py                 # 특허 수집·색인 생성 실행 스크립트
+│   ├── create_notion_pr_page.mjs  # 병합 PR의 Notion 문서화 진입점
+│   ├── notion/              # PR 본문 → Notion 블록·mermaid 다이어그램 변환
+│   └── github/              # PR 리뷰어 무작위 지정
 ├── src/
-│   ├── ingestion/       # 자료 수집·전처리·청크 생성
-│   ├── retrieval/       # 색인 구축·정확 검색·의미 검색
-│   └── generation/      # 근거 검증·역할별 보고서 생성
+│   ├── main.py · pipeline.py · schemas.py  # API 진입점·분석 흐름·공통 모델
+│   ├── ingestion/           # 자료 수집·전처리·청크 생성
+│   ├── retrieval/           # 색인 구축·정확 검색·의미 검색
+│   ├── generation/          # 근거 검증·역할별 보고서 생성
+│   └── services/            # 특허·시장 분석 진입점
+├── tests/                   # pytest 테스트
+├── Dockerfile · compose.yaml · Makefile  # Docker 개발 환경과 공용 명령
+├── pyproject.toml           # black·pytest 설정
+├── requirements.txt         # 실행 의존성
+├── requirements-dev.txt     # 개발 도구(black·pytest·pre-commit)
+├── .env.example             # 환경변수 이름 예시
 └── README.md
 ```
 
 - 원문·가공 데이터·검색 색인·생성 보고서는 로컬에 보관하며 Git 추적에서 제외.
+- 서비스 연결 구조는 [docs/architecture.md](docs/architecture.md)의 mermaid 다이어그램으로 관리.
+
+## 실행 방법
+
+Docker Desktop(또는 Docker Engine + Compose v2.24 이상)을 기준으로 한다.
+
+```bash
+cp .env.example .env              # API 키 입력 (make env와 동일)
+docker compose up -d --build      # 개발 컨테이너 실행 (make up)
+docker compose exec app bash      # 컨테이너 셸 접속 (make shell)
+docker compose run --rm app python -m pytest   # 테스트 (make test)
+docker compose down               # 종료 (make down)
+```
+
+- `app` 컨테이너는 저장소 전체를 `/app`에 마운트하므로 코드 수정이 바로 반영되고, Chroma 저장소(`data/patents/chroma/`)와 수집 데이터는 호스트에 유지된다.
+- 의존성을 바꾸면 `docker compose build app`(`make build`)으로 이미지를 다시 만든다.
+- Docker 없이 실행할 때는 Python 3.12 가상환경에서 `pip install -r requirements-dev.txt`를 실행한다.
+- `make help`로 공용 명령 목록을 확인한다. 상세 내용은 [docs/development.md](docs/development.md)를 참고한다.
+
+## 환경변수
+
+`.env.example`을 `.env`로 복사해 값을 채운다. `.env`는 Git에 커밋하지 않는다.
+
+| 이름 | 용도 |
+|---|---|
+| `OPENAI_API_KEY` | 임베딩·답변 생성용 OpenAI API 키 |
+| `KIPRIS_API_KEY` | KIPRIS Plus 특허 API 키 |
+| `DART_API_KEY` | DART OpenAPI 공시 API 키 |
+
+GitHub Actions용 `NOTION_API_TOKEN`은 `.env`가 아니라 저장소의 **Settings → Secrets and variables → Actions**에 저장한다.
+
+## 개발 도구와 협업 자동화
+
+- **코드 포맷**: Python 코드는 [black](https://black.readthedocs.io/)으로 통일한다. 버전은 `requirements-dev.txt`에 고정하고, `pyproject.toml`의 `required-version`으로 다른 주 버전 실행을 막는다.
+- **커밋 전 검사**: `pre-commit install` 후 커밋마다 black, 병합 충돌 표시, 개인키 노출, 대용량 파일, 줄끝 공백을 검사한다.
+- **CI**: develop·main 대상 PR과 push에서 black 검사, pytest, 자동화 스크립트 테스트, Docker 이미지 빌드를 실행한다.
+- **리뷰어 자동 지정**: PR에 리뷰어가 없으면 작성자를 제외한 팀원 중 한 명을 무작위로 지정한다. 후보는 저장소 변수 `REVIEWER_POOL`로 바꿀 수 있다.
+- **Notion PR 문서화**: develop에 병합된 PR의 설명을 Notion 블록으로 변환하고, 원문·커밋·변경 파일을 코드 블록으로, 변경 구조와 서비스 연결 구조를 mermaid 다이어그램으로 기록한다.
+- **의존성 갱신**: Dependabot이 pip·pre-commit·GitHub Actions 버전 갱신 PR을 월 1회 묶어서 만든다.
 
 ## 구현 방향
 
