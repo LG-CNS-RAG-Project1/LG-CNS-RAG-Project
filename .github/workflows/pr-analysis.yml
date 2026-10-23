@@ -1,6 +1,6 @@
 name: PR Analysis
 
-# develop 대상 PR이 열리거나 수정되면 PR을 분석해 Notion 'PR 분석' 표에 기록한다(참고용, GitHub에는 쓰지 않음).
+# develop 대상 PR이 열리거나 수정되면 PR을 분석해 Notion 'PR 분석' 표에 기록하고, 병합되면 태그별 '영역 요약 카드'를 갱신한다(참고용, GitHub에는 쓰지 않음).
 # pull_request_target이므로 develop에 있는 이 파일과 스크립트만 실행하고, PR 코드는 checkout하거나 실행하지 않는다.
 # 켜고 끄기: 저장소 변수 REVIEW_ENABLED(전체)·REVIEW_LLM_ENABLED(AI 분석). 비밀값은 Environment pr-analysis에 둔다.
 on:
@@ -28,6 +28,7 @@ permissions:
   checks: read
   actions: read
 
+# 같은 PR의 실행은 차례로 처리한다(병합 이벤트도 진행 중인 분석이 끝난 뒤 행 상태를 바꾼다).
 concurrency:
   group: pr-analysis-${{ github.event.pull_request.number || inputs.pr_number }}
   cancel-in-progress: false
@@ -72,6 +73,7 @@ jobs:
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           NOTION_DASHBOARD_PAGE_ID: ${{ vars.NOTION_DASHBOARD_PAGE_ID }}
           NOTION_PR_DATABASE_ID: ${{ vars.NOTION_PR_DATABASE_ID }}
+          NOTION_CARD_DATABASE_ID: ${{ vars.NOTION_CARD_DATABASE_ID }}
           NOTION_MEMORY_PAGE_ID: ${{ vars.NOTION_MEMORY_PAGE_ID }}
           REVIEW_LLM_ENABLED: ${{ vars.REVIEW_LLM_ENABLED }}
           REVIEW_MODEL: ${{ vars.REVIEW_MODEL }}
@@ -83,4 +85,58 @@ jobs:
           TRIGGERING_ACTOR: ${{ github.triggering_actor }}
           ALLOW_DRAFT: ${{ inputs.allow_draft && 'true' || 'false' }}
           FORCE: ${{ inputs.force && 'true' || 'false' }}
+        run: node scripts/review/analyze_pr.mjs
+
+  # 병합된 PR(수동 실행 포함)을 태그별 영역 요약 카드에 반영한다.
+  # 여러 PR이 잇달아 병합돼도 같은 카드를 동시에 고치지 않도록 모든 카드 갱신을 한 줄로 세워 차례로 처리한다.
+  cards:
+    name: 영역 요약 카드 갱신 (참고용)
+    needs: analyze
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: pr-analysis
+      deployment: false
+    concurrency:
+      group: pr-analysis-cards
+      cancel-in-progress: false
+      queue: max
+    steps:
+      - name: Check out trusted develop scripts
+        uses: actions/checkout@v7
+        with:
+          ref: develop
+          fetch-depth: 1
+          persist-credentials: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+
+      - name: Install pinned Claude Code CLI
+        if: vars.REVIEW_LLM_ENABLED == 'true'
+        env:
+          CLAUDE_CODE_VERSION: "2.1.308"
+        run: |
+          npm install -g "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}"
+          test "$(claude --version | cut -d' ' -f1)" = "${CLAUDE_CODE_VERSION}"
+
+      - name: Update area summary cards in Notion
+        env:
+          REVIEW_STEP: cards
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NOTION_REVIEW_TOKEN: ${{ secrets.NOTION_REVIEW_TOKEN }}
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          NOTION_DASHBOARD_PAGE_ID: ${{ vars.NOTION_DASHBOARD_PAGE_ID }}
+          NOTION_PR_DATABASE_ID: ${{ vars.NOTION_PR_DATABASE_ID }}
+          NOTION_CARD_DATABASE_ID: ${{ vars.NOTION_CARD_DATABASE_ID }}
+          NOTION_MEMORY_PAGE_ID: ${{ vars.NOTION_MEMORY_PAGE_ID }}
+          REVIEW_LLM_ENABLED: ${{ vars.REVIEW_LLM_ENABLED }}
+          REVIEW_MODEL: ${{ vars.REVIEW_MODEL }}
+          REVIEW_EFFORT: ${{ vars.REVIEW_EFFORT }}
+          REVIEW_ADMINS: ${{ vars.REVIEW_ADMINS }}
+          PR_NUMBER: ${{ github.event.pull_request.number || inputs.pr_number }}
+          EVENT_NAME: ${{ github.event_name }}
+          TRIGGERING_ACTOR: ${{ github.triggering_actor }}
         run: node scripts/review/analyze_pr.mjs
