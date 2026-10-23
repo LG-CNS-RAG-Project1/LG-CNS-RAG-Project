@@ -1,0 +1,373 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "summary",
+    "goal_fit",
+    "module_fit",
+    "findings",
+    "process_judgements",
+    "next_actions",
+    "reviewer_focus",
+    "author_questions",
+    "readiness_proposal",
+    "digest"
+  ],
+  "properties": {
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "one_line",
+        "what_changed",
+        "why"
+      ],
+      "properties": {
+        "one_line": {
+          "type": "string"
+        },
+        "what_changed": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "why": {
+          "type": "string"
+        }
+      }
+    },
+    "goal_fit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rating",
+        "primary_ref",
+        "baseline_refs",
+        "claims"
+      ],
+      "properties": {
+        "rating": {
+          "type": "string",
+          "enum": [
+            "aligned",
+            "partial",
+            "unclear",
+            "misaligned",
+            "no_baseline"
+          ]
+        },
+        "primary_ref": {
+          "type": "string"
+        },
+        "baseline_refs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "claims": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "text",
+              "basis",
+              "evidence"
+            ],
+            "properties": {
+              "text": {
+                "type": "string"
+              },
+              "basis": {
+                "type": "string",
+                "enum": [
+                  "fact",
+                  "interpretation",
+                  "assumption",
+                  "unverified"
+                ]
+              },
+              "evidence": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "module_fit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rating",
+        "touched_modules",
+        "contract_impact",
+        "claims"
+      ],
+      "properties": {
+        "rating": {
+          "type": "string",
+          "enum": [
+            "within_role",
+            "cross_boundary_ok",
+            "cross_boundary_unagreed",
+            "unclear",
+            "no_role_data"
+          ]
+        },
+        "touched_modules": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "contract_impact": {
+          "type": "string",
+          "enum": [
+            "none",
+            "additive",
+            "breaking",
+            "unclear"
+          ]
+        },
+        "claims": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "text",
+              "basis",
+              "evidence"
+            ],
+            "properties": {
+              "text": {
+                "type": "string"
+              },
+              "basis": {
+                "type": "string",
+                "enum": [
+                  "fact",
+                  "interpretation",
+                  "assumption",
+                  "unverified"
+                ]
+              },
+              "evidence": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "kind",
+          "severity",
+          "category",
+          "file",
+          "anchor",
+          "side",
+          "title",
+          "evidence",
+          "suggestion",
+          "basis",
+          "confidence"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "presence",
+              "absence"
+            ]
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "blocker",
+              "major",
+              "minor",
+              "info"
+            ]
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "bug",
+              "data_contract",
+              "security",
+              "test_gap",
+              "performance",
+              "docs",
+              "other"
+            ]
+          },
+          "file": {
+            "type": "string"
+          },
+          "anchor": {
+            "type": "string"
+          },
+          "side": {
+            "type": "string",
+            "enum": [
+              "new",
+              "old"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "evidence": {
+            "type": "string"
+          },
+          "suggestion": {
+            "type": "string"
+          },
+          "basis": {
+            "type": "string",
+            "enum": [
+              "fact",
+              "interpretation",
+              "assumption",
+              "unverified"
+            ]
+          },
+          "confidence": {
+            "type": "string",
+            "enum": [
+              "high",
+              "medium",
+              "low"
+            ]
+          }
+        }
+      }
+    },
+    "process_judgements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "rule",
+          "status",
+          "evidence"
+        ],
+        "properties": {
+          "rule": {
+            "type": "string",
+            "enum": [
+              "AGENTS_2_scope",
+              "AGENTS_4_docs",
+              "AGENTS_5_secrets",
+              "AGENTS_6_comments",
+              "AGENTS_8_commits",
+              "template"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "warn",
+              "fail",
+              "n/a"
+            ]
+          },
+          "evidence": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "next_actions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "owner",
+          "action"
+        ],
+        "properties": {
+          "owner": {
+            "type": "string",
+            "enum": [
+              "author",
+              "leader",
+              "team"
+            ]
+          },
+          "action": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "reviewer_focus": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "file",
+          "why"
+        ],
+        "properties": {
+          "file": {
+            "type": "string"
+          },
+          "why": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "author_questions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "readiness_proposal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "level",
+        "reason"
+      ],
+      "properties": {
+        "level": {
+          "type": "string",
+          "enum": [
+            "ready",
+            "leader_look",
+            "discuss",
+            "needs_fix"
+          ]
+        },
+        "reason": {
+          "type": "string"
+        }
+      }
+    },
+    "digest": {
+      "type": "string"
+    }
+  }
+}

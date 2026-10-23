@@ -43,7 +43,7 @@ pre-commit run --all-files            # 전체 파일 검사 (make precommit)
 |---|---|
 | `format` | `requirements-dev.txt`에 고정된 black으로 `black --check --diff .` |
 | `test` | `python -m pytest`. 수집된 테스트가 없으면(종료 코드 5) 통과 처리 |
-| `scripts` | `node --test "scripts/**/*.test.mjs"` — Notion·리뷰어 자동화 테스트 |
+| `scripts` | `node --test "scripts/**/*.test.mjs"` — Notion·리뷰어·PR 분석 자동화 테스트 |
 | `docker` | `docker compose config` 검증과 `app` 이미지 빌드 |
 
 ## PR 리뷰어 자동 지정 (`.github/workflows/assign-reviewer.yml`)
@@ -112,6 +112,46 @@ NOTION_DRY_RUN=1 NOTION_DRY_RUN_OUTPUT=preview.json PR_NUMBER=5 \
 3. Notion 연결에 읽기와 삽입 권한이 켜져 있는지 확인한다.
 
 토큰을 채팅, 코드, README 또는 커밋에 넣지 않는다.
+
+## PR 자동 분석 (`.github/workflows/pr-analysis.yml`)
+
+develop 대상 PR이 열리거나(`opened`·`reopened`·`ready_for_review`) 수정본이 올라오면(`synchronize`) PR을 분석해 Notion '현재 작업 상황'(IdeaLens > Work In Progress)의 `PR 분석` 표에 PR별 보고서를 기록한다. 참고용이며 승인·병합·GitHub 댓글·라벨은 하지 않는다. 필수 체크가 아니다.
+
+### 처리 순서
+
+1. 초안 PR은 건너뛴다(`Ready for review` 시 분석). 닫히거나 병합되면 행 상태만 바꾼다.
+2. 이미 분석한 head면 건너뛰고, 파일 변경 지문이 지난 분석과 같으면(develop 반영만 한 경우 등) AI를 다시 부르지 않고 지난 결과를 쓴다.
+3. 규칙 점검: PR 양식, 체크 표시와 CI 결과, 비밀값(최종 변경과 커밋 기록, 값은 가려서 표시), README 갱신, 작업 범위, 브랜치 이름, 커밋 형식, 주석 규칙. 충돌 파일은 PR 코드를 실행하지 않고 `git merge-tree`로 계산한다.
+4. Claude 분석: 안내서([review-baseline.md](review-baseline.md))와 비교해 요약·목표 연결·확인할 점을 정해진 JSON 형식으로 받는다. 도구를 모두 끈 채 임시 폴더에서 실행하고, 앵커가 실제 변경 줄과 맞는지 프로그램이 다시 확인한다. 현재 버전에 비밀값으로 보이는 값이 있으면 AI 분석을 생략한다.
+5. CI(`ci.yml`) 결과를 최대 10분 기다린 뒤 준비 상태(🟢 검토 준비됨 · 🟡 리더가 한 번 보기 · 🔵 함께 논의 · 🟠 보완 후 검토)를 정한다. AI 지적만으로는 🟠가 되지 않는다.
+6. 같은 PR의 이전 행은 휴지통으로 옮기고 새 행을 쓴다. 다음 분석에 쓸 상태 JSON은 리더 전용 '분석 메모리' 페이지의 `분석 상태` 표에 저장한다.
+
+AI나 Notion 기록이 실패해도 팀원 PR에 실패 표시가 남지 않도록 경고만 남기고 job은 성공으로 끝난다. 결과는 Actions 실행 화면의 경고와 요약에서 확인한다.
+
+### 설정
+
+| 이름 | 위치 | 내용 |
+|---|---|---|
+| `CLAUDE_CODE_OAUTH_TOKEN` | Environment `pr-analysis` 비밀값 | 리더 Claude 구독의 `claude setup-token` 결과(1년). API 키는 쓰지 않는다 |
+| `NOTION_REVIEW_TOKEN` | Environment `pr-analysis` 비밀값 | Notion 연결 `PR_Analysis`(읽기·업데이트·삽입) 토큰 |
+| `REVIEW_ENABLED`·`REVIEW_LLM_ENABLED` | 저장소 변수 | `true`일 때 실행·AI 분석. 끄면 즉시 중단 |
+| `REVIEW_MODEL`·`REVIEW_EFFORT` | 저장소 변수(선택) | 기본값 `opus`·`high` |
+| `REVIEW_ADMINS` | 저장소 변수(선택) | 수동 실행에서 AI 분석을 허용할 GitHub ID(쉼표 구분) |
+| `NOTION_DASHBOARD_PAGE_ID`·`NOTION_MEMORY_PAGE_ID` | 저장소 변수 | 기록 페이지('현재 작업 상황')와 상태 저장 페이지 ID |
+| `CLAUDE_TOKEN_EXPIRES_ON` | 저장소 변수 | 출입증 만료 예정일(교체 시 갱신) |
+
+- Environment `pr-analysis`는 배포 브랜치를 develop으로 제한해, 기능 브랜치의 워크플로가 비밀값을 읽지 못하게 한다.
+- 비밀값은 채팅, 코드, README, 커밋, 터미널 화면에 남기지 않는다.
+
+### 미리보기와 수동 실행
+
+```bash
+make review-preview PR=10            # 규칙 점검만, Notion에 쓰지 않고 결과를 $TMPDIR/review-preview-10.json에 저장
+make review-preview PR=10 LLM=true   # 로컬 Claude 구독 로그인으로 AI 분석까지 미리보기
+```
+
+- 실제 기록은 **Actions → PR Analysis → Run workflow**에서 PR 번호로 실행한다(`allow_draft`로 초안 분석, `force`로 같은 버전 재분석).
+- 워크플로는 develop의 스크립트만 사용하므로, 분석기 변경은 develop 병합 후에 반영된다.
 
 ## Dependabot (`.github/dependabot.yml`)
 
