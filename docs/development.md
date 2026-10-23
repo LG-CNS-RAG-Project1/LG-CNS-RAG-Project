@@ -115,7 +115,7 @@ NOTION_DRY_RUN=1 NOTION_DRY_RUN_OUTPUT=preview.json PR_NUMBER=5 \
 
 ## PR 자동 분석 (`.github/workflows/pr-analysis.yml`)
 
-develop 대상 PR이 열리거나(`opened`·`reopened`·`ready_for_review`) 수정본이 올라오면(`synchronize`) PR을 분석해 Notion '현재 작업 상황'(IdeaLens > Work In Progress)의 `PR 분석` 표에 PR별 보고서를 기록한다. 참고용이며 승인·병합·GitHub 댓글·라벨은 하지 않는다. 필수 체크가 아니다.
+develop 대상 PR이 열리거나(`opened`·`reopened`·`ready_for_review`) 수정본이 올라오면(`synchronize`) PR을 분석해 Notion `RAG 기반 미니 프로젝트: IdeaLens` 바로 아래의 `PR 분석` 표에 PR별 보고서를 기록한다. 참고용이며 승인·병합·GitHub 댓글·라벨은 하지 않는다. 필수 체크가 아니다.
 
 ### 처리 순서
 
@@ -137,7 +137,9 @@ AI나 Notion 기록이 실패해도 팀원 PR에 실패 표시가 남지 않도�
 | `REVIEW_ENABLED`·`REVIEW_LLM_ENABLED` | 저장소 변수 | `true`일 때 실행·AI 분석. 끄면 즉시 중단 |
 | `REVIEW_MODEL`·`REVIEW_EFFORT` | 저장소 변수(선택) | 기본값 `opus`·`high` |
 | `REVIEW_ADMINS` | 저장소 변수(선택) | 수동 실행에서 AI 분석을 허용할 GitHub ID(쉼표 구분) |
-| `NOTION_DASHBOARD_PAGE_ID`·`NOTION_MEMORY_PAGE_ID` | 저장소 변수 | 기록 페이지('현재 작업 상황')와 상태 저장 페이지 ID |
+| `NOTION_PR_DATABASE_ID` | 저장소 변수 | 보고서를 기록할 `PR 분석` 표 ID. 연결 `PR_Analysis`에 이 표 접근 권한이 있어야 한다 |
+| `NOTION_MEMORY_PAGE_ID` | 저장소 변수 | 상태 저장 페이지('분석 메모리') ID |
+| `NOTION_DASHBOARD_PAGE_ID` | 저장소 변수(선택) | `NOTION_PR_DATABASE_ID`가 없을 때만 사용. 이 페이지 안에 `PR 분석` 표를 만들어 기록 |
 | `CLAUDE_TOKEN_EXPIRES_ON` | 저장소 변수 | 출입증 만료 예정일(교체 시 갱신) |
 
 - Environment `pr-analysis`는 배포 브랜치를 develop으로 제한해, 기능 브랜치의 워크플로가 비밀값을 읽지 못하게 한다.

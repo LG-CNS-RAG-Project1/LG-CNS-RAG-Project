@@ -49,7 +49,7 @@
 │   ├── create_notion_pr_page.mjs  # 병합 PR의 Notion 문서화 진입점
 │   ├── notion/              # PR 본문 → Notion 블록·mermaid 다이어그램 변환
 │   ├── github/              # PR 리뷰어 무작위 지정
-│   └── review/              # PR 자동 분석(규칙 점검·Claude 분석·Notion '현재 작업 상황' 기록)
+│   └── review/              # PR 자동 분석(규칙 점검·Claude 분석·Notion 'PR 분석' 표 기록)
 ├── src/
 │   ├── main.py · pipeline.py · schemas.py  # API 진입점·분석 흐름·공통 모델
 │   ├── ingestion/           # 자료 수집·전처리·청크 생성
@@ -136,7 +136,7 @@ PR 분석용 `CLAUDE_CODE_OAUTH_TOKEN`·`NOTION_REVIEW_TOKEN`은 develop에서�
 - **CI**: develop·main 대상 PR과 push에서 black 검사, pytest, 자동화 스크립트 테스트, Docker 이미지 빌드를 실행한다.
 - **리뷰어 자동 지정**: PR에 리뷰어가 없으면 작성자를 제외한 팀원 중 한 명을 무작위로 지정한다. 후보는 저장소 변수 `REVIEWER_POOL`로 바꿀 수 있다.
 - **Notion PR 문서화**: develop에 병합된 PR의 설명을 Notion 블록으로 변환하고, 원문·커밋·변경 파일을 코드 블록으로, 변경 구조와 서비스 연결 구조를 mermaid 다이어그램으로 기록한다.
-- **PR 자동 분석**: develop 대상 PR이 열리거나 수정되면 규칙 점검과 Claude 분석 결과를 Notion '현재 작업 상황'(IdeaLens > Work In Progress)에 기록한다. 참고용이며 승인·병합·GitHub 댓글은 하지 않는다. 판단 기준은 [docs/review-baseline.md](docs/review-baseline.md).
+- **PR 자동 분석**: develop 대상 PR이 열리거나 수정되면 규칙 점검과 Claude 분석 결과를 Notion 'RAG 기반 미니 프로젝트: IdeaLens' 아래 'PR 분석' 표에 기록한다. 참고용이며 승인·병합·GitHub 댓글은 하지 않는다. 판단 기준은 [docs/review-baseline.md](docs/review-baseline.md).
 - **의존성 갱신**: Dependabot이 pip·pre-commit·GitHub Actions 버전 갱신 PR을 월 1회 묶어서 만든다.
 
 ## 구현 방향
