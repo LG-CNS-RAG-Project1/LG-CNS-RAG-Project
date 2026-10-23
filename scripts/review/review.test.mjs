@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { buildArgs, buildEnv, parseResult } from "./engine.mjs";
-import { fetchArgs } from "./github.mjs";
+import { createGitHub, fetchArgs } from "./github.mjs";
 import {
   analysisContent, cardContext, cardHasPr, cardSchema, cleanCardText, formatCards, formatRelated, mergeList, pickCardTags,
 } from "./cards.mjs";
@@ -10,7 +10,7 @@ import {
   computeReadiness, decideMode, fileSignature, findSecrets, keywordsOf, maskPatch, moduleOf, parseMappings, parsePatch,
   parseTagRules, runPrechecks, selectPatches, tagOf, tagsOf, verifyFindings,
 } from "./lib.mjs";
-import { createNotion, PR_DB_PROPERTIES, toNotionProperties } from "./notion_store.mjs";
+import { createNotion, PR_DB_PROPERTIES, repeatable, toNotionProperties } from "./notion_store.mjs";
 import { nextActions, renderReport } from "./render.mjs";
 
 // 비밀값 스캐너가 테스트용 가짜 값을 실제 키로 오인하지 않도록 실행 시 문자열을 합친다.
@@ -395,4 +395,32 @@ test("renderReport는 태그·키워드·분석 내용 열을 채우고, 기록�
   assert.deepEqual(report.state.excluded, []);
   assert.ok(JSON.stringify(report.blocks).includes("바뀐 파일 1개만 다시 분석했습니다"));
   assert.equal(renderReport({ ...sampleAnalysis, mode: "none" }, [], 3).state.seq, 4);
+});
+
+test("연결 오류(fetch failed)가 나면 GitHub 조회는 다시 보내고, Notion은 반복해도 안전한 요청만 다시 보낸다", async () => {
+  const original = globalThis.fetch;
+  let githubCalls = 0;
+  globalThis.fetch = async () => {
+    githubCalls += 1;
+    if (githubCalls < 3) throw new TypeError("fetch failed");
+    return { ok: true, status: 200, headers: { get: () => null }, json: async () => ({ number: 7 }) };
+  };
+  try {
+    const github = createGitHub({ repository: "o/r", token: "t", retryDelayMs: 0 });
+    assert.deepEqual(await github.pull(7), { number: 7 });
+    assert.equal(githubCalls, 3);
+
+    const notionCalls = [];
+    globalThis.fetch = async (url, init) => {
+      notionCalls.push(`${init.method} ${url.split("/v1/")[1]}`);
+      throw new TypeError("fetch failed");
+    };
+    const notion = createNotion({ token: "t", prDatabaseId: "pr-db", memoryPageId: "memory", delayMs: 0 });
+    await assert.rejects(notion.markClosed(7, true), /fetch failed/);
+    assert.equal(notionCalls.filter((call) => call === "GET databases/pr-db").length, 4);
+  } finally {
+    globalThis.fetch = original;
+  }
+  assert.ok(repeatable("GET", "databases/x") && repeatable("POST", "data_sources/x/query") && repeatable("PATCH", "pages/x") && repeatable("PATCH", "data_sources/x"));
+  assert.ok(!repeatable("POST", "pages") && !repeatable("PATCH", "blocks/x/children") && !repeatable("POST", "databases"));
 });

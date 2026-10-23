@@ -17,6 +17,11 @@ const select = (name) => ({ select: name ? { name: String(name).replaceAll(",", 
 const options = (names, colors = []) => ({ options: names.map((name, index) => ({ name, color: colors[index] ?? "default" })) });
 const plain = (property) => (property?.title ?? property?.rich_text ?? []).map((part) => part.plain_text ?? part.text?.content ?? "").join("");
 
+// 여러 번 보내도 결과가 같은 요청인지(조회·검색, 페이지 속성 수정, 표 구조 수정)
+export const repeatable = (method, path) =>
+  method === "GET" || method === "DELETE" || path.endsWith("/query") ||
+  (method === "PATCH" && (/^pages\/[^/]+$/.test(path) || /^data_sources\/[^/]+$/.test(path)));
+
 export const PR_DB_PROPERTIES = {
   "이름": { title: {} },
   "PR 번호": { number: { format: "number" } },
@@ -97,11 +102,19 @@ export function createNotion({ token, dashboardPageId, prDatabaseId, cardDatabas
       return { id: "dry", url: "dry", results: [], data_sources: [{ id: "dry" }] };
     }
     await sleep(delayMs);
-    const response = await fetch(`https://api.notion.com/v1/${path}`, {
-      method,
-      headers: { Authorization: `Bearer ${token}`, "Notion-Version": VERSION, "Content-Type": "application/json" },
-      body: body ? JSON.stringify(body) : undefined,
-    });
+    let response;
+    try {
+      response = await fetch(`https://api.notion.com/v1/${path}`, {
+        method,
+        headers: { Authorization: `Bearer ${token}`, "Notion-Version": VERSION, "Content-Type": "application/json" },
+        body: body ? JSON.stringify(body) : undefined,
+      });
+    } catch (error) {
+      // 연결 오류는 다시 보내도 결과가 같은 요청(조회·검색·속성 수정)만 다시 보낸다. 행 만들기·블록 추가는 중복을 막기 위해 다시 보내지 않는다.
+      if (!repeatable(method, path) || attempt >= 4) throw error;
+      await sleep(delayMs * 2 ** attempt);
+      return call(method, path, body, attempt + 1);
+    }
     const retryable = response.status === 429 || response.status === 529 || (response.status >= 500 && (method === "GET" || method === "DELETE"));
     if (retryable && attempt < 4) {
       await sleep(Math.min(Number(response.headers.get("retry-after")) * 1000 || 1000 * 2 ** attempt, 60_000));

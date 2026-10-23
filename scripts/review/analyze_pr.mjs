@@ -44,6 +44,13 @@ if (!dryRun && (!env.NOTION_REVIEW_TOKEN || !env.NOTION_MEMORY_PAGE_ID || !(env.
 
 const warn = (message) => console.log(env.GITHUB_ACTIONS ? `::warning::${message}` : `경고: ${message}`);
 const summary = (line) => env.GITHUB_STEP_SUMMARY && appendFileSync(env.GITHUB_STEP_SUMMARY, `${line}\n`);
+
+// 처리하지 못한 오류(네트워크 오류 등)도 팀원 PR에 실패 표시를 남기지 않도록 경고로 바꾸고 정상 종료한다.
+process.on("uncaughtException", (error) => {
+  warn(`PR 분석을 마치지 못했습니다: ${error?.message ?? error}`);
+  summary(`### PR 분석 (참고용)\n- PR #${prNumber} · 분석 중단: ${error?.message ?? error}`);
+  process.exit(0);
+});
 const nonceOf = () => randomBytes(6).toString("hex");
 
 const github = createGitHub({ repository, token: env.GITHUB_TOKEN });
