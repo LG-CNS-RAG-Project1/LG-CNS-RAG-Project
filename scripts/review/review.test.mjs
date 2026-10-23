@@ -7,7 +7,7 @@ import {
   computeReadiness, fileSignature, findSecrets, maskPatch, moduleOf, parseMappings, parsePatch,
   runPrechecks, selectPatches, verifyFindings,
 } from "./lib.mjs";
-import { toNotionProperties } from "./notion_store.mjs";
+import { createNotion, toNotionProperties } from "./notion_store.mjs";
 import { nextActions, renderReport } from "./render.mjs";
 
 // 비밀값 스캐너가 테스트용 가짜 값을 실제 키로 오인하지 않도록 실행 시 문자열을 합친다.
@@ -183,4 +183,30 @@ test("toNotionProperties는 쉼표를 뺀 select 값과 날짜를 만든다", ()
   assert.equal(properties["준비 상태"].select.name, "a b");
   assert.equal(properties["마지막 분석"].date.start, "2026-10-23T00:00:00Z");
   assert.deepEqual(properties["담당 영역"].multi_select, [{ name: "x" }]);
+});
+
+test("createNotion은 표 ID가 있으면 현황판 페이지를 건드리지 않고 그 표에 기록한다", async () => {
+  const calls = [];
+  const original = globalThis.fetch;
+  globalThis.fetch = async (url, init) => {
+    const path = url.replace("https://api.notion.com/v1/", "");
+    calls.push(`${init.method} ${path.split("?")[0]}`);
+    let data = {};
+    if (path.startsWith("databases/")) data = { id: path.slice(10), data_sources: [{ id: "ds" }] };
+    else if (path.startsWith("blocks/memory/children")) data = { results: [{ id: "state-db", type: "child_database", child_database: { title: "분석 상태" } }] };
+    else if (path.endsWith("/query")) data = { results: [] };
+    else if (path === "pages") data = { id: "row", url: "https://notion.so/row" };
+    return { ok: true, status: 200, headers: { get: () => null }, json: async () => data };
+  };
+  try {
+    const notion = createNotion({ token: "t", dashboardPageId: "dashboard", prDatabaseId: "pr-db", memoryPageId: "memory" });
+    const result = await notion.publish(7, { title: "[PR #7] 예시", properties: {}, blocks: [], state: { seq: 1 } });
+    assert.equal(result.url, "https://notion.so/row");
+    assert.equal(await notion.markClosed(7, true), 0);
+  } finally {
+    globalThis.fetch = original;
+  }
+  assert.ok(calls.includes("GET databases/pr-db"));
+  assert.ok(calls.every((call) => !call.includes("dashboard")));
+  assert.ok(!calls.includes("POST databases"));
 });
