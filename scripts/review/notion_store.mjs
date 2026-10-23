@@ -1,5 +1,5 @@
 // PR 분석 결과를 Notion에 기록하고 이전 분석 상태를 읽는다.
-// - 현황판 페이지: 처음 한 번 골격과 'PR 분석' 표를 만들고, 이후에는 같은 표를 다시 쓴다.
+// - PR 분석 표: 표 ID(prDatabaseId)가 있으면 그 표에 바로 쓴다. 없으면 현황판 페이지에 처음 한 번 골격과 'PR 분석' 표를 만들고, 이후에는 같은 표를 다시 쓴다.
 // - PR 행: 같은 PR 번호의 이전 행을 휴지통으로 보낸 뒤 새로 만든다(한 PR = 한 행).
 // - 메모리 페이지: '분석 상태' 표에 PR별 상태 JSON을 저장한다(1900자 단위로 나눠 저장).
 import { bulleted, callout, chunkBlocks, heading, paragraph, splitText, text, toRichText } from "../notion/blocks.mjs";
@@ -62,7 +62,7 @@ export function toNotionProperties(title, values) {
   };
 }
 
-export function createNotion({ token, dashboardPageId, memoryPageId, dryRun = false, log = console.log }) {
+export function createNotion({ token, dashboardPageId, prDatabaseId, memoryPageId, dryRun = false, log = console.log }) {
   let requests = 0;
 
   async function call(method, path, body, attempt = 1) {
@@ -141,6 +141,12 @@ export function createNotion({ token, dashboardPageId, memoryPageId, dryRun = fa
     });
   }
 
+  // 표 ID가 있으면 그 표를 읽고, 없으면 현황판 안의 'PR 분석' 표를 찾는다(create면 없을 때 만든다).
+  async function getPrDatabase({ create }) {
+    if (prDatabaseId) return call("GET", `databases/${prDatabaseId}`);
+    return create ? ensurePrDatabase() : findChildDatabase(dashboardPageId, PR_DB_TITLE);
+  }
+
   async function ensureStateDatabase() {
     const existing = await findChildDatabase(memoryPageId, STATE_DB_TITLE);
     if (existing) return existing;
@@ -174,7 +180,7 @@ export function createNotion({ token, dashboardPageId, memoryPageId, dryRun = fa
 
     // PR 보고서 행을 새로 쓰고 상태 JSON을 저장한다.
     async publish(prNumber, report) {
-      const prDatabase = await ensurePrDatabase();
+      const prDatabase = await getPrDatabase({ create: true });
       for (const old of await findRows(prDatabase, prNumber)) await call("PATCH", `pages/${old.id}`, { in_trash: true });
       const [first, ...rest] = chunkBlocks(report.blocks);
       const row = await createRow(prDatabase, toNotionProperties(report.title, report.properties), first);
@@ -195,7 +201,7 @@ export function createNotion({ token, dashboardPageId, memoryPageId, dryRun = fa
 
     // 닫히거나 병합된 PR 행의 상태만 바꾼다(AI 호출 없음).
     async markClosed(prNumber, merged) {
-      const database = await findChildDatabase(dashboardPageId, PR_DB_TITLE);
+      const database = await getPrDatabase({ create: false });
       if (!database) return 0;
       const rows = await findRows(database, prNumber);
       for (const row of rows) {

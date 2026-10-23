@@ -1,6 +1,6 @@
 name: PR Analysis
 
-# develop 대상 PR이 열리거나 수정되면 PR을 분석해 Notion '현재 작업 상황'에 기록한다(참고용, GitHub에는 쓰지 않음).
+# develop 대상 PR이 열리거나 수정되면 PR을 분석해 Notion 'PR 분석' 표에 기록한다(참고용, GitHub에는 쓰지 않음).
 # pull_request_target이므로 develop에 있는 이 파일과 스크립트만 실행하고, PR 코드는 checkout하거나 실행하지 않는다.
 # 켜고 끄기: 저장소 변수 REVIEW_ENABLED(전체)·REVIEW_LLM_ENABLED(AI 분석). 비밀값은 Environment pr-analysis에 둔다.
 on:
@@ -71,6 +71,7 @@ jobs:
           NOTION_REVIEW_TOKEN: ${{ secrets.NOTION_REVIEW_TOKEN }}
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           NOTION_DASHBOARD_PAGE_ID: ${{ vars.NOTION_DASHBOARD_PAGE_ID }}
+          NOTION_PR_DATABASE_ID: ${{ vars.NOTION_PR_DATABASE_ID }}
           NOTION_MEMORY_PAGE_ID: ${{ vars.NOTION_MEMORY_PAGE_ID }}
           REVIEW_LLM_ENABLED: ${{ vars.REVIEW_LLM_ENABLED }}
           REVIEW_MODEL: ${{ vars.REVIEW_MODEL }}

@@ -1,4 +1,4 @@
-// PR 1건을 분석해 Notion '현재 작업 상황'에 기록하는 진입점이다(GitHub Actions 또는 로컬 미리보기).
+// PR 1건을 분석해 Notion 'PR 분석' 표에 기록하는 진입점이다(GitHub Actions 또는 로컬 미리보기).
 // 순서: PR 수집 → 이전 상태 확인 → 규칙 점검·충돌 계산 → (필요할 때만) Claude 분석 → CI 결과 대기 → 준비 상태 → Notion 기록.
 // AI나 Notion이 실패해도 팀원 PR에 실패 표시가 남지 않도록 경고만 남기고 정상 종료한다.
 import { appendFileSync, readFileSync, writeFileSync } from "node:fs";
@@ -31,8 +31,8 @@ const model = env.REVIEW_MODEL || "opus";
 const effort = env.REVIEW_EFFORT || "high";
 
 if (!Number.isSafeInteger(prNumber) || prNumber < 1) throw new Error("PR_NUMBER는 양의 정수여야 합니다.");
-if (!dryRun && (!env.NOTION_REVIEW_TOKEN || !env.NOTION_DASHBOARD_PAGE_ID || !env.NOTION_MEMORY_PAGE_ID)) {
-  throw new Error("NOTION_REVIEW_TOKEN, NOTION_DASHBOARD_PAGE_ID, NOTION_MEMORY_PAGE_ID가 필요합니다.");
+if (!dryRun && (!env.NOTION_REVIEW_TOKEN || !env.NOTION_MEMORY_PAGE_ID || !(env.NOTION_PR_DATABASE_ID || env.NOTION_DASHBOARD_PAGE_ID))) {
+  throw new Error("NOTION_REVIEW_TOKEN, NOTION_MEMORY_PAGE_ID와 NOTION_PR_DATABASE_ID(또는 NOTION_DASHBOARD_PAGE_ID)가 필요합니다.");
 }
 
 const warn = (message) => console.log(env.GITHUB_ACTIONS ? `::warning::${message}` : `경고: ${message}`);
@@ -42,6 +42,7 @@ const github = createGitHub({ repository, token: env.GITHUB_TOKEN });
 const notion = createNotion({
   token: env.NOTION_REVIEW_TOKEN,
   dashboardPageId: env.NOTION_DASHBOARD_PAGE_ID,
+  prDatabaseId: env.NOTION_PR_DATABASE_ID || undefined,
   memoryPageId: env.NOTION_MEMORY_PAGE_ID,
   dryRun,
 });
