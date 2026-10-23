@@ -1,7 +1,14 @@
 // 분석 결과를 Notion PR 행(속성 + 본문 블록)과 분석 상태 JSON으로 바꾼다. 네트워크 호출은 하지 않는다.
 import { bulleted, callout, countBlocks, divider, enforceLimits, heading, paragraph, table, text, toRichText, toggle } from "../notion/blocks.mjs";
+import { analysisContent } from "./cards.mjs";
 import { LABELS } from "./labels.mjs";
 import { sha256 } from "./lib.mjs";
+
+// 상태 JSON 형식 버전. 바뀌면 다음 수정본은 처음부터 전체 분석한다.
+export const STATE_VERSION = 2;
+
+const modeText = (analysis) =>
+  `${LABELS.mode[analysis.mode]}${analysis.mode === "incremental" ? `(바뀐 파일 ${analysis.changed_files.length}개)` : ""}`;
 
 const kst = (iso) => `${new Date(iso).toLocaleString("sv-SE", { timeZone: "Asia/Seoul" }).slice(0, 16)} KST`;
 const fileLink = (analysis, path, line) =>
@@ -54,8 +61,8 @@ function findingBlock(analysis, finding) {
 
 const tokens = (usage) => usage ? `입력 ${(usage.input ?? 0) + (usage.cache_read ?? 0) + (usage.cache_write ?? 0)}토큰 / 출력 ${usage.output ?? 0}토큰` : "-";
 
-// 분석 결과로 PR 행 제목·속성·본문 블록과 다음 실행에 쓸 상태 JSON을 만든다.
-export function renderReport(analysis, previousHistory = []) {
+// 분석 결과로 PR 행 제목·속성·본문 블록과 다음 실행에 쓸 상태 JSON을 만든다. previousSeq는 지난 상태의 기록 차수다.
+export function renderReport(analysis, previousHistory = [], previousSeq = previousHistory.length) {
   const { pr, readiness, output, findings, ci, conflict, prechecks, llm, coverage } = analysis;
   const readinessLabel = LABELS.readiness[readiness.state];
   const reasonText = readiness.reasons.map((item) => item.reason).join(", ");
@@ -73,7 +80,7 @@ export function renderReport(analysis, previousHistory = []) {
     { text: `준비 상태: ${readinessLabel} — ${reasonText}\n` },
     ...(readiness.if_not_draft ? [{ text: `초안이 아니었다면: ${LABELS.readiness[readiness.if_not_draft[0].state]} — ${readiness.if_not_draft.map((item) => item.reason).join(", ")}\n` }] : []),
     { text: `목표 연결: ${goal}\n` },
-    { text: `분석한 버전 ${pr.head_sha.slice(0, 7)} · ${LABELS.mode[analysis.mode]} · 범위 ${coverage.state === "full" ? "전체" : `일부(제외 ${coverage.excluded.length}개)`}`, italic: true },
+    { text: `분석한 버전 ${pr.head_sha.slice(0, 7)} · ${modeText(analysis)} · 범위 ${coverage.state === "full" ? "전체" : `일부(제외 ${coverage.excluded.length}개)`}`, italic: true },
   ]), "🧭", "blue_background"));
 
   blocks.push(heading(2, text("다음에 할 일")));
@@ -92,7 +99,9 @@ export function renderReport(analysis, previousHistory = []) {
   if (!last) blocks.push(paragraph(text(`첫 분석입니다. 🆕 새로 발견 ${findings.length}건.`)));
   else {
     const before = LABELS.readiness[last.readiness] ?? last.readiness;
-    const change = analysis.mode === "none" ? "코드 변경 없음(공용본 반영 등) — 지난 AI 결과를 유지했습니다." : `🆕 이번 분석 확인할 점 ${findings.length}건(지난번 ${last.findings ?? "-"}건).`;
+    const change = analysis.mode === "none"
+      ? "코드 변경 없음(공용본 반영 등) — 지난 AI 결과를 유지했습니다."
+      : `${analysis.mode === "incremental" ? `바뀐 파일 ${analysis.changed_files.length}개만 다시 분석했습니다. ` : ""}🆕 이번 분석 확인할 점 ${findings.length}건(지난번 ${last.findings ?? "-"}건).`;
     blocks.push(paragraph(text(`지난 분석 ${last.head}(${last.at ? kst(last.at) : "-"}) → 이번 ${pr.head_sha.slice(0, 7)}. ${change} 준비 상태: ${before} → ${readinessLabel}`)));
   }
 
@@ -106,7 +115,7 @@ export function renderReport(analysis, previousHistory = []) {
     blocks.push(...claimBlocks(output.goal_fit.claims));
 
     blocks.push(heading(2, text("다른 부분에 주는 영향")));
-    blocks.push(paragraph(text(`${LABELS.module[output.module_fit.rating]} · ${LABELS.impact[output.module_fit.contract_impact]} · 영역: ${analysis.touched_modules.join(", ") || "없음"}`)));
+    blocks.push(paragraph(text(`${LABELS.module[output.module_fit.rating]} · ${LABELS.impact[output.module_fit.contract_impact]} · 태그: ${analysis.tags.join(", ") || "없음"}`)));
     blocks.push(...claimBlocks(output.module_fit.claims));
   }
 
@@ -167,7 +176,9 @@ export function renderReport(analysis, previousHistory = []) {
     "준비 상태": readinessLabel,
     "준비 상태 사유": reasonText,
     "목표 연결": output ? LABELS.goal[output.goal_fit.rating] : "AI 분석 없음",
-    "담당 영역": analysis.touched_modules,
+    "태그": analysis.tags,
+    "키워드": analysis.keywords.join(", "),
+    "분석 내용": analysisContent(output),
     "꼭 고칠 점": findings.filter((item) => item.severity === "blocker").length,
     "남은 확인": findings.length,
     "자동 검사": LABELS.ci[ci.state] ?? ci.state,
@@ -178,18 +189,22 @@ export function renderReport(analysis, previousHistory = []) {
     "한 줄 요약": output?.summary?.one_line ?? pr.title,
   };
   const state = {
-    v: 1,
+    v: STATE_VERSION,
     analyzer: analysis.analyzer,
     head: pr.head_sha,
     merge_base: analysis.merge_base,
     mode: analysis.mode,
     coverage: coverage.state,
+    excluded: coverage.excluded,
+    tags: analysis.tags,
+    keywords: analysis.keywords,
+    context_used: analysis.context_used ?? null,
     llm: { status: llm.status, models: llm.models, usage: llm.usage },
     files: Object.fromEntries(analysis.files.map((file) => [file.path, { sig: file.sig }])),
     output,
     findings: findings.map(({ id, severity, category, file, line, title, kind, anchor_found }) => ({ id, severity, category, file, line, title, kind, anchor_found, status: "open" })),
     history,
-    seq: (previousHistory.length || 0) + 1,
+    seq: (previousSeq || 0) + 1,
   };
   return {
     title: `[PR #${pr.number}] ${pr.title}`,

@@ -53,4 +53,5 @@ export const LABELS = {
   analysis: { done: "완료", reused: "완료(지난 결과 유지)", failed: "AI 분석 안 됨", skipped: "AI 분석 안 함" },
   owner: { author: "작성자", leader: "리더", team: "팀" },
   prState: { open: "열림", draft: "초안", merged: "병합", closed: "닫힘" },
+  record: { latest: "최신", previous: "이전 분석" },
 };
