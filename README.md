@@ -82,15 +82,17 @@ docker compose down               # 종료 (make down)
 - Docker 없이 실행할 때는 Python 3.12 가상환경에서 `pip install -r requirements-dev.txt`를 실행한다.
 - `make help`로 공용 명령 목록을 확인한다. 상세 내용은 [docs/development.md](docs/development.md)를 참고한다.
 
-### 시장 뉴스 수집
+### 시장 뉴스 수집·정제
 
 ```bash
-python -m src.ingestion.news_client --keyword-id smart_factory --max-items 10   # 키워드 1개
-python -m src.ingestion.news_client                                             # 전체 키워드
+python -m src.ingestion.news_client --keyword-id smart_factory --max-items 10   # 키워드 1개 수집
+python -m src.ingestion.news_client                                             # 전체 키워드 수집
+python -m src.ingestion.market_processor                                        # 원본 → MarketDocument 정제
 ```
 
 - 키워드·수집 기준은 `configs/market_keywords.yaml`에서 관리한다.
 - NAVER API HUB 뉴스 검색 API의 제목·요약·링크·발행일만 `data/market/raw/news_{keyword_id}_{수집일}.json`에 저장한다.
+- 정제 단계는 같은 URL 기사를 합치고, 제목 유사도 0.8 초과·발행일 3일 이내 기사를 같은 `dup_group`으로 묶어 대표 1건만 `data/market/processed/market_docs.jsonl`에 저장한다.
 
 ## 환경변수
 
