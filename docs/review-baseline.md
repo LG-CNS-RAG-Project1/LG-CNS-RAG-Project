@@ -26,6 +26,12 @@
 - B-MOD-2 [초안] 서비스 구조: 사용자 → `frontend/`(Streamlit UI) → `src/main.py`(FastAPI) → `src/services/` → `src/pipeline.py` → `src/ingestion/`·`src/retrieval/`·`src/generation/`. API 계약 문서(`docs/api_contract.md`)는 비어 있다.
 - B-MOD-3 [초안] 비밀값(API 키)은 `.env`에만 두고 `.env.example`에는 이름만 둔다.
 
+## 태그 규칙
+- B-TAG [비어 있음] PR 분석이 변경 파일에 붙이는 서비스 계층 태그는 기본적으로 `docs/architecture.md`의 경로 매핑을 따른다. 매핑에 없는 경로나 따로 묶을 파일이 있으면 리더가 아래 코드 블록에 `%% tag 경로패턴 태그` 형식으로 한 줄씩 추가한다(예: `%% tag tests/test_market* ingestion`, 줄 맨 앞에 써야 적용). 패턴은 경로 접두사이거나 `*`(한 단계)·`**`(여러 단계)를 쓴 경로 글롭이며, 위에 있는 규칙이 먼저 적용된다.
+
+```text
+```
+
 ## 팀 규칙
 - B-RULE-1 [초안] 한 기능 브랜치(`feature/영문소문자-하이픈`)에는 그 기능과 직접 관련된 작업만 한다(AGENTS §2).
 - B-RULE-2 [초안] 기능·구조·파일이 바뀌면 README.md를 함께 갱신한다(AGENTS §4).

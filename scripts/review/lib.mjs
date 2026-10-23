@@ -105,6 +105,83 @@ export const isCommonPath = (path) =>
   path === "README.md" || /^requirements.*\.txt$/.test(path) || path === ".env.example" ||
   path === ".gitignore" || path.startsWith("docs/") || path.startsWith("configs/");
 
+// ---------- 태그·키워드 ----------
+// 안내서의 태그 규칙 줄(줄 맨 앞 '%% tag 패턴 태그')을 읽는다.
+export function parseTagRules(markdown) {
+  return [...String(markdown).matchAll(/^%% tag (\S+) (\S+)\s*$/gm)].map((match) => ({ pattern: match[1], tag: match[2] }));
+}
+
+const escapeRegExp = (value) => value.replace(/[.+?^${}()|[\]\\]/g, "\\$&");
+
+// 경로 글롭을 정규식으로 바꾼다. '**/'는 0단계 이상의 폴더, '**'는 아무 문자열, '*'는 한 단계 안의 문자열이다.
+function globToRegExp(glob) {
+  let source = "";
+  for (let index = 0; index < glob.length; index += 1) {
+    if (glob.startsWith("**/", index)) {
+      source += "(?:.*/)?";
+      index += 2;
+    } else if (glob.startsWith("**", index)) {
+      source += ".*";
+      index += 1;
+    } else if (glob[index] === "*") {
+      source += "[^/]*";
+    } else {
+      source += escapeRegExp(glob[index]);
+    }
+  }
+  return new RegExp(`^${source}$`);
+}
+
+// 패턴에 *가 있으면 경로 글롭(*는 한 단계, **는 여러 단계), 없으면 경로 접두사로 비교한다.
+function ruleHits(path, pattern) {
+  if (pattern.includes("*")) return globToRegExp(pattern).test(path);
+  return pattern.endsWith("/") ? path.startsWith(pattern) : path === pattern || path.startsWith(`${pattern}/`);
+}
+
+// 파일의 계층 태그. 안내서 태그 규칙 중 먼저 맞는 것을 쓰고, 없으면 구조도 매핑(가장 긴 접두사)을 쓴다.
+export function tagOf(path, mappings, rules = []) {
+  return rules.find((rule) => ruleHits(path, rule.pattern))?.tag ?? moduleOf(path, mappings);
+}
+
+export const tagsOf = (paths, mappings, rules = []) =>
+  [...new Set(paths.map((path) => tagOf(path, mappings, rules)).filter(Boolean))];
+
+// 어느 PR에나 나오는 단어는 관련 기록 찾기에 쓸모가 없어 키워드에서 뺀다.
+export const KEYWORD_STOPWORDS = new Set(["test", "tests", "init", "main", "index", "readme", "requirements", "src"]);
+
+// 변경 파일 이름(확장자 제외)을 영문·숫자 단위로 나눠 3자 이상 단어를 키워드로 뽑는다.
+export function keywordsOf(paths, limit = 10) {
+  const words = [];
+  for (const path of paths) {
+    const base = path.split("/").pop().replace(/\.[^.]+$/, "").toLowerCase();
+    for (const word of base.split(/[^a-z0-9]+/)) {
+      if (word.length >= 3 && /[a-z]/.test(word) && !KEYWORD_STOPWORDS.has(word)) words.push(word);
+    }
+  }
+  return [...new Set(words)].slice(0, limit);
+}
+
+// ---------- 분석 방식 ----------
+// 바뀌면 전체를 다시 봐야 하는 공통 계약 파일
+export const CONTRACT_FILES = ["src/schemas.py", "src/main.py"];
+
+// 지난 분석 상태와 파일 지문을 비교해 분석 방식을 정한다.
+// full: 지난 AI 결과 없음·강제·상태 형식 변경·계약 파일 변경·파일 60% 이상 변경, none: 바뀐 파일 없음, incremental: 그 밖.
+export function decideMode({ previous, signatures, force = false, stateVersion = null }) {
+  const paths = Object.keys(signatures);
+  const before = previous?.files ?? {};
+  const changed = paths.filter((path) => before[path]?.sig !== signatures[path]);
+  const removed = Object.keys(before).filter((path) => !(path in signatures));
+  const full = (reason) => ({ mode: "full", changed: paths, removed, reason });
+  if (!previous?.output) return full("first");
+  if (force) return full("force");
+  if (stateVersion !== null && previous.v !== stateVersion) return full("state_version");
+  if (!changed.length && !removed.length) return { mode: "none", changed, removed, reason: "same" };
+  if (changed.some((path) => CONTRACT_FILES.includes(path))) return full("contract");
+  if (paths.length && changed.length / paths.length >= 0.6) return full("most_changed");
+  return { mode: "incremental", changed, removed, reason: "partial" };
+}
+
 // ---------- 규칙 점검 ----------
 const COMMENT_PATTERNS = [
   /\b20\d{2}[-./]\d{1,2}([-./]\d{1,2})?\b/, /\bv\d+(\.\d+)+\b/, /@author|author:|작성자\s*[:：]/i,

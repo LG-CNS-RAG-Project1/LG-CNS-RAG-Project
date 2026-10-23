@@ -5,17 +5,25 @@ import { CI_JOBS } from "./lib.mjs";
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-export function createGitHub({ repository, token }) {
+export function createGitHub({ repository, token, retryDelayMs = 1000 }) {
+  // GET 요청이다. 429·5xx 응답과 연결 오류(오래 기다리는 사이 끊긴 연결의 EPIPE 등)는 최대 3번 다시 보낸다.
   async function get(path, attempt = 1) {
-    const response = await fetch(`https://api.github.com/${path}`, {
-      headers: {
-        Accept: "application/vnd.github+json",
-        "X-GitHub-Api-Version": "2022-11-28",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-    });
+    let response;
+    try {
+      response = await fetch(`https://api.github.com/${path}`, {
+        headers: {
+          Accept: "application/vnd.github+json",
+          "X-GitHub-Api-Version": "2022-11-28",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+    } catch (error) {
+      if (attempt >= 4) throw error;
+      await sleep(retryDelayMs * 2 ** attempt);
+      return get(path, attempt + 1);
+    }
     if ((response.status === 429 || response.status >= 500) && attempt < 4) {
-      await sleep(Math.min(Number(response.headers.get("retry-after")) * 1000 || 1000 * 2 ** attempt, 60_000));
+      await sleep(Math.min(Number(response.headers.get("retry-after")) * 1000 || retryDelayMs * 2 ** attempt, 60_000));
       return get(path, attempt + 1);
     }
     if (!response.ok) throw new Error(`GitHub API ${response.status}: ${path.split("?")[0]}`);
