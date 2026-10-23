@@ -74,3 +74,57 @@ keywords:
     query: 현장 작업자 AI 어시스턴트
     idea_ids: [SF-05]
     dimensions: [competition, adoption_barrier]
+
+  # 차원별 보강: 가격·구매자(도입 사례)·도입장벽 근거
+  - id: smart_factory_barrier
+    query: 스마트공장 도입 애로
+    idea_ids: [SF-01, SF-02, SF-03, SF-04, SF-05]
+    dimensions: [adoption_barrier]
+  - id: sme_automation_cost
+    query: 중소기업 자동화 설비 투자 비용
+    idea_ids: [SF-01, SF-02, SF-03, SF-04, SF-05]
+    dimensions: [price, adoption_barrier]
+  - id: cobot_cost
+    query: 협동로봇 도입 비용
+    idea_ids: [SF-01]
+    dimensions: [price]
+  - id: cobot_case
+    query: 협동로봇 도입 사례 중소기업
+    idea_ids: [SF-01]
+    dimensions: [buyer]
+  - id: cobot_barrier
+    query: 협동로봇 도입 어려움
+    idea_ids: [SF-01]
+    dimensions: [adoption_barrier]
+  - id: vision_inspection_case
+    query: 비전검사 도입 사례
+    idea_ids: [SF-02]
+    dimensions: [buyer]
+  - id: vision_inspection_cost
+    query: 비전검사 장비 가격
+    idea_ids: [SF-02]
+    dimensions: [price]
+  - id: predictive_maintenance_case
+    query: 예지보전 도입 사례
+    idea_ids: [SF-03]
+    dimensions: [buyer]
+  - id: predictive_maintenance_cost
+    query: 예지보전 구축 비용
+    idea_ids: [SF-03]
+    dimensions: [price]
+  - id: fems_cost
+    query: FEMS 구축 비용
+    idea_ids: [SF-04]
+    dimensions: [price]
+  - id: fems_effect
+    query: FEMS 도입 효과
+    idea_ids: [SF-04]
+    dimensions: [buyer]
+  - id: manufacturing_ai_barrier
+    query: 제조 AI 도입 장벽
+    idea_ids: [SF-05]
+    dimensions: [adoption_barrier]
+  - id: factory_voice_ai
+    query: 생산현장 음성 AI
+    idea_ids: [SF-05]
+    dimensions: [competition]
