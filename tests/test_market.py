@@ -1,6 +1,15 @@
+import json
+
 import pytest
 from pydantic import ValidationError
 
+from src.ingestion.market_processor import (
+    build_documents,
+    group_duplicates,
+    load_raw_news,
+    merge_by_source_id,
+    save_documents,
+)
 from src.schemas import (
     MarketClaim,
     MarketDimensionResult,
@@ -148,3 +157,100 @@ def test_no_results():
 
     assert report.evidence == []
     assert report.dimensions == []
+
+
+def make_raw(source_id, title, published_at=20261020, **overrides):
+    data = dict(
+        source_id=source_id,
+        title=title,
+        description=f"{title} 관련 요약",
+        url=f"https://www.example.com/{source_id}",
+        domain="www.example.com",
+        published_at=published_at,
+        collected_at=20261022,
+        keyword_id="cobot_adoption",
+        idea_ids=["SF-01"],
+    )
+    data.update(overrides)
+    return data
+
+
+def test_merge_by_source_id_unions_idea_ids():
+    merged = merge_by_source_id(
+        [
+            make_raw("news-a", "협동로봇 도입 확대"),
+            make_raw(
+                "news-a",
+                "협동로봇 도입 확대",
+                keyword_id="smart_factory",
+                idea_ids=["SF-02"],
+            ),
+        ]
+    )
+
+    assert len(merged) == 1
+    assert merged[0]["idea_ids"] == {"SF-01", "SF-02"}
+    assert merged[0]["keyword_ids"] == {"cobot_adoption", "smart_factory"}
+
+
+def test_group_duplicates_by_title_and_date():
+    records = merge_by_source_id(
+        [
+            make_raw("news-a", "두산로보틱스, 협동로봇 신제품 출시", 20261020),
+            make_raw("news-b", "두산로보틱스 협동로봇 신제품 출시", 20261021),
+            make_raw("news-c", "두산로보틱스, 협동로봇 신제품 출시", 20261001),
+            make_raw("news-d", "LS일렉트릭 FEMS 사업 확대", 20261020),
+        ]
+    )
+    groups = {frozenset(r["source_id"] for r in g) for g in group_duplicates(records)}
+
+    assert frozenset({"news-a", "news-b"}) in groups
+    assert frozenset({"news-c"}) in groups
+    assert frozenset({"news-d"}) in groups
+
+
+def test_build_documents_keeps_representative():
+    documents = build_documents(
+        [
+            make_raw("news-a", "두산로보틱스, 협동로봇 신제품 출시", 20261021),
+            make_raw(
+                "news-b",
+                "두산로보틱스 협동로봇 신제품 출시",
+                20261020,
+                idea_ids=["SF-02"],
+            ),
+        ]
+    )
+
+    assert len(documents) == 1
+    doc = documents[0]
+    assert doc.source_id == "news-b"
+    assert doc.dup_group == "news-b"
+    assert doc.idea_ids == ["SF-01", "SF-02"]
+    assert doc.publisher == "example.com"
+    assert doc.reliability == "medium"
+    assert doc.evidence_nature == "business_signal"
+    assert doc.text.startswith("두산로보틱스 협동로봇 신제품 출시\n")
+
+
+def test_build_documents_without_description():
+    documents = build_documents([make_raw("news-a", "스마트공장 보급", description="")])
+
+    assert documents[0].text == "스마트공장 보급"
+
+
+def test_processor_roundtrip(tmp_path):
+    raw_dir = tmp_path / "raw"
+    raw_dir.mkdir()
+    payload = {"items": [make_raw("news-a", "예지보전 솔루션 도입")]}
+    (raw_dir / "news_test_20261022.json").write_text(
+        json.dumps(payload, ensure_ascii=False), encoding="utf-8"
+    )
+
+    path = save_documents(
+        build_documents(load_raw_news(raw_dir)), tmp_path / "docs.jsonl"
+    )
+    lines = path.read_text(encoding="utf-8").splitlines()
+
+    assert len(lines) == 1
+    assert MarketDocument.model_validate_json(lines[0]).source_id == "news-a"

@@ -105,15 +105,17 @@ UI 담당자는 Python 3.12 가상환경에서 다음 명령으로 화면을 실
 `frontend/demo.py`는 시연 데이터와 보고서, `frontend/styles.css`는 화면 스타일,
 `tests/test_frontend.py`는 입력·근거 선택·시연 상태 검증을 담당한다.
 
-### 시장 뉴스 수집
+### 시장 뉴스 수집·정제
 
 ```bash
-python -m src.ingestion.news_client --keyword-id smart_factory --max-items 10   # 키워드 1개
-python -m src.ingestion.news_client                                             # 전체 키워드
+python -m src.ingestion.news_client --keyword-id smart_factory --max-items 10   # 키워드 1개 수집
+python -m src.ingestion.news_client                                             # 전체 키워드 수집
+python -m src.ingestion.market_processor                                        # 원본 → MarketDocument 정제
 ```
 
 - 키워드·수집 기준은 `configs/market_keywords.yaml`에서 관리한다.
 - NAVER API HUB 뉴스 검색 API의 제목·요약·링크·발행일만 `data/market/raw/news_{keyword_id}_{수집일}.json`에 저장한다.
+- 정제 단계는 같은 URL 기사를 합치고, 제목 유사도 0.8 초과·발행일 3일 이내 기사를 같은 `dup_group`으로 묶어 대표 1건만 `data/market/processed/market_docs.jsonl`에 저장한다.
 
 ## 환경변수
 
