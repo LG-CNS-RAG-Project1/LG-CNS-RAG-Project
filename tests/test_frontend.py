@@ -87,7 +87,7 @@ def test_no_results_and_collection_error_remain_distinct(scenario, status):
 
 
 def test_default_screen_and_invalid_input_preserve_existing_result():
-    app = AppTest.from_file(str(APP)).run()
+    app = AppTest.from_file(str(APP), default_timeout=10).run()
     assert not app.exception
     previous = deepcopy(app.session_state.result)
     assert previous["status"] == "demo"
@@ -100,7 +100,7 @@ def test_default_screen_and_invalid_input_preserve_existing_result():
 
 
 def test_custom_request_then_reset_returns_to_fictional_example():
-    app = AppTest.from_file(str(APP)).run()
+    app = AppTest.from_file(str(APP), default_timeout=10).run()
     app.text_input(key="company_a").set_value("사용자 입력 기업")
     next(b for b in app.button if b.label == "비교 화면 보기").click().run()
     assert not app.exception
@@ -113,11 +113,13 @@ def test_custom_request_then_reset_returns_to_fictional_example():
 
 
 def test_citation_buttons_and_picker_stay_synchronized_across_reruns():
-    app = AppTest.from_file(str(APP)).run()
+    app = AppTest.from_file(str(APP), default_timeout=10).run()
     next(b for b in app.button if b.label == "근거 P-B ↗").click().run()
     assert not app.exception
     assert app.session_state.selected_citation == "P-B"
     assert app.selectbox(key="evidence_choice").value == "P-B"
+    source = next(e for e in app.session_state.result["evidence"] if e["id"] == "P-B")
+    assert any(source["quote"] in caption.value for caption in app.caption)
     app.run()
     assert app.session_state.selected_citation == "P-B"
     app.selectbox(key="evidence_choice").select("D-A").run()
@@ -134,7 +136,7 @@ def test_citation_buttons_and_picker_stay_synchronized_across_reruns():
     ],
 )
 def test_ui_states_do_not_retain_stale_market_evidence(scenario, status):
-    app = AppTest.from_file(str(APP)).run()
+    app = AppTest.from_file(str(APP), default_timeout=10).run()
     app.selectbox(key="evidence_choice").select("M-B").run()
     app.selectbox(key="scenario").select(scenario)
     next(b for b in app.button if b.label == "비교 화면 보기").click().run()

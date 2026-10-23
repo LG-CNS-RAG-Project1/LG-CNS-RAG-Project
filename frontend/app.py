@@ -90,11 +90,14 @@ with st.sidebar:
         st.text_input("비교 기업 A", key="company_a", max_chars=80)
         st.text_input("비교 기업 B", key="company_b", max_chars=80)
         st.selectbox("기술 분야", SECTORS, key="sector")
-        st.selectbox(
-            "기업 역할", ["솔루션 공급기업", "도입 제조기업", "복합 역할"], key="role"
-        )
-        st.date_input("자료 시작일", key="start_date", format="YYYY.MM.DD")
-        st.date_input("분석 기준일", key="end_date", format="YYYY.MM.DD")
+        with st.expander("역할·자료 기간"):
+            st.selectbox(
+                "기업 역할",
+                ["솔루션 공급기업", "도입 제조기업", "복합 역할"],
+                key="role",
+            )
+            st.date_input("자료 시작일", key="start_date", format="YYYY.MM.DD")
+            st.date_input("분석 기준일", key="end_date", format="YYYY.MM.DD")
         st.text_area("비교 질문", key="question", height=104, max_chars=1500)
         with st.expander("시연 상태 설정"):
             st.selectbox(
@@ -184,7 +187,11 @@ with main:
                 st.html(f'<div class="sf-row-label">{html(row["label"])}</div>')
                 for side, cell in zip(["a", "b"], st.columns(2, gap="medium")):
                     with cell:
-                        st.html(f'<div class="sf-cell">{html(row[side])}</div>')
+                        company = request["companies"][0 if side == "a" else 1]
+                        st.html(
+                            f'<div class="sf-cell-company">{html(company)}</div>'
+                            f'<div class="sf-cell">{html(row[side])}</div>'
+                        )
                         for cid in row["citations"]:
                             if cid.endswith(f"-{side.upper()}"):
                                 st.button(
@@ -192,8 +199,15 @@ with main:
                                     key=f"cite_{row['label']}_{cid}",
                                     on_click=select_evidence,
                                     args=(cid,),
-                                    help="오른쪽 패널에서 해당 원문 예시를 확인합니다.",
+                                    help="근거 패널에서 해당 원문 예시를 확인합니다. 좁은 창에서는 비교표 아래에 있습니다.",
                                 )
+                                if st.session_state.selected_citation == cid:
+                                    source = next(
+                                        item
+                                        for item in result["evidence"]
+                                        if item["id"] == cid
+                                    )
+                                    st.caption(f"선택한 원문 · {source['quote']}")
         st.html(
             '<div class="sf-inference"><span>연결 가설</span>사업의 초점과 특허의 접근 방식은 함께 검토할 수 있습니다. 특정 제품에 적용됐는지는 별도 근거가 필요합니다.</div>'
         )
