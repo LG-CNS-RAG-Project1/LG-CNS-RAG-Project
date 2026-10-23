@@ -230,6 +230,7 @@ __marimo__/
 !/data/market/raw/.gitkeep
 /data/market/processed/**
 !/data/market/processed/.gitkeep
+/data/market/chroma/**
 /reports/**
 !/reports/.gitkeep
 
