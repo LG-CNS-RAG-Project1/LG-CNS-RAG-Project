@@ -3,7 +3,7 @@
 ## 서비스 연결 구조
 
 - 계획 기준의 모듈·외부 서비스 연결 구조. 실제 구현이 바뀌면 함께 갱신한다.
-- 로컬 개발은 Docker `app` 컨테이너 하나에서 실행하며, 벡터 저장소는 로컬 Chroma(`data/patents/chroma/`)를 사용한다.
+- 로컬 개발은 Docker `app` 컨테이너 하나에서 실행하며, 벡터 저장소는 로컬 Chroma(특허 `data/patents/chroma/`, 시장 `data/market/chroma/`)를 사용한다.
 - `%% map <경로> <노드ID>` 주석은 Notion PR 문서화 자동화가 변경 파일에 해당하는 노드를 강조할 때 사용한다. 새 모듈을 추가하면 노드와 매핑을 함께 추가한다.
 
 ```mermaid
@@ -23,7 +23,7 @@ flowchart LR
     runtime["configs/ · requirements<br/>Dockerfile · compose.yaml"]
   end
 
-  chroma[("data/patents/chroma/<br/>Chroma 벡터 저장소")]
+  chroma[("data/patents/chroma/<br/>data/market/chroma/<br/>Chroma 벡터 저장소")]
   datastore[("data/<br/>원문·가공 데이터")]
   kipris["KIPRIS Plus API"]
   dart["DART OpenAPI"]
@@ -80,7 +80,8 @@ IdeaLens/
 │   │   └── chroma/              # 특허 벡터 DB
 │   ├── market/
 │   │   ├── raw/                 # 시장 원본 자료
-│   │   └── processed/           # 정제된 시장 근거
+│   │   ├── processed/           # 정제된 시장 근거
+│   │   └── chroma/              # 시장 근거 벡터 DB
 │   └── samples/
 │       └── ideas.json           # 시연용 아이디어 5개
 │

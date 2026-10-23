@@ -77,7 +77,7 @@ docker compose run --rm app python -m pytest   # 테스트 (make test)
 docker compose down               # 종료 (make down)
 ```
 
-- `app` 컨테이너는 저장소 전체를 `/app`에 마운트하므로 코드 수정이 바로 반영되고, Chroma 저장소(`data/patents/chroma/`)와 수집 데이터는 호스트에 유지된다.
+- `app` 컨테이너는 저장소 전체를 `/app`에 마운트하므로 코드 수정이 바로 반영되고, Chroma 저장소(`data/patents/chroma/`, `data/market/chroma/`)와 수집 데이터는 호스트에 유지된다.
 - 의존성을 바꾸면 `docker compose build app`(`make build`)으로 이미지를 다시 만든다.
 - Docker 없이 실행할 때는 Python 3.12 가상환경에서 `pip install -r requirements-dev.txt`를 실행한다.
 - `make help`로 공용 명령 목록을 확인한다. 상세 내용은 [docs/development.md](docs/development.md)를 참고한다.
@@ -91,6 +91,17 @@ python -m src.ingestion.news_client                                             
 
 - 키워드·수집 기준은 `configs/market_keywords.yaml`에서 관리한다.
 - NAVER API HUB 뉴스 검색 API의 제목·요약·링크·발행일만 `data/market/raw/news_{keyword_id}_{수집일}.json`에 저장한다.
+
+### 시장 근거 색인·검색
+
+```bash
+python -m src.retrieval.market_search build                                     # market_docs.jsonl 색인
+python -m src.retrieval.market_search search "협동로봇 도입 확대" --idea-id SF-01   # 질의 검색
+```
+
+- `data/market/processed/market_docs.jsonl`을 `text-embedding-3-small`로 임베딩해 `data/market/chroma/`의 `news` 컬렉션(cosine)에 저장한다. `OPENAI_API_KEY`가 필요하다.
+- 이미 색인된 문서는 다시 임베딩하지 않으며, `--rebuild`로 전체를 다시 임베딩한다.
+- 에이전트 툴은 `search_market`(질의 1건)과 `search_by_dimensions`(수요·경쟁·가격·구매자·도입장벽 차원별 질의)이며, 같은 `dup_group` 결과는 1건만 반환한다.
 
 ## 환경변수
 
