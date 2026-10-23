@@ -1,0 +1,2 @@
+# UI 담당자의 화면 실행 환경
+-r requirements-dev.txt

@@ -1,8 +1,9 @@
-# IdeaLens
+# 스마트팩토리 기업분석 RAG
 
-- 특허·기술·기업·산업 근거를 조사하여 기술 아이디어 검토를 지원하는 RAG 프로젝트.
-- 주요 사용자: 신규 기술·사업 과제를 검토하는 경영진과 R&D 연구원.
-- 목표 산출물: 경영진 요약, R&D 상세 보고서 초안, 미확인 사항과 다음 검증 과제.
+- 스마트팩토리 기업의 사업·시장·특허 근거를 연결하여 기업 간 차이를 비교하는 RAG 프로젝트.
+- 주요 사용자: 경쟁사의 사업·기술을 조사하는 경영진·전략기획·R&D 담당자.
+- 목표 산출물: 근거가 연결된 기업 비교표, 경영진 요약, R&D 상세 분석과 다음 조사 과제.
+- UI는 가상 기업 비교 시연이며 실제 기업 분석 API는 미연결이다. 백엔드의 기존 아이디어 입력 모델은 유지하며 기업 비교 요청은 연결 전 합의한다.
 
 ## 코딩 에이전트 사용 전 필독
 
@@ -28,6 +29,7 @@
 │   ├── ISSUE_TEMPLATE/      # 작업·버그 이슈 양식
 │   └── pull_request_template.md
 ├── .vscode/                 # 저장 시 black 적용 등 공용 편집기 설정
+├── .streamlit/              # 기업분석 화면의 테마 설정
 ├── AGENTS.md                # 팀 공용 Git·GitHub 및 코딩 에이전트 작업 규칙
 ├── configs/                 # 산업별 검색어·분류·검색 설정
 ├── data/
@@ -39,7 +41,7 @@
 │   └── samples/             # 시연용 샘플
 ├── docs/                    # 기획·설계·개발 환경 문서
 ├── evaluation/              # 평가 질문·정답 근거·평가 실행
-├── frontend/                # Streamlit UI
+├── frontend/                # 기업 비교 UI, 스타일, 가상 자료와 보고서
 ├── prompts/                 # 아이디어 구조화·근거 검증·보고서 프롬프트
 ├── reports/                 # 생성한 경영진·R&D 보고서
 ├── scripts/
@@ -82,6 +84,26 @@ docker compose down               # 종료 (make down)
 - Docker 없이 실행할 때는 Python 3.12 가상환경에서 `pip install -r requirements-dev.txt`를 실행한다.
 - `make help`로 공용 명령 목록을 확인한다. 상세 내용은 [docs/development.md](docs/development.md)를 참고한다.
 
+## Streamlit 화면 시연
+
+UI 담당자는 Python 3.12 가상환경에서 다음 명령으로 화면을 실행한다.
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements-ui.txt
+.\.venv\Scripts\python.exe -m streamlit run frontend/app.py
+```
+
+현재는 API 키가 필요 없는 **기업 비교 시연 화면**이다. 왼쪽에서 기업·분야·역할·기간·질문을
+설정한다. 역할·자료 기간은 접힌 설정에서 변경한다. 비교표의 근거를 선택하면 해당 셀에
+원문을 표시하고, 근거 패널에서 문헌 정보를 확인한다. 좁은 창에서는 패널이 비교표 아래에 놓인다.
+경영진 요약·R&D 상세, 다음 조사 체크, 범위와 근거를 포함한 Markdown 다운로드를 제공한다.
+가상 A·B사 기본 예시 외의 입력은 분석 미연결 상태로 표시하여 실제 기업에 가상 결과를 적용하지 않는다.
+‘시연 상태 설정’에서 부분 자료·검색 없음·수집 오류 화면도 확인할 수 있다.
+화면 실행·시연은 [UI 가이드](docs/ui-guide.md), 역할별 협업과 서비스 제안은
+[UI 협업 가이드](docs/ui-collaboration.md), 배치와 참고 자료는 [UI 디자인](docs/ui-design.md)을 참고한다.
+`frontend/demo.py`는 시연 데이터와 보고서, `frontend/styles.css`는 화면 스타일,
+`tests/test_frontend.py`는 입력·근거 선택·시연 상태 검증을 담당한다.
+
 ### 시장 뉴스 수집
 
 ```bash
@@ -116,7 +138,8 @@ GitHub Actions용 `NOTION_API_TOKEN`은 `.env`가 아니라 저장소의 **Setti
 
 ## 구현 방향
 
-- 처리 흐름: 아이디어 구조화 → 자료 수집·전처리 → 검색 → 근거 검증 → 보고서 생성.
+- 목표 흐름: 기업·질문·기간 설정 → 자료 수집·검색 → 기업·시점·근거 대조 → 비교표·역할별 보고서.
+- 기존 백엔드의 아이디어 구조화 경로와 기업 비교 UI의 요청 형식은 아직 연결되지 않았다.
 - 데이터 출처: KIPRIS Plus, DART, 공공기관·연구기관·기업의 공식 자료.
 - 뉴스는 이용조건 확인 후 활용하며, 사내자료 연계는 향후 확장 범위.
 - 원문 구획과 청구항 구조를 보존하고, 각 주장에 출처·문헌 버전·원문 위치·링크를 연결.
