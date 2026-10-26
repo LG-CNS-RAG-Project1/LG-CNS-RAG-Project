@@ -180,12 +180,28 @@ def export_candidates(
                     "distance": hit["distance"],
                 }
             )
+    write_label_rows(rows, CSV_FIELDS, path)
+    return len(rows)
+
+
+def read_label_rows(path: Path = CANDIDATES_PATH) -> list[dict]:
+    """라벨 CSV를 행 목록으로 읽는다. UTF-8이 아니면 엑셀 기본 형식(cp949)으로 읽는다."""
+    raw = path.read_bytes()
+    try:
+        text = raw.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        text = raw.decode("cp949")
+    return list(csv.DictReader(io.StringIO(text, newline="")))
+
+
+def write_label_rows(rows: list[dict], fields: list[str], path: Path) -> Path:
+    """행 목록을 엑셀용 UTF-8 BOM CSV로 저장한다."""
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w", encoding="utf-8-sig", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=CSV_FIELDS)
+        writer = csv.DictWriter(f, fieldnames=fields, extrasaction="ignore")
         writer.writeheader()
         writer.writerows(rows)
-    return len(rows)
+    return path
 
 
 def import_labels(
@@ -197,13 +213,7 @@ def import_labels(
     한 문항의 모든 후보가 판단되었을 때만 labeled=True가 된다.
     반환: (갱신된 문항 목록, {case_id: 미판단 후보 수})
     """
-    raw = path.read_bytes()
-    try:
-        text = raw.decode("utf-8-sig")
-    except UnicodeDecodeError:
-        text = raw.decode("cp949")  # 엑셀 기본 CSV 저장 형식
-    rows = list(csv.DictReader(io.StringIO(text, newline="")))
-
+    rows = read_label_rows(path)
     by_case: dict[str, list[dict]] = {}
     for row in rows:
         by_case.setdefault(row["case_id"], []).append(row)
