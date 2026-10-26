@@ -173,3 +173,17 @@ PR 분석용 `CLAUDE_CODE_OAUTH_TOKEN`·`NOTION_REVIEW_TOKEN`은 develop에서�
 - 검색 품질: Hit Rate@K, Recall@K, MRR.
 - 답변 품질: 정확성, 근거 충실성, 인용 정확성.
 - 동일 자료집에서 검색 방식을 비교하고, 동일 질문의 일반 LLM 응답과 RAG 응답을 평가.
+
+### 시장 검색 평가
+
+```bash
+python -m evaluation.market_labeling init      # ideas.json × 5개 차원 → evaluation/market_cases.json 문항 생성
+python -m evaluation.market_labeling export    # 라벨링 후보 → evaluation/labels/market_candidates.csv
+python -m evaluation.market_labeling import    # relevant(1/0)를 채운 CSV → 문항별 정답 source_id 반영
+python -m evaluation.evaluate market --label baseline   # Hit@5·Recall@5·MRR → evaluation/results/
+```
+
+- 평가 아이디어는 `data/samples/ideas.json`의 SF-01~SF-05이며, 아이디어 5개 × 시장 차원 5개 = 25문항이다.
+- 라벨링 후보는 문항마다 벡터 검색 상위 8건과 그 아래 순위에서 차원 표현(가격·비용, 도입·사례 등)이 들어간 4건이다. 라벨 기준은 [evaluation/market_labeling.md](evaluation/market_labeling.md).
+- 관련 문서가 없는 문항은 평균에서 빼고 따로 센다. 라벨 후보에 없던 문서가 상위 5건에 나오면 `unjudged`로 표시한다.
+- 정답 `source_id`는 로컬에 수집한 뉴스 기준이므로, 다시 수집하면 문서가 달라질 수 있다.
