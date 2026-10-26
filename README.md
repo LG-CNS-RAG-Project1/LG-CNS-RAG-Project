@@ -124,6 +124,17 @@ python -m src.retrieval.market_search search "협동로봇 도입 확대" --idea
 - `data/market/processed/market_docs.jsonl`을 `text-embedding-3-small`로 임베딩해 `data/market/chroma/`의 `news` 컬렉션(cosine)에 저장한다. `OPENAI_API_KEY`가 필요하다.
 - 이미 색인된 문서는 다시 임베딩하지 않으며, `--rebuild`로 전체를 다시 임베딩한다.
 - 에이전트 툴은 `search_market`(질의 1건)과 `search_by_dimensions`(수요·경쟁·가격·구매자·도입장벽 차원별 질의)이며, 같은 `dup_group` 결과는 1건만 반환한다.
+- 차원별 질의는 아이디어 5개 항목으로 만든다: 수요(고객·문제·기술), 경쟁(차별점·기술), 가격(고객·기술·수익모델), 구매자·도입장벽(고객·기술). 빈 항목은 질의에서 빠진다.
+
+### 아이디어 구조화
+
+```bash
+python -m src.generation.idea_parser "중소 부품 공장에 협동로봇과 비전 카메라를 턴키로 설치해 준다"
+```
+
+- 아이디어 한 문장을 `gpt-4o-mini`로 문제(`problem`)·기술(`technology`)·고객(`customers`)·차별점(`difference`)·수익모델(`revenue`)로 나눈다. 규칙은 `prompts/idea_parser.md`에서 관리하며, 문장에 없는 항목은 추측하지 않고 비워 둔다. `OPENAI_API_KEY`가 필요하다.
+- 빈 항목은 사용자에게 최대 2회 재질문한다. '모름'으로 답했거나 끝까지 비어 있는 항목은 `unknown`으로 확정하고, 항목별 출처(`extracted`·`user_answer`·`unknown`)를 함께 남긴다.
+- 완성된 결과(`IdeaDraft`)는 `build_requests`로 특허·시장 공통 입력(`StructuredIdea`)과 검색 요청(`PatentSearchRequest`·`MarketSearchRequest`)으로 변환한다.
 
 ## 환경변수
 
