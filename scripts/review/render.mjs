@@ -59,6 +59,22 @@ function findingBlock(analysis, finding) {
   );
 }
 
+// '병합 판단' 열과 맨 위 상자에 쓰는 한 줄. 자동 점검으로 낮춘 경우 표시를 붙인다.
+export function judgmentLine(judgment) {
+  if (!judgment) return "AI 판단 없음";
+  return `${LABELS.verdict[judgment.verdict]} — ${judgment.reason || "이유 없음"}${judgment.capped ? " (자동 점검 반영)" : ""}`;
+}
+
+// 판단 근거 3문장을 블릿 줄로 만든다.
+export const rationaleText = (judgment) => (judgment?.rationale ?? []).map((line) => `• ${line}`).join("\n");
+
+// 맨 위 'AI 병합 판단' 상자: 판단 한 줄과 근거 3문장(블릿).
+function judgmentCallout(judgment) {
+  const title = toRichText([{ text: "병합 판단(AI 참고): ", bold: true }, { text: judgmentLine(judgment) }]);
+  const children = (judgment?.rationale ?? []).map((line) => bulleted(text(line)));
+  return callout(title, "⚖️", "yellow_background", children.length ? children : undefined);
+}
+
 const tokens = (usage) => usage ? `입력 ${(usage.input ?? 0) + (usage.cache_read ?? 0) + (usage.cache_write ?? 0)}토큰 / 출력 ${usage.output ?? 0}토큰` : "-";
 
 // 분석 결과로 PR 행 제목·속성·본문 블록과 다음 실행에 쓸 상태 JSON을 만든다. previousSeq는 지난 상태의 기록 차수다.
@@ -82,6 +98,7 @@ export function renderReport(analysis, previousHistory = [], previousSeq = previ
     { text: `목표 연결: ${goal}\n` },
     { text: `분석한 버전 ${pr.head_sha.slice(0, 7)} · ${modeText(analysis)} · 범위 ${coverage.state === "full" ? "전체" : `일부(제외 ${coverage.excluded.length}개)`}`, italic: true },
   ]), "🧭", "blue_background"));
+  blocks.push(judgmentCallout(analysis.judgment));
 
   blocks.push(heading(2, text("다음에 할 일")));
   for (const line of nextActions(analysis)) blocks.push(bulleted(text(line)));
@@ -187,6 +204,8 @@ export function renderReport(analysis, previousHistory = [], previousSeq = previ
     "분석한 버전": pr.head_sha.slice(0, 7),
     "마지막 분석": analysis.generated_at,
     "한 줄 요약": output?.summary?.one_line ?? pr.title,
+    "병합 판단": analysis.judgment ? LABELS.verdict[analysis.judgment.verdict] : null,
+    "판단 근거": analysis.judgment ? `${judgmentLine(analysis.judgment)}\n${rationaleText(analysis.judgment)}`.trim() : "AI 판단 없음",
   };
   const state = {
     v: STATE_VERSION,

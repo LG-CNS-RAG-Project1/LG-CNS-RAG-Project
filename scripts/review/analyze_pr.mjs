@@ -15,7 +15,7 @@ import {
 import { runClaude } from "./engine.mjs";
 import { computeConflict, createGitHub, fetchPull, readCi } from "./github.mjs";
 import {
-  alreadyAnalyzed, baselineStatus, computeReadiness, decideMode, fileSignature, filterBaselineRefs, findSecrets, keywordsOf, maskPatch,
+  alreadyAnalyzed, baselineStatus, computeReadiness, decideMode, finalizeJudgment, fileSignature, filterBaselineRefs, findSecrets, keywordsOf, maskPatch,
   parseMappings, parsePatch, parseTagRules, runPrechecks, selectPatches, tagOf, tagsOf, verifyFindings,
 } from "./lib.mjs";
 import { createNotion } from "./notion_store.mjs";
@@ -294,6 +294,7 @@ if (ci.state === "running" || ci.state === "none") {
   ({ checks, comments } = runPrechecks({ pr, files, commits, ci, secretHits, mappings }));
 }
 const readiness = computeReadiness({ draft: pr.draft, checks, ci, conflict, output, findings, coverage: coverage.state, llmStatus: llm.status, files });
+const judgment = finalizeJudgment(output, readiness);
 
 const analysis = {
   analyzer: "pr-analysis-2",
@@ -307,6 +308,7 @@ const analysis = {
   baseline_draft: [...statusMap.values()].includes("초안"),
   ci, conflict, prechecks: checks, comment_candidates: comments,
   tags, keywords, changed_files: mode === "incremental" ? targetPaths : [], context_used: contextUsed,
+  judgment,
   coverage, mode, llm, output, findings, readiness,
   files: files.map((file) => ({ path: file.filename, sig: signatures[file.filename] })),
 };

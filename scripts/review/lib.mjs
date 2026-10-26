@@ -161,6 +161,19 @@ export function keywordsOf(paths, limit = 10) {
   return [...new Set(words)].slice(0, limit);
 }
 
+// ---------- AI 병합 판단 ----------
+const VERDICTS = ["merge_ok", "fix_then_merge", "discuss", "hold"];
+
+// AI 병합 판단을 정리한다. 판단 근거는 앞에서부터 최대 3문장, 등급이 없거나 모르는 값이면 null.
+// 자동 점검이 '보완 후 검토'(충돌·보안 의심·내 변경 검사 실패·리더 확인 꼭 고칠 점)이면 '병합 가능'을 '보완 후 병합'으로 낮춘다.
+export function finalizeJudgment(output, readiness) {
+  const verdict = output?.judgment?.verdict;
+  if (!VERDICTS.includes(verdict)) return null;
+  const rationale = (output.rationale ?? []).map((line) => String(line).trim()).filter(Boolean).slice(0, 3);
+  const capped = readiness?.state === "needs_fix" && verdict === "merge_ok";
+  return { verdict: capped ? "fix_then_merge" : verdict, reason: String(output.judgment.reason ?? "").trim(), rationale, capped };
+}
+
 // ---------- 분석 방식 ----------
 // 같은 head를 같은 초안 여부로 이미 분석했으면 건너뛴다. 'Ready for review'나 초안 전환은 코드가 같아도 다시 기록한다.
 export const alreadyAnalyzed = (previous, pr, force = false) =>

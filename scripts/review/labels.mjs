@@ -54,4 +54,5 @@ export const LABELS = {
   owner: { author: "작성자", leader: "리더", team: "팀" },
   prState: { open: "열림", draft: "초안", merged: "병합", closed: "닫힘" },
   record: { latest: "최신", previous: "이전 분석" },
+  verdict: { merge_ok: "병합 가능", fix_then_merge: "보완 후 병합", discuss: "논의 후 결정", hold: "판단 보류" },
 };

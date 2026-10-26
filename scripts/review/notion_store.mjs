@@ -47,6 +47,8 @@ export const PR_DB_PROPERTIES = {
   "리더 봄": { checkbox: {} },
   "논의 완료": { checkbox: {} },
   "보안 처리 완료": { checkbox: {} },
+  "병합 판단": { select: options(Object.values(LABELS.verdict), ["green", "orange", "blue", "gray"]) },
+  "판단 근거": { rich_text: {} },
 };
 
 // 이전 형식의 표에서 이름이 바뀐 열(이전 이름 → 새 이름)
@@ -85,6 +87,8 @@ export function toNotionProperties(title, values, titleKey = "이름") {
     "분석한 버전": rich(values["분석한 버전"]),
     "마지막 분석": { date: { start: values["마지막 분석"] } },
     "한 줄 요약": rich(values["한 줄 요약"]),
+    "병합 판단": select(values["병합 판단"]),
+    "판단 근거": rich(values["판단 근거"]),
   };
   if (values["기록"]) properties["기록"] = select(values["기록"]);
   return properties;

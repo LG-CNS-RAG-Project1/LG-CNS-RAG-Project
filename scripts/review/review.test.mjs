@@ -7,11 +7,13 @@ import {
   analysisContent, cardContext, cardHasPr, cardSchema, cleanCardText, formatCards, formatRelated, mergeList, pickCardTags,
 } from "./cards.mjs";
 import {
-  alreadyAnalyzed, computeReadiness, decideMode, fileSignature, findSecrets, keywordsOf, maskPatch, moduleOf, parseMappings, parsePatch,
+  alreadyAnalyzed, computeReadiness, decideMode, finalizeJudgment, fileSignature, findSecrets, keywordsOf, maskPatch, moduleOf, parseMappings, parsePatch,
   parseTagRules, runPrechecks, selectPatches, tagOf, tagsOf, verifyFindings,
 } from "./lib.mjs";
 import { createNotion, PR_DB_PROPERTIES, repeatable, toNotionProperties } from "./notion_store.mjs";
-import { nextActions, renderReport } from "./render.mjs";
+import { judgmentLine, nextActions, renderReport } from "./render.mjs";
+import { LABELS } from "./labels.mjs";
+import { readFileSync } from "node:fs";
 
 // 비밀값 스캐너가 테스트용 가짜 값을 실제 키로 오인하지 않도록 실행 시 문자열을 합친다.
 const FAKE_OPENAI = ["sk", "proj-abcdEFGH1234567890xyz"].join("-");
@@ -448,4 +450,40 @@ test("초안 PR 보고서는 준비 상태 ⚪ 초안과 Ready for review 안내
   assert.equal(report.properties["준비 상태"], "⚪ 초안");
   assert.equal(report.properties["상태"], "초안");
   assert.equal(report.state.draft, true);
+});
+
+test("finalizeJudgment는 근거를 3문장까지 남기고, 보완 후 검토 상태에서는 '병합 가능'을 '보완 후 병합'으로 낮춘다", () => {
+  const output = { judgment: { verdict: "merge_ok", reason: " 문제 없음 " }, rationale: ["가.", " 나. ", "", "다.", "라."] };
+  assert.deepEqual(finalizeJudgment(output, { state: "ready" }), { verdict: "merge_ok", reason: "문제 없음", rationale: ["가.", "나.", "다."], capped: false });
+  assert.deepEqual(finalizeJudgment(output, { state: "needs_fix" }).verdict, "fix_then_merge");
+  assert.equal(finalizeJudgment(output, { state: "needs_fix" }).capped, true);
+  assert.equal(finalizeJudgment({ ...output, judgment: { verdict: "discuss", reason: "r" } }, { state: "needs_fix" }).verdict, "discuss");
+  assert.equal(finalizeJudgment({ ...output, judgment: { verdict: "merge_ok", reason: "r" } }, { state: "draft" }).verdict, "merge_ok");
+  assert.equal(finalizeJudgment(null, { state: "ready" }), null);
+  assert.equal(finalizeJudgment({ judgment: { verdict: "approve", reason: "r" } }, { state: "ready" }), null);
+});
+
+test("병합 판단은 표 열과 맨 위 상자에 한글 등급·이유·근거 3문장으로 나오고 영문 값은 보이지 않는다", () => {
+  const judgment = { verdict: "fix_then_merge", reason: "테스트 보강 필요", rationale: ["결과 문장.", "인과 문장.", "근거 문장."], capped: true };
+  const report = renderReport({ ...sampleAnalysis, judgment });
+  assert.equal(report.properties["병합 판단"], "보완 후 병합");
+  assert.equal(report.properties["판단 근거"], "보완 후 병합 — 테스트 보강 필요 (자동 점검 반영)\n• 결과 문장.\n• 인과 문장.\n• 근거 문장.");
+  const visible = JSON.stringify(report.blocks);
+  assert.ok(visible.includes("병합 판단(AI 참고): "));
+  assert.ok(visible.includes("인과 문장."));
+  for (const raw of ["fix_then_merge", "merge_ok", "\"discuss\"", "\"hold\""]) assert.ok(!visible.includes(raw), `영문 값 노출: ${raw}`);
+  const none = renderReport({ ...sampleAnalysis, judgment: null });
+  assert.equal(none.properties["병합 판단"], null);
+  assert.equal(none.properties["판단 근거"], "AI 판단 없음");
+  assert.equal(judgmentLine(null), "AI 판단 없음");
+});
+
+test("출력 형식의 병합 판단 등급은 화면 라벨과 일치하고 필수 항목이다", () => {
+  const schema = JSON.parse(readFileSync(new URL("./prompts/schema.json", import.meta.url), "utf8"));
+  assert.ok(schema.required.includes("judgment") && schema.required.includes("rationale"));
+  assert.deepEqual(schema.properties.judgment.properties.verdict.enum, Object.keys(LABELS.verdict));
+  const properties = toNotionProperties("t", { "병합 판단": "병합 가능", "판단 근거": "a" });
+  assert.equal(properties["병합 판단"].select.name, "병합 가능");
+  assert.equal(properties["판단 근거"].rich_text[0].text.content, "a");
+  assert.ok(PR_DB_PROPERTIES["병합 판단"].select && PR_DB_PROPERTIES["판단 근거"].rich_text);
 });

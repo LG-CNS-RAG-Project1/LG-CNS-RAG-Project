@@ -11,7 +11,9 @@
     "reviewer_focus",
     "author_questions",
     "readiness_proposal",
-    "digest"
+    "digest",
+    "rationale",
+    "judgment"
   ],
   "properties": {
     "summary": {
@@ -368,6 +370,34 @@
     },
     "digest": {
       "type": "string"
+    },
+    "rationale": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "judgment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "verdict",
+        "reason"
+      ],
+      "properties": {
+        "verdict": {
+          "type": "string",
+          "enum": [
+            "merge_ok",
+            "fix_then_merge",
+            "discuss",
+            "hold"
+          ]
+        },
+        "reason": {
+          "type": "string"
+        }
+      }
     }
   }
 }
