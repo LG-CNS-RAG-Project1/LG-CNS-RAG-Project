@@ -2,6 +2,9 @@
 
 from src.schemas import PatentChunk, PatentDocument
 from pathlib import Path
+from src.ingestion.kipris_client import search_patents as search_kipris_patents
+
+import argparse
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 OUTPUT_PATH = ROOT_DIR / "data" / "patents" / "processed" / "patent_docs.jsonl"
@@ -87,3 +90,45 @@ def save_documents(
             f.write(document.model_dump_json() + "\n")
 
     return path
+
+
+def collect_and_process(keyword: str, limit: int = 20):
+    """KIPRIS 특허를 수집·전처리하고 JSONL로 저장한다."""
+    raw_patents = search_kipris_patents(keyword, limit=limit)
+    documents = build_documents(raw_patents)
+    chunks = build_chunks(documents)
+
+    save_documents(documents)
+
+    return documents, chunks
+
+
+def main() -> None:
+    """KIPRIS 특허를 수집·전처리하고 JSONL로 저장한다."""
+    parser = argparse.ArgumentParser(description="KIPRIS 특허 수집 및 전처리")
+    parser.add_argument(
+        "--keyword",
+        required=True,
+        help="특허 검색 키워드",
+    )
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=20,
+        help="최대 수집 건수 (1~500)",
+    )
+
+    args = parser.parse_args()
+
+    documents, chunks = collect_and_process(
+        keyword=args.keyword,
+        limit=args.limit,
+    )
+
+    print(f"수집·변환 문서: {len(documents)}건")
+    print(f"생성 청크: {len(chunks)}개")
+    print(f"저장 경로: {OUTPUT_PATH}")
+
+
+if __name__ == "__main__":
+    main()

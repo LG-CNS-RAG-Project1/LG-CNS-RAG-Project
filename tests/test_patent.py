@@ -22,6 +22,7 @@ from src.ingestion.patent_processor import (
     to_patent_document,
     build_documents,
     save_documents,
+    collect_and_process,
 )
 
 from src.retrieval.schemas import PatentQueryPlan, PatentSearchQuery
@@ -351,6 +352,31 @@ def test_save_patent_documents(tmp_path):
 
     assert saved_document.patent_id == "1020240001234"
     assert saved_document.abstract == "진동 데이터를 분석한다."
+
+
+@patch("src.ingestion.patent_processor.save_documents")
+@patch("src.ingestion.patent_processor.search_kipris_patents")
+def test_collect_and_process(mock_search, mock_save):
+    mock_search.return_value = [
+        {
+            "application_number": "1020240001234",
+            "title": "AI 설비 예지보전",
+            "abstract": "진동 데이터를 분석하여 설비 고장을 예측한다.",
+            "claims": None,
+        }
+    ]
+
+    documents, chunks = collect_and_process("설비 예지보전", limit=3)
+
+    mock_search.assert_called_once_with("설비 예지보전", limit=3)
+    mock_save.assert_called_once()
+
+    assert len(documents) == 1
+    assert documents[0].patent_id == "1020240001234"
+
+    assert len(chunks) == 1
+    assert chunks[0].section == "abstract"
+    assert chunks[0].patent_id == documents[0].patent_id
 
 
 # ============================================================
