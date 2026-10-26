@@ -4,7 +4,10 @@
 
 - 계획 기준의 모듈·외부 서비스 연결 구조. 실제 구현이 바뀌면 함께 갱신한다.
 - 로컬 개발은 Docker `app` 컨테이너 하나에서 실행하며, 벡터 저장소는 로컬 Chroma(특허 `data/patents/chroma/`, 시장 `data/market/chroma/`)를 사용한다.
-- `%% map <경로> <노드ID>` 주석은 Notion PR 문서화 자동화가 변경 파일에 해당하는 노드를 강조할 때 사용한다. 새 모듈을 추가하면 노드와 매핑을 함께 추가한다.
+- 아래 그림 안의 규칙 주석은 자동화가 읽는다. 새 모듈이나 외부 서비스를 추가하면 노드와 규칙을 함께 추가한다.
+  - `%% map <경로> <노드ID>`: 파일이 속한 계층. PR 분석의 태그와 PR 페이지 서비스 아키텍처 그림의 계층 노드에 쓴다.
+  - `%% ext import:<모듈> <노드ID> <라벨>`·`%% ext host:<호스트> <노드ID> <라벨>`: 코드의 import나 호출 주소로 찾는 외부 서비스. PR 페이지 그림의 외부 노드에 쓴다.
+- PR 분석의 서비스 아키텍처 그림은 이 계획 그림을 그대로 쓰지 않는다. PR 첫 분석 때 develop과 'develop에 그 PR을 합친 코드'에서 내용이 있는 계층·공통 데이터 계약(`src/schemas.py`)·실제 import와 외부 호출만 골라 그리고, 노드 라벨은 이 그림의 것을 쓴다.
 
 ```mermaid
 flowchart LR
@@ -63,6 +66,12 @@ flowchart LR
   %% map compose.yaml runtime
   %% map requirements.txt runtime
   %% map requirements-dev.txt runtime
+  %% map requirements-ui.txt runtime
+  %% ext import:chromadb chroma Chroma 벡터 저장소
+  %% ext import:openai openai OpenAI API
+  %% ext host:plus.kipris.or.kr kipris KIPRIS Plus API
+  %% ext host:naverapihub.apigw.ntruss.com naver 네이버 뉴스 API
+  %% ext host:opendart.fss.or.kr dart DART OpenAPI
 ```
 
 ## 디렉토리 구조
