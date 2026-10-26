@@ -51,3 +51,21 @@ def build_chunks(patents: list[PatentDocument]) -> list[PatentChunk]:
             )
 
     return chunks
+
+
+def build_documents(records: list[dict]) -> list[PatentDocument]:
+    """KIPRIS 검색 결과를 출원번호 기준으로 중복 제거하고 문서로 변환한다."""
+    documents = []
+    seen = set()
+
+    for record in records:
+        application_number = str(record.get("application_number") or "").strip()
+
+        if not application_number or application_number in seen:
+            continue
+
+        document = to_patent_document(record)
+        documents.append(document)
+        seen.add(application_number)
+
+    return documents

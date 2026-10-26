@@ -12,6 +12,7 @@ from src.schemas import PatentReport, PatentEvidence, PatentComparison, PatentDo
 from src.ingestion.patent_processor import (
     build_chunks,
     to_patent_document,
+    build_documents,
 )
 
 # ============================================================
@@ -276,6 +277,39 @@ def test_build_chunks_without_content():
     )
 
     assert build_chunks([patent]) == []
+
+
+def test_build_documents_deduplication():
+    records = [
+        {
+            "application_number": "1020240001234",
+            "title": "진동 기반 고장 예측",
+            "abstract": "진동 데이터를 분석한다.",
+        },
+        {
+            "application_number": "1020240001234",
+            "title": "중복 특허",
+            "abstract": "중복 데이터",
+        },
+        {
+            "application_number": "1020240005678",
+            "title": "AI 품질 검사",
+            "abstract": "영상 데이터를 분석한다.",
+        },
+        {
+            "application_number": None,
+            "title": "출원번호 없는 특허",
+        },
+    ]
+
+    documents = build_documents(records)
+
+    assert len(documents) == 2
+    assert [doc.patent_id for doc in documents] == [
+        "1020240001234",
+        "1020240005678",
+    ]
+    assert documents[0].title == "진동 기반 고장 예측"
 
 
 # class TestPatentRetrieval:
