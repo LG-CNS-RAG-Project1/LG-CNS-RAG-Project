@@ -30,14 +30,15 @@ COLLECTION_NAME = "news"
 EMBEDDING_MODEL = "text-embedding-3-small"
 EMBED_BATCH_SIZE = 100
 CANDIDATE_MULTIPLIER = 4
+IDEA_FIELDS = ["problem", "technology", "customers", "difference", "revenue"]
 
-# 차원별 검색 질의 템플릿. {title}·{technology}·{customers}는 StructuredIdea 값으로 채운다.
+# 차원별 검색 질의 템플릿. {필드}는 StructuredIdea의 5개 항목 값으로 채우며, 빈 항목은 빠진다.
 DIMENSION_QUERIES = {
-    "demand": "{title} {technology} 도입 확대 수요 증가",
-    "competition": "{technology} 경쟁 기업 솔루션 제품 출시",
-    "price": "{technology} 가격 비용 투자 규모",
-    "buyer": "{customers} {technology} 도입 기업 고객 사례",
-    "adoption_barrier": "{technology} 도입 어려움 장벽 인력 비용 부담",
+    "demand": "{customers} {problem} {technology} 도입 확대 수요",
+    "competition": "{difference} {technology} 경쟁 업체",
+    "price": "{customers} {technology} 도입 가격 비용 {revenue}",
+    "buyer": "{customers} {technology} 도입 사례",
+    "adoption_barrier": "{customers} {technology} 도입 어려움 비용 부담 인력 부족",
 }
 
 EmbedFn = Callable[[list[str]], list[list[float]]]
@@ -193,13 +194,8 @@ def search_market(
 
 
 def build_dimension_queries(request: MarketSearchRequest) -> dict[str, str]:
-    """요청의 아이디어로 차원별 검색 질의를 만든다."""
-    idea = request.idea
-    values = {
-        "title": idea.title,
-        "technology": idea.technology,
-        "customers": idea.customers,
-    }
+    """요청 아이디어의 5개 항목으로 차원별 검색 질의를 만든다."""
+    values = request.idea.model_dump(include=set(IDEA_FIELDS))
     return {
         dimension: " ".join(DIMENSION_QUERIES[dimension].format(**values).split())
         for dimension in request.dimensions
