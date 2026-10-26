@@ -25,7 +25,7 @@
 ```text
 .
 ├── .github/
-│   ├── workflows/           # CI, 리뷰어 자동 지정, Notion PR 문서화, PR 분석
+│   ├── workflows/           # CI, 리뷰어 자동 지정, PR 분석
 │   ├── ISSUE_TEMPLATE/      # 작업·버그 이슈 양식
 │   └── pull_request_template.md
 ├── .vscode/                 # 저장 시 black 적용 등 공용 편집기 설정
@@ -46,10 +46,9 @@
 ├── reports/                 # 생성한 경영진·R&D 보고서
 ├── scripts/
 │   ├── *.py                 # 특허 수집·색인 생성 실행 스크립트
-│   ├── create_notion_pr_page.mjs  # 병합 PR의 Notion 문서화 진입점
-│   ├── notion/              # PR 본문 → Notion 블록·mermaid 다이어그램 변환
+│   ├── notion/              # Notion 블록 도우미, 코드 해석 기반 서비스 아키텍처 그림(mermaid) 생성
 │   ├── github/              # PR 리뷰어 무작위 지정
-│   └── review/              # PR 자동 분석(규칙 점검·Claude 분석·Notion 'PR 분석' 표와 영역 요약 카드 기록)
+│   └── review/              # PR 자동 분석(규칙 점검·OpenAI GPT 분석·Notion PR 페이지와 영역 요약 카드 기록)
 ├── src/
 │   ├── main.py · pipeline.py · schemas.py  # API 진입점·분석 흐름·공통 모델
 │   ├── ingestion/           # 자료 수집·전처리·청크 생성
@@ -143,13 +142,12 @@ python -m src.generation.idea_parser "중소 부품 공장에 협동로봇과 �
 
 | 이름 | 용도 |
 |---|---|
-| `OPENAI_API_KEY` | 임베딩·답변 생성용 OpenAI API 키 |
+| `OPENAI_API_KEY` | 앱의 임베딩·답변 생성용 OpenAI API 키 |
 | `KIPRIS_API_KEY` | KIPRIS Plus 특허 API 키 |
 | `DART_API_KEY` | DART OpenAPI 공시 API 키 |
 | `NAVER_CLIENT_ID` · `NAVER_CLIENT_SECRET` | NAVER API HUB(네이버클라우드) Application의 Client ID·Secret. 해당 Application에서 뉴스 검색 API 활성화 필요 |
 
-GitHub Actions용 `NOTION_API_TOKEN`은 `.env`가 아니라 저장소의 **Settings → Secrets and variables → Actions**에 저장한다.
-PR 분석용 `CLAUDE_CODE_OAUTH_TOKEN`·`NOTION_REVIEW_TOKEN`은 develop에서만 열리는 Environment `pr-analysis`에 저장한다([docs/development.md](docs/development.md#pr-자동-분석-githubworkflowspr-analysisyml)).
+PR 분석 자동화용 `OPENAI_API_KEY`(앱 `.env`의 키와 별개)·`NOTION_REVIEW_TOKEN`은 `.env`가 아니라 develop에서만 열리는 GitHub Environment `pr-analysis`에 저장한다([docs/development.md](docs/development.md#pr-자동-분석-githubworkflowspr-analysisyml)).
 
 ## 개발 도구와 협업 자동화
 
@@ -157,8 +155,7 @@ PR 분석용 `CLAUDE_CODE_OAUTH_TOKEN`·`NOTION_REVIEW_TOKEN`은 develop에서�
 - **커밋 전 검사**: `pre-commit install` 후 커밋마다 black, 병합 충돌 표시, 개인키 노출, 대용량 파일, 줄끝 공백을 검사한다.
 - **CI**: develop·main 대상 PR과 push에서 black 검사, pytest, 자동화 스크립트 테스트, Docker 이미지 빌드를 실행한다.
 - **리뷰어 자동 지정**: PR에 리뷰어가 없으면 작성자를 제외한 팀원 중 한 명을 무작위로 지정한다. 후보는 저장소 변수 `REVIEWER_POOL`로 바꿀 수 있다.
-- **Notion PR 문서화**: develop에 병합된 PR의 설명을 Notion 블록으로 변환하고, 원문·커밋·변경 파일을 코드 블록으로, 변경 구조와 서비스 연결 구조를 mermaid 다이어그램으로 기록한다.
-- **PR 자동 분석**: develop 대상 PR이 열리거나 수정되면 규칙 점검과 Claude 분석 결과를 Notion 'RAG 기반 미니 프로젝트: IdeaLens' 아래 'PR 분석' 표에 태그(서비스 계층)·키워드·분석 내용, AI 병합 판단(4등급과 근거 3문장, 참고용)과 함께 기록한다. 분석마다 새 행을 남기고, 수정본은 바뀐 파일만 다시 분석한다. 병합된 PR은 태그별 '영역 요약 카드' 표에 반영해 다음 분석의 출발점으로 쓴다. 참고용이며 승인·병합·GitHub 댓글은 하지 않는다. 판단 기준은 [docs/review-baseline.md](docs/review-baseline.md).
+- **PR 자동 분석**: develop 대상 PR이 검토 요청 상태로 열리거나 수정되면 규칙 점검과 OpenAI GPT(`gpt-6-luna`, API 키 방식) 분석 결과를 Notion 'RAG 기반 미니 프로젝트: IdeaLens' 아래 'PR 분석' 표의 PR별 페이지 하나에 기록한다. 페이지에는 태그(서비스 계층)·키워드·분석 내용, AI 병합 판단(4등급과 근거 3문장, 참고용), 첫 분석 때 코드로 한 번 그린 서비스 아키텍처 그림이 들어간다. 초안·병합·닫힘에는 모델을 부르지 않고, 수정본은 의미 있는 변경이 있을 때 바뀐 파일만 다시 분석한다. 병합되면 분석한 변경과 최종 변경이 같을 때만 카드 변경 후보를 태그별 '영역 요약 카드'에 항목 단위로 반영한다. API 사용료는 OpenAI API 결제로 따로 청구된다(Claude·ChatGPT 구독과 별개). 참고용이며 승인·병합·GitHub 댓글은 하지 않는다. 판단 기준은 [docs/review-baseline.md](docs/review-baseline.md), 운영 안내는 [docs/development.md](docs/development.md#pr-자동-분석-githubworkflowspr-analysisyml).
 - **의존성 갱신**: Dependabot이 pip·pre-commit·GitHub Actions 버전 갱신 PR을 월 1회 묶어서 만든다.
 
 ## 구현 방향
