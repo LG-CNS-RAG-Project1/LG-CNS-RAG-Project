@@ -4,6 +4,7 @@ from src.retrieval.patent_search import build_patent_queries
 from src.retrieval.patent_store import get_collection
 from src.schemas import PatentChunk, PatentDocument
 from src.retrieval.patent_store import build_index
+from src.retrieval.patent_search import search_patents
 
 
 def test_patent_query_plan():
@@ -119,3 +120,43 @@ def test_patent_build_index(tmp_path):
 
     assert count_again == 0
     assert collection.count() == 1
+
+
+def test_search_patents(tmp_path):
+    collection = get_collection(chroma_dir=tmp_path / "chroma")
+
+    patent = PatentDocument(
+        patent_id="P001",
+        title="진동 기반 설비 고장 예측",
+        abstract="진동 데이터를 분석하여 설비 고장을 예측한다.",
+    )
+
+    chunk = PatentChunk(
+        chunk_id="P001#abstract#0",
+        patent_id="P001",
+        section="abstract",
+        text=patent.abstract,
+        chunk_index=0,
+    )
+
+    def fake_embed(texts):
+        return [[0.1, 0.2, 0.3] for _ in texts]
+
+    build_index(
+        chunks=[chunk],
+        patents=[patent],
+        collection=collection,
+        embed_fn=fake_embed,
+    )
+
+    results = search_patents(
+        query="설비 고장 예측",
+        collection=collection,
+        embed_fn=fake_embed,
+    )
+
+    assert len(results) == 1
+    assert results[0].document.source_id == "P001"
+    assert results[0].document.title == "진동 기반 설비 고장 예측"
+    assert results[0].dense_rank == 1
+    assert results[0].dense_score is not None

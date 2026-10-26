@@ -11,6 +11,9 @@ from src.retrieval.schemas import PatentQueryPlan
 from pathlib import Path
 from dotenv import load_dotenv
 
+from src.retrieval.patent_store import get_collection
+from src.retrieval.schemas import RetrievalResult, SearchDocument
+
 ROOT_DIR = Path(__file__).resolve().parents[2]
 
 LLM_MODEL = "gpt-4o-mini"
@@ -92,3 +95,74 @@ def build_patent_queries(
     raw = llm_fn(SYSTEM_PROMPT, user_text)
 
     return PatentQueryPlan.model_validate(raw)
+
+
+def search_patents(
+    query: str,
+    collection=None,
+    embed_fn=None,
+    top_k: int = 5,
+) -> list[RetrievalResult]:
+    """ChromaDB에서 의미적으로 유사한 특허 청크를 검색한다."""
+
+    if not query.strip():
+        raise ValueError("검색어가 비어 있습니다.")
+
+    if top_k < 1:
+        raise ValueError("top_k는 1 이상이어야 합니다.")
+
+    if collection is None:
+        collection = get_collection()
+
+    if collection.count() == 0:
+        return []
+
+    if embed_fn is None:
+        from src.retrieval.market_search import embed_texts
+
+        embed_fn = embed_texts
+
+    query_vector = embed_fn([query])[0]
+
+    results = collection.query(
+        query_embeddings=[query_vector],
+        n_results=min(top_k, collection.count()),
+        include=["documents", "metadatas", "distances"],
+    )
+
+    output = []
+
+    for rank, (chunk_id, content, metadata, distance) in enumerate(
+        zip(
+            results["ids"][0],
+            results["documents"][0],
+            results["metadatas"][0],
+            results["distances"][0],
+        ),
+        start=1,
+    ):
+        metadata = dict(metadata)
+
+        source_id = metadata.pop("source_id")
+        metadata.pop("source_type", None)
+        title = metadata.pop("title")
+
+        document = SearchDocument(
+            chunk_id=chunk_id,
+            source_id=source_id,
+            source_type="patent",
+            title=title,
+            content=content,
+            metadata=metadata,
+        )
+
+        output.append(
+            RetrievalResult(
+                document=document,
+                dense_score=1.0 - distance,
+                dense_rank=rank,
+                final_rank=rank,
+            )
+        )
+
+    return output
