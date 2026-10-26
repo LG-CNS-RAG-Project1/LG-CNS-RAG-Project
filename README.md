@@ -112,6 +112,9 @@ UI 담당자는 Python 3.12 가상환경에서 다음 명령으로 화면을 실
 
 ### 시장 뉴스 수집·정제
 
+시장 조사 전체 흐름(아이디어 구조화 → 수집·색인 → 차원별 검색 → 분석 생성·인용 검증 → 평가)과
+단계별 코드 위치는 [docs/market_research.md](docs/market_research.md)를 참고한다.
+
 ```bash
 python -m src.ingestion.news_client --keyword-id smart_factory --max-items 10   # 키워드 1개 수집
 python -m src.ingestion.news_client                                             # 전체 키워드 수집
