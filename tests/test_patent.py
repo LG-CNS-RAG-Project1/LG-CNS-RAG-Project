@@ -7,10 +7,11 @@ from src.ingestion.kipris_client import (
     KiprisAPIError,
     search_patents,
 )
-from src.schemas import (
-    PatentReport,
-    PatentEvidence,
-    PatentComparison,
+from src.schemas import PatentReport, PatentEvidence, PatentComparison, PatentDocument
+
+from src.ingestion.patent_processor import (
+    build_chunks,
+    to_patent_document,
 )
 
 # ============================================================
@@ -197,9 +198,85 @@ def test_no_results():
     assert report.comparisons == []
 
 
-# 추후 구현 예정
-# class TestPatentProcessor:
-#     """특허 데이터 정제 테스트"""
+# ============================================================
+# 특허 데이터 정제 테스트
+# ============================================================
+
+
+def test_to_patent_document():
+    raw = {
+        "application_number": "1020240001234",
+        "title": "진동 기반 설비 고장 예측",
+        "abstract": "진동 데이터를 분석하여 설비 고장을 예측한다.",
+        "claims": None,
+        "applicant": "테스트 기업",
+        "source": "KIPRIS Plus",
+    }
+
+    patent = to_patent_document(raw)
+
+    assert patent.patent_id == "1020240001234"
+    assert patent.application_number == "1020240001234"
+    assert patent.title == "진동 기반 설비 고장 예측"
+    assert patent.abstract == raw["abstract"]
+    assert patent.claims == ""
+    assert patent.applicant == "테스트 기업"
+
+
+def test_to_patent_document_without_application_number():
+    with pytest.raises(ValueError, match="출원번호"):
+        to_patent_document({"title": "출원번호 없는 특허"})
+
+
+def test_build_chunks():
+    patent = PatentDocument(
+        patent_id="1020240001234",
+        title="진동 기반 설비 고장 예측",
+        abstract="진동 데이터를 분석하여 설비 고장을 예측한다.",
+        claims="진동 센서와 AI 모델을 포함하는 고장 예측 장치.",
+    )
+
+    chunks = build_chunks([patent])
+
+    assert len(chunks) == 2
+
+    assert chunks[0].chunk_id == "1020240001234_abstract_0"
+    assert chunks[0].patent_id == patent.patent_id
+    assert chunks[0].section == "abstract"
+    assert chunks[0].text == patent.abstract
+    assert chunks[0].chunk_index == 0
+
+    assert chunks[1].chunk_id == "1020240001234_claims_0"
+    assert chunks[1].patent_id == patent.patent_id
+    assert chunks[1].section == "claims"
+    assert chunks[1].text == patent.claims
+    assert chunks[1].chunk_index == 0
+
+
+def test_build_chunks_without_claims():
+    patent = PatentDocument(
+        patent_id="1020240005678",
+        title="AI 품질 검사",
+        abstract="영상 데이터를 분석하여 불량품을 검출한다.",
+    )
+
+    chunks = build_chunks([patent])
+
+    assert len(chunks) == 1
+    assert chunks[0].section == "abstract"
+    assert chunks[0].chunk_id == "1020240005678_abstract_0"
+
+
+def test_build_chunks_without_content():
+    patent = PatentDocument(
+        patent_id="1020240009999",
+        title="본문 없는 특허",
+        abstract="",
+        claims="",
+    )
+
+    assert build_chunks([patent]) == []
+
 
 # class TestPatentRetrieval:
 #     """ChromaDB 검색 테스트"""
