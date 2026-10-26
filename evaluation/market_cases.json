@@ -1,0 +1,227 @@
+[
+  {
+    "case_id": "SF-01-demand",
+    "idea_id": "SF-01",
+    "dimension": "demand",
+    "question": "'협동로봇+비전 턴키 자동화'에 대한 고객(중소 제조사) 수요를 보여주는 근거가 있는가?",
+    "relevant_source_ids": [],
+    "judged_source_ids": [],
+    "labeled": false
+  },
+  {
+    "case_id": "SF-01-competition",
+    "idea_id": "SF-01",
+    "dimension": "competition",
+    "question": "'협동로봇+비전 턴키 자동화'의 경쟁 기업이나 대체 제품은 무엇인가?",
+    "relevant_source_ids": [],
+    "judged_source_ids": [],
+    "labeled": false
+  },
+  {
+    "case_id": "SF-01-price",
+    "idea_id": "SF-01",
+    "dimension": "price",
+    "question": "'협동로봇+비전 턴키 자동화'의 도입 가격이나 비용 수준을 보여주는 근거가 있는가?",
+    "relevant_source_ids": [],
+    "judged_source_ids": [],
+    "labeled": false
+  },
+  {
+    "case_id": "SF-01-buyer",
+    "idea_id": "SF-01",
+    "dimension": "buyer",
+    "question": "'협동로봇+비전 턴키 자동화' 관련 기술(협동로봇 머신비전)을 실제로 도입한 고객이나 사례가 있는가?",
+    "relevant_source_ids": [],
+    "judged_source_ids": [],
+    "labeled": false
+  },
+  {
+    "case_id": "SF-01-adoption_barrier",
+    "idea_id": "SF-01",
+    "dimension": "adoption_barrier",
+    "question": "'협동로봇+비전 턴키 자동화' 도입 시 고객(중소 제조사)이 겪는 어려움은 무엇인가?",
+    "relevant_source_ids": [],
+    "judged_source_ids": [],
+    "labeled": false
+  },
+  {
+    "case_id": "SF-02-demand",
+    "idea_id": "SF-02",
+    "dimension": "demand",
+    "question": "'2차전지·전자부품 AI 비전 외관 검사'에 대한 고객(2차전지·전자부품 제조사 품질 부서) 수요를 보여주는 근거가 있는가?",
+    "relevant_source_ids": [],
+    "judged_source_ids": [],
+    "labeled": false
+  },
+  {
+    "case_id": "SF-02-competition",
+    "idea_id": "SF-02",
+    "dimension": "competition",
+    "question": "'2차전지·전자부품 AI 비전 외관 검사'의 경쟁 기업이나 대체 제품은 무엇인가?",
+    "relevant_source_ids": [],
+    "judged_source_ids": [],
+    "labeled": false
+  },
+  {
+    "case_id": "SF-02-price",
+    "idea_id": "SF-02",
+    "dimension": "price",
+    "question": "'2차전지·전자부품 AI 비전 외관 검사'의 도입 가격이나 비용 수준을 보여주는 근거가 있는가?",
+    "relevant_source_ids": [],
+    "judged_source_ids": [],
+    "labeled": false
+  },
+  {
+    "case_id": "SF-02-buyer",
+    "idea_id": "SF-02",
+    "dimension": "buyer",
+    "question": "'2차전지·전자부품 AI 비전 외관 검사' 관련 기술(딥러닝 AI 비전 외관 검사 장비)을 실제로 도입한 고객이나 사례가 있는가?",
+    "relevant_source_ids": [],
+    "judged_source_ids": [],
+    "labeled": false
+  },
+  {
+    "case_id": "SF-02-adoption_barrier",
+    "idea_id": "SF-02",
+    "dimension": "adoption_barrier",
+    "question": "'2차전지·전자부품 AI 비전 외관 검사' 도입 시 고객(2차전지·전자부품 제조사 품질 부서)이 겪는 어려움은 무엇인가?",
+    "relevant_source_ids": [],
+    "judged_source_ids": [],
+    "labeled": false
+  },
+  {
+    "case_id": "SF-03-demand",
+    "idea_id": "SF-03",
+    "dimension": "demand",
+    "question": "'진동·전류 센서 예지보전 SaaS'에 대한 고객(중소·중견 제조사 설비 보전 담당자) 수요를 보여주는 근거가 있는가?",
+    "relevant_source_ids": [],
+    "judged_source_ids": [],
+    "labeled": false
+  },
+  {
+    "case_id": "SF-03-competition",
+    "idea_id": "SF-03",
+    "dimension": "competition",
+    "question": "'진동·전류 센서 예지보전 SaaS'의 경쟁 기업이나 대체 제품은 무엇인가?",
+    "relevant_source_ids": [],
+    "judged_source_ids": [],
+    "labeled": false
+  },
+  {
+    "case_id": "SF-03-price",
+    "idea_id": "SF-03",
+    "dimension": "price",
+    "question": "'진동·전류 센서 예지보전 SaaS'의 도입 가격이나 비용 수준을 보여주는 근거가 있는가?",
+    "relevant_source_ids": [],
+    "judged_source_ids": [],
+    "labeled": false
+  },
+  {
+    "case_id": "SF-03-buyer",
+    "idea_id": "SF-03",
+    "dimension": "buyer",
+    "question": "'진동·전류 센서 예지보전 SaaS' 관련 기술(진동·전류 센서와 이상 탐지 AI 기반 예지보전)을 실제로 도입한 고객이나 사례가 있는가?",
+    "relevant_source_ids": [],
+    "judged_source_ids": [],
+    "labeled": false
+  },
+  {
+    "case_id": "SF-03-adoption_barrier",
+    "idea_id": "SF-03",
+    "dimension": "adoption_barrier",
+    "question": "'진동·전류 센서 예지보전 SaaS' 도입 시 고객(중소·중견 제조사 설비 보전 담당자)이 겪는 어려움은 무엇인가?",
+    "relevant_source_ids": [],
+    "judged_source_ids": [],
+    "labeled": false
+  },
+  {
+    "case_id": "SF-04-demand",
+    "idea_id": "SF-04",
+    "dimension": "demand",
+    "question": "'공정별 전력 FEMS'에 대한 고객(전력 사용량이 많은 중소·중견 제조사) 수요를 보여주는 근거가 있는가?",
+    "relevant_source_ids": [],
+    "judged_source_ids": [],
+    "labeled": false
+  },
+  {
+    "case_id": "SF-04-competition",
+    "idea_id": "SF-04",
+    "dimension": "competition",
+    "question": "'공정별 전력 FEMS'의 경쟁 기업이나 대체 제품은 무엇인가?",
+    "relevant_source_ids": [],
+    "judged_source_ids": [],
+    "labeled": false
+  },
+  {
+    "case_id": "SF-04-price",
+    "idea_id": "SF-04",
+    "dimension": "price",
+    "question": "'공정별 전력 FEMS'의 도입 가격이나 비용 수준을 보여주는 근거가 있는가?",
+    "relevant_source_ids": [],
+    "judged_source_ids": [],
+    "labeled": false
+  },
+  {
+    "case_id": "SF-04-buyer",
+    "idea_id": "SF-04",
+    "dimension": "buyer",
+    "question": "'공정별 전력 FEMS' 관련 기술(공정별 전력 계측 FEMS 공장에너지관리시스템)을 실제로 도입한 고객이나 사례가 있는가?",
+    "relevant_source_ids": [],
+    "judged_source_ids": [],
+    "labeled": false
+  },
+  {
+    "case_id": "SF-04-adoption_barrier",
+    "idea_id": "SF-04",
+    "dimension": "adoption_barrier",
+    "question": "'공정별 전력 FEMS' 도입 시 고객(전력 사용량이 많은 중소·중견 제조사)이 겪는 어려움은 무엇인가?",
+    "relevant_source_ids": [],
+    "judged_source_ids": [],
+    "labeled": false
+  },
+  {
+    "case_id": "SF-05-demand",
+    "idea_id": "SF-05",
+    "dimension": "demand",
+    "question": "'현장 작업자용 LLM 음성 어시스턴트'에 대한 고객(제조 현장 작업자와 생산 관리자) 수요를 보여주는 근거가 있는가?",
+    "relevant_source_ids": [],
+    "judged_source_ids": [],
+    "labeled": false
+  },
+  {
+    "case_id": "SF-05-competition",
+    "idea_id": "SF-05",
+    "dimension": "competition",
+    "question": "'현장 작업자용 LLM 음성 어시스턴트'의 경쟁 기업이나 대체 제품은 무엇인가?",
+    "relevant_source_ids": [],
+    "judged_source_ids": [],
+    "labeled": false
+  },
+  {
+    "case_id": "SF-05-price",
+    "idea_id": "SF-05",
+    "dimension": "price",
+    "question": "'현장 작업자용 LLM 음성 어시스턴트'의 도입 가격이나 비용 수준을 보여주는 근거가 있는가?",
+    "relevant_source_ids": [],
+    "judged_source_ids": [],
+    "labeled": false
+  },
+  {
+    "case_id": "SF-05-buyer",
+    "idea_id": "SF-05",
+    "dimension": "buyer",
+    "question": "'현장 작업자용 LLM 음성 어시스턴트' 관련 기술(LLM 음성 인식 작업 지원 어시스턴트)을 실제로 도입한 고객이나 사례가 있는가?",
+    "relevant_source_ids": [],
+    "judged_source_ids": [],
+    "labeled": false
+  },
+  {
+    "case_id": "SF-05-adoption_barrier",
+    "idea_id": "SF-05",
+    "dimension": "adoption_barrier",
+    "question": "'현장 작업자용 LLM 음성 어시스턴트' 도입 시 고객(제조 현장 작업자와 생산 관리자)이 겪는 어려움은 무엇인가?",
+    "relevant_source_ids": [],
+    "judged_source_ids": [],
+    "labeled": false
+  }
+]
