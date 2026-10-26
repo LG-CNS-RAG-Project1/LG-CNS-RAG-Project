@@ -248,7 +248,13 @@ if not s.confirmed_context and s.raw:
 
 if s.stage == 1:
     st.html(hero())
-with st.container(key=f"sheet_{s.stage}"):
+previous_stage = s.get("displayed_stage", s.stage)
+if previous_stage != s.stage:
+    s.turn_direction = "forward" if s.stage > previous_stage else "backward"
+s.displayed_stage = s.stage
+direction = s.get("turn_direction", "still")
+with st.container(key=f"sheet_{s.stage}_{direction}"):
+    st.html(f'<div class="page-folio">{s.stage:02d} / 04 · {steps[s.stage - 1]}</div>')
     if s.stage == 1:
         st.html('<div id="idea-input" class="sheet-label">01 / 아이디어 노트</div>')
         s.setdefault("raw_input", s.raw)
@@ -878,4 +884,18 @@ with st.container(key=f"sheet_{s.stage}"):
             )
     st.caption(
         "입력은 현재 세션에서만 유지됩니다. 실제 특허·시장·가격 API는 미연결입니다."
+    )
+
+if previous_stage != s.stage:
+    st.html(
+        """<script>(() => {
+        const until = performance.now() + 650;
+        function alignPage() {
+            const main = document.querySelector('[data-testid="stMain"]');
+            if (main) main.scrollTo({top: 0, behavior: 'instant'});
+            if (performance.now() < until) requestAnimationFrame(alignPage);
+        }
+        requestAnimationFrame(alignPage);
+        })();</script>""",
+        unsafe_allow_javascript=True,
     )
