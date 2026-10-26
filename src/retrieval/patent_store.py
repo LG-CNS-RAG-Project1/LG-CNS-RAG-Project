@@ -11,7 +11,7 @@ from src.schemas import PatentChunk, PatentDocument
 from src.retrieval.adapters import patent_to_search_document
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
-CHROMA_DIR = ROOT_DIR / "data" / "patent" / "chroma"
+CHROMA_DIR = ROOT_DIR / "data" / "patents" / "chroma"
 COLLECTION_NAME = "patents"
 
 
