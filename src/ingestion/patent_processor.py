@@ -82,12 +82,24 @@ def save_documents(
     documents: list[PatentDocument],
     path: Path = OUTPUT_PATH,
 ) -> Path:
-    """특허 문서를 JSONL로 저장한다. 기존 파일은 덮어쓴다."""
+    """기존 특허를 유지하면서 출원번호 기준으로 중복 없이 JSONL에 저장한다."""
     path.parent.mkdir(parents=True, exist_ok=True)
 
+    merged = {}
+
+    if path.exists():
+        with open(path, encoding="utf-8") as f:
+            for line in f:
+                if line.strip():
+                    patent = PatentDocument.model_validate_json(line)
+                    merged[patent.patent_id] = patent
+
+    for patent in documents:
+        merged[patent.patent_id] = patent
+
     with open(path, "w", encoding="utf-8") as f:
-        for document in documents:
-            f.write(document.model_dump_json() + "\n")
+        for patent in merged.values():
+            f.write(patent.model_dump_json() + "\n")
 
     return path
 

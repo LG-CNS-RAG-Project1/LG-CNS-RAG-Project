@@ -379,6 +379,106 @@ def test_collect_and_process(mock_search, mock_save):
     assert chunks[0].patent_id == documents[0].patent_id
 
 
+def test_save_documents_incremental(tmp_path):
+    path = tmp_path / "patent_docs.jsonl"
+
+    first = [
+        PatentDocument(
+            patent_id="P001",
+            title="기존 특허",
+            abstract="기존 초록",
+        )
+    ]
+
+    second = [
+        PatentDocument(
+            patent_id="P001",
+            title="갱신된 특허",
+            abstract="갱신된 초록",
+        ),
+        PatentDocument(
+            patent_id="P002",
+            title="새 특허",
+            abstract="새 초록",
+        ),
+    ]
+
+    save_documents(first, path)
+    save_documents(second, path)
+
+    saved = [
+        PatentDocument.model_validate_json(line)
+        for line in path.read_text(encoding="utf-8").splitlines()
+    ]
+
+    assert len(saved) == 2
+    assert saved[0].patent_id == "P001"
+    assert saved[0].title == "갱신된 특허"
+    assert saved[1].patent_id == "P002"
+
+
+class TestPatentStore:
+    def test_incremental_index(self, tmp_path):
+        from src.schemas import PatentDocument
+        from src.ingestion.patent_processor import build_chunks
+        from src.retrieval.patent_store import (
+            build_index,
+            get_collection,
+        )
+
+        collection = get_collection(
+            chroma_dir=tmp_path / "chroma",
+        )
+
+        embedded_texts = []
+
+        def fake_embed(texts):
+            embedded_texts.extend(texts)
+            return [[float(len(text)), 1.0, 0.5] for text in texts]
+
+        patent = PatentDocument(
+            patent_id="P001",
+            title="AI 예지보전",
+            abstract="설비 고장 예측",
+        )
+
+        chunks = build_chunks([patent])
+
+        # 1. 신규 색인
+        assert build_index(chunks, [patent], collection, fake_embed) == 1
+        assert collection.count() == 1
+        assert len(embedded_texts) == 1
+
+        # 2. 동일 데이터 재실행
+        assert build_index(chunks, [patent], collection, fake_embed) == 0
+        assert len(embedded_texts) == 1
+
+        # 3. 초록 변경 후 재색인
+        updated_patent = patent.model_copy(
+            update={"abstract": "진동 센서 기반 설비 고장 예측"}
+        )
+        updated_chunks = build_chunks([updated_patent])
+
+        assert (
+            build_index(
+                updated_chunks,
+                [updated_patent],
+                collection,
+                fake_embed,
+            )
+            == 1
+        )
+
+        assert collection.count() == 1
+        assert len(embedded_texts) == 2
+
+        saved = collection.get(
+            ids=["P001_abstract_0"],
+            include=["documents"],
+        )
+        assert saved["documents"] == ["진동 센서 기반 설비 고장 예측"]
+
+
 # ============================================================
 # 특허 검색어 테스트
 # ============================================================
