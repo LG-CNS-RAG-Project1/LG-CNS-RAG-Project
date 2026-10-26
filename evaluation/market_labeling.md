@@ -47,3 +47,20 @@
    - `label_source`: `human`(사람 라벨) / `llm`(LLM 초안)
    - `review`: LLM 확신이 낮은 행은 `확인`. 사람이 검토해 값을 고치면 `label_source`를 `human`으로 바꾼다.
 5. `python -m evaluation.market_labeling import`로 문항에 반영한다.
+
+사람·LLM 판정이 다른 행은 `evaluation/labels/market_adjudication.csv`에서 요약과 LLM 판정 이유를
+함께 보고 사람이 최종값(`final`)을 정해 후보 CSV에 반영했다.
+
+## 현재 라벨 구성
+
+| 파일 | 내용 |
+|---|---|
+| `labels/market_candidates.csv` | 최종 라벨 300행 (25문항 × 12후보) |
+| `labels/market_llm_labels_v1.csv` · `_v2.csv` | 판정 기준 보완 전 LLM 판정 (표본 문항) |
+| `labels/market_llm_labels.csv` | 현재 프롬프트(v3) LLM 판정 300행 |
+| `labels/market_adjudication.csv` | 사람·LLM 불일치 24행과 최종 판정 |
+
+- 사람 라벨 72행(6문항): 블라인드 라벨 후 불일치 행 최종 판정. 최종 판정에서 LLM 판정이 채택된 비율 21/24.
+- LLM 라벨 228행: 확신이 낮은 60행을 사람이 검토해 19행 수정(`label_source=human`).
+- 블라인드 일치도(사람 vs LLM): 프롬프트 조정에 쓴 3문항 72%(v1) → 78%(v2), 조정에 쓰지 않은 3문항 56%(v2, kappa 0.04).
+  문항별 관련성 판단 자체가 모호한 경우가 많아, 최종 라벨은 사람 판정·검토를 거친 값으로 본다.
