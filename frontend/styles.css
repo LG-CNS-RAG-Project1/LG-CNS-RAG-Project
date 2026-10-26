@@ -85,4 +85,18 @@ html{scroll-behavior:smooth;}
 .dossier-notes div:last-child{width:72%;}
 .dossier-footer{display:flex;justify-content:space-between;gap:6px;font:6px monospace;letter-spacing:.2px;color:#80917e;margin-top:17px;}
 @media(max-width:900px){.front-paper{padding:20px 22px}.front-paper h2{font-size:21px!important;margin:13px 0 6px}.document-subtitle{margin-bottom:10px}.research-panels{padding:8px 0}.research-panel .research-drawing{height:66px}.evidence-bridge{margin:10px 0}.dossier-notes{display:none}.dossier-footer{margin-top:12px}}
+
+/* 문서 위의 돋보기는 근거를 살펴보는 의미의 장식 도구다. */
+.research-magnifier{position:absolute;width:116px;height:205px;right:0;bottom:24px;z-index:5;transform:rotate(-26deg);pointer-events:none;filter:drop-shadow(5px 12px 7px #193c3430);}
+.magnifier-rim{position:absolute;inset:0 0 auto;height:116px;border-radius:50%;padding:7px;background:linear-gradient(135deg,#a7b2a1 2%,#49675d 20%,#214d42 50%,#7b8d78 80%,#c1bf9d);box-shadow:inset 1px 1px 2px #ffffd9,1px 2px 2px #1c3e3850;}
+.magnifier-glass{height:100%;border-radius:50%;position:relative;overflow:hidden;background:radial-gradient(ellipse at 35% 25%,#ffffffb0,transparent 50%),linear-gradient(135deg,#eff9edaa,#d5ebe185);border:1px solid #cfddd0;box-shadow:inset 2px 3px 7px #426b5a22,inset -3px -2px 6px #ffffffbb;}
+.magnifier-handle{position:absolute;left:45px;top:106px;width:26px;height:94px;border-radius:5px 5px 12px 12px;background:linear-gradient(90deg,#224b41,#4f7360 45%,#284d41 85%,#173e35);border:1px solid #254e42;box-shadow:inset 2px 0 2px #b0b59a66;}
+.magnifier-handle:before{content:"";position:absolute;top:4px;left:-2px;width:28px;height:15px;background:linear-gradient(90deg,#968d64,#d8c593,#958760);border-block:1px solid #f0e5bc88;}
+.lens-caption{position:absolute;top:17px;width:100%;text-align:center;font:7px monospace;letter-spacing:2px;color:#668475;transform:rotate(26deg);}
+.lens-detail{position:absolute;inset:39px 17px 20px;transform:rotate(26deg);border-left:1px solid #7c998263;border-bottom:1px solid #7c998263;background:repeating-linear-gradient(0deg,transparent 0 12px,#62887816 12px 13px);}
+.lens-detail i{position:absolute;bottom:0;width:7px;background:#b7ad7d99;border-radius:2px 2px 0 0;}
+.lens-detail i:nth-child(1){left:8px;height:13px}.lens-detail i:nth-child(2){left:22px;height:22px}.lens-detail i:nth-child(3){left:36px;height:18px}.lens-detail i:nth-child(4){left:50px;height:33px}
+.lens-detail b{position:absolute;left:5px;right:0;top:10px;height:17px;border-top:2px solid #3b7a65;transform:rotate(-15deg);}
+.lens-reflection{position:absolute;left:7px;top:6px;width:33px;height:60px;border-radius:50%;border-left:5px solid #ffffffb0;transform:rotate(25deg);}
+@media(max-width:900px){.research-magnifier{transform:rotate(-26deg) scale(.8);transform-origin:bottom right;right:3px;bottom:5px;}}
 </style>

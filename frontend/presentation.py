@@ -58,6 +58,14 @@ def hero():
           <div class="evidence-bridge"><span>기술 근거</span><i></i><b>연결 검토</b><i></i><span>시장 근거</span></div>
           <div class="dossier-notes"><span>검토 질문</span><div></div><div></div></div>
           <div class="dossier-footer"><span>IDEA → EVIDENCE → INSIGHT</span><span>개념도 · 실제 분석 아님</span></div>
+        </div>
+        <div class="research-magnifier" aria-hidden="true">
+          <div class="magnifier-handle"></div>
+          <div class="magnifier-rim"><div class="magnifier-glass">
+            <span class="lens-caption">EVIDENCE</span>
+            <div class="lens-detail"><i></i><i></i><i></i><i></i><b></b></div>
+            <div class="lens-reflection"></div>
+          </div></div>
         </div></div></section>"""
 
     return re.sub(r"<svg\b.*?</svg>", _drawing, markup, flags=re.DOTALL)
