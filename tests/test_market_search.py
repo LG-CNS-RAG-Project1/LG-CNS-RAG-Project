@@ -151,3 +151,24 @@ def test_search_by_dimensions(indexed):
     assert "협동로봇 비전" in queries["price"]
     assert set(results) == {"demand", "price"}
     assert all(len(hits) <= 2 for hits in results.values())
+
+
+def test_dimension_queries_use_idea_fields():
+    queries = build_dimension_queries(
+        MarketSearchRequest(
+            idea=StructuredIdea(
+                title="협동로봇 턴키 자동화",
+                problem="숙련 인력 부족",
+                technology="협동로봇 비전",
+                customers="중소 제조사",
+                difference="턴키 설치",
+                revenue="",
+            )
+        )
+    )
+
+    assert "숙련 인력 부족" in queries["demand"]
+    assert "턴키 설치" in queries["competition"]
+    assert "중소 제조사" in queries["buyer"]
+    assert "협동로봇 턴키 자동화" not in queries["demand"]
+    assert all("  " not in q and q == q.strip() for q in queries.values())
