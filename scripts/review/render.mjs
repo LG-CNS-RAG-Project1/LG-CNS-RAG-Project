@@ -19,7 +19,7 @@ export function nextActions(analysis) {
   const lines = [];
   const { readiness, ci, conflict, prechecks, findings, output } = analysis;
   if (readiness.state === "draft") {
-    lines.push("초안(리더 요청으로 분석함). 준비되면 PR 화면 맨 아래 'Ready for review'를 눌러 주세요. 누르면 검토 담당이 자동으로 지정됩니다.");
+    lines.push("초안입니다. 준비되면 PR 화면 맨 아래 'Ready for review'를 눌러 주세요. 누르면 검토 담당이 자동으로 지정되고 준비 상태가 다시 기록됩니다.");
   }
   if (prechecks.some((check) => check.rule === "AGENTS_5_secrets" && check.status === "fail")) {
     lines.push("비밀번호나 API 키처럼 보이는 값이 있습니다(값은 가림). 진짜라면 리더에게 바로 알려 주세요. 예시 값이면 PR 댓글에 '예시 값'이라고 남겨 주세요.");
@@ -192,6 +192,7 @@ export function renderReport(analysis, previousHistory = [], previousSeq = previ
     v: STATE_VERSION,
     analyzer: analysis.analyzer,
     head: pr.head_sha,
+    draft: pr.draft,
     merge_base: analysis.merge_base,
     mode: analysis.mode,
     coverage: coverage.state,

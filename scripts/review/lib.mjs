@@ -162,6 +162,10 @@ export function keywordsOf(paths, limit = 10) {
 }
 
 // ---------- 분석 방식 ----------
+// 같은 head를 같은 초안 여부로 이미 분석했으면 건너뛴다. 'Ready for review'나 초안 전환은 코드가 같아도 다시 기록한다.
+export const alreadyAnalyzed = (previous, pr, force = false) =>
+  !force && Boolean(previous) && previous.head === pr.head.sha && Boolean(previous.draft) === Boolean(pr.draft);
+
 // 바뀌면 전체를 다시 봐야 하는 공통 계약 파일
 export const CONTRACT_FILES = ["src/schemas.py", "src/main.py"];
 
@@ -319,7 +323,7 @@ export function computeReadiness({ draft, checks, ci, conflict, output, findings
     return [{ state: "ready", reason: "자동 검사 통과, 꼭 고칠 점 없음" }];
   };
   const reasons = pick();
-  if (draft) return { state: "draft", reasons: [{ state: "draft", reason: "초안(리더 요청으로 분석함)" }], if_not_draft: reasons };
+  if (draft) return { state: "draft", reasons: [{ state: "draft", reason: "초안('Ready for review' 전)" }], if_not_draft: reasons };
   return { state: reasons[0].state, reasons, if_not_draft: null };
 }
 

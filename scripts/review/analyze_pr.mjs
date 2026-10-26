@@ -15,7 +15,7 @@ import {
 import { runClaude } from "./engine.mjs";
 import { computeConflict, createGitHub, fetchPull, readCi } from "./github.mjs";
 import {
-  baselineStatus, computeReadiness, decideMode, fileSignature, filterBaselineRefs, findSecrets, keywordsOf, maskPatch,
+  alreadyAnalyzed, baselineStatus, computeReadiness, decideMode, fileSignature, filterBaselineRefs, findSecrets, keywordsOf, maskPatch,
   parseMappings, parsePatch, parseTagRules, runPrechecks, selectPatches, tagOf, tagsOf, verifyFindings,
 } from "./lib.mjs";
 import { createNotion } from "./notion_store.mjs";
@@ -30,7 +30,6 @@ const repository = env.GITHUB_REPOSITORY ?? "LG-CNS-RAG-Project1/LG-CNS-RAG-Proj
 const prNumber = Number(env.PR_NUMBER);
 const dryRun = flag(env.DRY_RUN);
 const llmEnabled = flag(env.REVIEW_LLM_ENABLED);
-const allowDraft = flag(env.ALLOW_DRAFT);
 const force = flag(env.FORCE);
 const cardsStep = env.REVIEW_STEP === "cards";
 const ciWaitSeconds = Number(env.CI_WAIT_SECONDS ?? 600);
@@ -159,19 +158,15 @@ if (env.EVENT_ACTION === "closed" || pr.state === "closed") {
   }
   process.exit(0);
 }
-if (pr.draft && !allowDraft) {
-  console.log("초안 PR이라 분석하지 않습니다('Ready for review' 시 분석).");
-  process.exit(0);
-}
-
 let previous = null;
 try {
   previous = await notion.readState(prNumber);
 } catch (error) {
   warn(`이전 분석 상태를 읽지 못했습니다(전체 분석으로 진행): ${error.message}`);
 }
-if (previous?.head === pr.head.sha && !force) {
-  console.log("이미 분석한 버전입니다. 건너뜁니다(force로 다시 분석 가능).");
+if (alreadyAnalyzed(previous, pr, force)) {
+  console.log("이미 같은 버전·같은 초안 여부로 분석했습니다. 건너뜁니다(force로 다시 분석 가능).");
+  summary(`### PR 분석 (참고용)\n- PR #${prNumber} · 이미 분석한 버전(${pr.head.sha.slice(0, 7)})이라 건너뜀`);
   process.exit(0);
 }
 
