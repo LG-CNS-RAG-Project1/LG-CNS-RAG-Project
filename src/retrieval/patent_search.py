@@ -8,6 +8,10 @@ from pydantic import ValidationError
 
 from src.schemas import PatentSearchRequest
 from src.retrieval.schemas import PatentQueryPlan
+from pathlib import Path
+from dotenv import load_dotenv
+
+ROOT_DIR = Path(__file__).resolve().parents[2]
 
 LLM_MODEL = "gpt-4o-mini"
 
@@ -22,11 +26,16 @@ SYSTEM_PROMPT = """
 2. problem, customers, difference는 기술 맥락을 파악하는 데 활용합니다.
 3. revenue는 필요한 경우에만 참고합니다.
 4. 아이디어에 없는 새로운 기술을 임의로 추가하지 않습니다.
-5. 기술 요소는 최대 5개로 제한합니다.
-6. 각 기술 요소에 대해 한국어 검색어 2개,
-   영어 검색어 2개를 생성합니다.
-7. 검색어는 특허 검색에 적합한 기술 용어로 작성합니다.
-8. 반드시 아래 JSON 형식으로 응답합니다.
+5. 기술 요소는 2~5개 추출하되, 실제 기술적 구성 요소만 선정합니다.
+6. 고객, 적용 산업, 가격, 수익모델은 독립적인 기술 요소로 선정하지 않습니다.
+7. 각 기술 요소에 대해 한국어·영어 검색어를 2개씩 생성합니다.
+8. 입력에 명시되지 않은 구체적인 알고리즘이나 장비를
+   실제 구현 기술인 것처럼 단정하지 않습니다.
+9. 기술 요소가 부족하면 개수를 억지로 채우지 않습니다.
+10. 핵심 기술뿐 아니라 기술 요소 간 결합 방식이
+    명시되어 있다면 해당 결합 기술도 검색 대상으로 고려합니다.
+
+반드시 다음 JSON 형식으로만 응답하세요.
 
 {
   "queries": [
@@ -42,6 +51,7 @@ SYSTEM_PROMPT = """
 
 def call_query_llm(system_prompt: str, user_text: str) -> dict:
     """OpenAI API를 호출하여 검색어 생성 결과를 반환한다."""
+    load_dotenv(ROOT_DIR / ".env")
     client = OpenAI()
 
     response = client.chat.completions.create(
