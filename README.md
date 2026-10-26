@@ -87,28 +87,17 @@ docker compose down               # 종료 (make down)
 
 ## Streamlit 화면 시연
 
-UI 담당자는 Python 3.12 가상환경에서 다음 명령으로 화면을 실행한다.
-
 ```powershell
 .\.venv\Scripts\python.exe -m pip install -r requirements-ui.txt
-.\.venv\Scripts\python.exe -m streamlit run frontend/app.py
+.\.venv\Scripts\python.exe -m streamlit run frontend/app.py --server.address 127.0.0.1 --server.port 8505
 ```
 
-현재는 API 키 없이 실행하는 **아이디어 검토실**이다. 아이디어 입력 → 문제·기술·고객 등
-브리프 확정 → 시장·기업 / 특허·기술 조사 → 구현 비용 → 종합 보고서 순서로 검토한다.
-‘예시 불러오기’로 가상 제조라인 검사 장치 사례를 확인할 수 있다.
-
-- 시장과 특허의 인용문·원문 위치·한계를 근거 패널에서 확인한다. 예시 문헌은 실제 자료가 아니다.
-- 장비·부품의 수량·단가·납기를 편집하고 ‘비용 반영하기’를 누르면 보고서에 반영한다.
-- 빈 금액은 미확인으로 남긴다. 입력 금액 소계는 총사업비·실제 견적이 아니다.
-- 팀 검토 메모와 다음 조사 항목을 저장한 후 Markdown 보고서를 내려받을 수 있다.
-- 입력은 현재 세션에 유지되며 영구 저장·팀 공동 편집은 제공하지 않는다.
-
-실행·사용 설명은 [UI 가이드](docs/ui-guide.md), 설계와 백엔드 연결 경계는
-[아이디어 검토실 구성](docs/idea-workspace-ui.md)을 참고한다.
-`frontend/workspace.py`는 예시·비용 계산·보고서, `frontend/styles.css`는 스타일,
-`tests/test_workspace_ui.py`는 브리프·비용·근거·보고서 동작을 담당한다.
-기존 `frontend/demo.py`는 기업 비교 모델을 보존하며 현재 화면에서는 사용하지 않는다.
+상단 단계 표시와 본문 버튼으로 **아이디어 입력 → 핵심 구성 확인 → 문헌 선정·근거 검토 → 종합 보고서**를 진행한다. 왼쪽 단계 사이드바는 사용하지 않는다.
+입력 화면은 큰 본문과 우측 최근 입력, 조사 화면은 좌측 구성·중앙 특허/시장 후보·우측 선택 목록, 보고서는 좌측 선택 문헌·우측 본문으로 구성한다.
+핵심 구성은 최대 7개를 직접 편집·이동·삭제하며, 최소 2개 자료를 선택하면 보고서를 생성한다. 한 영역만 선택하면 다른 영역은 미확인으로 남긴다.
+AI 추출·실검색·병렬 분석·가격 수집은 미연결이다. 정확한 예시 입력에만 가상 자료를 표시하고 보고서에 선택 자료만 포함한다.
+`frontend/quick.py`가 입력·문헌 선택·보고서 규칙, `frontend/app.py`가 화면, `tests/test_quick_ui.py`가 단계별 검증을 담당한다.
+[실행·시연 가이드](docs/ui-guide.md)와 [참고 화면 구조 및 연결 계약](docs/quick-research-ui.md)을 참고한다. 기존 비용 함수는 후속 활용을 위해 유지한다.
 
 ### 시장 뉴스 수집·정제
 
