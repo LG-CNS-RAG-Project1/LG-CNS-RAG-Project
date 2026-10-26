@@ -88,7 +88,7 @@ export function maskPatch(patch = "") {
 
 // ---------- 아키텍처 영역 ----------
 export function parseMappings(markdown) {
-  return [...String(markdown).matchAll(/%% map (\S+) (\S+)/g)].map((match) => ({ prefix: match[1], node: match[2] }));
+  return [...String(markdown).matchAll(/^\s*%%\s*map\s+(\S+)\s+(\S+)\s*$/gm)].map((match) => ({ prefix: match[1], node: match[2] }));
 }
 
 // 가장 긴 접두사 하나로 파일의 영역을 정한다.
@@ -163,36 +163,48 @@ export function keywordsOf(paths, limit = 10) {
 
 // ---------- AI 병합 판단 ----------
 const VERDICTS = ["merge_ok", "fix_then_merge", "discuss", "hold"];
+const RATIONALE_KEYS = ["result", "causality", "basis"];
+// 보고서에 "승인"이라는 말을 쓰지 않는다(모델이 써도 바꾼다).
+export const sanitizeWords = (value) => String(value ?? "").replace(/승인/g, "확인").trim();
 
-// AI 병합 판단을 정리한다. 판단 근거는 앞에서부터 최대 3문장, 등급이 없거나 모르는 값이면 null.
-// 자동 점검이 '보완 후 검토'(충돌·보안 의심·내 변경 검사 실패·리더 확인 꼭 고칠 점)이면 '병합 가능'을 '보완 후 병합'으로 낮춘다.
-export function finalizeJudgment(output, readiness) {
+// AI 병합 판단을 정리한다. 등급이 없거나 모르는 값이면 null. 근거는 분석 결과·인과관계·판단 근거 순서의 세 문장이다.
+// 자동 점검이 '보완 후 검토'이거나 꼭 고칠 점(blocker)이 있으면 '병합 가능'을 '보완 후 병합'으로 낮추고, 이유도 그 사유로 바꾼다.
+export function finalizeJudgment(output, readiness, findings = []) {
   const verdict = output?.judgment?.verdict;
   if (!VERDICTS.includes(verdict)) return null;
-  const rationale = (output.rationale ?? []).map((line) => String(line).trim()).filter(Boolean).slice(0, 3);
-  const capped = readiness?.state === "needs_fix" && verdict === "merge_ok";
-  return { verdict: capped ? "fix_then_merge" : verdict, reason: String(output.judgment.reason ?? "").trim(), rationale, capped };
+  const rationale = RATIONALE_KEYS.map((key) => sanitizeWords(output.rationale?.[key])).filter(Boolean);
+  const blockers = (findings ?? []).filter((finding) => finding.severity === "blocker");
+  const capReasons = [
+    ...(readiness?.state === "needs_fix" ? readiness.reasons.map((item) => item.reason) : []),
+    ...(blockers.length ? [`꼭 고칠 점 ${blockers.length}건`] : []),
+  ];
+  const capped = verdict === "merge_ok" && capReasons.length > 0;
+  const reason = capped ? `${capReasons.join(", ")} (AI 원래 판단: 병합 가능)` : sanitizeWords(output.judgment.reason);
+  return { verdict: capped ? "fix_then_merge" : verdict, reason, rationale, capped };
 }
 
 // ---------- 분석 방식 ----------
-// 같은 head를 같은 초안 여부로 이미 분석했으면 건너뛴다. 'Ready for review'나 초안 전환은 코드가 같아도 다시 기록한다.
-export const alreadyAnalyzed = (previous, pr, force = false) =>
-  !force && Boolean(previous) && previous.head === pr.head.sha && Boolean(previous.draft) === Boolean(pr.draft);
+// 파일 지문 전체의 요약 해시. 상태가 커서 파일별 지문을 버렸을 때 '변경 없음'과 병합 시점 대조에 쓴다.
+export const filesDigest = (signatures) =>
+  sha256(Object.entries(signatures).sort(([a], [b]) => a.localeCompare(b)).map(([path, sig]) => `${path}\t${sig}`).join("\n")).slice(0, 32);
 
 // 바뀌면 전체를 다시 봐야 하는 공통 계약 파일
 export const CONTRACT_FILES = ["src/schemas.py", "src/main.py"];
 
-// 지난 분석 상태와 파일 지문을 비교해 분석 방식을 정한다.
-// full: 지난 AI 결과 없음·강제·상태 형식 변경·계약 파일 변경·파일 60% 이상 변경, none: 바뀐 파일 없음, incremental: 그 밖.
-export function decideMode({ previous, signatures, force = false, stateVersion = null }) {
+// 지난 '성공한' 분석의 파일 지문과 비교해 분석 방식을 정한다.
+// first: 성공한 분석 없음, full: 강제·분석기 버전 변경·계약 파일 변경·파일 60% 이상 변경, none: 의미 있는 변경 없음, incremental: 그 밖.
+export function decideMode({ success, signatures, force = false, versionChanged = false }) {
   const paths = Object.keys(signatures);
-  const before = previous?.files ?? {};
+  const before = success?.files ?? {};
   const changed = paths.filter((path) => before[path]?.sig !== signatures[path]);
   const removed = Object.keys(before).filter((path) => !(path in signatures));
   const full = (reason) => ({ mode: "full", changed: paths, removed, reason });
-  if (!previous?.output) return full("first");
+  if (!success?.output) return { mode: "full", changed: paths, removed, reason: "first" };
   if (force) return full("force");
-  if (stateVersion !== null && previous.v !== stateVersion) return full("state_version");
+  if (versionChanged) return full("version");
+  if (!success.files && success.files_digest) {
+    return success.files_digest === filesDigest(signatures) ? { mode: "none", changed: [], removed: [], reason: "same" } : { mode: "full", changed: paths, removed: [], reason: "files_unknown" };
+  }
   if (!changed.length && !removed.length) return { mode: "none", changed, removed, reason: "same" };
   if (changed.some((path) => CONTRACT_FILES.includes(path))) return full("contract");
   if (paths.length && changed.length / paths.length >= 0.6) return full("most_changed");
@@ -284,23 +296,96 @@ export function runPrechecks({ pr, files, commits, ci, secretHits, mappings }) {
 const normalize = (value) => String(value).replace(/^\s*[+-]\s?/, "").replace(/\s+/g, " ").trim();
 
 // 앵커가 해당 파일 변경 줄에서 20자 이상·토큰 3개 이상으로 정확히 한 곳과 맞을 때만 위치 확인으로 본다.
-export function verifyFindings(findings, files, prNumber, limit = 8) {
+export function locateAnchor(finding, lines) {
+  if (!lines || finding.kind !== "presence" || !finding.anchor) return { anchor_found: false, line: null };
+  const anchor = normalize(finding.anchor);
+  const pool = finding.side === "old" ? lines.removed : lines.added;
+  const matches = pool.filter((item) => normalize(item.text).includes(anchor));
+  if (anchor.length >= 20 && anchor.split(" ").length >= 3 && matches.length === 1) return { anchor_found: true, line: matches[0].line };
+  return { anchor_found: false, line: null };
+}
+
+// 모델이 낸 확인할 점에 ID(F{PR}-{순번})와 위치 확인 결과를 붙이고, PR에 없는 파일의 지적은 버린다.
+export function verifyFindings(findings, files, prNumber, { limit = 8, startSeq = 1 } = {}) {
   const index = new Map(files.map((file) => [file.filename, parsePatch(file.patch)]));
-  return (findings ?? []).slice(0, limit).map((finding, position) => {
-    const lines = index.get(finding.file);
-    let anchorFound = false;
-    let line = null;
-    if (lines && finding.kind === "presence" && finding.anchor) {
-      const anchor = normalize(finding.anchor);
-      const pool = finding.side === "old" ? lines.removed : lines.added;
-      const matches = pool.filter((item) => normalize(item.text).includes(anchor));
-      if (anchor.length >= 20 && anchor.split(" ").length >= 3 && matches.length === 1) {
-        anchorFound = true;
-        line = matches[0].line;
-      }
-    }
-    return { ...finding, id: `F${prNumber}-${position + 1}`, in_pr: Boolean(lines), anchor_found: anchorFound, line };
-  }).filter((finding) => finding.in_pr);
+  return (findings ?? []).slice(0, limit)
+    .filter((finding) => index.has(finding.file))
+    .map((finding, position) => ({ ...finding, id: `F${prNumber}-${startSeq + position}`, in_pr: true, ...locateAnchor(finding, index.get(finding.file)) }));
+}
+
+// 수정본 분석 결과를 합친다. 바뀌지 않은 파일의 지난 확인할 점은 그대로 두고, 바뀐 파일의 것은 모델 판정(resolved·obsolete면 닫음)과
+// 지금 patch 기준 위치 확인을 다시 하며, PR에서 빠진 파일의 것은 닫는다. 새 지적은 같은 파일·같은 제목이 이미 있으면 버린다.
+export function mergeFindings({ previous = [], fresh = [], priorStatuses = [], changed = [], removed = [], files, limit = 12 }) {
+  const index = new Map(files.map((file) => [file.filename, parsePatch(file.patch)]));
+  const statusOf = new Map(priorStatuses.map((item) => [item.id, item.status]));
+  const kept = [];
+  const closed = [];
+  for (const finding of previous) {
+    if (removed.includes(finding.file) || !index.has(finding.file)) closed.push({ id: finding.id, status: "obsolete" });
+    else if (!changed.includes(finding.file)) kept.push(finding);
+    else if (["resolved", "obsolete"].includes(statusOf.get(finding.id))) closed.push({ id: finding.id, status: statusOf.get(finding.id) });
+    else kept.push({ ...finding, ...locateAnchor(finding, index.get(finding.file)), recheck: statusOf.get(finding.id) ?? "not_reviewed" });
+  }
+  const seen = new Set(kept.map((finding) => `${finding.file}|${finding.title}`));
+  const added = fresh.filter((finding) => !seen.has(`${finding.file}|${finding.title}`));
+  return { findings: [...kept, ...added].slice(0, limit), closed, added };
+}
+
+// ---------- 응답 의미 검증 ----------
+const SYMBOL = /^[A-Za-z_][A-Za-z0-9_.]{2,79}$/;
+const escapeWord = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const hasWord = (lines, word) => {
+  const pattern = new RegExp(`(^|[^A-Za-z0-9_])${escapeWord(word)}($|[^A-Za-z0-9_])`);
+  return lines.some((item) => pattern.test(item.text));
+};
+
+// 스키마에 맞는 응답이라도 실제 분석 대상과 맞지 않는 내용을 걸러 낸다.
+// - head_sha가 분석 대상 head와 다르면 응답 전체를 쓰지 않는다(fatal).
+// - 확인할 점·먼저 볼 곳·지난 지적 판정 중 대상 밖 파일·없는 ID는 버린다.
+// - 카드 후보는 이 PR patch로 확인되는 것만 남긴다.
+//   계약 추가·수정: 근거 파일이 patch를 넣은 파일이고 그 계층 파일(또는 카드가 이미 근거로 쓰는 파일)이며, 심볼(3자 이상 식별자)이 그 파일의 추가 줄에 단어로 있어야 한다.
+//   계약 삭제: 카드에 있는 key이고, 그 계층 파일(또는 그 key의 근거 파일)의 삭제 줄에 key의 마지막 이름이 있거나 근거 파일이 지워졌어야 한다.
+//   범위 추가: 그 계층에 patch를 넣은 파일이 있어야 한다. 범위 삭제는 모델 후보로 받지 않는다(사람이 고친다).
+export function validateReviewOutput(output, { headSha, files, includedPaths, priorIds = [], cardTags = [], snapshots = {}, tagOfPath = () => null, cards = {} }) {
+  const dropped = [];
+  const echo = String(output?.head_sha ?? "").trim().toLowerCase();
+  if (echo.length < 7 || !headSha.toLowerCase().startsWith(echo)) return { fatal: "head_mismatch", output: null, dropped };
+  const filePaths = new Set(files.map((file) => file.filename));
+  const included = new Set(includedPaths);
+  const patches = new Map(files.map((file) => [file.filename, parsePatch(file.patch)]));
+  const statusOf = new Map(files.map((file) => [file.filename, file.status]));
+  const keep = (list, test, label) => (list ?? []).filter((item) => {
+    const ok = test(item);
+    if (!ok) dropped.push(label);
+    return ok;
+  });
+  const clean = { ...output };
+  clean.findings = keep(output.findings, (item) => (item.kind === "absence" ? filePaths.has(item.file) : included.has(item.file)), "finding_file");
+  clean.reviewer_focus = keep(output.reviewer_focus, (item) => filePaths.has(item.file), "focus_file");
+  clean.prior_findings = keep(output.prior_findings, (item) => priorIds.includes(item.id), "prior_id");
+  clean.candidate_card_delta = keep(output.candidate_card_delta, (item) => cardTags.includes(item.tag), "card_tag").map((delta) => {
+    const cardEvidence = Object.values(cards[delta.tag]?.evidence ?? {}).map((value) => String(value).split("#")[0]);
+    const ownFiles = [...included].filter((path) => tagOfPath(path) === delta.tag);
+    const related = (path) => tagOfPath(path) === delta.tag || cardEvidence.includes(path);
+    return {
+      tag: delta.tag,
+      scope_add: ownFiles.length ? (delta.scope_add ?? []).map((line) => String(line).replace(/\s+/g, " ").trim().slice(0, 120)).filter(Boolean) : keep(delta.scope_add, () => false, "card_scope_no_file"),
+      scope_remove: keep(delta.scope_remove, () => false, "card_scope_remove"),
+      contracts_upsert: keep(delta.contracts_upsert, (item) => {
+        const symbol = String(item.evidence_symbol ?? "").trim();
+        return included.has(item.evidence_file) && related(item.evidence_file) && SYMBOL.test(symbol) && hasWord(patches.get(item.evidence_file)?.added ?? [], symbol);
+      }, "card_evidence"),
+      contracts_remove: keep(delta.contracts_remove, (key) => {
+        if (!(key in (snapshots[delta.tag]?.contracts ?? {}))) return false;
+        const evidenceFile = String(cards[delta.tag]?.evidence?.[key] ?? "").split("#")[0];
+        if (evidenceFile && statusOf.get(evidenceFile) === "removed") return true;
+        const name = String(key).split(/[.\s/]/).filter(Boolean).at(-1) ?? "";
+        const candidates = [...included].filter((path) => related(path) || path === evidenceFile);
+        return SYMBOL.test(name) && candidates.some((path) => hasWord(patches.get(path)?.removed ?? [], name));
+      }, "card_remove_evidence"),
+    };
+  });
+  return { fatal: null, output: clean, dropped };
 }
 
 // 안내서에서 ID별 상태([확정]/[초안]/[비어 있음])를 읽는다.
@@ -330,7 +415,7 @@ export function computeReadiness({ draft, checks, ci, conflict, output, findings
     if (serious.length) look.push(`AI가 꼭 고칠 점·중요 ${serious.length}건을 냄(리더 판정 전)`);
     if (ci.state !== "passed") look.push(`자동 검사 상태 확인 필요(${ci.state})`);
     if (coverage === "partial") look.push("일부만 분석");
-    if (llmStatus !== "done" && llmStatus !== "reused") look.push("AI 분석 안 됨");
+    if (llmStatus !== "done" && llmStatus !== "reused") look.push(llmStatus === "failed" ? "AI 분석 실패(현재 버전)" : "AI 분석 안 함(현재 버전)");
     if ((files ?? []).some((file) => /^(\.github\/workflows\/|scripts\/review\/|AGENTS\.md|docs\/review-baseline\.md)/.test(file.filename))) look.push("안내서·분석기·워크플로 변경");
     if (look.length) return look.map((reason) => ({ state: "leader_look", reason }));
     return [{ state: "ready", reason: "자동 검사 통과, 꼭 고칠 점 없음" }];
@@ -341,10 +426,11 @@ export function computeReadiness({ draft, checks, ci, conflict, output, findings
 }
 
 // ---------- 입력 예산 ----------
-// patch 합계가 40KB 이하면 전부, 넘으면 우선순위(src > 매핑 영역 > 자동화 > tests > docs > 기타)와 작은 파일 순으로 약 80KB까지.
+// patch 합계(파일 머리글 포함)가 small 이하면 전부, 넘으면 우선순위(src > 매핑 영역 > 자동화 > tests > docs > 기타)와 작은 파일 순으로 max까지.
 export function selectPatches(files, mappings, { small = 40_000, max = 80_000 } = {}) {
   const withPatch = files.filter((file) => file.patch);
-  const total = withPatch.reduce((sum, file) => sum + Buffer.byteLength(file.patch), 0);
+  const sizeOf = (file) => Buffer.byteLength(file.patch) + Buffer.byteLength(file.filename) + 8;
+  const total = withPatch.reduce((sum, file) => sum + sizeOf(file), 0);
   if (total <= small) return { included: withPatch, total };
   const rank = (path) =>
     path.startsWith("src/") ? 0 : moduleOf(path, mappings) ? 1 : path.startsWith("scripts/") || path.startsWith(".github/") ? 2 :
@@ -352,7 +438,7 @@ export function selectPatches(files, mappings, { small = 40_000, max = 80_000 } 
   const included = [];
   let used = 0;
   for (const file of [...withPatch].sort((a, b) => rank(a.filename) - rank(b.filename) || a.patch.length - b.patch.length)) {
-    const size = Buffer.byteLength(file.patch);
+    const size = sizeOf(file);
     if (used + size > max) continue;
     included.push(file);
     used += size;

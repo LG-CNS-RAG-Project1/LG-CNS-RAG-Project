@@ -1,26 +1,40 @@
-// 분석 결과를 Notion PR 행(속성 + 본문 블록)과 분석 상태 JSON으로 바꾼다. 네트워크 호출은 하지 않는다.
-import { bulleted, callout, countBlocks, divider, enforceLimits, heading, paragraph, table, text, toRichText, toggle } from "../notion/blocks.mjs";
+// 분석 결과를 Notion PR 페이지(속성 + 본문 블록)로 바꾼다. 네트워크 호출은 하지 않는다.
+// 페이지 본문은 세 구획이다. ① 보고서(분석마다 새로 씀) ② 서비스 아키텍처 그림(PR당 한 번 생성) ③ 리더 메모(자동 갱신이 건드리지 않음).
+// AI 구획은 마지막으로 '성공한' GPT 분석 결과를 그 기준 버전과 함께 보여 주고, 현재 버전의 AI 실패·생략은 따로 표시한다.
+import { bulleted, callout, code, countBlocks, divider, enforceLimits, heading, paragraph, table, text, toRichText, toggle } from "../notion/blocks.mjs";
 import { analysisContent } from "./cards.mjs";
 import { LABELS } from "./labels.mjs";
 import { sha256 } from "./lib.mjs";
 
 // 상태 JSON 형식 버전. 바뀌면 다음 수정본은 처음부터 전체 분석한다.
-export const STATE_VERSION = 2;
+export const STATE_VERSION = 3;
+export const DIAGRAM_HEADING = "서비스 아키텍처 (PR 최초 분석 시점)";
+export const MEMO_HEADING = "리더 메모";
 
-const modeText = (analysis) =>
-  `${LABELS.mode[analysis.mode]}${analysis.mode === "incremental" ? `(바뀐 파일 ${analysis.changed_files.length}개)` : ""}`;
-
-const kst = (iso) => `${new Date(iso).toLocaleString("sv-SE", { timeZone: "Asia/Seoul" }).slice(0, 16)} KST`;
+export const kst = (iso) => `${new Date(iso).toLocaleString("sv-SE", { timeZone: "Asia/Seoul" }).slice(0, 16)} KST`;
+const short = (sha) => String(sha ?? "").slice(0, 7);
 const fileLink = (analysis, path, line) =>
   `https://github.com/${analysis.repo}/pull/${analysis.pr.number}/files#diff-${sha256(path)}${line ? `R${line}` : ""}`;
+
+// 사용량 한 줄. 캐시는 입력의 일부, 추론은 출력의 일부이므로 더하지 않고 괄호로 보여 준다.
+export const usageText = (usage) =>
+  usage ? `입력 ${usage.input}(캐시 ${usage.cached}) / 출력 ${usage.output}(추론 ${usage.reasoning}) 토큰` : "-";
+
+const modeText = (analysis) =>
+  `${LABELS.mode[analysis.mode] ?? analysis.mode}${analysis.mode === "incremental" ? `(바뀐 파일 ${analysis.scope.changed.length}개)` : ""}`;
+
+// 현재 버전에 대한 AI 시도 결과 한 줄('마지막 시도' 열)
+export function attemptText(attempt) {
+  const head = short(attempt.head);
+  if (attempt.status === "done" || attempt.status === "partial") return `${head} ${LABELS.analysis[attempt.status]} · ${attempt.response_model ?? attempt.model}`;
+  if (attempt.status === "failed") return `${head} AI 분석 실패: ${LABELS.error[attempt.error_class] ?? attempt.error_class}${attempt.retry_after_at ? ` · ${kst(attempt.retry_after_at)} 이후 다시 실행 가능(자동 재실행 없음)` : ""}`;
+  return `${head} AI 호출 안 함: ${LABELS.skip[attempt.skip_reason] ?? attempt.skip_reason}`;
+}
 
 // '다음에 할 일': 보안 → 검사 → 충돌 → 꼭 고칠 점 → 팀 규칙 → AI 제안 순으로 최대 3개.
 export function nextActions(analysis) {
   const lines = [];
-  const { readiness, ci, conflict, prechecks, findings, output } = analysis;
-  if (readiness.state === "draft") {
-    lines.push("초안입니다. 준비되면 PR 화면 맨 아래 'Ready for review'를 눌러 주세요. 누르면 검토 담당이 자동으로 지정되고 준비 상태가 다시 기록됩니다.");
-  }
+  const { ci, conflict, prechecks, findings, output } = analysis;
   if (prechecks.some((check) => check.rule === "AGENTS_5_secrets" && check.status === "fail")) {
     lines.push("비밀번호나 API 키처럼 보이는 값이 있습니다(값은 가림). 진짜라면 리더에게 바로 알려 주세요. 예시 값이면 PR 댓글에 '예시 값'이라고 남겨 주세요.");
   }
@@ -59,46 +73,59 @@ function findingBlock(analysis, finding) {
   );
 }
 
-// '병합 판단' 열과 맨 위 상자에 쓰는 한 줄. 자동 점검으로 낮춘 경우 표시를 붙인다.
+// '병합 판단' 열과 맨 위 상자에 쓰는 한 줄. 자동 점검으로 낮춘 경우 이유에 '(AI 원래 판단: …)'이 들어 있다.
 export function judgmentLine(judgment) {
   if (!judgment) return "AI 판단 없음";
-  return `${LABELS.verdict[judgment.verdict]} — ${judgment.reason || "이유 없음"}${judgment.capped ? " (자동 점검 반영)" : ""}`;
+  return `${LABELS.verdict[judgment.verdict]} — ${judgment.reason || "이유 없음"}`;
 }
 
-// 판단 근거 3문장을 블릿 줄로 만든다.
+// 판단 근거 세 문장을 블릿 줄로 만든다.
 export const rationaleText = (judgment) => (judgment?.rationale ?? []).map((line) => `• ${line}`).join("\n");
 
-// 맨 위 'AI 병합 판단' 상자: 판단 한 줄과 근거 3문장(블릿).
-function judgmentCallout(judgment) {
-  const title = toRichText([{ text: "병합 판단(AI 참고): ", bold: true }, { text: judgmentLine(judgment) }]);
+function judgmentCallout(judgment, aiNote) {
+  const title = toRichText([{ text: "병합 판단(AI 참고): ", bold: true }, { text: judgmentLine(judgment) }, ...(aiNote ? [{ text: `\n${aiNote}`, italic: true }] : [])]);
   const children = (judgment?.rationale ?? []).map((line) => bulleted(text(line)));
   return callout(title, "⚖️", "yellow_background", children.length ? children : undefined);
 }
 
-const tokens = (usage) => usage ? `입력 ${(usage.input ?? 0) + (usage.cache_read ?? 0) + (usage.cache_write ?? 0)}토큰 / 출력 ${usage.output ?? 0}토큰` : "-";
+// AI 결과 안내 한 줄. 성공·실패·호출 안 함을 앞 표시로 구분하고, AI 내용이 현재 버전의 것이 아니면 기준 버전을 밝힌다.
+export function aiNote(analysis) {
+  const { ai, pr } = analysis;
+  const errorText = LABELS.error[ai.error_class] ?? ai.error_class;
+  const skipText = LABELS.skip[ai.skip_reason] ?? ai.skip_reason;
+  if (!analysis.output) return ai.status === "failed" ? `❌ AI 분석 실패: ${errorText}. 규칙 점검 결과만 보입니다.` : `➖ AI 분석 안 함: ${skipText}. 규칙 점검 결과만 보입니다.`;
+  const basis = `AI 내용 기준 버전 ${short(ai.head)} · ${ai.provider} ${ai.response_model ?? ai.model} · ${ai.at ? kst(ai.at) : "-"}`;
+  if (ai.head === pr.head_sha) return `✅ ${LABELS.analysis[ai.status] ?? ai.status} · ${basis}`;
+  if (ai.status === "reused") return `✅ ${LABELS.analysis.reused} · ${basis}`;
+  const why = ai.status === "failed" ? `❌ 이번 버전 ${short(pr.head_sha)} AI 분석 실패: ${errorText}` : `➖ 이번 버전 ${short(pr.head_sha)}은 AI를 부르지 않음: ${skipText}`;
+  return `${why}. 아래 AI 내용은 ${basis}의 결과입니다.`;
+}
 
-// 분석 결과로 PR 행 제목·속성·본문 블록과 다음 실행에 쓸 상태 JSON을 만든다. previousSeq는 지난 상태의 기록 차수다.
-export function renderReport(analysis, previousHistory = [], previousSeq = previousHistory.length) {
-  const { pr, readiness, output, findings, ci, conflict, prechecks, llm, coverage } = analysis;
+// 분석 결과로 PR 페이지 제목·속성·보고서 블록을 만든다. history는 이번 실행까지의 분석 기록(최근 것이 끝)이다.
+export function renderReport(analysis, history = []) {
+  const { pr, readiness, output, findings, ci, conflict, prechecks, coverage, ai } = analysis;
   const readinessLabel = LABELS.readiness[readiness.state];
   const reasonText = readiness.reasons.map((item) => item.reason).join(", ");
   const goal = output
     ? `${LABELS.goal[output.goal_fit.rating]}${output.goal_fit.primary_ref ? ` (${output.goal_fit.primary_ref}${analysis.baseline_draft ? ", 초안 기준" : ""})` : ""}`
     : "AI 분석 없음";
+  const note = aiNote(analysis);
+  const scopeText = coverage.state === "full" ? "전체" : `일부(AI가 보지 못한 파일 ${coverage.excluded.length}개)`;
   const blocks = [];
 
   blocks.push(callout(text(
     "이 페이지 읽는 법: AI가 작업물을 안내서와 비교한 참고 메모입니다(사람 평가 아님). 맨 위 '준비 상태'와 '다음에 할 일'만 먼저 보세요. " +
-    "[확인됨] PR에서 직접 확인 · [AI 판단] AI 의견 · [추정] 근거가 약한 짐작 · [확인 못 함] 정보 없음. AI는 틀릴 수 있으니 이상하면 PR 댓글이나 리더에게 알려 주세요."
+    "[확인됨] PR에서 직접 확인 · [AI 판단] AI 의견 · [추정] 근거가 약한 짐작 · [확인 못 함] 정보 없음. AI는 틀릴 수 있으니 이상하면 PR 댓글이나 리더에게 알려 주세요. " +
+    "메모는 맨 아래 '리더 메모'에 적어 주세요(자동 갱신이 지우지 않습니다)."
   ), "📖", "gray_background"));
   blocks.push(callout(toRichText([
     { text: `${output?.summary?.one_line ?? pr.title}\n`, bold: true },
     { text: `준비 상태: ${readinessLabel} — ${reasonText}\n` },
-    ...(readiness.if_not_draft ? [{ text: `초안이 아니었다면: ${LABELS.readiness[readiness.if_not_draft[0].state]} — ${readiness.if_not_draft.map((item) => item.reason).join(", ")}\n` }] : []),
     { text: `목표 연결: ${goal}\n` },
-    { text: `분석한 버전 ${pr.head_sha.slice(0, 7)} · ${modeText(analysis)} · 범위 ${coverage.state === "full" ? "전체" : `일부(제외 ${coverage.excluded.length}개)`}`, italic: true },
+    { text: `현재 버전 ${short(pr.head_sha)} · 이번 실행: ${modeText(analysis)} · AI가 본 범위: ${scopeText}\n`, italic: true },
+    { text: note, italic: true },
   ]), "🧭", "blue_background"));
-  blocks.push(judgmentCallout(analysis.judgment));
+  blocks.push(judgmentCallout(analysis.judgment, analysis.judgment && ai.head !== pr.head_sha ? `기준 버전 ${short(ai.head)}의 판단` : ""));
 
   blocks.push(heading(2, text("다음에 할 일")));
   for (const line of nextActions(analysis)) blocks.push(bulleted(text(line)));
@@ -112,14 +139,16 @@ export function renderReport(analysis, previousHistory = [], previousSeq = previ
   }
 
   blocks.push(heading(2, text("지난 분석 이후 달라진 점")));
-  const last = previousHistory.at(-1);
-  if (!last) blocks.push(paragraph(text(`첫 분석입니다. 🆕 새로 발견 ${findings.length}건.`)));
+  const last = history.at(-2);
+  if (!last) blocks.push(paragraph(text(`첫 분석입니다. 확인할 점 ${findings.length}건.`)));
   else {
     const before = LABELS.readiness[last.readiness] ?? last.readiness;
     const change = analysis.mode === "none"
-      ? "코드 변경 없음(공용본 반영 등) — 지난 AI 결과를 유지했습니다."
-      : `${analysis.mode === "incremental" ? `바뀐 파일 ${analysis.changed_files.length}개만 다시 분석했습니다. ` : ""}🆕 이번 분석 확인할 점 ${findings.length}건(지난번 ${last.findings ?? "-"}건).`;
-    blocks.push(paragraph(text(`지난 분석 ${last.head}(${last.at ? kst(last.at) : "-"}) → 이번 ${pr.head_sha.slice(0, 7)}. ${change} 준비 상태: ${before} → ${readinessLabel}`)));
+      ? "PR 변경 내용이 지난 성공 분석과 같아 AI를 다시 부르지 않았습니다."
+      : analysis.mode === "incremental"
+        ? `바뀐 파일 ${analysis.scope.changed.length}개만 다시 분석했습니다. 새 지적 ${analysis.scope.added ?? 0}건, 닫힌 지적 ${analysis.scope.closed ?? 0}건.`
+        : `확인할 점 ${findings.length}건(지난번 ${last.findings ?? "-"}건).`;
+    blocks.push(paragraph(text(`지난 실행 ${last.head}(${last.at ? kst(last.at) : "-"}) → 이번 ${short(pr.head_sha)}. ${change} 준비 상태: ${before} → ${readinessLabel}`)));
   }
 
   if (output) {
@@ -154,7 +183,7 @@ export function renderReport(analysis, previousHistory = [], previousSeq = previ
   blocks.push(heading(2, text("AI가 찾은 확인할 점")));
   const major = findings.filter((item) => ["blocker", "major"].includes(item.severity));
   const minor = findings.filter((item) => ["minor", "info"].includes(item.severity));
-  if (!findings.length) blocks.push(paragraph(text(output ? "AI가 찾은 확인할 점이 없습니다." : "AI 분석이 실행되지 않았습니다.")));
+  if (!findings.length) blocks.push(paragraph(text(output ? "AI가 찾은 확인할 점이 없습니다." : "AI 분석 결과가 없습니다.")));
   for (const finding of major) blocks.push(findingBlock(analysis, finding));
   if (minor.length) blocks.push(toggle(text(`작은 개선·참고 ${minor.length}건 (펼치기)`), minor.slice(0, 6).map((finding) => findingBlock(analysis, finding))));
 
@@ -163,30 +192,33 @@ export function renderReport(analysis, previousHistory = [], previousSeq = previ
     for (const question of output.author_questions.slice(0, 5)) blocks.push(bulleted(text(question)));
   }
 
-  const entry = { at: analysis.generated_at, head: pr.head_sha.slice(0, 7), mode: analysis.mode, readiness: readiness.state, findings: findings.length, models: llm.models ?? [], usage: llm.usage ?? null };
-  const history = [...previousHistory, entry].slice(-8);
+  if (analysis.scope.excluded?.length || analysis.scope.no_patch?.length || analysis.scope.truncated?.length) {
+    blocks.push(heading(2, text("이번 분석에서 보지 못한 범위")));
+    if (analysis.scope.excluded?.length) blocks.push(bulleted(text(`입력 예산으로 patch를 넣지 못한 파일: ${analysis.scope.excluded.join(", ")}`)));
+    if (analysis.scope.no_patch?.length) blocks.push(bulleted(text(`GitHub가 patch를 주지 않은 파일(바이너리·대용량 등): ${analysis.scope.no_patch.join(", ")}`)));
+    if (analysis.scope.truncated?.length) blocks.push(bulleted(text(`일부만 넣은 참고 자료: ${analysis.scope.truncated.join(", ")}`)));
+  }
+
   blocks.push(heading(2, text("분석 기록")));
   blocks.push(table([
-    [text("시각"), text("버전"), text("방식"), text("준비 상태"), text("모델·토큰")],
-    ...history.map((item) => [
+    [text("시각"), text("버전"), text("방식"), text("AI 결과"), text("준비 상태"), text("모델·토큰")],
+    ...history.slice(-8).map((item) => [
       text(item.at ? kst(item.at) : "-"), text(item.head), text(LABELS.mode[item.mode] ?? item.mode),
-      text(LABELS.readiness[item.readiness] ?? item.readiness), text(`${(item.models ?? []).join(", ") || "-"} · ${tokens(item.usage)}`),
+      text(item.result ?? "-"), text(LABELS.readiness[item.readiness] ?? item.readiness), text(`${item.model ?? "-"} · ${usageText(item.usage)}`),
     ]),
   ]));
 
   blocks.push(heading(2, text("이 분석의 한계")));
   blocks.push(paragraph(text(
-    "PR 제목·설명·변경 내용과 자동 검사 결과를 AI(Claude)가 읽고 안내서(docs/review-baseline.md)와 비교해 만들었습니다. " +
+    "PR 제목·설명·변경 내용과 자동 검사 결과를 AI(OpenAI GPT, API)가 읽고 안내서(docs/review-baseline.md)와 비교해 만들었습니다. " +
     "코드를 실행해 보지 않았고, 안내서에 없는 내용은 판단하지 않았습니다. AI는 틀릴 수 있으므로 참고용이며 최종 판단은 리더가 합니다."
   )));
-  blocks.push(divider());
-  blocks.push(heading(2, text("리더 메모")));
-  blocks.push(paragraph(text("")));
 
   const limited = enforceLimits(blocks);
   const properties = {
     "PR 번호": pr.number,
     "PR 링크": pr.url,
+    "저장소": analysis.repo,
     "담당": pr.author,
     "브랜치": pr.branch,
     "상태": pr.draft ? LABELS.prState.draft : LABELS.prState.open,
@@ -200,37 +232,36 @@ export function renderReport(analysis, previousHistory = [], previousSeq = previ
     "남은 확인": findings.length,
     "자동 검사": LABELS.ci[ci.state] ?? ci.state,
     "분석 방식": LABELS.mode[analysis.mode],
-    "분석 상태": LABELS.analysis[llm.status] ?? llm.status,
-    "분석한 버전": pr.head_sha.slice(0, 7),
+    "분석 상태": LABELS.analysis[ai.status] ?? ai.status,
+    "분석한 버전": output ? short(ai.head) : "",
+    "현재 버전": short(pr.head_sha),
+    "마지막 시도": attemptText(analysis.attempt),
+    "AI 모델": output ? `${ai.provider} · ${ai.response_model ?? ai.model}` : "",
     "마지막 분석": analysis.generated_at,
     "한 줄 요약": output?.summary?.one_line ?? pr.title,
     "병합 판단": analysis.judgment ? LABELS.verdict[analysis.judgment.verdict] : null,
     "판단 근거": analysis.judgment ? `${judgmentLine(analysis.judgment)}\n${rationaleText(analysis.judgment)}`.trim() : "AI 판단 없음",
-  };
-  const state = {
-    v: STATE_VERSION,
-    analyzer: analysis.analyzer,
-    head: pr.head_sha,
-    draft: pr.draft,
-    merge_base: analysis.merge_base,
-    mode: analysis.mode,
-    coverage: coverage.state,
-    excluded: coverage.excluded,
-    tags: analysis.tags,
-    keywords: analysis.keywords,
-    context_used: analysis.context_used ?? null,
-    llm: { status: llm.status, models: llm.models, usage: llm.usage },
-    files: Object.fromEntries(analysis.files.map((file) => [file.path, { sig: file.sig }])),
-    output,
-    findings: findings.map(({ id, severity, category, file, line, title, kind, anchor_found }) => ({ id, severity, category, file, line, title, kind, anchor_found, status: "open" })),
-    history,
-    seq: (previousSeq || 0) + 1,
   };
   return {
     title: `[PR #${pr.number}] ${pr.title}`,
     properties,
     blocks: limited,
     block_count: limited.reduce((sum, item) => sum + countBlocks(item), 0),
-    state,
   };
 }
+
+// 그림 아래 상태 줄. 첫 줄(최초 생성 버전·시각)은 바꾸지 않고, 이후 수정본이 생기면 둘째 줄을 붙인다.
+export function diagramStatusText({ firstLine, latestHead, firstHead }) {
+  if (!latestHead || short(latestHead) === short(firstHead)) return firstLine;
+  return `${firstLine}\n이후 수정본(${short(latestHead)})이 있어 이 그림은 PR 최초 분석 시점의 구조입니다. 그림은 PR당 한 번만 그립니다.`;
+}
+
+export const diagramFirstLine = ({ head, at, note }) => `최초 생성: 버전 ${short(head)} · ${kst(at)}${note ? ` · ${note}` : ""}`;
+
+// 그림 구획: 구분선, 제목, mermaid 코드(캡션), 상태 줄
+export function diagramBlocks({ mermaid, caption, statusText }) {
+  return [divider(), heading(2, text(DIAGRAM_HEADING)), code(mermaid, "mermaid", caption), paragraph(text(statusText, { italic: true }))];
+}
+
+// 리더 메모 구획(처음 만들 때 한 번만 넣는다)
+export const memoBlocks = () => [divider(), heading(2, text(MEMO_HEADING)), paragraph(text(""))];

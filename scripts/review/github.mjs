@@ -1,4 +1,4 @@
-// PR 분석에 필요한 GitHub 정보를 읽는다. PR·파일·커밋·CI 결과는 REST API로, 충돌 파일은 git merge-tree로 계산한다.
+// PR 분석에 필요한 GitHub 정보를 읽는다. PR·파일·커밋·CI 결과는 REST API로, 충돌 파일·병합 결과 트리는 git merge-tree로 계산한다.
 // 이 모듈은 GitHub에 쓰지 않으며, PR 코드를 checkout하거나 실행하지 않는다(객체만 받아 비교한다).
 import { spawnSync } from "node:child_process";
 import { CI_JOBS } from "./lib.mjs";
@@ -46,6 +46,7 @@ export function createGitHub({ repository, token, retryDelayMs = 1000 }) {
     files: (number) => getAll(`${repo}/pulls/${number}/files`),
     commits: (number) => getAll(`${repo}/pulls/${number}/commits`, 3),
     commit: (sha) => get(`${repo}/commits/${sha}`),
+    compare: (base, head) => get(`${repo}/compare/${base}...${head}`),
     branchSha: async (branch) => (await get(`${repo}/branches/${branch}`)).commit.sha,
     mergeBase: async (base, head) => (await get(`${repo}/compare/${base}...${head}`)).merge_base_commit.sha,
     ciRuns: async (headSha) =>
@@ -101,19 +102,45 @@ export function fetchArgs(isShallow, refs) {
   return ["fetch", "-q", "--no-tags", ...(isShallow ? ["--depth=1"] : []), "origin", ...refs];
 }
 
-// 필요한 커밋 객체만 받아 merge-tree로 충돌 파일을 계산한다. 종료 코드 0=충돌 없음, 1=충돌, 그 외=확인 못 함.
+// 필요한 커밋 객체만 받아 merge-tree로 충돌 파일과 병합 결과 트리를 계산한다. 종료 코드 0=충돌 없음, 1=충돌, 그 외=확인 못 함.
 export function computeConflict(repoDir, { prNumber, headSha, baseSha, mergeBaseSha }) {
   const isShallow = git(repoDir, ["rev-parse", "--is-shallow-repository"]).stdout.trim() === "true";
   git(repoDir, fetchArgs(isShallow, [baseSha, mergeBaseSha]));
   git(repoDir, fetchArgs(isShallow, [`refs/pull/${prNumber}/head`]));
-  if (git(repoDir, ["rev-parse", "FETCH_HEAD"]).stdout.trim() !== headSha) return { state: "unknown", files: [] };
+  if (git(repoDir, ["rev-parse", "FETCH_HEAD"]).stdout.trim() !== headSha) return { state: "unknown", files: [], tree: null };
   const result = git(repoDir, ["merge-tree", "--write-tree", "--name-only", `--merge-base=${mergeBaseSha}`, baseSha, headSha]);
-  if (result.status === 0) return { state: "clean", files: [] };
-  if (result.status !== 1) return { state: "unknown", files: [] };
+  const [tree, ...rest] = result.stdout.split("\n");
+  if (result.status === 0) return { state: "clean", files: [], tree: tree.trim() || null };
+  if (result.status !== 1) return { state: "unknown", files: [], tree: null };
   const files = [];
-  for (const line of result.stdout.split("\n").slice(1)) {
+  for (const line of rest) {
     if (!line.trim()) break;
     files.push(line.trim());
   }
-  return { state: "conflict", files };
+  return { state: "conflict", files, tree: tree.trim() || null };
+}
+
+// 받아 둔 git 객체만 읽는 도우미(코드는 실행하지 않는다). 그림 계산과 카드용 원본 읽기에 쓴다.
+export function createRepoReader(repoDir) {
+  const show = (treeish, path) => {
+    const result = git(repoDir, ["show", `${treeish}:${path}`]);
+    return result.status === 0 ? result.stdout : null;
+  };
+  return {
+    conflict: (params) => computeConflict(repoDir, params),
+    showFile: show,
+    // 트리(커밋·트리 OID)의 파일 목록과, wantContent(path)가 참인 파일의 내용(1MB 이하)을 읽는다.
+    filesAt(treeish, wantContent) {
+      const listing = git(repoDir, ["ls-tree", "-r", "-l", treeish]);
+      if (listing.status !== 0) throw new Error(`${String(treeish).slice(0, 7)}의 파일 목록을 읽지 못했습니다.`);
+      return listing.stdout.trim().split("\n").filter(Boolean).flatMap((line) => {
+        const [meta, path] = line.split("\t");
+        const [, type, , size] = meta.split(/\s+/);
+        if (type !== "blob") return [];
+        const bytes = Number(size);
+        const content = wantContent(path) && bytes > 0 && bytes <= 1_000_000 ? show(treeish, path) : undefined;
+        return [{ path, size: bytes, content: content ?? undefined }];
+      });
+    },
+  };
 }
