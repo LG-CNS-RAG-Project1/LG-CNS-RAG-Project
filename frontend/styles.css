@@ -24,4 +24,9 @@ h2{font-size:22px!important;}h3{font-size:17px!important;}h4{font-size:16px!impo
 textarea,input{font-size:14px!important;line-height:1.7!important;}
 [data-testid="stAlert"]{font-size:12px;}
 @media(max-width:900px){[data-testid="stMainBlockContainer"]{padding:1rem 1.1rem 2rem;}.appbar{gap:16px}.appbar small{display:none}.stepper{gap:12px;overflow-x:auto;white-space:nowrap}.step{font-size:11px}.step b{width:20px;height:20px;flex-shrink:0;}h1{font-size:25px!important;}[data-testid="stHorizontalBlock"]{flex-wrap:wrap;}[data-testid="stHorizontalBlock"]>[data-testid="stColumn"]{min-width:min(100%,300px);flex:1 1 300px;}}
+
+.st-key-brandbar{border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:10px;}
+.st-key-brandbar button{border:none;background:transparent;color:var(--accent);font-size:22px;white-space:nowrap;padding-left:0;}
+.st-key-stepnav{padding:8px 0 22px;border-bottom:1px solid var(--line);margin-bottom:26px;}
+.st-key-stepnav button{font-size:12px;min-height:38px;}
 </style>

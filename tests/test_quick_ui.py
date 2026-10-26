@@ -96,6 +96,7 @@ def test_custom_input_has_no_sample_results():
     click(app, "1개 구성으로 조사 시작하기 →")
     assert app.error
     app.text_area[0].set_value("사용자가 정한 핵심 동작")
+    app.text_area[1].set_value("고객의 설치 조건에 대응하는가?")
     click(app, "1개 구성으로 조사 시작하기 →")
     assert not any(b.key and b.key.startswith("pick_") for b in app.button)
     assert any("실제 검색은 연결 전" in i.value for i in app.info)
@@ -129,3 +130,135 @@ def test_component_validation():
     assert validate_parts(["x", " x "])
     assert validate_parts([""])
     assert validate_parts(["구성"]) is None
+
+
+def test_home_and_numbered_navigation_keep_work():
+    app = investigate()
+    app.button(key="pick_P1").click().run()
+    app.button(key="pick_M1").click().run()
+    app.button(key="nav_4").click().run()
+    assert app.session_state.stage == 4
+    app.text_area(key="memo").set_value("검토 메모").run()
+    app.button(key="home").click().run()
+    assert app.session_state.stage == 1
+    assert app.text_area(key="raw_input").value == DEMO_TEXT
+    app.button(key="nav_3").click().run()
+    assert app.session_state.selected == ["P1", "M1"]
+    app.button(key="nav_4").click().run()
+    assert app.text_area(key="memo").value == "검토 메모"
+
+
+def test_future_stages_locked_until_confirmed():
+    app = AppTest.from_file(str(APP)).run()
+    assert app.button(key="nav_2").disabled
+    assert app.button(key="nav_3").disabled
+    assert app.button(key="nav_4").disabled
+    app = begin()
+    assert app.button(key="nav_3").disabled
+    click(app, "3개 구성으로 조사 시작하기 →")
+    assert not app.button(key="nav_3").disabled
+    assert app.button(key="nav_4").disabled
+
+
+def test_question_revision_requires_reconfirmation():
+    app = investigate()
+    app.button(key="pick_P1").click().run()
+    app.button(key="nav_2").click().run()
+    version = app.session_state.version
+    app.text_area(key=f"question_{version}_Q1").set_value(
+        "현장 사용 조건과 관련되는가?"
+    ).run()
+    assert not app.session_state.confirmed_context
+    assert app.session_state.selected == []
+    assert app.button(key="nav_3").disabled
+    click(app, "3개 구성으로 조사 시작하기 →")
+    assert app.session_state.questions[0]["question"] == "현장 사용 조건과 관련되는가?"
+
+
+def save_first_link(app):
+    version = app.session_state.link_version
+    prefix = f"link_{version}_Q1_"
+    app.multiselect(key=prefix + "comps").set_value(["C3"])
+    app.multiselect(key=prefix + "markets").set_value(["M1"])
+    app.multiselect(key=prefix + "patents").set_value(["P1"])
+    app.selectbox(key=prefix + "relation").set_value("도입 조건과 충돌 가능")
+    app.text_area(key=prefix + "reason").set_value("추가 설치 검토")
+    app.text_area(key=prefix + "counter_reason").set_value(
+        "시연 문헌에 설치 시간 측정값이 없음"
+    )
+    app.text_area(key=prefix + "next_check").set_value("현장 설치 시간 확인")
+    app.button(key="save_Q1").click().run()
+    assert not app.exception
+    return app
+
+
+def test_saved_link_report_and_source_removal():
+    from frontend.quick import review_rows
+
+    app = investigate()
+    app.button(key="pick_P1").click().run()
+    app.button(key="pick_M1").click().run()
+    save_first_link(app)
+    assert app.session_state.links["Q1"]["market_ids"] == ["M1"]
+    assert app.session_state.report_snapshot is None
+    app.button(key="nav_4").click().run()
+    snap = app.session_state.report_snapshot
+    output = report(
+        snap["raw"],
+        snap["title"],
+        snap["parts"],
+        snap["ids"],
+        "",
+        snap["questions"],
+        snap["links"],
+    )
+    assert "현장 설치 시간 확인" in output
+    assert "설치 시간 측정값이 없음" in output
+    assert "사용자 연결 가설" in output
+    assert "통합 판단 보류" in output
+    app.button(key="nav_3").click().run()
+    app.button(key="exclude_M1").click().run()
+    rows = review_rows(
+        app.session_state.raw,
+        app.session_state.parts,
+        app.session_state.selected,
+        app.session_state.questions,
+        app.session_state.links,
+    )
+    assert rows[0]["market_ids"] == []
+    assert "판단 보류" in rows[0]["status"]
+    assert app.session_state.report_snapshot is None
+
+
+def test_link_exclusion_clears_judgment():
+    app = investigate()
+    app.button(key="pick_P1").click().run()
+    app.button(key="pick_M1").click().run()
+    save_first_link(app)
+    app.button(key="drop_link_Q1").click().run()
+    assert "Q1" not in app.session_state.links
+    assert app.session_state.report_snapshot is None
+
+
+def test_joint_selection_never_automatically_confirms_connection():
+    from frontend.quick import DEMO_QUESTIONS, review_rows, validate_link
+
+    questions = DEMO_QUESTIONS
+    rows = review_rows(DEMO_TEXT, DEMO_PARTS, ["M1", "P1"], questions, {})
+    assert all("판단 보류" in r["status"] for r in rows)
+    link = {
+        "question_id": "Q1",
+        "market_ids": ["P1"],
+        "patent_ids": ["M1"],
+        "component_ids": ["C1"],
+        "relation": "해결 방식 관련",
+        "reason": "관계",
+        "next_check": "원문",
+    }
+    assert validate_link(link, DEMO_TEXT, DEMO_PARTS, ["M1", "P1"], questions)
+    link.update(market_ids=["M1"], patent_ids=["P1"])
+    assert validate_link(link, DEMO_TEXT, DEMO_PARTS, ["M1", "P1"], questions) is None
+    assert validate_link(link, DEMO_TEXT, DEMO_PARTS, ["P1"], questions)
+    rows = review_rows(DEMO_TEXT, DEMO_PARTS, ["M1", "P1"], questions, {"Q1": link})
+    assert "사용자 연결 가설" in rows[0]["status"]
+    assert "검증 전" in rows[0]["status"]
