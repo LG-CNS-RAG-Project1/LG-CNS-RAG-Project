@@ -5,7 +5,7 @@ from pydantic import ValidationError
 
 from src.ingestion.kipris_client import (
     KiprisAPIError,
-    search_patents,
+    search_patents as search_kipris_patents,
 )
 from src.schemas import (
     PatentReport,
@@ -21,10 +21,14 @@ from src.ingestion.patent_processor import (
     build_chunks,
     to_patent_document,
     build_documents,
+    save_documents,
 )
 
 from src.retrieval.schemas import PatentQueryPlan, PatentSearchQuery
-from src.retrieval.patent_search import build_patent_queries, search_patents
+from src.retrieval.patent_search import (
+    build_patent_queries,
+    search_patents as search_dense_patents,
+)
 from src.retrieval.patent_store import get_collection, build_index
 
 # ============================================================
@@ -63,7 +67,7 @@ class TestKiprisClient:
         response.raise_for_status.return_value = None
         mock_get.return_value = response
 
-        patents = search_patents("스마트팩토리", limit=3)
+        patents = search_kipris_patents("스마트팩토리", limit=3)
 
         assert len(patents) == 1
         assert patents[0]["application_number"] == "1020230030067"
@@ -75,11 +79,11 @@ class TestKiprisClient:
 
     def test_empty_keyword(self):
         with pytest.raises(ValueError):
-            search_patents("")
+            search_kipris_patents("")
 
     def test_invalid_limit(self):
         with pytest.raises(ValueError):
-            search_patents("스마트팩토리", limit=0)
+            search_kipris_patents("스마트팩토리", limit=0)
 
     @patch("src.ingestion.kipris_client.requests.get")
     @patch.dict(
@@ -98,7 +102,7 @@ class TestKiprisClient:
         mock_get.return_value = response
 
         with pytest.raises(KiprisAPIError):
-            search_patents("스마트팩토리")
+            search_kipris_patents("스마트팩토리")
 
     @patch("src.ingestion.kipris_client.requests.get")
     @patch.dict(
@@ -126,7 +130,7 @@ class TestKiprisClient:
         response.raise_for_status.return_value = None
         mock_get.return_value = response
 
-        patents = search_patents("스마트팩토리")
+        patents = search_kipris_patents("스마트팩토리")
 
         assert len(patents) == 1
         assert patents[0]["application_number"] == "12345"
@@ -147,7 +151,7 @@ class TestKiprisClient:
         response.raise_for_status.return_value = None
         mock_get.return_value = response
 
-        patents = search_patents("검색결과없는기술")
+        patents = search_kipris_patents("검색결과없는기술")
 
         assert patents == []
 
@@ -324,6 +328,31 @@ def test_build_documents_deduplication():
     assert documents[0].title == "진동 기반 고장 예측"
 
 
+def test_save_patent_documents(tmp_path):
+    documents = [
+        PatentDocument(
+            patent_id="1020240001234",
+            title="진동 기반 고장 예측",
+            abstract="진동 데이터를 분석한다.",
+        )
+    ]
+
+    output_path = tmp_path / "patent_docs.jsonl"
+    saved_path = save_documents(documents, output_path)
+
+    assert saved_path == output_path
+    assert output_path.exists()
+
+    lines = output_path.read_text(encoding="utf-8").splitlines()
+
+    assert len(lines) == 1
+
+    saved_document = PatentDocument.model_validate_json(lines[0])
+
+    assert saved_document.patent_id == "1020240001234"
+    assert saved_document.abstract == "진동 데이터를 분석한다."
+
+
 # ============================================================
 # 특허 검색어 테스트
 # ============================================================
@@ -471,7 +500,7 @@ def test_search_patents(tmp_path):
         embed_fn=fake_embed,
     )
 
-    results = search_patents(
+    results = search_dense_patents(
         query="설비 고장 예측",
         collection=collection,
         embed_fn=fake_embed,

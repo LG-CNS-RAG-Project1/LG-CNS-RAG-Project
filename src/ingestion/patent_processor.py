@@ -1,6 +1,10 @@
 """KIPRIS 특허 검색 결과를 내부 문서 및 검색 청크로 변환한다."""
 
 from src.schemas import PatentChunk, PatentDocument
+from pathlib import Path
+
+ROOT_DIR = Path(__file__).resolve().parents[2]
+OUTPUT_PATH = ROOT_DIR / "data" / "patents" / "processed" / "patent_docs.jsonl"
 
 
 def to_patent_document(raw: dict) -> PatentDocument:
@@ -69,3 +73,17 @@ def build_documents(records: list[dict]) -> list[PatentDocument]:
         seen.add(application_number)
 
     return documents
+
+
+def save_documents(
+    documents: list[PatentDocument],
+    path: Path = OUTPUT_PATH,
+) -> Path:
+    """특허 문서를 JSONL로 저장한다. 기존 파일은 덮어쓴다."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    with open(path, "w", encoding="utf-8") as f:
+        for document in documents:
+            f.write(document.model_dump_json() + "\n")
+
+    return path
