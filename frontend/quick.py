@@ -50,6 +50,14 @@ def selected_sources(text, ids):
     return [s for s in candidates(text) if s["id"] in ids]
 
 
+ORIGIN_LABELS = {
+    "demo_rule": "예시 자동 초안",
+    "automatic_pending": "실제 분석 대기",
+    "user": "사용자 수정",
+    "excluded": "사용자 제외",
+}
+
+
 def report(text, title, parts, ids, memo, questions=None, links=None):
     sources = selected_sources(text, ids)
     lines = [
@@ -90,11 +98,16 @@ def report(text, title, parts, ids, memo, questions=None, links=None):
                 f"### {md(item['question'])}",
                 f"도입 조건: {md(item['condition']) or '미입력'}",
                 f"연결 유형: {md(item['relation'])}",
-                f"사용자 연결 이유: {md(item['reason']) or '미작성'}",
+                f"판단 출처: {md(ORIGIN_LABELS.get(item['origin'], '미확인'))}",
+                f"연결 이유: {md(item['reason']) or '미작성'}",
                 f"조건 차이·한계: {md(item['conditions']) or '미확인'}",
                 f"반대 근거·충돌: {md(item['counter_reason']) or '반대 근거를 조사하지 않음'}",
                 f"추가 검증: {md(item['next_check']) or '양쪽 원문과 적용 조건 확인'}",
             ]
+            for criterion in item["assessment"]:
+                lines.append(
+                    f"- 기준 {md(criterion['criterion'])}: {md(criterion['result'])} — {md(criterion['reason'])} / 근거 {md(', '.join(criterion['source_ids'])) or '없음'}"
+                )
             for source_id in dict.fromkeys(
                 item["market_ids"] + item["patent_ids"] + item["counter_ids"]
             ):
@@ -175,11 +188,22 @@ def review_rows(text, parts, ids, questions, links):
             and link.get("reason", "").strip()
             and link.get("relation") != "연결 판단 보류"
         )
-        status = (
-            "사용자 연결 가설 · 원문 검증 전"
-            if required
-            else "통합 판단 보류 · 질문별 근거 부족"
-        )
+        if link.get("origin") == "demo_rule":
+            status = (
+                "시연 자동 초안 · 통합 판단 보류"
+                if market and patents
+                else "통합 판단 보류 · 질문별 근거 부족"
+            )
+        elif link.get("origin") == "excluded":
+            status = "사용자 제외 · 통합 판단 제외"
+        elif link.get("origin") == "automatic_pending":
+            status = "통합 판단 보류 · 실제 분석 미연결"
+        else:
+            status = (
+                "사용자 수정 가설 · 원문 검증 전"
+                if required
+                else "통합 판단 보류 · 질문별 근거 부족"
+            )
         rows.append(
             dict(
                 q,
@@ -193,6 +217,8 @@ def review_rows(text, parts, ids, questions, links):
                 counter_reason=link.get("counter_reason", ""),
                 next_check=link.get("next_check", ""),
                 status=status,
+                origin=link.get("origin", "user"),
+                assessment=link.get("assessment", []),
             )
         )
     return rows

@@ -21,7 +21,10 @@ def begin():
 
 def investigate():
     app = begin()
-    return click(app, "3개 구성으로 조사 시작하기 →")
+    click(app, "3개 구성으로 조사 시작하기 →")
+    for source_id in list(app.session_state.selected):
+        app.button(key=f"pick_{source_id}").click().run()
+    return app
 
 
 def test_no_sidebar_and_input_guard():
@@ -157,7 +160,7 @@ def test_future_stages_locked_until_confirmed():
     assert app.button(key="nav_3").disabled
     click(app, "3개 구성으로 조사 시작하기 →")
     assert not app.button(key="nav_3").disabled
-    assert app.button(key="nav_4").disabled
+    assert not app.button(key="nav_4").disabled
 
 
 def test_question_revision_requires_reconfirmation():
@@ -214,7 +217,7 @@ def test_saved_link_report_and_source_removal():
     )
     assert "현장 설치 시간 확인" in output
     assert "설치 시간 측정값이 없음" in output
-    assert "사용자 연결 가설" in output
+    assert "사용자 수정 가설" in output
     assert "통합 판단 보류" in output
     app.button(key="nav_3").click().run()
     app.button(key="exclude_M1").click().run()
@@ -260,5 +263,24 @@ def test_joint_selection_never_automatically_confirms_connection():
     assert validate_link(link, DEMO_TEXT, DEMO_PARTS, ["M1", "P1"], questions) is None
     assert validate_link(link, DEMO_TEXT, DEMO_PARTS, ["P1"], questions)
     rows = review_rows(DEMO_TEXT, DEMO_PARTS, ["M1", "P1"], questions, {"Q1": link})
-    assert "사용자 연결 가설" in rows[0]["status"]
+    assert "사용자 수정 가설" in rows[0]["status"]
     assert "검증 전" in rows[0]["status"]
+
+
+def test_automatic_default_and_exclusion_restore_report():
+    app = begin()
+    click(app, "3개 구성으로 조사 시작하기 →")
+    assert set(app.session_state.selected) == {"M1", "M2", "P1", "P2"}
+    assert app.session_state.links == {}
+    app.button(key="nav_4").click().run()
+    assert app.session_state.report_snapshot["links"]["Q2"]["origin"] == "demo_rule"
+    app.button(key="nav_3").click().run()
+    app.button(key="exclude_auto_Q2").click().run()
+    assert app.session_state.report_snapshot is None
+    app.button(key="nav_4").click().run()
+    assert app.session_state.report_snapshot["links"]["Q2"]["origin"] == "excluded"
+    app.button(key="nav_3").click().run()
+    app.button(key="restore_Q2").click().run()
+    app.button(key="nav_4").click().run()
+    assert app.session_state.report_snapshot["links"]["Q2"]["origin"] == "demo_rule"
+    assert not app.exception
