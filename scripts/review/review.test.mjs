@@ -7,7 +7,7 @@ import {
   analysisContent, cardContext, cardHasPr, cardSchema, cleanCardText, formatCards, formatRelated, mergeList, pickCardTags,
 } from "./cards.mjs";
 import {
-  computeReadiness, decideMode, fileSignature, findSecrets, keywordsOf, maskPatch, moduleOf, parseMappings, parsePatch,
+  alreadyAnalyzed, computeReadiness, decideMode, fileSignature, findSecrets, keywordsOf, maskPatch, moduleOf, parseMappings, parsePatch,
   parseTagRules, runPrechecks, selectPatches, tagOf, tagsOf, verifyFindings,
 } from "./lib.mjs";
 import { createNotion, PR_DB_PROPERTIES, repeatable, toNotionProperties } from "./notion_store.mjs";
@@ -423,4 +423,29 @@ test("연결 오류(fetch failed)가 나면 GitHub 조회는 다시 보내고, N
   }
   assert.ok(repeatable("GET", "databases/x") && repeatable("POST", "data_sources/x/query") && repeatable("PATCH", "pages/x") && repeatable("PATCH", "data_sources/x"));
   assert.ok(!repeatable("POST", "pages") && !repeatable("PATCH", "blocks/x/children") && !repeatable("POST", "databases"));
+});
+
+test("같은 head·같은 초안 여부면 건너뛰고, Ready for review·초안 전환·force면 다시 기록한다", () => {
+  const pr = (sha, draft) => ({ head: { sha }, draft });
+  const previous = { head: "a1", draft: true };
+  assert.ok(alreadyAnalyzed(previous, pr("a1", true)));
+  assert.ok(!alreadyAnalyzed(previous, pr("a1", false)));
+  assert.ok(!alreadyAnalyzed({ head: "a1", draft: false }, pr("a1", true)));
+  assert.ok(!alreadyAnalyzed(previous, pr("b2", true)));
+  assert.ok(!alreadyAnalyzed(previous, pr("a1", true), true));
+  assert.ok(!alreadyAnalyzed(null, pr("a1", false)));
+  assert.ok(alreadyAnalyzed({ head: "a1" }, pr("a1", false)));
+});
+
+test("초안 PR 보고서는 준비 상태 ⚪ 초안과 Ready for review 안내를 먼저 보여 주고 상태에 초안 여부를 남긴다", () => {
+  const draftAnalysis = {
+    ...sampleAnalysis,
+    pr: { ...sampleAnalysis.pr, draft: true },
+    readiness: { state: "draft", reasons: [{ state: "draft", reason: "초안('Ready for review' 전)" }], if_not_draft: [{ state: "ready", reason: "자동 검사 통과" }] },
+  };
+  assert.match(nextActions(draftAnalysis)[0], /^초안입니다\. 준비되면/);
+  const report = renderReport(draftAnalysis);
+  assert.equal(report.properties["준비 상태"], "⚪ 초안");
+  assert.equal(report.properties["상태"], "초안");
+  assert.equal(report.state.draft, true);
 });

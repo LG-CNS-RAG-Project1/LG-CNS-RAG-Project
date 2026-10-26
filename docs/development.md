@@ -115,12 +115,12 @@ NOTION_DRY_RUN=1 NOTION_DRY_RUN_OUTPUT=preview.json PR_NUMBER=5 \
 
 ## PR 자동 분석 (`.github/workflows/pr-analysis.yml`)
 
-develop 대상 PR이 열리거나(`opened`·`reopened`·`ready_for_review`) 수정본이 올라오면(`synchronize`) PR을 분석해 Notion `RAG 기반 미니 프로젝트: IdeaLens` 바로 아래의 `PR 분석` 표에 PR별 보고서를 기록한다. PR이 병합되면 같은 위치의 `영역 요약 카드` 표를 갱신해 다음 분석의 출발점으로 쓴다. 참고용이며 승인·병합·GitHub 댓글·라벨은 하지 않는다. 필수 체크가 아니다.
+develop 대상 PR이 열리거나(`opened`·`reopened`) 초안·검토 요청 상태가 바뀌거나(`converted_to_draft`·`ready_for_review`) 수정본이 올라오면(`synchronize`) 초안 여부와 관계없이 PR을 분석해 Notion `RAG 기반 미니 프로젝트: IdeaLens` 바로 아래의 `PR 분석` 표에 PR별 보고서를 기록한다. PR이 병합되면 같은 위치의 `영역 요약 카드` 표를 갱신해 다음 분석의 출발점으로 쓴다. 참고용이며 승인·병합·GitHub 댓글·라벨은 하지 않는다. 필수 체크가 아니다.
 
 ### 처리 순서
 
-1. 초안 PR은 건너뛴다(`Ready for review` 시 분석). 닫히거나 병합되면 같은 PR의 진행 중인 분석이 끝난 뒤 행 상태만 바꾸고, 병합이면 이어서 `cards` job이 영역 요약 카드를 갱신한다.
-2. 이미 분석한 head면 건너뛴다.
+1. 초안 PR도 일반 PR과 같이 분석·기록하며 준비 상태는 `⚪ 초안`이다. `Ready for review`나 초안 전환처럼 코드는 같고 초안 여부만 바뀌면 AI를 다시 부르지 않고 바뀐 준비 상태로 새 행을 쓴다. 닫히거나 병합되면 같은 PR의 진행 중인 분석이 끝난 뒤 행 상태만 바꾸고, 병합이면 이어서 `cards` job이 영역 요약 카드를 갱신한다.
+2. 같은 head를 같은 초안 여부로 이미 분석했으면 건너뛰고, 실행 요약에 그 사실을 남긴다.
 3. 태그·키워드: 변경 파일마다 서비스 계층 태그를 붙인다(안내서 '태그 규칙'이 먼저, 없으면 `docs/architecture.md`의 `%% map` 매핑). 키워드는 변경 파일 이름에서 3자 이상 영문 단어를 뽑는다(test·init·main·index·readme·requirements·src 제외).
 4. 규칙 점검: PR 양식, 체크 표시와 CI 결과, 비밀값(최종 변경과 커밋 기록, 값은 가려서 표시), README 갱신, 작업 범위, 브랜치 이름, 커밋 형식, 주석 규칙. 충돌 파일은 PR 코드를 실행하지 않고 `git merge-tree`로 계산한다.
 5. 분석 방식: 지난 분석과 파일 변경 지문을 비교한다.
@@ -165,7 +165,7 @@ make review-preview PR=10            # 규칙 점검만, Notion에 쓰지 않고
 make review-preview PR=10 LLM=true   # 로컬 Claude 구독 로그인으로 AI 분석까지 미리보기
 ```
 
-- 실제 기록은 **Actions → PR Analysis → Run workflow**에서 PR 번호로 실행한다(`allow_draft`로 초안 분석, `force`로 같은 버전 재분석).
+- 실제 기록은 **Actions → PR Analysis → Run workflow**에서 PR 번호로 실행한다(`force`로 같은 버전 재분석).
 - 워크플로는 develop의 스크립트만 사용하므로, 분석기 변경은 develop 병합 후에 반영된다.
 
 ## Dependabot (`.github/dependabot.yml`)
