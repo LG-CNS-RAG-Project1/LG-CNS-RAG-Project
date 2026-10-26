@@ -22,7 +22,7 @@ from src.ingestion.patent_processor import (
     to_patent_document,
     build_documents,
     save_documents,
-    collect_and_process,
+    run_pipeline,
 )
 
 from src.retrieval.schemas import PatentQueryPlan, PatentSearchQuery
@@ -354,29 +354,58 @@ def test_save_patent_documents(tmp_path):
     assert saved_document.abstract == "진동 데이터를 분석한다."
 
 
+@patch("src.retrieval.market_search.embed_texts")
+@patch("src.retrieval.patent_store.build_index")
+@patch("src.retrieval.patent_store.get_collection")
 @patch("src.ingestion.patent_processor.save_documents")
 @patch("src.ingestion.patent_processor.search_kipris_patents")
-def test_collect_and_process(mock_search, mock_save):
+def test_run_pipeline(
+    mock_search,
+    mock_save,
+    mock_collection,
+    mock_build_index,
+    mock_embed,
+    tmp_path,
+):
     mock_search.return_value = [
         {
-            "application_number": "1020240001234",
+            "application_number": "P001",
             "title": "AI 설비 예지보전",
-            "abstract": "진동 데이터를 분석하여 설비 고장을 예측한다.",
-            "claims": None,
+            "abstract": "진동 데이터를 분석하여 고장을 예측한다.",
         }
     ]
 
-    documents, chunks = collect_and_process("설비 예지보전", limit=3)
+    mock_build_index.return_value = 1
+
+    # 실제 JSONL 파일 대신 임시 파일 사용
+    output_path = tmp_path / "patent_docs.jsonl"
+
+    document = PatentDocument(
+        patent_id="P001",
+        title="AI 설비 예지보전",
+        abstract="진동 데이터를 분석하여 고장을 예측한다.",
+    )
+    output_path.write_text(
+        document.model_dump_json() + "\n",
+        encoding="utf-8",
+    )
+
+    with patch(
+        "src.ingestion.patent_processor.OUTPUT_PATH",
+        output_path,
+    ):
+        collected, total, indexed = run_pipeline(
+            "설비 예지보전",
+            limit=3,
+        )
+
+    assert (collected, total, indexed) == (1, 1, 1)
 
     mock_search.assert_called_once_with("설비 예지보전", limit=3)
     mock_save.assert_called_once()
-
-    assert len(documents) == 1
-    assert documents[0].patent_id == "1020240001234"
-
-    assert len(chunks) == 1
-    assert chunks[0].section == "abstract"
-    assert chunks[0].patent_id == documents[0].patent_id
+    mock_collection.assert_called_once()
+    mock_build_index.assert_called_once()
+    mock_embed.assert_not_called()
 
 
 def test_save_documents_incremental(tmp_path):

@@ -104,15 +104,40 @@ def save_documents(
     return path
 
 
-def collect_and_process(keyword: str, limit: int = 20):
-    """KIPRIS 특허를 수집·전처리하고 JSONL로 저장한다."""
-    raw_patents = search_kipris_patents(keyword, limit=limit)
-    documents = build_documents(raw_patents)
-    chunks = build_chunks(documents)
+def run_pipeline(keyword: str, limit: int = 20) -> tuple[int, int, int]:
+    """KIPRIS 특허 수집부터 ChromaDB 증분 색인까지 실행한다."""
+    from src.retrieval.market_search import embed_texts
+    from src.retrieval.patent_store import build_index, get_collection
 
+    # 1. KIPRIS 특허 수집
+    raw_patents = search_kipris_patents(keyword, limit=limit)
+
+    # 2. 문서 변환 및 중복 제거
+    documents = build_documents(raw_patents)
+
+    # 3. JSONL 누적 저장
     save_documents(documents)
 
-    return documents, chunks
+    # 4. 누적 특허 전체 로드
+    all_documents = [
+        PatentDocument.model_validate_json(line)
+        for line in OUTPUT_PATH.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+
+    # 5. 청크 생성
+    all_chunks = build_chunks(all_documents)
+
+    # 6. ChromaDB 증분 색인
+    collection = get_collection()
+    indexed_count = build_index(
+        chunks=all_chunks,
+        patents=all_documents,
+        collection=collection,
+        embed_fn=embed_texts,
+    )
+
+    return len(documents), len(all_documents), indexed_count
 
 
 def main() -> None:
@@ -132,13 +157,14 @@ def main() -> None:
 
     args = parser.parse_args()
 
-    documents, chunks = collect_and_process(
+    collected, total, indexed = run_pipeline(
         keyword=args.keyword,
         limit=args.limit,
     )
 
-    print(f"수집·변환 문서: {len(documents)}건")
-    print(f"생성 청크: {len(chunks)}개")
+    print(f"이번 수집: {collected}건")
+    print(f"전체 누적 특허: {total}건")
+    print(f"신규·변경 색인 청크: {indexed}개")
     print(f"저장 경로: {OUTPUT_PATH}")
 
 
