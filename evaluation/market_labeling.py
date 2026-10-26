@@ -14,6 +14,7 @@
 
 import argparse
 import csv
+import io
 import json
 import re
 from pathlib import Path
@@ -196,8 +197,12 @@ def import_labels(
     한 문항의 모든 후보가 판단되었을 때만 labeled=True가 된다.
     반환: (갱신된 문항 목록, {case_id: 미판단 후보 수})
     """
-    with open(path, encoding="utf-8-sig", newline="") as f:
-        rows = list(csv.DictReader(f))
+    raw = path.read_bytes()
+    try:
+        text = raw.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        text = raw.decode("cp949")  # 엑셀 기본 CSV 저장 형식
+    rows = list(csv.DictReader(io.StringIO(text, newline="")))
 
     by_case: dict[str, list[dict]] = {}
     for row in rows:

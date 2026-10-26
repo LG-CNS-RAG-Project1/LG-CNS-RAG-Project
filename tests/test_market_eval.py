@@ -122,6 +122,19 @@ def test_export_and_import_labels(tmp_path):
     assert updated[0]["judged_source_ids"] == ["a", "b", "c"]
 
 
+def test_import_labels_saved_by_excel_cp949(tmp_path):
+    cases = make_cases(IDEAS)[:1]
+    path = tmp_path / "candidates.csv"
+    export_candidates(cases, IDEAS, fake_search(["a"]), path)
+    label_csv(path, {"a": "1"})
+    text = path.read_text(encoding="utf-8-sig")
+    path.write_bytes(text.encode("cp949"))
+
+    updated, _ = import_labels(cases, path)
+
+    assert updated[0]["relevant_source_ids"] == ["a"]
+
+
 def test_import_rejects_unknown_case(tmp_path):
     path = tmp_path / "candidates.csv"
     export_candidates(make_cases(IDEAS)[:1], IDEAS, fake_search(["a"]), path)
