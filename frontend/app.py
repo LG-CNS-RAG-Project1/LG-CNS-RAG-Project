@@ -22,10 +22,11 @@ from frontend.quick import (
 )
 from frontend.workspace import EXAMPLE
 from frontend.automatic import automatic_links
-from frontend.presentation import hero
+from frontend.presentation import hero, brand_style
 
 st.set_page_config(page_title="IdeaLens · 빠른 조사", page_icon="▤", layout="wide")
 st.html(Path(__file__).with_name("styles.css").read_text(encoding="utf-8"))
+st.html(brand_style())
 for key, value in {
     "stage": 1,
     "raw": "",
@@ -225,7 +226,7 @@ def drop_link(qid):
 with st.container(key="brandbar"):
     brand, section, status = st.columns([1, 2, 2])
     brand.button(
-        "▤ IdeaLens", key="home", on_click=navigate, args=(1,), help="홈페이지로 이동"
+        "IdeaLens", key="home", on_click=navigate, args=(1,), help="홈페이지로 이동"
     )
     section.caption("시장·특허 조사")
     status.caption("로컬 시연 · 실제 분석 미연결")

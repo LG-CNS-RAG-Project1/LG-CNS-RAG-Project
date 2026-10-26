@@ -1,6 +1,7 @@
 """종이 메타포를 사용하는 홈 비주얼과 단계 안내."""
 
 import re
+from pathlib import Path
 from base64 import b64encode
 
 
@@ -69,3 +70,17 @@ def hero():
         </div></div></section>"""
 
     return re.sub(r"<svg\b.*?</svg>", _drawing, markup, flags=re.DOTALL)
+
+
+def brand_style():
+    """홈 버튼에 벡터 심볼을 적용하고 텍스트 이름과 클릭 동작을 유지한다."""
+    symbol = (
+        Path(__file__).with_name("assets").joinpath("idealens-symbol.svg").read_bytes()
+    )
+    encoded = b64encode(symbol).decode("ascii")
+    return f"""<style>
+.st-key-brandbar .st-key-home button{{display:flex;align-items:center;gap:8px;padding:0;border:0;background:transparent;}}
+.st-key-brandbar .st-key-home button:before{{content:"";display:block;flex:0 0 35px;width:35px;height:35px;background:url("data:image/svg+xml;base64,{encoded}") center/contain no-repeat;}}
+.st-key-brandbar .st-key-home button p{{font-size:23px;font-weight:750;letter-spacing:-1px;color:#19594c;white-space:nowrap;}}
+.st-key-brandbar .st-key-home button:hover{{box-shadow:none;}}
+</style>"""
