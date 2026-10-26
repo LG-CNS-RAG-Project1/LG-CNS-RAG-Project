@@ -1,0 +1,98 @@
+"""특허 문서를 ChromaDB에 저장하고 관리한다."""
+
+from pathlib import Path
+
+import chromadb
+from chromadb.api import ClientAPI
+from chromadb.config import Settings
+
+from typing import Callable
+from src.schemas import PatentChunk, PatentDocument
+from src.retrieval.adapters import patent_to_search_document
+
+ROOT_DIR = Path(__file__).resolve().parents[2]
+CHROMA_DIR = ROOT_DIR / "data" / "patent" / "chroma"
+COLLECTION_NAME = "patents"
+
+
+def get_collection(
+    chroma_dir: Path = CHROMA_DIR,
+    name: str = COLLECTION_NAME,
+    client: ClientAPI | None = None,
+):
+    """cosine 거리를 사용하는 특허 컬렉션을 반환한다."""
+
+    if client is None:
+        chroma_dir.mkdir(parents=True, exist_ok=True)
+
+        client = chromadb.PersistentClient(
+            path=str(chroma_dir),
+            settings=Settings(anonymized_telemetry=False),
+        )
+
+    return client.get_or_create_collection(
+        name=name,
+        metadata={"hnsw:space": "cosine"},
+        embedding_function=None,
+    )
+
+
+EmbedFn = Callable[[list[str]], list[list[float]]]
+
+
+def to_chroma_record(
+    chunk: PatentChunk,
+    patent: PatentDocument,
+) -> tuple[str, str, dict]:
+    """특허 청크를 ChromaDB 레코드로 변환한다."""
+
+    document = patent_to_search_document(chunk, patent)
+
+    metadata = {
+        "source_id": document.source_id,
+        "source_type": document.source_type,
+        "title": document.title,
+        **document.metadata,
+    }
+
+    # ChromaDB 메타데이터에는 None을 저장하지 않는다.
+    metadata = {key: value for key, value in metadata.items() if value is not None}
+
+    return document.chunk_id, document.content, metadata
+
+
+def build_index(
+    chunks: list[PatentChunk],
+    patents: list[PatentDocument],
+    collection,
+    embed_fn: EmbedFn,
+) -> int:
+    """특허 청크를 임베딩하여 ChromaDB에 저장한다."""
+
+    patent_map = {patent.patent_id: patent for patent in patents}
+
+    records = [to_chroma_record(chunk, patent_map[chunk.patent_id]) for chunk in chunks]
+
+    if not records:
+        return 0
+
+    existing_ids = set(
+        collection.get(
+            ids=[record[0] for record in records],
+            include=[],
+        )["ids"]
+    )
+
+    new_records = [record for record in records if record[0] not in existing_ids]
+
+    if not new_records:
+        return 0
+
+    collection.upsert(
+        ids=[record[0] for record in new_records],
+        documents=[record[1] for record in new_records],
+        metadatas=[record[2] for record in new_records],
+        embeddings=embed_fn([record[1] for record in new_records]),
+    )
+
+    return len(new_records)
