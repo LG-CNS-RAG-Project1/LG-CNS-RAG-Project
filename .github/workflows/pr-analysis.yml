@@ -5,7 +5,7 @@ name: PR Analysis
 # 켜고 끄기: 저장소 변수 REVIEW_ENABLED(전체)·REVIEW_LLM_ENABLED(AI 분석). 비밀값은 Environment pr-analysis에 둔다.
 on:
   pull_request_target:
-    types: [opened, reopened, ready_for_review, synchronize, closed]
+    types: [opened, reopened, ready_for_review, converted_to_draft, synchronize, closed]
     branches: [develop]
   workflow_dispatch:
     inputs:
@@ -13,10 +13,6 @@ on:
         description: 분석할 PR 번호
         required: true
         type: number
-      allow_draft:
-        description: 초안 PR도 분석
-        type: boolean
-        default: false
       force:
         description: 이미 분석한 버전도 다시 분석
         type: boolean
@@ -83,7 +79,6 @@ jobs:
           EVENT_NAME: ${{ github.event_name }}
           EVENT_ACTION: ${{ github.event.action }}
           TRIGGERING_ACTOR: ${{ github.triggering_actor }}
-          ALLOW_DRAFT: ${{ inputs.allow_draft && 'true' || 'false' }}
           FORCE: ${{ inputs.force && 'true' || 'false' }}
         run: node scripts/review/analyze_pr.mjs
 

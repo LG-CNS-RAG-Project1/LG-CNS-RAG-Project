@@ -46,6 +46,6 @@ notion-preview: ## Notion 페이지 구성 미리보기 (예: make notion-previe
 
 review-preview: ## PR 분석 미리보기, Notion에 쓰지 않음 (예: make review-preview PR=10 LLM=true)
 	@test -n "$(PR)" || (echo "PR 번호를 지정하세요. 예: make review-preview PR=10" && exit 1)
-	DRY_RUN=1 PR_NUMBER=$(PR) ALLOW_DRAFT=true CI_WAIT_SECONDS=0 REVIEW_LLM_ENABLED=$(or $(LLM),false) \
+	DRY_RUN=1 PR_NUMBER=$(PR) CI_WAIT_SECONDS=0 REVIEW_LLM_ENABLED=$(or $(LLM),false) \
 		GITHUB_TOKEN="$$(gh auth token 2>/dev/null)" \
 		REVIEW_PREVIEW_OUT="$${TMPDIR:-/tmp}/review-preview-$(PR).json" node scripts/review/analyze_pr.mjs
