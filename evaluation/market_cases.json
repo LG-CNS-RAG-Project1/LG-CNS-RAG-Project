@@ -4,224 +4,703 @@
     "idea_id": "SF-01",
     "dimension": "demand",
     "question": "'협동로봇+비전 턴키 자동화'에 대한 고객(중소 제조사) 수요를 보여주는 근거가 있는가?",
-    "relevant_source_ids": [],
-    "judged_source_ids": [],
-    "labeled": false
+    "relevant_source_ids": [
+      "news-1466dcc44368",
+      "news-1dd645e25b07",
+      "news-818f3b9769ab",
+      "news-8450b95830ae",
+      "news-a481434ba27c",
+      "news-b37edff3b4bc"
+    ],
+    "judged_source_ids": [
+      "news-1466dcc44368",
+      "news-1dd645e25b07",
+      "news-23becf685263",
+      "news-63f0fc72e0dd",
+      "news-649581df4a05",
+      "news-67039948fab1",
+      "news-72bba593794d",
+      "news-818f3b9769ab",
+      "news-8450b95830ae",
+      "news-a481434ba27c",
+      "news-b37edff3b4bc",
+      "news-bd1f54c7bba8"
+    ],
+    "labeled": true
   },
   {
     "case_id": "SF-01-competition",
     "idea_id": "SF-01",
     "dimension": "competition",
     "question": "'협동로봇+비전 턴키 자동화'의 경쟁 기업이나 대체 제품은 무엇인가?",
-    "relevant_source_ids": [],
-    "judged_source_ids": [],
-    "labeled": false
+    "relevant_source_ids": [
+      "news-007a29ac06f8",
+      "news-0f8476a8a7f1",
+      "news-2b9ff192588b",
+      "news-52434a29a818",
+      "news-bbe83f8c1426",
+      "news-c45a829aef8d"
+    ],
+    "judged_source_ids": [
+      "news-007a29ac06f8",
+      "news-0f8476a8a7f1",
+      "news-2b9ff192588b",
+      "news-3cb28f5bb1d7",
+      "news-52434a29a818",
+      "news-60d070e797ef",
+      "news-67e7bb880d73",
+      "news-8ef927d2e62a",
+      "news-bbe83f8c1426",
+      "news-bde9220b6cc0",
+      "news-c45a829aef8d",
+      "news-dd16ec807431"
+    ],
+    "labeled": true
   },
   {
     "case_id": "SF-01-price",
     "idea_id": "SF-01",
     "dimension": "price",
     "question": "'협동로봇+비전 턴키 자동화'의 도입 가격이나 비용 수준을 보여주는 근거가 있는가?",
-    "relevant_source_ids": [],
-    "judged_source_ids": [],
-    "labeled": false
+    "relevant_source_ids": [
+      "news-06c506bca6be",
+      "news-45725cde0db3",
+      "news-4636e5bdbeb3",
+      "news-5dbe9360f2c2",
+      "news-bde9220b6cc0"
+    ],
+    "judged_source_ids": [
+      "news-06c506bca6be",
+      "news-115faf6b2773",
+      "news-31b95e8c5d61",
+      "news-45725cde0db3",
+      "news-4636e5bdbeb3",
+      "news-5dbe9360f2c2",
+      "news-6cd32e1dbabe",
+      "news-824007994f53",
+      "news-b37edff3b4bc",
+      "news-b80263840a0e",
+      "news-bde9220b6cc0",
+      "news-d6279e4c5144"
+    ],
+    "labeled": true
   },
   {
     "case_id": "SF-01-buyer",
     "idea_id": "SF-01",
     "dimension": "buyer",
     "question": "'협동로봇+비전 턴키 자동화' 관련 기술(협동로봇 머신비전)을 실제로 도입한 고객이나 사례가 있는가?",
-    "relevant_source_ids": [],
-    "judged_source_ids": [],
-    "labeled": false
+    "relevant_source_ids": [
+      "news-115faf6b2773",
+      "news-55ea4544fbe3",
+      "news-b37edff3b4bc"
+    ],
+    "judged_source_ids": [
+      "news-115faf6b2773",
+      "news-2c4e92e25b63",
+      "news-36f07ccf32ca",
+      "news-55ea4544fbe3",
+      "news-60d070e797ef",
+      "news-63f0fc72e0dd",
+      "news-649581df4a05",
+      "news-818f3b9769ab",
+      "news-a481434ba27c",
+      "news-b37edff3b4bc",
+      "news-d6279e4c5144",
+      "news-dead3dfbf46f"
+    ],
+    "labeled": true
   },
   {
     "case_id": "SF-01-adoption_barrier",
     "idea_id": "SF-01",
     "dimension": "adoption_barrier",
     "question": "'협동로봇+비전 턴키 자동화' 도입 시 고객(중소 제조사)이 겪는 어려움은 무엇인가?",
-    "relevant_source_ids": [],
-    "judged_source_ids": [],
-    "labeled": false
+    "relevant_source_ids": [
+      "news-115faf6b2773",
+      "news-45725cde0db3",
+      "news-63f0fc72e0dd",
+      "news-649581df4a05",
+      "news-790e7d3976e0",
+      "news-c7da5c7cd4ba",
+      "news-dead3dfbf46f",
+      "news-f69a099e119a"
+    ],
+    "judged_source_ids": [
+      "news-115faf6b2773",
+      "news-23ecb9561e42",
+      "news-45725cde0db3",
+      "news-63f0fc72e0dd",
+      "news-649581df4a05",
+      "news-6cd32e1dbabe",
+      "news-790e7d3976e0",
+      "news-a481434ba27c",
+      "news-b37edff3b4bc",
+      "news-c7da5c7cd4ba",
+      "news-dead3dfbf46f",
+      "news-f69a099e119a"
+    ],
+    "labeled": true
   },
   {
     "case_id": "SF-02-demand",
     "idea_id": "SF-02",
     "dimension": "demand",
     "question": "'2차전지·전자부품 AI 비전 외관 검사'에 대한 고객(2차전지·전자부품 제조사 품질 부서) 수요를 보여주는 근거가 있는가?",
-    "relevant_source_ids": [],
-    "judged_source_ids": [],
-    "labeled": false
+    "relevant_source_ids": [
+      "news-11f85ea25510",
+      "news-cafe1a2c4f32",
+      "news-d0b342341e5f",
+      "news-d2de7696c740"
+    ],
+    "judged_source_ids": [
+      "news-06a377a5fba8",
+      "news-11f85ea25510",
+      "news-1466dcc44368",
+      "news-1532245826f8",
+      "news-20fb66b19106",
+      "news-5ffe3dc67a3e",
+      "news-69c2c11f65dc",
+      "news-766eb27ce448",
+      "news-cafe1a2c4f32",
+      "news-d0b342341e5f",
+      "news-d2de7696c740",
+      "news-eb7501124dce"
+    ],
+    "labeled": true
   },
   {
     "case_id": "SF-02-competition",
     "idea_id": "SF-02",
     "dimension": "competition",
     "question": "'2차전지·전자부품 AI 비전 외관 검사'의 경쟁 기업이나 대체 제품은 무엇인가?",
-    "relevant_source_ids": [],
-    "judged_source_ids": [],
-    "labeled": false
+    "relevant_source_ids": [
+      "news-03bf6df9e48a",
+      "news-17e2b6cbbd51",
+      "news-20fb66b19106",
+      "news-34abab9c2ed6",
+      "news-440491d23594",
+      "news-5ef05c86c089",
+      "news-7f39266c33db",
+      "news-9bd485a2d033",
+      "news-cafe1a2c4f32",
+      "news-e571e2f06786",
+      "news-f677a72152db"
+    ],
+    "judged_source_ids": [
+      "news-03bf6df9e48a",
+      "news-1532245826f8",
+      "news-17e2b6cbbd51",
+      "news-20fb66b19106",
+      "news-34abab9c2ed6",
+      "news-440491d23594",
+      "news-5ef05c86c089",
+      "news-7f39266c33db",
+      "news-9bd485a2d033",
+      "news-cafe1a2c4f32",
+      "news-e571e2f06786",
+      "news-f677a72152db"
+    ],
+    "labeled": true
   },
   {
     "case_id": "SF-02-price",
     "idea_id": "SF-02",
     "dimension": "price",
     "question": "'2차전지·전자부품 AI 비전 외관 검사'의 도입 가격이나 비용 수준을 보여주는 근거가 있는가?",
-    "relevant_source_ids": [],
-    "judged_source_ids": [],
-    "labeled": false
+    "relevant_source_ids": [
+      "news-3782d7c51cef",
+      "news-3b41415368e6",
+      "news-7abbb821d4aa",
+      "news-f783fa2c8708"
+    ],
+    "judged_source_ids": [
+      "news-1e5dda27573a",
+      "news-20fb66b19106",
+      "news-3782d7c51cef",
+      "news-3b41415368e6",
+      "news-5ffe3dc67a3e",
+      "news-60a4b11433f3",
+      "news-69c2c11f65dc",
+      "news-6d618ad26aca",
+      "news-7abbb821d4aa",
+      "news-d2de7696c740",
+      "news-eccb5335617c",
+      "news-f783fa2c8708"
+    ],
+    "labeled": true
   },
   {
     "case_id": "SF-02-buyer",
     "idea_id": "SF-02",
     "dimension": "buyer",
     "question": "'2차전지·전자부품 AI 비전 외관 검사' 관련 기술(딥러닝 AI 비전 외관 검사 장비)을 실제로 도입한 고객이나 사례가 있는가?",
-    "relevant_source_ids": [],
-    "judged_source_ids": [],
-    "labeled": false
+    "relevant_source_ids": [
+      "news-1526d1f424db",
+      "news-2ac953691611",
+      "news-3782d7c51cef",
+      "news-7abbb821d4aa",
+      "news-c0882b3da6ef",
+      "news-c095dd5c5241",
+      "news-eccb5335617c"
+    ],
+    "judged_source_ids": [
+      "news-11f85ea25510",
+      "news-1526d1f424db",
+      "news-2ac953691611",
+      "news-3782d7c51cef",
+      "news-5ffe3dc67a3e",
+      "news-60a4b11433f3",
+      "news-69c2c11f65dc",
+      "news-766eb27ce448",
+      "news-7abbb821d4aa",
+      "news-c0882b3da6ef",
+      "news-c095dd5c5241",
+      "news-eccb5335617c"
+    ],
+    "labeled": true
   },
   {
     "case_id": "SF-02-adoption_barrier",
     "idea_id": "SF-02",
     "dimension": "adoption_barrier",
     "question": "'2차전지·전자부품 AI 비전 외관 검사' 도입 시 고객(2차전지·전자부품 제조사 품질 부서)이 겪는 어려움은 무엇인가?",
-    "relevant_source_ids": [],
-    "judged_source_ids": [],
-    "labeled": false
+    "relevant_source_ids": [
+      "news-6d618ad26aca",
+      "news-7dc93bbaa231",
+      "news-92630185dfaf",
+      "news-c7da5c7cd4ba"
+    ],
+    "judged_source_ids": [
+      "news-20fb66b19106",
+      "news-5ffe3dc67a3e",
+      "news-60a4b11433f3",
+      "news-69c2c11f65dc",
+      "news-6d618ad26aca",
+      "news-766eb27ce448",
+      "news-7abbb821d4aa",
+      "news-7dc93bbaa231",
+      "news-92630185dfaf",
+      "news-c7da5c7cd4ba",
+      "news-d0b342341e5f",
+      "news-eccb5335617c"
+    ],
+    "labeled": true
   },
   {
     "case_id": "SF-03-demand",
     "idea_id": "SF-03",
     "dimension": "demand",
     "question": "'진동·전류 센서 예지보전 SaaS'에 대한 고객(중소·중견 제조사 설비 보전 담당자) 수요를 보여주는 근거가 있는가?",
-    "relevant_source_ids": [],
-    "judged_source_ids": [],
-    "labeled": false
+    "relevant_source_ids": [
+      "news-2c8f8d833e35",
+      "news-3c217c0f3e4d",
+      "news-3cc8ff2360b1",
+      "news-4de1774372f2",
+      "news-93c1087ab309",
+      "news-9d00c0448728",
+      "news-f6981f3c7bca"
+    ],
+    "judged_source_ids": [
+      "news-1466dcc44368",
+      "news-20d13c5ea510",
+      "news-2c8f8d833e35",
+      "news-3c217c0f3e4d",
+      "news-3cc8ff2360b1",
+      "news-4de1774372f2",
+      "news-611363ec1fe7",
+      "news-838259c05502",
+      "news-93c1087ab309",
+      "news-9d00c0448728",
+      "news-e60f1790f079",
+      "news-f6981f3c7bca"
+    ],
+    "labeled": true
   },
   {
     "case_id": "SF-03-competition",
     "idea_id": "SF-03",
     "dimension": "competition",
     "question": "'진동·전류 센서 예지보전 SaaS'의 경쟁 기업이나 대체 제품은 무엇인가?",
-    "relevant_source_ids": [],
-    "judged_source_ids": [],
-    "labeled": false
+    "relevant_source_ids": [
+      "news-0e5faaacd654",
+      "news-20b8d9f41fa5",
+      "news-20d13c5ea510",
+      "news-38ce12a8614e",
+      "news-3c217c0f3e4d",
+      "news-6dbc9bb33189",
+      "news-b74b7ec09401",
+      "news-ed7e29074f16"
+    ],
+    "judged_source_ids": [
+      "news-0e5faaacd654",
+      "news-20b8d9f41fa5",
+      "news-20d13c5ea510",
+      "news-38ce12a8614e",
+      "news-3c217c0f3e4d",
+      "news-4f7ff15db008",
+      "news-50ff73bdce47",
+      "news-6dbc9bb33189",
+      "news-b74b7ec09401",
+      "news-e60f1790f079",
+      "news-ed7e29074f16",
+      "news-f819d44c1e82"
+    ],
+    "labeled": true
   },
   {
     "case_id": "SF-03-price",
     "idea_id": "SF-03",
     "dimension": "price",
     "question": "'진동·전류 센서 예지보전 SaaS'의 도입 가격이나 비용 수준을 보여주는 근거가 있는가?",
-    "relevant_source_ids": [],
-    "judged_source_ids": [],
-    "labeled": false
+    "relevant_source_ids": [
+      "news-13f035442612",
+      "news-20b8d9f41fa5",
+      "news-ef8c992e9be3"
+    ],
+    "judged_source_ids": [
+      "news-13f035442612",
+      "news-15d49a0db4de",
+      "news-20b8d9f41fa5",
+      "news-20d13c5ea510",
+      "news-723793be0b68",
+      "news-80635321e956",
+      "news-8460b82990ce",
+      "news-b74b7ec09401",
+      "news-cd15f97ec68b",
+      "news-e60f1790f079",
+      "news-ed7e29074f16",
+      "news-ef8c992e9be3"
+    ],
+    "labeled": true
   },
   {
     "case_id": "SF-03-buyer",
     "idea_id": "SF-03",
     "dimension": "buyer",
     "question": "'진동·전류 센서 예지보전 SaaS' 관련 기술(진동·전류 센서와 이상 탐지 AI 기반 예지보전)을 실제로 도입한 고객이나 사례가 있는가?",
-    "relevant_source_ids": [],
-    "judged_source_ids": [],
-    "labeled": false
+    "relevant_source_ids": [
+      "news-20b8d9f41fa5",
+      "news-4de1774372f2",
+      "news-9d00c0448728",
+      "news-e60f1790f079"
+    ],
+    "judged_source_ids": [
+      "news-20b8d9f41fa5",
+      "news-20d13c5ea510",
+      "news-2c8f8d833e35",
+      "news-4de1774372f2",
+      "news-50ff73bdce47",
+      "news-82144ac96ae6",
+      "news-8e0fbddba792",
+      "news-9d00c0448728",
+      "news-b74b7ec09401",
+      "news-de73cbab02f5",
+      "news-e60f1790f079",
+      "news-ed7e29074f16"
+    ],
+    "labeled": true
   },
   {
     "case_id": "SF-03-adoption_barrier",
     "idea_id": "SF-03",
     "dimension": "adoption_barrier",
     "question": "'진동·전류 센서 예지보전 SaaS' 도입 시 고객(중소·중견 제조사 설비 보전 담당자)이 겪는 어려움은 무엇인가?",
-    "relevant_source_ids": [],
-    "judged_source_ids": [],
-    "labeled": false
+    "relevant_source_ids": [
+      "news-6d618ad26aca",
+      "news-82144ac96ae6",
+      "news-bd1f54c7bba8",
+      "news-c7da5c7cd4ba",
+      "news-de73cbab02f5"
+    ],
+    "judged_source_ids": [
+      "news-20d13c5ea510",
+      "news-2c8f8d833e35",
+      "news-3c217c0f3e4d",
+      "news-4de1774372f2",
+      "news-66c3bfeacedf",
+      "news-6d618ad26aca",
+      "news-82144ac96ae6",
+      "news-9d00c0448728",
+      "news-bd1f54c7bba8",
+      "news-c7da5c7cd4ba",
+      "news-de73cbab02f5",
+      "news-ed7e29074f16"
+    ],
+    "labeled": true
   },
   {
     "case_id": "SF-04-demand",
     "idea_id": "SF-04",
     "dimension": "demand",
     "question": "'공정별 전력 FEMS'에 대한 고객(전력 사용량이 많은 중소·중견 제조사) 수요를 보여주는 근거가 있는가?",
-    "relevant_source_ids": [],
-    "judged_source_ids": [],
-    "labeled": false
+    "relevant_source_ids": [
+      "news-0c52546f8c2c",
+      "news-18549346827e",
+      "news-5e5d15343602",
+      "news-65ba1a3c7017",
+      "news-7f840efe5672",
+      "news-bdb76c6c2e30",
+      "news-ef1ba1d9912b"
+    ],
+    "judged_source_ids": [
+      "news-0c52546f8c2c",
+      "news-18549346827e",
+      "news-5e5d15343602",
+      "news-65ba1a3c7017",
+      "news-67cfebd17b6e",
+      "news-68a2caee6a8b",
+      "news-7f840efe5672",
+      "news-a2ffbd0b8e96",
+      "news-ac1eb2ab27f4",
+      "news-bdb76c6c2e30",
+      "news-e548023b30c6",
+      "news-ef1ba1d9912b"
+    ],
+    "labeled": true
   },
   {
     "case_id": "SF-04-competition",
     "idea_id": "SF-04",
     "dimension": "competition",
     "question": "'공정별 전력 FEMS'의 경쟁 기업이나 대체 제품은 무엇인가?",
-    "relevant_source_ids": [],
-    "judged_source_ids": [],
-    "labeled": false
+    "relevant_source_ids": [
+      "news-11f17ac516bd",
+      "news-6a3ffa4c1963",
+      "news-c2461dbe4d04",
+      "news-c5f422eb260a",
+      "news-e548023b30c6"
+    ],
+    "judged_source_ids": [
+      "news-0abad426c748",
+      "news-0c52546f8c2c",
+      "news-11f17ac516bd",
+      "news-2c404475e72c",
+      "news-46e99b034845",
+      "news-6a3ffa4c1963",
+      "news-a583244881cc",
+      "news-b4fa5cbe59b1",
+      "news-bdb76c6c2e30",
+      "news-c2461dbe4d04",
+      "news-c5f422eb260a",
+      "news-e548023b30c6"
+    ],
+    "labeled": true
   },
   {
     "case_id": "SF-04-price",
     "idea_id": "SF-04",
     "dimension": "price",
     "question": "'공정별 전력 FEMS'의 도입 가격이나 비용 수준을 보여주는 근거가 있는가?",
-    "relevant_source_ids": [],
-    "judged_source_ids": [],
-    "labeled": false
+    "relevant_source_ids": [
+      "news-2c404475e72c",
+      "news-33f1f2af1e89",
+      "news-65ba1a3c7017",
+      "news-e548023b30c6"
+    ],
+    "judged_source_ids": [
+      "news-02729d50bc89",
+      "news-0c52546f8c2c",
+      "news-2c404475e72c",
+      "news-33f1f2af1e89",
+      "news-65ba1a3c7017",
+      "news-ac1eb2ab27f4",
+      "news-b4fa5cbe59b1",
+      "news-bdb76c6c2e30",
+      "news-c6a8911b71b4",
+      "news-cce3c1c80cd5",
+      "news-d7e826258bbe",
+      "news-e548023b30c6"
+    ],
+    "labeled": true
   },
   {
     "case_id": "SF-04-buyer",
     "idea_id": "SF-04",
     "dimension": "buyer",
     "question": "'공정별 전력 FEMS' 관련 기술(공정별 전력 계측 FEMS 공장에너지관리시스템)을 실제로 도입한 고객이나 사례가 있는가?",
-    "relevant_source_ids": [],
-    "judged_source_ids": [],
-    "labeled": false
+    "relevant_source_ids": [
+      "news-0c52546f8c2c",
+      "news-18549346827e",
+      "news-65ba1a3c7017",
+      "news-6a772113dde4",
+      "news-b5d882fb4a60",
+      "news-c6a8911b71b4",
+      "news-d7e826258bbe",
+      "news-e548023b30c6",
+      "news-ef1ba1d9912b"
+    ],
+    "judged_source_ids": [
+      "news-02729d50bc89",
+      "news-0c52546f8c2c",
+      "news-18549346827e",
+      "news-2c404475e72c",
+      "news-65ba1a3c7017",
+      "news-6a772113dde4",
+      "news-b5d882fb4a60",
+      "news-bdb76c6c2e30",
+      "news-c6a8911b71b4",
+      "news-d7e826258bbe",
+      "news-e548023b30c6",
+      "news-ef1ba1d9912b"
+    ],
+    "labeled": true
   },
   {
     "case_id": "SF-04-adoption_barrier",
     "idea_id": "SF-04",
     "dimension": "adoption_barrier",
     "question": "'공정별 전력 FEMS' 도입 시 고객(전력 사용량이 많은 중소·중견 제조사)이 겪는 어려움은 무엇인가?",
-    "relevant_source_ids": [],
-    "judged_source_ids": [],
-    "labeled": false
+    "relevant_source_ids": [
+      "news-2c404475e72c"
+    ],
+    "judged_source_ids": [
+      "news-0c52546f8c2c",
+      "news-18549346827e",
+      "news-2c404475e72c",
+      "news-354b5fabb4fc",
+      "news-67cfebd17b6e",
+      "news-68a2caee6a8b",
+      "news-a2ffbd0b8e96",
+      "news-abe9be43dea1",
+      "news-bdb76c6c2e30",
+      "news-cce3c1c80cd5",
+      "news-e548023b30c6",
+      "news-ef1ba1d9912b"
+    ],
+    "labeled": true
   },
   {
     "case_id": "SF-05-demand",
     "idea_id": "SF-05",
     "dimension": "demand",
     "question": "'현장 작업자용 LLM 음성 어시스턴트'에 대한 고객(제조 현장 작업자와 생산 관리자) 수요를 보여주는 근거가 있는가?",
-    "relevant_source_ids": [],
-    "judged_source_ids": [],
-    "labeled": false
+    "relevant_source_ids": [
+      "news-72bba593794d",
+      "news-b12f2e5b2d62",
+      "news-ce5dce38a0c6"
+    ],
+    "judged_source_ids": [
+      "news-0bc174d93591",
+      "news-1466dcc44368",
+      "news-301cff0cd54b",
+      "news-414a62ee5fe5",
+      "news-4dcdc47ca2bb",
+      "news-72bba593794d",
+      "news-9fee97947131",
+      "news-b12f2e5b2d62",
+      "news-cd6a844347cd",
+      "news-ce5dce38a0c6",
+      "news-dd7090f6260e",
+      "news-de56684ffbcf"
+    ],
+    "labeled": true
   },
   {
     "case_id": "SF-05-competition",
     "idea_id": "SF-05",
     "dimension": "competition",
     "question": "'현장 작업자용 LLM 음성 어시스턴트'의 경쟁 기업이나 대체 제품은 무엇인가?",
-    "relevant_source_ids": [],
-    "judged_source_ids": [],
-    "labeled": false
+    "relevant_source_ids": [
+      "news-74aa4fea0636",
+      "news-7b69ad1d9418",
+      "news-9354b6d890a8",
+      "news-c6ef5a20cdd8"
+    ],
+    "judged_source_ids": [
+      "news-2f9edca61a3e",
+      "news-48ca6ceda4c1",
+      "news-66c3bfeacedf",
+      "news-74aa4fea0636",
+      "news-7a6eeaa73d6d",
+      "news-7b69ad1d9418",
+      "news-7ba0391ac630",
+      "news-9354b6d890a8",
+      "news-b12f2e5b2d62",
+      "news-c6ef5a20cdd8",
+      "news-db385d72fbc2",
+      "news-e4029ce4af4e"
+    ],
+    "labeled": true
   },
   {
     "case_id": "SF-05-price",
     "idea_id": "SF-05",
     "dimension": "price",
     "question": "'현장 작업자용 LLM 음성 어시스턴트'의 도입 가격이나 비용 수준을 보여주는 근거가 있는가?",
-    "relevant_source_ids": [],
-    "judged_source_ids": [],
-    "labeled": false
+    "relevant_source_ids": [
+      "news-ce5dce38a0c6",
+      "news-de18ab12c73f"
+    ],
+    "judged_source_ids": [
+      "news-101d572a6de1",
+      "news-1466dcc44368",
+      "news-2df9294afd5d",
+      "news-301cff0cd54b",
+      "news-9e19c9bb8f72",
+      "news-9fee97947131",
+      "news-b12f2e5b2d62",
+      "news-b5388c505b42",
+      "news-c308a0c2db11",
+      "news-ce5dce38a0c6",
+      "news-de18ab12c73f",
+      "news-f69a099e119a"
+    ],
+    "labeled": true
   },
   {
     "case_id": "SF-05-buyer",
     "idea_id": "SF-05",
     "dimension": "buyer",
     "question": "'현장 작업자용 LLM 음성 어시스턴트' 관련 기술(LLM 음성 인식 작업 지원 어시스턴트)을 실제로 도입한 고객이나 사례가 있는가?",
-    "relevant_source_ids": [],
-    "judged_source_ids": [],
-    "labeled": false
+    "relevant_source_ids": [
+      "news-101d572a6de1",
+      "news-2df9294afd5d",
+      "news-b12f2e5b2d62"
+    ],
+    "judged_source_ids": [
+      "news-101d572a6de1",
+      "news-1466dcc44368",
+      "news-2cdcefb22f68",
+      "news-2df9294afd5d",
+      "news-301cff0cd54b",
+      "news-88a57aad1b11",
+      "news-9fee97947131",
+      "news-a55c4a18b03f",
+      "news-b12f2e5b2d62",
+      "news-b5388c505b42",
+      "news-ce5dce38a0c6",
+      "news-de56684ffbcf"
+    ],
+    "labeled": true
   },
   {
     "case_id": "SF-05-adoption_barrier",
     "idea_id": "SF-05",
     "dimension": "adoption_barrier",
     "question": "'현장 작업자용 LLM 음성 어시스턴트' 도입 시 고객(제조 현장 작업자와 생산 관리자)이 겪는 어려움은 무엇인가?",
-    "relevant_source_ids": [],
-    "judged_source_ids": [],
-    "labeled": false
+    "relevant_source_ids": [
+      "news-1466dcc44368",
+      "news-2cdcefb22f68",
+      "news-a55c4a18b03f",
+      "news-c7da5c7cd4ba",
+      "news-ce5dce38a0c6",
+      "news-de56684ffbcf"
+    ],
+    "judged_source_ids": [
+      "news-1466dcc44368",
+      "news-2cdcefb22f68",
+      "news-301cff0cd54b",
+      "news-72bba593794d",
+      "news-9fee97947131",
+      "news-a55c4a18b03f",
+      "news-b12f2e5b2d62",
+      "news-c7da5c7cd4ba",
+      "news-ce5dce38a0c6",
+      "news-de56684ffbcf",
+      "news-f69a099e119a",
+      "news-ffc868c4bdeb"
+    ],
+    "labeled": true
   }
 ]
