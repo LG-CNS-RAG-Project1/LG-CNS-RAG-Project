@@ -13,6 +13,61 @@ class StructuredIdea(BaseModel):
     technical_components: list[str] = Field(default_factory=list)
 
 
+IdeaField = Literal["problem", "technology", "customers", "difference", "revenue"]
+FieldSource = Literal[
+    "extracted",  # 입력 문장에서 LLM이 추출
+    "user_answer",  # 재질문에 사용자가 직접 답변
+    "unknown",  # 사용자가 모름으로 답했거나 재질문 상한까지 비어 있음
+]
+
+IDEA_FIELDS: list[IdeaField] = [
+    "problem",
+    "technology",
+    "customers",
+    "difference",
+    "revenue",
+]
+
+
+# 1-1. 구조화 중인 아이디어 (빈 항목 재질문 단계)
+class IdeaDraft(BaseModel):
+    original_text: str = Field(min_length=1)
+    title: str = ""
+    problem: str = ""
+    technology: str = ""
+    customers: str = ""
+    difference: str = ""
+    revenue: str = ""
+
+    field_sources: dict[IdeaField, FieldSource] = Field(default_factory=dict)
+    status: Literal["needs_input", "complete"] = "needs_input"
+    missing_fields: list[IdeaField] = Field(default_factory=list)
+    questions: dict[IdeaField, str] = Field(default_factory=dict)
+    rounds: int = Field(default=0, ge=0)  # 재질문에 답한 횟수
+
+    @model_validator(mode="after")
+    def validate_draft(self):
+        if self.status == "complete" and self.missing_fields:
+            raise ValueError("complete draft must not have missing fields")
+        if self.status == "needs_input" and not self.missing_fields:
+            raise ValueError("needs_input draft requires missing fields")
+        return self
+
+    @property
+    def unknown_fields(self) -> list[IdeaField]:
+        """모름으로 확정된 항목. 해당 항목에 기대는 시장 차원은 미확인으로 판정한다."""
+        return [f for f in IDEA_FIELDS if self.field_sources.get(f) == "unknown"]
+
+    def to_structured_idea(self) -> StructuredIdea:
+        """완성된 초안을 특허·시장 공통 입력으로 변환한다. 모름 항목은 빈 문자열로 남는다."""
+        if self.status != "complete":
+            raise ValueError(f"idea draft is incomplete: {self.missing_fields}")
+        return StructuredIdea(
+            title=self.title,
+            **{field: getattr(self, field) for field in IDEA_FIELDS},
+        )
+
+
 # 2. 특허 검색 요청
 class PatentSearchRequest(BaseModel):
     idea: StructuredIdea
