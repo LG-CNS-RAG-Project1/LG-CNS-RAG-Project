@@ -67,6 +67,15 @@ def test_prelabel_skips_judged_rows_and_respects_limit():
     assert calls[0]["dimension"] == "price"
 
 
+def test_prelabel_filters_cases():
+    rows = [make_row("a"), make_row("b", case_id="SF-01-buyer")]
+    judge = lambda system_prompt, user_text: {"label": 0, "confidence": "high"}
+
+    results = prelabel(rows, IDEAS, judge, case_ids={"SF-01-buyer"})
+
+    assert [r["source_id"] for r in results] == ["b"]
+
+
 def test_agreement_and_kappa():
     human = [
         make_row("a", "1"),

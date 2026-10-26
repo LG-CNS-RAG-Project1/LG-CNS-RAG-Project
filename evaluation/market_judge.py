@@ -104,11 +104,19 @@ def prelabel(
     judge_fn: JudgeFn = call_judge,
     existing: list[dict] | None = None,
     limit: int | None = None,
+    case_ids: set[str] | None = None,
 ) -> list[dict]:
-    """아직 판정하지 않은 행만 LLM으로 판정해 기존 판정 뒤에 붙여 반환한다."""
+    """아직 판정하지 않은 행만 LLM으로 판정해 기존 판정 뒤에 붙여 반환한다.
+
+    case_ids를 주면 해당 문항의 행만 판정한다.
+    """
     results = list(existing or [])
     done = {row_key(r) for r in results}
-    todo = [r for r in rows if row_key(r) not in done][:limit]
+    todo = [
+        r
+        for r in rows
+        if row_key(r) not in done and (not case_ids or r["case_id"] in case_ids)
+    ][:limit]
     system_prompt = JUDGE_PROMPT_PATH.read_text(encoding="utf-8")
     for row in todo:
         judgement = parse_judgement(judge_fn(system_prompt, judge_input(row, ideas)))
@@ -187,6 +195,7 @@ def main() -> None:
     sub = parser.add_subparsers(dest="command", required=True)
     pre = sub.add_parser("prelabel", help="LLM 판정을 별도 파일에 저장")
     pre.add_argument("--limit", type=int, help="이번에 판정할 최대 행 수")
+    pre.add_argument("--cases", nargs="+", help="판정할 case_id (생략하면 전체)")
     sub.add_parser("agreement", help="사람 라벨과 LLM 판정 비교")
     sub.add_parser("merge", help="후보 CSV에 LLM 판정 반영 (백업 후 덮어씀)")
     args = parser.parse_args()
@@ -195,7 +204,11 @@ def main() -> None:
     llm_rows = load_llm_labels()
     if args.command == "prelabel":
         llm_rows = prelabel(
-            human_rows, load_ideas(), existing=llm_rows, limit=args.limit
+            human_rows,
+            load_ideas(),
+            existing=llm_rows,
+            limit=args.limit,
+            case_ids=set(args.cases) if args.cases else None,
         )
         write_label_rows(llm_rows, LLM_FIELDS, LLM_LABELS_PATH)
         print(f"{len(llm_rows)}/{len(human_rows)} rows judged -> {LLM_LABELS_PATH}")
