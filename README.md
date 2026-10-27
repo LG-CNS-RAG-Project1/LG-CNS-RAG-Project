@@ -195,6 +195,16 @@ python -m src.generation.idea_parser "중소 부품 공장에 협동로봇과 �
 - Streamlit에서 `AI로 항목 초안 만들기 · 재질문`으로 구조화·재질문을 실행하고 SF-02/SF-05 특허 색인을 선택할 수 있다. 확인한 질문으로 특허·시장 통합 조사를 실행하고 원문 근거와 출원·공개일을 확인한다.
 - `src.pipeline.run_pipeline`의 입력·출력 및 보류 규칙은 [docs/api_contract.md](docs/api_contract.md#3-특허-조사-및-통합-파이프라인)에 명시한다.
 
+### 통합 분석 실행·점검
+
+```bash
+docker compose run --rm -T app python -m src.pipeline status --json          # 키·색인 준비 상태(값 미출력, 생성 호출 없음)
+docker compose run --rm app python -m src.pipeline run --idea-id SF-02 --out report.json  # 샘플 아이디어 실분석(API 비용 발생)
+```
+
+- 시장·특허 조사는 병렬로 실행하며 영역별 제한 시간과 오류를 따로 기록한다. 색인이 없거나 키가 없는 영역은 호출하지 않고 '실행 안 함'으로 표시한다.
+- 색인 점검은 컬렉션을 새로 만들지 않는다. 오류 문구의 API 키는 가린 뒤 표시한다. 상세 규칙은 [연결 계약](docs/api_contract.md#통합-흐름의-실행오류-처리)을 참고한다.
+
 - 입력 가드레일: LLM 호출 전 규칙 검사(`src/generation/input_guard.py`: 길이, 지시 무시·시스템 프롬프트 공개 등 조작 표현)와 같은 LLM 호출의 `input_status` 판정(`ok`·`off_topic`·`unsafe`)으로 주제 이탈·프롬프트 조작·유해 목적 입력을 거절한다. 거절되면 `status="rejected"`와 안내 문구(`rejection_reason`)를 반환하고 검색 요청을 만들지 않는다. 재질문 답변도 규칙 검사를 거친다. 기준은 [docs/market_research.md](docs/market_research.md#입력-가드레일).
 
 ## 환경변수
@@ -207,6 +217,8 @@ python -m src.generation.idea_parser "중소 부품 공장에 협동로봇과 �
 | `KIPRIS_API_KEY` | KIPRIS Plus 특허 API 키 |
 | `DART_API_KEY` | DART OpenAPI 공시 API 키 |
 | `NAVER_CLIENT_ID` · `NAVER_CLIENT_SECRET` | NAVER API HUB(네이버클라우드) Application의 Client ID·Secret. 해당 Application에서 뉴스 검색 API 활성화 필요 |
+| `IDEALENS_MARKET_TIMEOUT` · `IDEALENS_PATENT_TIMEOUT` | (선택) 통합 분석의 영역별 제한 시간(초). 기본 120·180 |
+| `IDEALENS_SERIAL` | (선택) `1`이면 시장·특허 조사를 순차 실행 |
 
 PR 분석 자동화용 `CODEX_AUTH_JSON`(ChatGPT 구독 로그인, `make review-codex-login`으로 등록)·`CODEX_AUTH_WRITE_TOKEN`·`NOTION_REVIEW_TOKEN`은 `.env`가 아니라 develop에서만 열리는 GitHub Environment `pr-analysis`에 저장한다([docs/development.md](docs/development.md#pr-자동-분석-githubworkflowspr-analysisyml)).
 
