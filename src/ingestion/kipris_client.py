@@ -1,4 +1,5 @@
 import os
+import re
 import xml.etree.ElementTree as ET
 
 import requests
@@ -10,7 +11,7 @@ KIPRIS_URL = (
     "https://plus.kipris.or.kr/openapi/rest/" "patUtiModInfoSearchSevice/freeSearchInfo"
 )
 KIPRIS_BIBLIOGRAPHY_URL = (
-    "https://plus.kipris.or.kr/openapi/rest/"
+    "https://plus.kipris.or.kr/kipo-api/kipi/"
     "patUtiModInfoSearchSevice/getBibliographyDetailInfoSearch"
 )
 
@@ -39,6 +40,26 @@ def parse_claims_xml(content: bytes | str) -> list[dict]:
     number_names = {"claimnumber", "claimno", "claimnum", "petitionclauseserialnumber"}
     text_names = {"claimtext", "claimcontent", "claim", "petitionclause"}
     for node in root.iter():
+        if _local_name(node.tag) == "claiminfo":
+            claim_text = next(
+                (
+                    (child.text or "").strip()
+                    for child in node.iter()
+                    if child is not node
+                    and _local_name(child.tag) in text_names
+                    and (child.text or "").strip()
+                ),
+                None,
+            )
+            if claim_text:
+                match = re.match(
+                    r"^\s*(?:【\s*청구항\s*)?(\d+)\s*(?:】|[.)．、])\s*",
+                    claim_text,
+                )
+                if match:
+                    claim_nodes.append(
+                        {"claim_number": int(match.group(1)), "text": claim_text}
+                    )
         fields = {
             _local_name(child.tag): (child.text or "").strip()
             for child in node.iter()
@@ -152,7 +173,7 @@ def fetch_patent_claims(application_number: str) -> list[dict]:
         response = requests.get(
             KIPRIS_BIBLIOGRAPHY_URL,
             params={
-                "accessKey": api_key,
+                "ServiceKey": api_key,
                 "applicationNumber": application_number.strip(),
             },
             timeout=20,

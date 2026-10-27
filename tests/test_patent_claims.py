@@ -24,6 +24,20 @@ CLAIMS_XML = """
 </claimInfoArray></body></response>
 """.encode("utf-8")
 
+KIPRIS_BIBLIOGRAPHY_XML = """
+<response>
+  <header><resultCode>00</resultCode><resultMsg>NORMAL SERVICE.</resultMsg></header>
+  <body><item>
+    <applicationNumber>10-2025-0017269</applicationNumber>
+    <claimCount>2</claimCount>
+    <claimInfoArray>
+      <claimInfo><claim>1. 안전 협업 제어 시스템.</claim></claimInfo>
+      <claimInfo><claim>2. 제1항에 있어서, 비전 처리 엔진을 포함하는 시스템.</claim></claimInfo>
+    </claimInfoArray>
+  </item></body>
+</response>
+""".encode("utf-8")
+
 
 def test_parse_claims_xml_preserves_claim_numbers_and_text():
     assert parse_claims_xml(CLAIMS_XML) == [
@@ -37,10 +51,20 @@ def test_parse_claims_xml_rejects_invalid_xml():
         parse_claims_xml(b"<bad>")
 
 
+def test_parse_claims_xml_handles_live_kipris_claim_info_shape():
+    assert parse_claims_xml(KIPRIS_BIBLIOGRAPHY_XML) == [
+        {"claim_number": 1, "text": "1. 안전 협업 제어 시스템."},
+        {
+            "claim_number": 2,
+            "text": "2. 제1항에 있어서, 비전 처리 엔진을 포함하는 시스템.",
+        },
+    ]
+
+
 @patch("src.ingestion.kipris_client.requests.get")
 @patch.dict("os.environ", {"KIPRIS_API_KEY": "test-key"})
 def test_fetch_patent_claims_uses_application_number_and_parses(mock_get):
-    response = Mock(content=CLAIMS_XML)
+    response = Mock(content=KIPRIS_BIBLIOGRAPHY_XML)
     response.raise_for_status.return_value = None
     mock_get.return_value = response
 
@@ -49,7 +73,7 @@ def test_fetch_patent_claims_uses_application_number_and_parses(mock_get):
     assert len(claims) == 2
     mock_get.assert_called_once_with(
         KIPRIS_BIBLIOGRAPHY_URL,
-        params={"accessKey": "test-key", "applicationNumber": "1020230030067"},
+        params={"ServiceKey": "test-key", "applicationNumber": "1020230030067"},
         timeout=20,
     )
 
