@@ -1,6 +1,24 @@
-"""개발자의 공용 Chroma 연결 설정을 테스트에서 격리한다."""
+"""개발자의 공용 Chroma 연결 설정과 API 키를 테스트에서 격리한다."""
 
 import pytest
+
+API_KEY_NAMES = [
+    "OPENAI_API_KEY",
+    "KIPRIS_API_KEY",
+    "NAVER_CLIENT_ID",
+    "NAVER_CLIENT_SECRET",
+    "DART_API_KEY",
+]
+
+
+@pytest.fixture(autouse=True)
+def no_real_api_keys(monkeypatch):
+    """빈 값으로 두어 .env의 실제 키가 로드되지 않게 한다(load_dotenv는 기존 값을 덮어쓰지 않는다).
+
+    키가 필요한 테스트는 가짜 값을 직접 설정한다.
+    """
+    for name in API_KEY_NAMES:
+        monkeypatch.setenv(name, "")
 
 
 @pytest.fixture(autouse=True)
