@@ -56,7 +56,15 @@ def to_chroma_record(
     }
 
     # ChromaDB 메타데이터에는 None을 저장하지 않는다.
-    metadata = {key: value for key, value in metadata.items() if value is not None}
+    metadata = {
+        key: (
+            ",".join(str(value) for value in value)
+            if isinstance(value, list)
+            else value
+        )
+        for key, value in metadata.items()
+        if value is not None
+    }
 
     return document.chunk_id, document.content, metadata
 

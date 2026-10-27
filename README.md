@@ -197,3 +197,7 @@ python -m evaluation.evaluate market --mode hybrid --rerank --label baseline  # 
 - `--rerank`는 `pip install sentence-transformers` 후 `BAAI/bge-reranker-v2-m3` Cross-Encoder를 적용한다. 모델 파일은 최초 실행 때 내려받으며, 기본 실행 의존성에는 포함하지 않는다.
 - 평가는 문항별 Hit/Recall/Precision/MRR/nDCG와 검색 지연시간을 CSV로 저장한다. OpenAI 비용은 토큰 사용량 정보가 제공되지 않는 현 검색 인터페이스에서 계산하지 않는다.
 - 라벨이 완료된 시장 25문항은 평가 대상이다. 특허 평가셋(`evaluation/patent_cases.json`)과 로컬 특허 원문·색인은 비어 있어 특허 품질 수치를 만들지 않는다.
+
+### 특허 청구항 분석
+
+특허 분석 입력은 `PatentSearchRequest`, 반환 계약은 `PatentReport`이며 `src.services.patent_service.analyze_patents()`에서 호출한다. 문헌별 청구항 원문·버전·번호·종속항 참조를 인용 근거로 보존하고, KIPRIS 청구항 조회가 비어 있거나 실패하면 초록 근거와 미확인 상태를 반환한다. 구현 흐름과 Mock 통합 예제는 [docs/patent_rag.md](docs/patent_rag.md)를 참고한다.
