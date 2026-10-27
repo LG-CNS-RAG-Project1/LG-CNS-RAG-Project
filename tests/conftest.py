@@ -19,6 +19,7 @@ def no_real_api_keys(monkeypatch):
     """
     for name in API_KEY_NAMES:
         monkeypatch.setenv(name, "")
+    monkeypatch.setenv("IDEALENS_APP_PASSWORD", "")
 
 
 @pytest.fixture(autouse=True)

@@ -29,7 +29,7 @@
 │   ├── ISSUE_TEMPLATE/      # 작업·버그 이슈 양식
 │   └── pull_request_template.md
 ├── .vscode/                 # 저장 시 black 적용 등 공용 편집기 설정
-├── .streamlit/              # 아이디어 검토 화면의 테마 설정
+├── .streamlit/              # 화면 테마 설정, 호스팅 Secrets 형식 예시(secrets.toml.example)
 ├── AGENTS.md                # 팀 공용 Git·GitHub 및 코딩 에이전트 작업 규칙
 ├── configs/                 # 산업별 검색어·분류·검색 설정
 ├── data/
@@ -130,7 +130,7 @@ uv pip install --python .venv/bin/python -r requirements-ui.txt   # Windows: .ve
 
 ## 공용 Chroma 연결
 
-기본값은 기존 로컬 Chroma다. 팀 공용 서버는 HTTPS 주소·포트 `443`·`CHROMA_SSL=true`·개인별 `CHROMA_API_KEY`로 접속한다. 이 방식은 Google 로그인이나 터널 실행이 필요 없다. API 키는 HTTPS에서만 전송하며 서버 앞의 인증 서비스가 해시를 검증한다. 기존 IAP 터널은 보조 접속 경로로 유지한다. 특허·시장 저장과 검색이 같은 원격 DB를 사용하며 연결 실패 시 로컬로 전환하지 않는다. 기존 로컬 자료는 자동 이관되지 않는다. 설정 예시·서버 배포·키 폐기·백업은 [공용 Chroma 안내](docs/shared-chroma.md)를 참고한다. 웹 화면과 실제 검색 API 연결은 별도 구현 범위다.
+기본값은 기존 로컬 Chroma다. 팀 공용 서버는 HTTPS 주소·포트 `443`·`CHROMA_SSL=true`·개인별 `CHROMA_API_KEY`로 접속한다. 이 방식은 Google 로그인이나 터널 실행이 필요 없다. API 키는 HTTPS에서만 전송하며 서버 앞의 인증 서비스가 해시를 검증한다. 기존 IAP 터널은 보조 접속 경로로 유지한다. 특허·시장 저장과 검색이 같은 원격 DB를 사용하며 연결 실패 시 로컬로 전환하지 않는다. 기존 로컬 자료는 자동 이관되지 않는다. 설정 예시·서버 배포·키 폐기·백업은 [공용 Chroma 안내](docs/shared-chroma.md)를 참고한다. 화면의 실제 분석은 `CHROMA_HOST`가 설정되면 이 공용 색인을 쓴다.
 
 `pytest`는 공용 DB 설정을 격리하고 로컬 테스트 저장소를 사용한다. 실제 서버 연결 검증은 별도로 수행한다.
 
@@ -254,6 +254,8 @@ docker compose run --rm app python -m src.pipeline run --idea-id SF-02 --out rep
 | `NAVER_CLIENT_ID` · `NAVER_CLIENT_SECRET` | NAVER API HUB(네이버클라우드) Application의 Client ID·Secret. 해당 Application에서 뉴스 검색 API 활성화 필요 |
 | `IDEALENS_MARKET_TIMEOUT` · `IDEALENS_PATENT_TIMEOUT` | (선택) 통합 분석의 영역별 제한 시간(초). 기본 120·180 |
 | `IDEALENS_SERIAL` | (선택) `1`이면 시장·특허 조사를 순차 실행 |
+| `IDEALENS_APP_PASSWORD` | (호스팅 배포) 접속 비밀번호. 비어 있으면 비밀번호 화면을 띄우지 않는다(로컬 실행) |
+| `CHROMA_HOST`·`CHROMA_PORT`·`CHROMA_SSL`·`CHROMA_API_KEY` | (선택) 팀 공용 Chroma 접속. 비우면 로컬 Chroma. HTTPS 키 접속은 `443`·`true` |
 
 PR 분석 자동화용 `CODEX_AUTH_JSON`(ChatGPT 구독 로그인, `make review-codex-login`으로 등록)·`CODEX_AUTH_WRITE_TOKEN`·`NOTION_REVIEW_TOKEN`은 `.env`가 아니라 develop에서만 열리는 GitHub Environment `pr-analysis`에 저장한다([docs/development.md](docs/development.md#pr-자동-분석-githubworkflowspr-analysisyml)).
 
@@ -275,7 +277,7 @@ PR 분석 자동화용 `CODEX_AUTH_JSON`(ChatGPT 구독 로그인, `make review-
 - 데이터 출처: KIPRIS Plus, NAVER 뉴스 검색 API(교육 목적, 프로젝트 종료 시 폐기), DART, 공공기관·연구기관·기업의 공식 자료. 사내자료 연계는 향후 검토 범위.
 - 원문 구획과 청구항 구조를 보존하고, 각 주장에 출처·문헌 버전·원문 위치·링크를 연결.
 - 검색은 공통 엔진에서 의미 검색(dense)·단어 검색(BM25)·결합(hybrid) 중 선택하며, 임베딩은 `text-embedding-3-small`, 색인은 로컬 Chroma 또는 환경변수로 지정한 공용 Chroma를 사용.
-- 시연은 로컬 PC의 Streamlit UI로 한다. 기본 색인은 로컬 Chroma(`data/patents/chroma/`·`data/market/chroma/`)이며 공용 DB 접속은 선택 설정이다. UI 호스팅과 실제 분석 API 연결은 별도 구현한다.
+- 시연은 Streamlit UI로 하며 Streamlit Community Cloud(`main` 배포, 앱 비밀번호, [배포 안내](docs/deploy-streamlit-cloud.md)) 또는 로컬 Docker로 실행한다. 팀 색인은 공용 Chroma, 로컬 Chroma(`data/patents/chroma/`·`data/market/chroma/`)는 개인 실험·테스트용이다.
 - 사실·해석·가설·미확인을 구분하고, 근거가 부족하면 판단을 보류. 최종 판단은 사용자가 수행.
 
 ## 평가 계획

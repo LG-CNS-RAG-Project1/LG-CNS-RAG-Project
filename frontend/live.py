@@ -1,14 +1,17 @@
-"""실제 분석 화면의 보조 규칙: 실행 가능 여부, 분석 캐시 키, 동시 실행 제한, 오류·표시 문구.
+"""실제 분석 화면의 보조 규칙: 접속 비밀번호, 실행 가능 여부, 분석 캐시 키, 동시 실행 제한, 오류·표시 문구.
 
 무거운 분석 모듈(src.pipeline 등)은 함수 안에서 불러 첫 화면 로딩을 가볍게 유지한다.
 """
 
 import hashlib
+import hmac
 import json
 import os
 import threading
 
 RUN_LOCK = threading.Lock()  # 프로세스 전체에서 실분석은 한 번에 1건
+MAX_PASSWORD_FAILURES = 5
+PASSWORD_LOCK_SECONDS = 60
 
 FIELD_LABELS = {
     "problem": "문제",
@@ -41,6 +44,16 @@ COST_NOTE = (
     "외부 API 호출과 비용이 발생합니다(시장 관련성 판정·분석 gpt-4o 최대 약 28회, "
     "특허 검색어·판정·비교 gpt-4o-mini 수 회, KIPRIS 조회). 보통 20~60초 걸립니다."
 )
+
+
+def app_password() -> str:
+    """호스팅 배포에서 설정하는 접속 비밀번호. 비어 있으면 비밀번호 화면을 띄우지 않는다(로컬 실행)."""
+    return os.getenv("IDEALENS_APP_PASSWORD", "").strip()
+
+
+def password_matches(entered: str, expected: str) -> bool:
+    """시간 차이로 값이 드러나지 않게 비교한다."""
+    return hmac.compare_digest(entered.strip().encode(), expected.encode())
 
 
 def live_available() -> bool:
