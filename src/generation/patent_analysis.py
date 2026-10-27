@@ -12,19 +12,12 @@ from src.schemas import PatentComparison, PatentEvidence, StructuredIdea
 ROOT_DIR = Path(__file__).resolve().parents[2]
 LLM_MODEL = "gpt-4o-mini"
 
-SYSTEM_PROMPT = """
-특허 청구항 근거를 아이디어 기술 요소와 비교하는 분석기다.
-입력으로 제공된 특허 문구만 근거로 사용하고, 인용 문구를 바꾸거나 보충하지 않는다.
-각 근거마다 아이디어와의 유사점, 차이점, 미확인 사항을 분리해 작성한다.
-청구항이 아닌 초록은 청구범위의 근거처럼 취급하지 않는다.
-특허성, 신규성, 진보성, 침해 여부를 판정하지 않는다.
-원문에 없는 구성·성능·법적 상태는 추측하지 않고 uncertainty에 미확인이라고 쓴다.
+PROMPT_PATH = ROOT_DIR / "prompts" / "patent_analysis.md"
 
-JSON 형식:
-{"comparisons":[{"citation_id":1,"technical_element":"기술 요소",
-"similarity":"근거와의 유사점","difference":"근거와의 차이점",
-"uncertainty":"미확인 사항"}]}
-"""
+
+def load_prompt() -> str:
+    """특허 비교 생성 규칙을 저장된 프롬프트에서 읽는다."""
+    return PROMPT_PATH.read_text(encoding="utf-8")
 
 
 def call_comparison_llm(system_prompt: str, user_text: str) -> dict:
@@ -58,7 +51,7 @@ def compare_patent_evidence(
         "idea": idea.model_dump(),
         "evidence": [item.model_dump() for item in evidence],
     }
-    raw = llm_fn(SYSTEM_PROMPT, json.dumps(payload, ensure_ascii=False))
+    raw = llm_fn(load_prompt(), json.dumps(payload, ensure_ascii=False))
     comparisons = [
         PatentComparison.model_validate(item) for item in raw.get("comparisons", [])
     ]

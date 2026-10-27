@@ -1,4 +1,6 @@
 from src.retrieval.schemas import RetrievalResult, SearchDocument
+from types import SimpleNamespace
+
 from src.schemas import PatentComparison, PatentSearchRequest, StructuredIdea
 from src.services.patent_service import analyze_patents
 
@@ -47,9 +49,27 @@ def result(patent_id, section="abstract", content="비전 검사 장치.", rank=
     )
 
 
+def judge_all(idea, results):
+    return {item.document.source_id: SimpleNamespace(relevant=True) for item in results}
+
+
+def compare_all(idea, evidence):
+    return [
+        PatentComparison(
+            citation_id=item.citation_id,
+            technical_element="비전 검사",
+            similarity="근거 문구 확인",
+            difference="전체 구성은 미확인",
+            uncertainty="원문 범위만 확인",
+        )
+        for item in evidence
+    ]
+
+
 def test_analysis_limits_to_five_patents_and_keeps_claim_citations(monkeypatch):
     import src.services.patent_service as service
 
+    monkeypatch.setattr(service, "judge_patent_candidates", judge_all)
     monkeypatch.setattr(
         service,
         "search_patents",
@@ -100,6 +120,7 @@ def test_indexed_candidate_fallback_uses_exact_abstract_and_marks_claim_unknown(
 ):
     import src.services.patent_service as service
 
+    monkeypatch.setattr(service, "judge_patent_candidates", judge_all)
     monkeypatch.setattr(
         service, "search_patents", lambda query, **kwargs: [result("P1")]
     )
@@ -109,7 +130,7 @@ def test_indexed_candidate_fallback_uses_exact_abstract_and_marks_claim_unknown(
         query_llm_fn=query_plan,
         claim_fetcher=lambda application_number: [],
         kipris_search_fn=lambda query, limit: [],
-        comparison_fn=lambda idea, evidence: [],
+        comparison_fn=compare_all,
     )
 
     assert report.status == "completed"
@@ -121,6 +142,7 @@ def test_indexed_candidate_fallback_uses_exact_abstract_and_marks_claim_unknown(
 def test_kipris_candidates_supplement_short_local_results(monkeypatch):
     import src.services.patent_service as service
 
+    monkeypatch.setattr(service, "judge_patent_candidates", judge_all)
     monkeypatch.setattr(
         service, "search_patents", lambda query, **kwargs: [result("P1")]
     )
@@ -143,7 +165,7 @@ def test_kipris_candidates_supplement_short_local_results(monkeypatch):
         query_llm_fn=query_plan,
         claim_fetcher=lambda application_number: [],
         kipris_search_fn=supplement,
-        comparison_fn=lambda idea, evidence: [],
+        comparison_fn=compare_all,
     )
 
     assert len({item.patent_id for item in report.evidence}) == 2
@@ -184,3 +206,58 @@ def test_local_indexed_claim_metadata_is_preserved(monkeypatch):
     assert report.evidence[0].claim_type == "dependent"
     assert report.evidence[0].depends_on == [2]
     assert report.evidence[0].version_id == "KR12345B1"
+
+
+def test_supplement_without_abstract_is_not_used_as_abstract_citation():
+    from src.services.patent_service import _supplement_result
+
+    assert (
+        _supplement_result({"application_number": "P1", "title": "제목뿐인 특허"})
+        is None
+    )
+
+
+def test_citation_validator_checks_original_quote():
+    import pytest
+
+    from src.services.patent_service import validate_patent_citations
+    from src.schemas import PatentEvidence
+
+    evidence = [
+        PatentEvidence(
+            citation_id=1,
+            patent_id="P1",
+            title="특허",
+            section="abstract",
+            quote="영상 결함을 검출한다.",
+        )
+    ]
+    validate_patent_citations(evidence, {1: "요약\n영상   결함을 검출한다."})
+    with pytest.raises(ValueError, match="does not match"):
+        validate_patent_citations(evidence, {1: "다른 원문 내용"})
+
+
+def test_comparison_failure_is_retried_once_and_reported(monkeypatch):
+    import src.services.patent_service as service
+
+    monkeypatch.setattr(service, "judge_patent_candidates", judge_all)
+    monkeypatch.setattr(
+        service, "search_patents", lambda query, **kwargs: [result("P1")]
+    )
+    attempts = []
+
+    def fail(idea, evidence):
+        attempts.append(1)
+        raise RuntimeError("temporary failure")
+
+    report = analyze_patents(
+        request(top_k=1),
+        query_llm_fn=query_plan,
+        claim_fetcher=lambda _: [],
+        kipris_search_fn=lambda *_: [],
+        comparison_fn=fail,
+    )
+
+    assert report.status == "error"
+    assert len(attempts) == 2
+    assert report.evidence
