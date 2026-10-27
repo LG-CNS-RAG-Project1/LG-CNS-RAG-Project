@@ -20,6 +20,11 @@ CLAIM_HEADING = re.compile(
     r"(?:^|\n)\s*(?:【\s*청구항\s*(\d+)\s*】|청구항\s*(\d+)\s*[.:：]?)",
     re.IGNORECASE,
 )
+CLAIM_REFERENCE = re.compile(r"(?:제\s*(\d+)\s*항|청구항\s*(\d+)\s*항?)", re.IGNORECASE)
+DEPENDENT_CLAIM_REFERENCE = re.compile(
+    r"(?:제\s*\d+\s*항|청구항\s*\d+\s*항?).{0,24}에\s*있어서",
+    re.IGNORECASE,
+)
 
 
 def structure_claims(
@@ -58,14 +63,11 @@ def structure_claims(
         ):
             low, high = sorted((int(first), int(last)))
             refs.update(range(low, high + 1))
-        for ref in re.findall(r"(?:제|청구항\s*)\s*(\d+)\s*항", text):
-            refs.add(int(ref))
+        for match in CLAIM_REFERENCE.finditer(text):
+            refs.add(int(match.group(1) or match.group(2)))
         refs.discard(number)
         ordered_refs = sorted(ref for ref in refs if ref > 0)
-        explicit_relation = bool(
-            re.search(r"(?:제\s*\d+\s*항|청구항\s*\d+\s*항).{0,24}에\s*있어서", text)
-            or ordered_refs
-        )
+        explicit_relation = bool(DEPENDENT_CLAIM_REFERENCE.search(text) or ordered_refs)
         output.append(
             PatentClaim(
                 claim_number=number,
@@ -109,6 +111,8 @@ def to_patent_document(raw: dict) -> PatentDocument:
         claim_version_id=version_id,
         applicant=raw.get("applicant"),
         application_date=raw.get("application_date"),
+        publication_date=raw.get("publication_date"),
+        public_date=raw.get("public_date"),
         publication_number=raw.get("publication_number"),
         registration_number=raw.get("registration_number"),
         source=raw.get("source") or "KIPRIS Plus",
@@ -254,48 +258,59 @@ def save_documents(
     return path
 
 
-def run_pipeline(
+def collect_to_jsonl(
     keyword: str | list[str],
     limit: int = 20,
     technology_area_id: str | None = None,
     include_claims: bool = False,
     claim_fetcher=fetch_patent_claims,
-) -> tuple[int, int, int]:
-    """KIPRIS 특허 수집부터 ChromaDB 증분 색인까지 실행한다."""
-    from src.retrieval.market_search import embed_texts
-    from src.retrieval.patent_store import build_index, get_collection
-
-    # 1. KIPRIS 특허 수집 (단일 또는 다중 키워드)
+) -> tuple[int, int]:
+    """KIPRIS 검색 결과와 확보된 청구항을 문헌 JSONL로 누적 저장한다."""
     raw_patents = collect_patents(keyword, limit=limit)
 
-    if technology_area_id:
-        for raw in raw_patents:
+    for raw in raw_patents:
+        if technology_area_id:
             raw["technology_area_ids"] = [technology_area_id]
-            if include_claims:
-                application_number = str(raw.get("application_number") or "").strip()
-                if application_number:
-                    try:
-                        raw["claim_items"] = claim_fetcher(application_number)
-                    except KiprisAPIError as exc:
-                        print(f"청구항 미확보 ({application_number}): {exc}")
+        if include_claims:
+            application_number = str(raw.get("application_number") or "").strip()
+            if application_number:
+                try:
+                    raw["claim_items"] = claim_fetcher(application_number)
+                except KiprisAPIError as exc:
+                    print(f"청구항 미확보 ({application_number}): {exc}")
 
-    # 2. 문서 변환 및 중복 제거
     documents = build_documents(raw_patents)
-
-    # 3. JSONL 누적 저장
     save_documents(documents, path=OUTPUT_PATH)
-
-    # 4. 누적 특허 전체 로드
     all_documents = [
         PatentDocument.model_validate_json(line)
         for line in OUTPUT_PATH.read_text(encoding="utf-8").splitlines()
         if line.strip()
     ]
+    return len(documents), len(all_documents)
 
-    # 5. 청크 생성
+
+def build_patent_index(
+    technology_area_id: str | None = None,
+    docs_path: Path | None = None,
+) -> tuple[int, int]:
+    """저장된 특허 JSONL을 청크화해 Chroma에 증분 색인한다."""
+    from src.retrieval.market_search import embed_texts
+    from src.retrieval.patent_store import build_index, get_collection
+
+    docs_path = docs_path or OUTPUT_PATH
+    all_documents = [
+        PatentDocument.model_validate_json(line)
+        for line in docs_path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    if technology_area_id:
+        all_documents = [
+            patent
+            for patent in all_documents
+            if technology_area_id in patent.technology_area_ids
+        ]
+
     all_chunks = build_chunks(all_documents)
-
-    # 6. ChromaDB 증분 색인
     collection = get_collection()
     indexed_count = build_index(
         chunks=all_chunks,
@@ -303,8 +318,27 @@ def run_pipeline(
         collection=collection,
         embed_fn=embed_texts,
     )
+    return len(all_documents), indexed_count
 
-    return len(documents), len(all_documents), indexed_count
+
+def run_pipeline(
+    keyword: str | list[str],
+    limit: int = 20,
+    technology_area_id: str | None = None,
+    include_claims: bool = False,
+    claim_fetcher=fetch_patent_claims,
+) -> tuple[int, int, int]:
+    """특허를 수집·저장한 뒤 로컬 Chroma에 증분 색인한다."""
+    collected_count, total_count = collect_to_jsonl(
+        keyword=keyword,
+        limit=limit,
+        technology_area_id=technology_area_id,
+        include_claims=include_claims,
+        claim_fetcher=claim_fetcher,
+    )
+    _, indexed_count = build_patent_index()
+
+    return collected_count, total_count, indexed_count
 
 
 def main() -> None:

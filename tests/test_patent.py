@@ -46,6 +46,9 @@ SAMPLE_XML = """
     <body>
         <PatentUtilityInfo>
             <ApplicationNumber>1020230030067</ApplicationNumber>
+            <ApplicationDate>20230101</ApplicationDate>
+            <OpeningDate>20240102</OpeningDate>
+            <PublicDate>20240203</PublicDate>
             <InventionName>스마트팩토리 안전 시스템</InventionName>
             <Abstract>협동로봇의 안전거리를 분석한다.</Abstract>
             <Applicant>테스트 기업</Applicant>
@@ -69,13 +72,16 @@ class TestKiprisClient:
         response.raise_for_status.return_value = None
         mock_get.return_value = response
 
-        patents = search_kipris_patents("스마트팩토리", limit=3)
+        patents = search_kipris_patents("스마트팩토리", limit=3, raw_dir=None)
 
         assert len(patents) == 1
         assert patents[0]["application_number"] == "1020230030067"
         assert patents[0]["title"] == "스마트팩토리 안전 시스템"
         assert patents[0]["abstract"] == "협동로봇의 안전거리를 분석한다."
         assert patents[0]["applicant"] == "테스트 기업"
+        assert patents[0]["application_date"] == "20230101"
+        assert patents[0]["publication_date"] == "20240102"
+        assert patents[0]["public_date"] == "20240203"
 
         mock_get.assert_called_once()
 
@@ -104,7 +110,7 @@ class TestKiprisClient:
         mock_get.return_value = response
 
         with pytest.raises(KiprisAPIError):
-            search_kipris_patents("스마트팩토리")
+            search_kipris_patents("스마트팩토리", raw_dir=None)
 
     @patch("src.ingestion.kipris_client.requests.get")
     @patch.dict(
@@ -132,7 +138,7 @@ class TestKiprisClient:
         response.raise_for_status.return_value = None
         mock_get.return_value = response
 
-        patents = search_kipris_patents("스마트팩토리")
+        patents = search_kipris_patents("스마트팩토리", raw_dir=None)
 
         assert len(patents) == 1
         assert patents[0]["application_number"] == "12345"
@@ -153,7 +159,7 @@ class TestKiprisClient:
         response.raise_for_status.return_value = None
         mock_get.return_value = response
 
-        patents = search_kipris_patents("검색결과없는기술")
+        patents = search_kipris_patents("검색결과없는기술", raw_dir=None)
 
         assert patents == []
 
@@ -733,6 +739,17 @@ def test_patent_query_plan():
     assert len(plan.queries) == 2
     assert plan.queries[0].technical_element == "AI 비전 검사"
     assert plan.queries[1].english_queries == ["collaborative robot control"]
+
+
+def test_patent_query_plan_rejects_more_than_five_technical_elements():
+    query = PatentSearchQuery(
+        technical_element="기술 요소",
+        korean_queries=["한국어 검색어"],
+        english_queries=["english query"],
+    )
+
+    with pytest.raises(ValidationError):
+        PatentQueryPlan(queries=[query] * 6)
 
 
 def test_build_patent_queries():

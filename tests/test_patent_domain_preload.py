@@ -58,3 +58,32 @@ def test_patent_search_can_filter_preindexed_technology_area(tmp_path):
     assert collection.get(where={"area_SF-02": True}, include=["metadatas"])["ids"] == [
         "P-VISION_abstract_0"
     ]
+
+
+def test_metadata_only_index_update_does_not_reembed_document(tmp_path):
+    collection = get_collection(chroma_dir=tmp_path / "chroma")
+    patent = PatentDocument(
+        patent_id="P001", title="검사 장치", abstract="영상 결함을 검출한다."
+    )
+    chunk = PatentChunk(
+        chunk_id="P001_abstract_0",
+        patent_id="P001",
+        section="abstract",
+        text=patent.abstract,
+        chunk_index=0,
+    )
+    embedded_texts = []
+
+    def fake_embed(texts):
+        embedded_texts.extend(texts)
+        return [[0.1, 0.2, 0.3] for _ in texts]
+
+    build_index([chunk], [patent], collection, fake_embed)
+    tagged_patent = patent.model_copy(update={"technology_area_ids": ["SF-02"]})
+    changed = build_index([chunk], [tagged_patent], collection, fake_embed)
+
+    assert changed == 1
+    assert embedded_texts == [patent.abstract]
+    assert collection.get(where={"area_SF-02": True}, include=["metadatas"])["ids"] == [
+        chunk.chunk_id
+    ]

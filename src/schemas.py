@@ -107,6 +107,8 @@ class PatentDocument(BaseModel):
 
     applicant: str | None = None
     application_date: str | None = None
+    publication_date: str | None = None
+    public_date: str | None = None
 
     source: str = "KIPRIS Plus"
     source_url: str | None = None
@@ -141,6 +143,8 @@ class PatentEvidence(BaseModel):
     source_url: str | None = None
     application_number: str | None = None
     publication_number: str | None = None
+    application_date: str | None = None
+    publication_date: str | None = None
     registration_number: str | None = None
     claim_number: int | None = Field(default=None, ge=1)
     claim_type: Literal["independent", "dependent", "unclassified"] | None = None

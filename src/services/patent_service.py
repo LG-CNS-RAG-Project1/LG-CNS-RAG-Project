@@ -38,6 +38,9 @@ def _supplement_result(record: dict) -> RetrievalResult | None:
             "application_number": application_number,
             "publication_number": record.get("publication_number"),
             "registration_number": record.get("registration_number"),
+            "application_date": record.get("application_date"),
+            "publication_date": record.get("publication_date"),
+            "public_date": record.get("public_date"),
             "source_url": record.get("source_url"),
         },
     )
@@ -205,6 +208,8 @@ def analyze_patents(
                             application_number=app_number,
                             publication_number=meta.get("publication_number"),
                             registration_number=meta.get("registration_number"),
+                            application_date=meta.get("application_date"),
+                            publication_date=meta.get("publication_date"),
                             claim_number=claim.claim_number,
                             claim_type=claim.claim_type,
                             depends_on=claim.depends_on,
@@ -228,6 +233,8 @@ def analyze_patents(
                         application_number=app_number,
                         publication_number=meta.get("publication_number"),
                         registration_number=meta.get("registration_number"),
+                        application_date=meta.get("application_date"),
+                        publication_date=meta.get("publication_date"),
                         claim_type="unclassified",
                         version_id=meta.get("version_id") or version_id,
                     )
@@ -253,6 +260,8 @@ def analyze_patents(
                         application_number=app_number,
                         publication_number=meta.get("publication_number"),
                         registration_number=meta.get("registration_number"),
+                        application_date=meta.get("application_date"),
+                        publication_date=meta.get("publication_date"),
                         version_id=version_id,
                     )
                 )
