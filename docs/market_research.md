@@ -100,7 +100,7 @@ flowchart TD
   class verdict,task,gen,cite,check,drop,contract,handoff genstep
   class cases,metrics,answer,cost,compare,tune,fix evalnode
   class filled,enough,pass,improved decide
-  class parse,filled,ask,structure,patent,dart,enough,live,lack,nature,verdict,task,gen,cite,check,pass,drop,contract,cases,metrics,answer,cost,compare,improved,tune,fix todo
+  class dart,enough,live,lack,nature,verdict,task,gen,cite,check,pass,drop,contract,answer,cost,compare,improved,tune,fix todo
 
   style data fill:#9aa3ad1f,stroke:#9aa3ad
   style eval fill:#9aa3ad1f,stroke:#9aa3ad
@@ -135,4 +135,5 @@ flowchart TD
 | 시장 조사 진입점 | `src/services/market_service.py` |
 | 시장 분석 생성 규칙 | `prompts/market_analysis.md`, `src/generation/market_analysis.py` |
 | 데이터 형식·결과 계약 | `src/schemas.py` (`MarketDocument`, `MarketSearchRequest`, `MarketReport`) |
-| 평가 | `evaluation/market_cases.json`, `evaluation/evaluate.py` |
+| 평가 문항·정답 라벨 | `evaluation/market_cases.json`, `evaluation/labels/`, `evaluation/market_labeling.py`, `evaluation/market_judge.py` |
+| 검색 평가 실행·결과 | `evaluation/evaluate.py` → `evaluation/results/` |
