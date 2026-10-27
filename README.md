@@ -39,7 +39,7 @@
 │   ├── patents/             # 특허 원문·정제 데이터·Chroma 벡터 저장소
 │   ├── market/              # 시장 자료 원문·정제 데이터
 │   └── samples/             # 시연용 샘플 아이디어·시장 결과(MarketReport) 예시
-├── deploy/                  # 공용 Chroma 서버 시작 스크립트·Compose 설정
+├── deploy/                  # 공용 Chroma·HTTPS 중계·개인 키 인증 배포 설정
 ├── docs/                    # 기획·설계·개발 환경 문서, 프로젝트 목표·PR 분석 안내서(review-baseline.md)
 ├── evaluation/              # 평가 질문·정답 근거·평가 실행
 ├── frontend/                # 아이디어 검토 UI, 스타일, 비용 계산과 예시 보고서
