@@ -101,6 +101,14 @@ test("모델 입력은 nonce 구획에 데이터를 넣고, 구획 표기를 흉
   assert.equal(escapeMarkers("<prior_analysis_x>"), "<prior-analysis-x>");
 });
 
+test("영역 카드와 지난 분석에 포함된 비밀값은 모델 입력에서 가린다", () => {
+  const secret = ["ghp_", "ABCD1234EFGH5678IJKL9012MNOP3456"].join("");
+  const prior = { head: "a".repeat(40), one_line: secret };
+  const context = buildContext({ nonce: "mask", facts: "# 사실", pr, commits: [], files: [], targetFiles: [], mode: "full", prior, cardsText: `카드 ${secret}`, mappings: [] });
+  assert.ok(!context.input.includes(secret));
+  assert.match(context.input, /\*\*\*\*/);
+});
+
 test("전체 입력 예산을 넘는 patch는 우선순위가 낮은 것부터 빼고, 뺀 범위를 사실 구획에 적는다", () => {
   const files = [file("src/core.py", 30_000), file("docs/guide.md", 30_000), file("tests/test_core.py", 30_000), { filename: "logo.png", status: "added", additions: 0, deletions: 0 }];
   const context = buildContext({ nonce: "n2", budget: 80_000, fixedBytes: 10_000, facts: "# 사실", pr, commits: [], files, targetFiles: files, mode: "full", prior: null, cardsText: "", mappings: [] });

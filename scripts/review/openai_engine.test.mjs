@@ -8,7 +8,7 @@ import { buildReviewSchema } from "./review_schema.mjs";
 import { checkStrictSchema, validateValue } from "./schema_check.mjs";
 
 const SCHEMA = { type: "object", additionalProperties: false, required: ["ok"], properties: { ok: { type: "boolean" } } };
-const REQUEST = { model: "gpt-6-luna", instructions: "지시", input: "입력", schema: SCHEMA, schemaName: "check", effort: "medium", maxOutputTokens: 32_000 };
+const REQUEST = { model: "gpt-6-sol", instructions: "지시", input: "입력", schema: SCHEMA, schemaName: "check", effort: "medium", maxOutputTokens: 32_000 };
 
 function reviewerWith(respond, options = {}) {
   const fake = createFakeOpenAI(respond);
@@ -28,7 +28,7 @@ test("요청은 모델·strict json_schema·reasoning·출력 상한·store:fals
   assert.equal(url, "https://api.openai.com/v1/responses");
   assert.deepEqual(Object.keys(headers).sort(), ["Authorization", "Content-Type"]);
   assert.equal(headers.Authorization, "Bearer test-key");
-  assert.equal(body.model, "gpt-6-luna");
+  assert.equal(body.model, "gpt-6-sol");
   assert.equal(body.store, false);
   assert.deepEqual(body.reasoning, { effort: "medium" });
   assert.equal(body.max_output_tokens, 32_000);
@@ -42,8 +42,8 @@ test("성공 응답은 공통 계약으로 바뀌고, 캐시는 입력의 일부
   const { reviewer } = reviewerWith(() => okResponse({ ok: true }));
   const result = await reviewer.review(REQUEST);
   assert.deepEqual(result.output, { ok: true });
-  assert.equal(result.response_model, "gpt-6-luna");
-  assert.equal(result.requested_model, "gpt-6-luna");
+  assert.equal(result.response_model, "gpt-6-sol");
+  assert.equal(result.requested_model, "gpt-6-sol");
   assert.deepEqual(result.usage, { input: 1200, cached: 300, cache_write: 0, output: 900, reasoning: 400, total: 2100 });
   assert.equal(result.retries, 0);
   assert.ok(result.usage.cached <= result.usage.input && result.usage.reasoning <= result.usage.output);
@@ -51,10 +51,11 @@ test("성공 응답은 공통 계약으로 바뀌고, 캐시는 입력의 일부
 });
 
 test("응답 모델이 요청 모델(또는 그 날짜 스냅샷)이 아니면 결과를 쓰지 않는다", async () => {
-  assert.ok(modelMatches("gpt-6-luna", "gpt-6-luna"));
-  assert.ok(modelMatches("gpt-6-luna", "gpt-6-luna-2026-05-18"));
-  assert.ok(!modelMatches("gpt-6-luna", "gpt-6-luna-mini"));
-  assert.ok(!modelMatches("gpt-6-luna", "gpt-6.1-sol"));
+  assert.ok(modelMatches("gpt-6-sol", "gpt-6-sol"));
+  assert.ok(modelMatches("gpt-6-sol", "gpt-6-sol-2026-05-18"));
+  assert.ok(!modelMatches("gpt-6-sol", "gpt-6-sol-mini"));
+  assert.ok(!modelMatches("gpt-6-sol", "gpt-6-luna"));
+  assert.ok(!modelMatches("gpt-6-sol", "gpt-6.1-sol"));
   const { reviewer } = reviewerWith(() => okResponse({ ok: true }, { model: "gpt-6.1-sol" }));
   const result = await reviewer.review(REQUEST);
   assert.deepEqual([result.status, result.error_class, result.output], ["failed", "model_mismatch", null]);

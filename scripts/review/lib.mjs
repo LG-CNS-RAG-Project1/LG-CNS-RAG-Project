@@ -39,6 +39,7 @@ export function fileSignature(file) {
 // ---------- 비밀값 ----------
 export const SECRET_PATTERNS = [
   /\b(sk-[A-Za-z0-9_-]{16,}|ghp_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|ntn_[A-Za-z0-9]{20,}|AKIA[0-9A-Z]{16})\b/,
+  /\b(eyJ[\w-]{10,}\.[\w-]{10,}\.[\w-]{10,})(?![\w-])/,
   /-----BEGIN [A-Z ]*PRIVATE KEY-----/,
   /(?:NAVER_CLIENT_SECRET|X-NCP-APIGW-API-KEY(?:-ID)?|KIPRIS_API_KEY|DART_API_KEY|OPENAI_API_KEY)["']?\s*[:=]\s*["']?([^"'\s$<{][^"'\s,)]{5,})/i,
   /\b(?:api[_-]?key|secret[_-]?key|client[_-]?secret|access[_-]?token|auth[_-]?token|refresh[_-]?token|bearer|password|passwd)\b["']?\s*[:=]\s*["']([^"'${<\s][^"'\s]{7,})["']/i,
@@ -284,7 +285,7 @@ export function runPrechecks({ pr, files, commits, ci, secretHits, mappings }) {
     for (const { line, text } of added) {
       const comment = /^\s*(#|\/\/)\s?(.*)$/.exec(text);
       if (!comment || removedText.has(text.trim())) continue;
-      if (COMMENT_PATTERNS.some((pattern) => pattern.test(comment[2]))) comments.push({ path: file.filename, line, text: comment[2].slice(0, 120) });
+      if (COMMENT_PATTERNS.some((pattern) => pattern.test(comment[2]))) comments.push({ path: file.filename, line, text: maskPatch(comment[2]).slice(0, 120) });
     }
   }
   add("AGENTS_6_comments", comments.length ? "warn" : "ok", comments.length ? `주석 규칙 후보 ${comments.length}건` : "주석 규칙 후보 없음");

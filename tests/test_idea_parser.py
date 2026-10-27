@@ -1,3 +1,5 @@
+import json
+
 import pytest
 from pydantic import ValidationError
 
@@ -48,7 +50,7 @@ def test_parse_complete_idea():
     assert draft.status == "complete"
     assert draft.missing_fields == []
     assert draft.field_sources == {f: "extracted" for f in FOLLOWUP_QUESTIONS}
-    assert llm.calls[0][1] == IDEA_TEXT
+    assert json.loads(llm.calls[0][1]) == {"idea_text": IDEA_TEXT}
     assert "JSON" in llm.calls[0][0]
 
 

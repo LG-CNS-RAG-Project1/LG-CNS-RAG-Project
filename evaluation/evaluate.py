@@ -1,4 +1,4 @@
-"""IdeaLens 시장 근거·관련성 및 특허 검색 평가를 실행한다.
+"""IdeaLens 시장 근거·관련성, 특허 검색, 입력 가드레일 평가를 실행한다.
 
 시장 검색 평가는 evaluation/market_cases.json의 라벨이 끝난 문항마다 검색 툴과 같은
 질의로 상위 K건을 검색해 Hit@K·Recall@K·Precision@K·MRR·nDCG@K와 검색 지연을 계산하고 evaluation/results/에 CSV로 저장한다.
@@ -8,10 +8,14 @@
 관련성 필터 평가는 사람 라벨 행에서 필터 판정을 비교하고(행 단위), 사람 라벨만 있는 문항의
 충분성 상태를 비교한다(evaluation/market_relevance_eval.py).
 
+가드레일 평가는 공격·주제 이탈·정상 입력 문항의 차단율·오차단율을 계산한다
+(evaluation/guardrail_eval.py).
+
 사용 예:
     python -m evaluation.evaluate market --label baseline
     python -m evaluation.evaluate patent --mode hybrid --label baseline
     python -m evaluation.evaluate relevance --model gpt-4o
+    python -m evaluation.evaluate guardrail
 """
 
 import argparse
@@ -22,6 +26,12 @@ from collections import Counter
 from functools import partial
 from pathlib import Path
 
+from evaluation.guardrail_eval import (
+    RESULT_FIELDS as GUARDRAIL_FIELDS,
+    evaluate_guardrail,
+    load_guardrail_cases,
+    summarize_guardrail,
+)
 from evaluation.market_labeling import (
     CANDIDATES_PATH,
     case_query,
@@ -285,8 +295,29 @@ def run_relevance(model: str, label: str) -> None:
     )
 
 
+def run_guardrail(label: str) -> None:
+    """가드레일 문항을 실행하고 문항별 결과를 guardrail_{label}.csv로 저장한다."""
+    rows = evaluate_guardrail(load_guardrail_cases())
+    path = write_label_rows(
+        rows, GUARDRAIL_FIELDS, RESULTS_DIR / f"guardrail_{label}.csv"
+    )
+    s = summarize_guardrail(rows)
+    print(f"{s['cases']} cases -> {path}")
+    print(
+        f"  공격 차단율={s['block_rate']:.2f} ({s['attacks']}건)"
+        f" 오차단율={s['false_block_rate']:.2f} ({s['normal']}건)"
+        f" 상태 일치율={s['status_accuracy']:.2f}"
+        f" (규칙 차단 {s['blocked_by_rule']} · LLM 차단 {s['blocked_by_llm']})"
+    )
+    for r in rows:
+        if not r["correct"]:
+            print(
+                f"  [불일치] {r['case_id']} 기대 {r['expected']} → {r['predicted']}: {r['text']}"
+            )
+
+
 def main() -> None:
-    """market: 시장 근거 검색 평가, relevance: 관련성 필터 평가를 실행하고 요약을 출력한다."""
+    """market: 시장 근거 검색, relevance: 관련성 필터, guardrail: 입력 가드레일 평가를 실행한다."""
     parser = argparse.ArgumentParser(description="IdeaLens 평가")
     sub = parser.add_subparsers(dest="command", required=True)
     market = sub.add_parser("market", help="시장 근거 검색 평가")
@@ -313,10 +344,15 @@ def main() -> None:
         "--model", default=RELEVANCE_MODEL, help="판정 모델 (기본: 필터 기본 모델)"
     )
     relevance.add_argument("--label", help="결과 파일 이름 (기본: 모델명)")
+    guardrail = sub.add_parser("guardrail", help="아이디어 입력 가드레일 평가")
+    guardrail.add_argument("--label", default="baseline", help="결과 파일 이름")
     args = parser.parse_args()
 
     if args.command == "relevance":
         run_relevance(args.model, args.label or args.model)
+        return
+    if args.command == "guardrail":
+        run_guardrail(args.label)
         return
 
     reranker = None

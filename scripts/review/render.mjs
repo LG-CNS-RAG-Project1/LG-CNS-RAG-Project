@@ -210,7 +210,7 @@ export function renderReport(analysis, history = []) {
 
   blocks.push(heading(2, text("이 분석의 한계")));
   blocks.push(paragraph(text(
-    "PR 제목·설명·변경 내용과 자동 검사 결과를 AI(OpenAI GPT, API)가 읽고 안내서(docs/review-baseline.md)와 비교해 만들었습니다. " +
+    "PR 제목·설명·변경 내용과 자동 검사 결과를 AI(OpenAI GPT)가 읽고 안내서(docs/review-baseline.md)와 비교해 만들었습니다. " +
     "코드를 실행해 보지 않았고, 안내서에 없는 내용은 판단하지 않았습니다. AI는 틀릴 수 있으므로 참고용이며 최종 판단은 리더가 합니다."
   )));
 

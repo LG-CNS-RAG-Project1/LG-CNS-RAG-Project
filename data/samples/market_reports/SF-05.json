@@ -1,0 +1,160 @@
+{
+  "status": "completed",
+  "dimensions": [
+    {
+      "dimension": "demand",
+      "verdict": "signal_only",
+      "claims": [
+        {
+          "statement": "중소 제조기업은 자동화 설비 투자와 디지털 전환 필요성이 커지고 있다.",
+          "claim_type": "fact",
+          "citation_ids": [
+            1
+          ]
+        }
+      ],
+      "next_check": null
+    },
+    {
+      "dimension": "competition",
+      "verdict": "signal_only",
+      "claims": [
+        {
+          "statement": "한수원이 사내 지식 기반 생성형 AI 플랫폼과 AI 지능형 문서 작성 솔루션을 도입했다.",
+          "claim_type": "fact",
+          "citation_ids": [
+            2
+          ]
+        }
+      ],
+      "next_check": null
+    },
+    {
+      "dimension": "price",
+      "verdict": "signal_only",
+      "claims": [
+        {
+          "statement": "자율제조 AI 기업 인터엑스가 플랫폼 라이선스와 서비스형 소프트웨어(SaaS) 형태로 공급 방식을 다변화하고 있다.",
+          "claim_type": "fact",
+          "citation_ids": [
+            3
+          ]
+        }
+      ],
+      "next_check": null
+    },
+    {
+      "dimension": "buyer",
+      "verdict": "unverified",
+      "claims": [],
+      "next_check": "제조 현장 작업자와 생산 관리자의 구매 의향을 확인하기 위해 인터뷰를 진행"
+    },
+    {
+      "dimension": "adoption_barrier",
+      "verdict": "signal_only",
+      "claims": [
+        {
+          "statement": "중소기업은 설비 투자뿐 아니라 시스템 구축, 유지보수, 인력 교육까지 추가 비용이 발생하면서 초기 진입이 쉽지 않다.",
+          "claim_type": "fact",
+          "citation_ids": [
+            5
+          ]
+        }
+      ],
+      "next_check": null
+    }
+  ],
+  "evidence": [
+    {
+      "citation_id": 1,
+      "source_id": "news-1466dcc44368",
+      "source_type": "news",
+      "title": "포스코, 중소기업 스마트공장 지원 확대…제조AI 전환 돕는다",
+      "publisher": "econovill.com",
+      "quote": "창고관리 자동화 시스템을 도입했다. 이를 통해 제품 출하시간을 23% 단축하고 물류 비용을 줄였다. 수작업... 이런 환경에서 중소 제조기업은 자동화 설비 투자와 디지털 전환 필요성이 커지고 있지만, 자금과 전문 인력...",
+      "section": "title+description",
+      "url": "https://www.econovill.com/news/articleView.html?idxno=740430",
+      "published_at": 20260519,
+      "period": null,
+      "reliability": "medium",
+      "recency": "high",
+      "directness": "medium",
+      "evidence_nature": "business_signal",
+      "similarity": 0.4476
+    },
+    {
+      "citation_id": 2,
+      "source_id": "news-74aa4fea0636",
+      "source_type": "news",
+      "title": "한수원, 사내망 전용 'AI 문서 도구' 도입…스마트 업무 혁신 가속",
+      "publisher": "businessplus.kr",
+      "quote": "현장에 전면 도입하며 문서 작업 방식의 대대적인 개편에 나선다. 한수원은 독자적으로 구축한 사내 지식 기반 생성형 AI 플랫폼 '하이누리'(Hy-NuRI)와 한글과컴퓨터의 AI 지능형 문서 작성 설루션인 '한컴어시스턴트'를...",
+      "section": "title+description",
+      "url": "https://www.businessplus.kr/news/articleView.html?idxno=114478",
+      "published_at": 20260723,
+      "period": null,
+      "reliability": "medium",
+      "recency": "high",
+      "directness": "medium",
+      "evidence_nature": "business_signal",
+      "similarity": 0.3042
+    },
+    {
+      "citation_id": 3,
+      "source_id": "news-de18ab12c73f",
+      "source_type": "news",
+      "title": "자율제조 AI 기업 인터엑스, 증권신고서 제출",
+      "publisher": "the-stock.kr",
+      "quote": "중견·중소 제조사들의 도입 장벽을 낮추기 위한 솔루션 표준화를 병행할 예정이다. 플랫폼 라이선스와 AI 키트(Kit), 서비스형 소프트웨어(SaaS) 형태로 공급 방식을 다변화해 기존 프로젝트 수주 위주의 매출...",
+      "section": "title+description",
+      "url": "https://www.the-stock.kr/news/articleView.html?idxno=33625",
+      "published_at": 20261023,
+      "period": null,
+      "reliability": "medium",
+      "recency": "high",
+      "directness": "medium",
+      "evidence_nature": "business_signal",
+      "similarity": 0.41100000000000003
+    },
+    {
+      "citation_id": 4,
+      "source_id": "news-2cdcefb22f68",
+      "source_type": "news",
+      "title": "AI 스마트공장 키운다…전문기업 첫 지정·전문인력 양성 '속도'",
+      "publisher": "news1.kr",
+      "quote": "전문인력 부족을 겪고 있는 스마트공장 도입·공급기업들의 애로를 해소하기 위한 스마트제조 전문인력 육성사업 또한 본격적으로 진행될 전망이다. 해당 사업을 통해 △스마트제조 역량 △취업매력도 △고용 연계...",
+      "section": "title+description",
+      "url": "https://www.news1.kr/industry/sb-founded/6223455",
+      "published_at": 20260710,
+      "period": null,
+      "reliability": "medium",
+      "recency": "high",
+      "directness": "medium",
+      "evidence_nature": "business_signal",
+      "similarity": 0.4437
+    },
+    {
+      "citation_id": 5,
+      "source_id": "news-c7da5c7cd4ba",
+      "source_type": "news",
+      "title": "[기획] 자동화·AI 도입하는 中企…비용 부담은 '가중'",
+      "publisher": "m-i.kr",
+      "quote": "특히 중소기업은 설비 투자뿐 아니라 시스템 구축, 유지보수, 인력 교육까지 추가 비용이 발생하면서 초기 진입 자체가 쉽지 않은 구조다. 배경에는 제조업 구조 변화가 있다. 최근 제조 현장은 단순 자동화를 넘어 AI 기반...",
+      "section": "title+description",
+      "url": "https://www.m-i.kr/news/articleView.html?idxno=1360939",
+      "published_at": 20260402,
+      "period": null,
+      "reliability": "medium",
+      "recency": "high",
+      "directness": "medium",
+      "evidence_nature": "business_signal",
+      "similarity": 0.4336
+    }
+  ],
+  "unknowns": [
+    "구매자 근거 미확인"
+  ],
+  "search_scope": "네이버 뉴스 검색 API로 사전 수집한 스마트팩토리 기사 1895건(제목·요약, 발행일 20240102~20261023), 아이디어 SF-05 수집 키워드 범위",
+  "data_as_of": 20261027,
+  "error_message": null
+}

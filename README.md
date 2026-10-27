@@ -38,8 +38,8 @@
 │   ├── indexes/             # 검색 색인
 │   ├── patents/             # 특허 원문·정제 데이터·Chroma 벡터 저장소
 │   ├── market/              # 시장 자료 원문·정제 데이터
-│   └── samples/             # 시연용 샘플
-├── docs/                    # 기획·설계·개발 환경 문서, PR 분석 안내서(review-baseline.md)
+│   └── samples/             # 시연용 샘플 아이디어·시장 결과(MarketReport) 예시
+├── docs/                    # 기획·설계·개발 환경 문서, 프로젝트 목표·PR 분석 안내서(review-baseline.md)
 ├── evaluation/              # 평가 질문·정답 근거·평가 실행
 ├── frontend/                # 아이디어 검토 UI, 스타일, 비용 계산과 예시 보고서
 ├── prompts/                 # 아이디어 구조화·근거 검증·보고서 프롬프트
@@ -48,7 +48,7 @@
 │   ├── *.py                 # 특허 수집·색인 생성 실행 스크립트
 │   ├── notion/              # Notion 블록 도우미, 코드 해석 기반 서비스 아키텍처 그림(mermaid) 생성
 │   ├── github/              # PR 리뷰어 무작위 지정
-│   └── review/              # PR 자동 분석(규칙 점검·OpenAI GPT 분석·Notion PR 페이지와 영역 요약 카드 기록)
+│   └── review/              # PR 자동 분석(규칙 점검·GPT 분석(Codex 구독 또는 API)·Notion PR 페이지와 영역 요약 카드 기록)
 ├── src/
 │   ├── main.py · pipeline.py · schemas.py  # API 진입점·분석 흐름·공통 모델
 │   ├── ingestion/           # 자료 수집·전처리·청크 생성
@@ -133,6 +133,17 @@ python -m src.retrieval.market_relevance --idea-id SF-01   # 차원별 검색 + 
 - `search_with_relevance`는 차원별 검색 결과마다 `gpt-4o`로 관련 여부·이유를 판정하고(기준: `prompts/market_label_judge.md`), 관련 건수로 차원별 충분성 상태(`sufficient` 2건 이상 · `limited` 1건 · `insufficient` 0건 · `no_results` · `error`)를 붙여 반환한다. `OPENAI_API_KEY`가 필요하다.
 - 검색 거리는 관련성을 구분하지 못해(평가 라벨 기준 AUC 0.52) 충분성 판단에 쓰지 않는다. 판정 모델 선택 근거는 [docs/market_research.md](docs/market_research.md#충분성-판정).
 
+### 시장 조사 실행 (MarketReport)
+
+```bash
+python -m src.services.market_service --idea-id SF-01                                         # MarketReport JSON 출력
+python -m src.services.market_service --idea-id SF-01 --out data/samples/market_reports/SF-01.json   # 파일로 저장
+```
+
+- `run_market_research(MarketSearchRequest)`가 차원별 검색 → 관련성 판정 → 시장 분석 생성·인용 검증을 실행해 `MarketReport`(`src/schemas.py`)를 반환한다. 분석 규칙은 `prompts/market_analysis.md`, 생성·검증은 `src/generation/market_analysis.py`에서 관리한다. `OPENAI_API_KEY`가 필요하다.
+- 사실 문장은 인용 근거(`evidence`의 `citation_id`)가 있어야 하고, 인용 기사·아이디어 입력에 없는 숫자가 있으면 재생성(최대 2회)하거나 해당 문장을 제거한다. 판정은 차원별 충분성 상태로 제한한다(근거 1건이면 최대 '신호만 확인').
+- `data/samples/market_reports/`에는 SF-01~SF-05 실행 결과 예시가 있다. 로컬 수집 뉴스 기준이므로 다시 수집하면 내용이 달라진다.
+
 ### 아이디어 구조화
 
 ```bash
@@ -142,6 +153,7 @@ python -m src.generation.idea_parser "중소 부품 공장에 협동로봇과 �
 - 아이디어 한 문장을 `gpt-4o-mini`로 문제(`problem`)·기술(`technology`)·고객(`customers`)·차별점(`difference`)·수익모델(`revenue`)로 나눈다. 규칙은 `prompts/idea_parser.md`에서 관리하며, 문장에 없는 항목은 추측하지 않고 비워 둔다. `OPENAI_API_KEY`가 필요하다.
 - 빈 항목은 사용자에게 최대 2회 재질문한다. '모름'으로 답했거나 끝까지 비어 있는 항목은 `unknown`으로 확정하고, 항목별 출처(`extracted`·`user_answer`·`unknown`)를 함께 남긴다.
 - 완성된 결과(`IdeaDraft`)는 `build_requests`로 특허·시장 공통 입력(`StructuredIdea`)과 검색 요청(`PatentSearchRequest`·`MarketSearchRequest`)으로 변환한다.
+- 입력 가드레일: LLM 호출 전 규칙 검사(`src/generation/input_guard.py`: 길이, 지시 무시·시스템 프롬프트 공개 등 조작 표현)와 같은 LLM 호출의 `input_status` 판정(`ok`·`off_topic`·`unsafe`)으로 주제 이탈·프롬프트 조작·유해 목적 입력을 거절한다. 거절되면 `status="rejected"`와 안내 문구(`rejection_reason`)를 반환하고 검색 요청을 만들지 않는다. 재질문 답변도 규칙 검사를 거친다. 기준은 [docs/market_research.md](docs/market_research.md#입력-가드레일).
 
 ## 환경변수
 
@@ -154,7 +166,7 @@ python -m src.generation.idea_parser "중소 부품 공장에 협동로봇과 �
 | `DART_API_KEY` | DART OpenAPI 공시 API 키 |
 | `NAVER_CLIENT_ID` · `NAVER_CLIENT_SECRET` | NAVER API HUB(네이버클라우드) Application의 Client ID·Secret. 해당 Application에서 뉴스 검색 API 활성화 필요 |
 
-PR 분석 자동화용 `OPENAI_API_KEY`(앱 `.env`의 키와 별개)·`NOTION_REVIEW_TOKEN`은 `.env`가 아니라 develop에서만 열리는 GitHub Environment `pr-analysis`에 저장한다([docs/development.md](docs/development.md#pr-자동-분석-githubworkflowspr-analysisyml)).
+PR 분석 자동화용 `CODEX_AUTH_JSON`(ChatGPT 구독 로그인, `make review-codex-login`으로 등록)·`CODEX_AUTH_WRITE_TOKEN`·`NOTION_REVIEW_TOKEN`은 `.env`가 아니라 develop에서만 열리는 GitHub Environment `pr-analysis`에 저장한다([docs/development.md](docs/development.md#pr-자동-분석-githubworkflowspr-analysisyml)).
 
 ## 개발 도구와 협업 자동화
 
@@ -162,17 +174,19 @@ PR 분석 자동화용 `OPENAI_API_KEY`(앱 `.env`의 키와 별개)·`NOTION_RE
 - **커밋 전 검사**: `pre-commit install` 후 커밋마다 black, 병합 충돌 표시, 개인키 노출, 대용량 파일, 줄끝 공백을 검사한다.
 - **CI**: develop·main 대상 PR과 push에서 black 검사, pytest, 자동화 스크립트 테스트, Docker 이미지 빌드를 실행한다.
 - **리뷰어 자동 지정**: PR에 리뷰어가 없으면 작성자를 제외한 팀원 중 한 명을 무작위로 지정한다. 후보는 저장소 변수 `REVIEWER_POOL`로 바꿀 수 있다.
-- **PR 자동 분석**: develop 대상 PR이 검토 요청 상태로 열리거나 수정되면 규칙 점검과 OpenAI GPT(`gpt-6-luna`, API 키 방식) 분석 결과를 Notion 'RAG 기반 미니 프로젝트: IdeaLens' 아래 'PR 분석' 표의 PR별 페이지 하나에 기록한다. 페이지에는 태그(서비스 계층)·키워드·분석 내용, AI 병합 판단(4등급과 근거 3문장, 참고용), 첫 분석 때 코드로 한 번 그린 서비스 아키텍처 그림이 들어간다. 초안·병합·닫힘에는 모델을 부르지 않고, 수정본은 의미 있는 변경이 있을 때 바뀐 파일만 다시 분석한다. 병합되면 분석한 변경과 최종 변경이 같을 때만 카드 변경 후보를 태그별 '영역 요약 카드'에 항목 단위로 반영한다. API 사용료는 OpenAI API 결제로 따로 청구된다(Claude·ChatGPT 구독과 별개). 참고용이며 승인·병합·GitHub 댓글은 하지 않는다. 판단 기준은 [docs/review-baseline.md](docs/review-baseline.md), 운영 안내는 [docs/development.md](docs/development.md#pr-자동-분석-githubworkflowspr-analysisyml).
+- **PR 자동 분석**: develop 대상 PR이 검토 요청 상태로 열리거나 수정되면 규칙 점검과 GPT(`gpt-6-sol`, 기본은 Codex CLI + 리더 ChatGPT 구독 로그인, API 키 방식도 선택 가능) 분석 결과를 Notion 'RAG 기반 미니 프로젝트: IdeaLens' 아래 'PR 분석' 표의 PR별 페이지 하나에 기록한다. 페이지에는 태그(서비스 계층)·키워드·분석 내용, AI 병합 판단(4등급과 근거 3문장, 참고용), 첫 분석 때 코드로 한 번 그린 서비스 아키텍처 그림이 들어간다. 초안·병합·닫힘에는 모델을 부르지 않고, 수정본은 의미 있는 변경이 있을 때 바뀐 파일만 다시 분석한다. 병합되면 분석한 변경과 최종 변경이 같을 때만 카드 변경 후보를 태그별 '영역 요약 카드'에 항목 단위로 반영한다. 구독 방식은 리더의 Codex 사용량을 쓰고, API 키 방식은 OpenAI API 결제로 따로 청구된다. 구독 로그인은 OpenAI 문서가 공개 저장소에 권하지 않는 방식이라 위험과 대응을 운영 안내에 둔다. 참고용이며 승인·병합·GitHub 댓글은 하지 않는다. 판단 기준은 [docs/review-baseline.md](docs/review-baseline.md), 운영 안내는 [docs/development.md](docs/development.md#pr-자동-분석-githubworkflowspr-analysisyml).
+- **Codex 구독 경로 주의:** 도구 비활성화 설정과 기능 점검만으로 실제 도구 노출이나 파일 읽기 차단을 보장할 수 없다. 공개 저장소에서 구독 로그인을 사용하는 위험과 운영 절차를 확인한다.
 - **의존성 갱신**: Dependabot이 pip·pre-commit·GitHub Actions 버전 갱신 PR을 월 1회 묶어서 만든다.
 
 ## 구현 방향
 
-- 목표 흐름: 아이디어·브리프 확정 → 시장·기업·특허 자료 수집 및 검색 → 근거 대조 → 구현 비용 검토 → 종합 보고서.
-- 기존 백엔드의 아이디어·특허·시장 모델은 유지하며, 실제 검색 결과와 가격 데이터를 받는 UI 연결은 별도 구현한다.
-- 데이터 출처: KIPRIS Plus, DART, 공공기관·연구기관·기업의 공식 자료.
-- 뉴스는 이용조건 확인 후 활용하며, 사내자료 연계는 향후 확장 범위.
+- 프로젝트 목표·세부 단계·이번 시기 우선순위·범위의 기준은 [docs/review-baseline.md](docs/review-baseline.md)이며, PR 자동 분석도 이 문서로 목표 연결을 판단한다.
+- 목표 흐름: 아이디어 구조화 → 특허·시장 수집·정제 → 색인·검색 → 판정·분석 생성 → 인용 검증 → 질문별 연결 → 종합 보고서(구현 비용표 포함) → 평가.
+- 기존 백엔드의 아이디어·특허·시장 모델(`src/schemas.py`)을 결과 계약으로 유지하며, 실제 검색·분석 결과를 받는 UI 연결은 별도 구현한다.
+- 데이터 출처: KIPRIS Plus, NAVER 뉴스 검색 API(교육 목적, 프로젝트 종료 시 폐기), DART, 공공기관·연구기관·기업의 공식 자료. 사내자료 연계는 향후 검토 범위.
 - 원문 구획과 청구항 구조를 보존하고, 각 주장에 출처·문헌 버전·원문 위치·링크를 연결.
-- 정확 검색과 의미 검색을 병행하며, Chroma와 `text-embedding-3-small`을 초기 검토 대상으로 사용.
+- 검색은 공통 엔진에서 의미 검색(dense)·단어 검색(BM25)·결합(hybrid) 중 선택하며, 임베딩은 `text-embedding-3-small`, 색인은 내장형 로컬 Chroma를 사용.
+- 시연은 로컬 PC의 Streamlit UI로 하고, 색인은 Docker Desktop의 `app` 컨테이너에서 만든 로컬 Chroma(`data/patents/chroma/`·`data/market/chroma/`)를 사용. 외부 호스팅·클라우드 DB 배포는 하지 않음.
 - 사실·해석·가설·미확인을 구분하고, 근거가 부족하면 판단을 보류. 최종 판단은 사용자가 수행.
 
 ## 평가 계획
@@ -195,6 +209,7 @@ python -m evaluation.evaluate market --mode bm25 --label baseline
 python -m evaluation.evaluate market --mode hybrid --label baseline
 python -m evaluation.evaluate market --mode hybrid --rerank --label baseline  # 선택 의존성 필요
 python -m evaluation.evaluate relevance --model gpt-4o  # 관련성 판정 vs 사람 라벨 → evaluation/results/
+python -m evaluation.evaluate guardrail                 # 입력 가드레일 차단율·오차단율 → evaluation/results/
 ```
 
 - 평가 아이디어는 `data/samples/ideas.json`의 SF-01~SF-05이며, 아이디어 5개 × 시장 차원 5개 = 25문항이다.
