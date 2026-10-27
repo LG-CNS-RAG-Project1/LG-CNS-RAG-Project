@@ -8,7 +8,7 @@ GitHub는 코드와 설정을 관리한다. 수집한 벡터·문서·메타데�
 팀원 PC의 수집·검색 코드 → HTTPS + 개인 API 키 → 인증 서비스 → 공용 Chroma → 서버 영구 디스크
 ```
 
-웹에서 이 흐름을 호출하는 API 연결은 별도 작업이다. 현재 Streamlit 화면은 시연이며 서버를 만들었다고 실제 검색 결과로 바뀌지 않는다. Chroma에는 색인할 문서와 벡터가 저장되며 원본 PDF·이미지 전체가 자동 업로드되는 것은 아니다.
+Streamlit 화면의 실제 분석(`src.pipeline`)은 `CHROMA_HOST`가 설정되면 이 서버의 색인을 검색한다. 호스팅 배포는 [Streamlit Community Cloud 배포 안내](deploy-streamlit-cloud.md)를 따른다. Chroma에는 색인할 문서와 벡터가 저장되며 원본 PDF·이미지 전체가 자동 업로드되는 것은 아니다.
 
 ## 서버
 
