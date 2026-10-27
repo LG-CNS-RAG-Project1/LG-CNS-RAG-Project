@@ -469,3 +469,23 @@ def test_patent_relevance_is_not_called_after_cancel(monkeypatch):
     with pytest.raises(Cancelled):
         judge(complete_draft(), _candidates("a"))
     assert called == []
+
+
+def test_part_errors_are_logged_without_keys(monkeypatch, caplog):
+    import logging
+
+    monkeypatch.setenv("KIPRIS_API_KEY", "kipris-secret-value-1")
+    monkeypatch.setattr(pipeline.LOG, "propagate", True)
+
+    def broken(request, **kwargs):
+        raise RuntimeError("fail ServiceKey=kipris-secret-value-1&x=1")
+
+    monkeypatch.setattr(pipeline, "analyze_patents", broken)
+    with caplog.at_level(logging.INFO, logger="idealens"):
+        analyze_sources(
+            complete_draft(),
+            readiness=ready(market=False),
+            patent_kwargs={"collection": object()},
+        )
+    text = caplog.text
+    assert "특허 조사 error" in text and "kipris-secret-value-1" not in text

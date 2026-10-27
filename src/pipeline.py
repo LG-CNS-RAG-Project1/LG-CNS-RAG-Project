@@ -14,6 +14,7 @@ CLI:
 
 import argparse
 import json
+import logging
 import os
 import re
 import sys
@@ -67,6 +68,16 @@ _SECRET_PATTERNS = [
 ]
 
 RunState = Literal["completed", "no_results", "error", "skipped", "timeout"]
+
+LOG = logging.getLogger("idealens")
+if not LOG.handlers:
+    _handler = logging.StreamHandler(sys.stderr)
+    _handler.setFormatter(
+        logging.Formatter("%(asctime)s idealens %(levelname)s %(message)s")
+    )
+    LOG.addHandler(_handler)
+    LOG.setLevel(logging.INFO)
+    LOG.propagate = False
 
 
 class IndexState(BaseModel):
@@ -513,9 +524,26 @@ def analyze_sources(
             PartRun(state="skipped", message=skipped_reason),
         ),
     )
+    patent_report, market_report = _redacted(patent_report), _redacted(market_report)
+    for label, run, report in (
+        ("특허", patent_run, patent_report),
+        ("시장", market_run, market_report),
+    ):
+        level = logging.WARNING if run.state in ("error", "timeout") else logging.INFO
+        LOG.log(
+            level,
+            "%s 조사 %s (%ss, 근거 %d건)%s",
+            label,
+            run.state,
+            run.seconds,
+            len(report.evidence),
+            f": {run.message}" if run.message else "",
+        )
+        for item in report.unknowns:
+            LOG.info("%s 미확인: %s", label, item)
     return SourceAnalysis(
-        patent=_redacted(patent_report),
-        market=_redacted(market_report),
+        patent=patent_report,
+        market=market_report,
         patent_run=patent_run,
         market_run=market_run,
         readiness=readiness,
@@ -637,6 +665,8 @@ def run_pipeline(
     links, warnings = link_questions_with_retry(
         questions, sources.market, sources.patent, llm_fn=link_llm_fn
     )
+    for item in warnings:
+        LOG.warning("질문 연결: %s", redact(item))
     errors = [redact(item) for item in warnings]
     for label, run in (("특허", sources.patent_run), ("시장", sources.market_run)):
         if run.state in ("error", "timeout"):

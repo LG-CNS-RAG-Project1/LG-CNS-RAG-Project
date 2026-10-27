@@ -244,6 +244,9 @@ def run_real_pipeline():
         )
         st.session_state.pipeline_error = None
     except Exception as exc:
+        from src.pipeline import LOG, redact
+
+        LOG.warning("실제 분석 실패: %s", redact(f"{type(exc).__name__}: {exc}"))
         st.session_state.pipeline_error = friendly_error(exc)
     finally:
         s.running_since = None
