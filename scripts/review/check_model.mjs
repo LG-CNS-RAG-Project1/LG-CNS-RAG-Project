@@ -1,4 +1,4 @@
-// 지정한 분석기(REVIEW_PROVIDER, 기본 codex)로 REVIEW_MODEL(기본 gpt-6-luna)에 아주 짧은 구조화 출력 요청을 한 번 보내 접근 가능 여부를 확인한다.
+// 지정한 분석기(REVIEW_PROVIDER, 기본 codex)로 REVIEW_MODEL(기본 gpt-6-sol)에 아주 짧은 구조화 출력 요청을 한 번 보내 접근 가능 여부를 확인한다.
 // PR 내용·Notion은 쓰지 않는다(운영 기록과 분리). 출력은 상태·모델·사용량·오류 분류뿐이다. 실패해도 다른 모델이나 분석기로 바꾸지 않는다.
 // codex는 CODEX_HOME(기본 ~/.codex)의 ChatGPT 로그인을, openai는 OPENAI_API_KEY를 쓴다.
 import { homedir } from "node:os";
@@ -8,8 +8,8 @@ import { createCodexReviewer } from "./codex_engine.mjs";
 import { createOpenAIReviewer } from "./openai_engine.mjs";
 
 const provider = process.env.REVIEW_PROVIDER || "codex";
-const model = process.env.REVIEW_MODEL || "gpt-6-luna";
-if (!["codex", "openai"].includes(provider) || model !== "gpt-6-luna") {
+const model = process.env.REVIEW_MODEL || "gpt-6-sol";
+if (!["codex", "openai"].includes(provider) || model !== "gpt-6-sol") {
   console.error("지원하지 않는 분석기 또는 모델 설정입니다.");
   process.exit(1);
 }

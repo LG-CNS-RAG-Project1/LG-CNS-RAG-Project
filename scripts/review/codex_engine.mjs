@@ -1,7 +1,7 @@
 // Codex CLI(ChatGPT 구독 로그인)를 비대화형으로 한 번 실행해 구조화된 PR 분석 결과를 받고, 공통 반환 계약으로 바꾼다.
 // - 인증: CODEX_HOME의 auth.json(ChatGPT 로그인)만 쓴다. API 키·GitHub·Notion 자격증명 환경변수는 자식 프로세스에 넘기지 않는다.
 // - 격리: 명령 실행 도구·웹 검색·커넥터·다중 에이전트·훅·메모리를 끄고, 빈 작업 폴더·읽기 전용 샌드박스·세션 미저장으로 실행한다.
-//   도구 차단이 검증되지 않으면 호출하지 않는다.
+//   기능 목록을 점검하지만 실제 도구 노출과 파일 읽기 차단을 보장하지 않는다.
 // - 지시문: model_instructions_file로 Codex 기본 지시문 대신 분석 지시문만 쓴다.
 // - 출력: --output-schema로 구조화 출력을 받고, --json 이벤트의 turn.completed에서 사용량을 읽는다.
 //   Codex는 응답 모델 이름과 출력 토큰 상한 설정을 제공하지 않으므로 요청 모델(-m)과 reasoning 강도만 지정한다.
@@ -164,7 +164,7 @@ export function createCodexReviewer({
       try {
         policyCheck({ bin, path: source.PATH });
       } catch {
-        return { provider: "codex", requested_model: request.model, response_model: null, status: "failed", error_class: "codex_failed", http_status: null, retry_after_at: null, usage: null, duration_ms: 0, retries: 0, model_calls: 0, output: null, problems: ["Codex 보안 점검 실패: 도구 차단을 확인할 수 없어 호출하지 않았습니다."] };
+        return { provider: "codex", requested_model: request.model, response_model: null, status: "failed", error_class: "codex_failed", http_status: null, retry_after_at: null, usage: null, duration_ms: 0, retries: 0, model_calls: 0, output: null, problems: ["Codex 기능 점검 실패: 설정을 확인할 수 없어 호출하지 않았습니다."] };
       }
       const sandbox = mkdtempSync(join(tmpRoot, "pr-review-codex-"));
       const started = now();

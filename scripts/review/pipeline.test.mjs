@@ -101,7 +101,7 @@ function harness({ responses = [], cardRows = [] } = {}) {
       const reviewer = overrides.noKey ? null : overrides.reviewer ?? createOpenAIReviewer({ apiKey: "test-key", fetchImpl: openai.fetchImpl, sleep: async () => {}, random: () => 0 });
       const config = {
         repository: REPO, prNumber: 42, eventName: "pull_request_target", eventAction, step: "analyze", force: false, dryRun: false,
-        llmEnabled: true, provider: "openai", model: "gpt-6-luna", effort: { full: "medium", incremental: "low" },
+        llmEnabled: true, provider: "openai", model: "gpt-6-sol", effort: { full: "medium", incremental: "low" },
         maxOutputTokens: { full: 32_000, incremental: 25_000 }, inputBudget: 160_000, ciWaitSeconds: 0, actorAllowed: true, ...overrides.config,
       };
       return runPr({
@@ -145,12 +145,12 @@ test("초안 PR은 열림·수정본 모두 모델 0회이고 페이지·그림�
   assert.equal(h.prRows().length, 0, "행이 없으면 초안 전환도 만들지 않음");
 });
 
-test("Ready for review 첫 분석은 gpt-6-luna를 1회 부르고, 보고서·그림·리더 메모를 한 페이지에 쓴다. 같은 버전 재실행은 0회", async () => {
+test("Ready for review 첫 분석은 gpt-6-sol를 1회 부르고, 보고서·그림·리더 메모를 한 페이지에 쓴다. 같은 버전 재실행은 0회", async () => {
   const h = harness({ responses: [(body) => okResponse(modelOutput(body, { delta: DELTA }))] });
   const result = await h.run("ready_for_review");
   assert.deepEqual([result.llm_calls, result.ai_status], [1, "done"]);
   const [request] = h.openai.requests;
-  assert.equal(request.body.model, "gpt-6-luna");
+  assert.equal(request.body.model, "gpt-6-sol");
   assert.equal(request.body.reasoning.effort, "medium");
   assert.equal(request.body.max_output_tokens, 32_000);
   assert.equal(request.body.store, false);
@@ -163,19 +163,19 @@ test("Ready for review 첫 분석은 gpt-6-luna를 1회 부르고, 보고서·�
   assert.equal(count(outline, "code"), 1);
   assert.ok(outline.findIndex((block) => block.text === DIAGRAM_HEADING) < outline.findIndex((block) => block.text === MEMO_HEADING));
   assert.equal(prop("분석 상태"), "AI 분석 완료");
-  assert.equal(prop("AI 모델"), "openai · gpt-6-luna");
+  assert.equal(prop("AI 모델"), "openai · gpt-6-sol");
   assert.equal(prop("저장소"), REPO);
   assert.equal(prop("분석한 버전"), H1.slice(0, 7));
   assert.equal(prop("병합 판단"), "병합 가능");
 
   const state = await h.state();
   assert.equal(state.last_successful_analysis.head, H1);
-  assert.equal(state.last_successful_analysis.response_model, "gpt-6-luna");
+  assert.equal(state.last_successful_analysis.response_model, "gpt-6-sol");
   assert.deepEqual(Object.keys(state.last_successful_analysis.versions).sort(), ["analyzer", "model", "prompt", "provider", "schema"]);
   assert.equal(state.last_attempt.status, "done");
   assert.equal(state.card_delta.items[0].contracts_upsert[0].key, "fetch_patents");
   const call = h.ledger.find((entry) => entry.result === "success");
-  assert.deepEqual([call.provider, call.response_model, call.input_tokens, call.cached_tokens, call.output_tokens, call.reasoning_tokens], ["openai", "gpt-6-luna", 1200, 300, 900, 400]);
+  assert.deepEqual([call.provider, call.response_model, call.input_tokens, call.cached_tokens, call.output_tokens, call.reasoning_tokens], ["openai", "gpt-6-sol", 1200, 300, 900, 400]);
   assert.ok(call.sections.patches > 0);
 
   const again = await h.run("reopened");
@@ -448,7 +448,7 @@ test("모델 응답에서 비밀값이 의심되면 결과를 폐기하고 Notio
 });
 
 test("분석 모델 설정이 GPT가 아니거나 키가 없으면 모델을 부르지 않고 규칙 점검만 '실패 아님·호출 안 함'으로 기록한다", async () => {
-  for (const [overrides, reason] of [[{ config: { model: "claude-sonnet-5-5" } }, "config"], [{ config: { model: "gpt-6.1-sol" } }, "config"], [{ config: { provider: "anthropic" } }, "config"], [{ noKey: true }, "no_key"], [{ config: { llmEnabled: false } }, "llm_disabled"]]) {
+  for (const [overrides, reason] of [[{ config: { model: "claude-sonnet-5-5" } }, "config"], [{ config: { model: "gpt-6.1-sol" } }, "config"], [{ config: { model: "gpt-6-luna" } }, "config"], [{ config: { provider: "anthropic" } }, "config"], [{ noKey: true }, "no_key"], [{ config: { llmEnabled: false } }, "llm_disabled"]]) {
     const h = harness();
     const result = await h.run("opened", overrides);
     assert.deepEqual([result.llm_calls, result.ai_status, h.openai.requests.length], [0, "skipped", 0]);
@@ -475,9 +475,9 @@ test("응답의 head가 분석 대상과 다르면 결과를 쓰지 않고, 입�
 });
 
 test("날짜 스냅샷 응답 모델은 기록하고, 다른 모델의 응답은 쓰지 않는다", async () => {
-  const dated = harness({ responses: [(body) => okResponse(modelOutput(body), { model: "gpt-6-luna-2026-05-18" })] });
+  const dated = harness({ responses: [(body) => okResponse(modelOutput(body), { model: "gpt-6-sol-2026-05-18" })] });
   const ok = await dated.run("opened");
-  assert.equal(ok.state.last_successful_analysis.response_model, "gpt-6-luna-2026-05-18");
+  assert.equal(ok.state.last_successful_analysis.response_model, "gpt-6-sol-2026-05-18");
   const other = harness({ responses: [(body) => okResponse(modelOutput(body), { model: "gpt-6.1-sol" })] });
   const failed = await other.run("opened");
   assert.deepEqual([failed.ai_status, failed.state.last_attempt.error_class], ["failed", "model_mismatch"]);
@@ -693,8 +693,8 @@ test("Codex(ChatGPT 구독) 분석기로도 같은 이벤트 정책·페이지 �
   const first = await h.run("opened", { reviewer, config: { provider: "codex" } });
   assert.deepEqual([first.llm_calls, first.ai_status], [1, "done"]);
   const entry = h.ledger.find((item) => item.result === "success");
-  assert.deepEqual([entry.provider, entry.model, entry.response_model, entry.input_tokens, entry.reasoning_tokens], ["codex", "gpt-6-luna", null, 18000, 350]);
-  assert.equal(h.page().prop("AI 모델"), "codex · gpt-6-luna");
+  assert.deepEqual([entry.provider, entry.model, entry.response_model, entry.input_tokens, entry.reasoning_tokens], ["codex", "gpt-6-sol", null, 18000, 350]);
+  assert.equal(h.page().prop("AI 모델"), "codex · gpt-6-sol");
   assert.equal(h.page().prop("분석 상태"), "AI 분석 완료");
   assert.equal(h.openai.requests.length, 0, "API는 부르지 않음");
 

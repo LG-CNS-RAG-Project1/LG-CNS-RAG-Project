@@ -69,10 +69,10 @@ with tempfile.TemporaryDirectory(prefix='codex-wire-test-') as tmp:
     (home/'auth.json').write_text(json.dumps({'auth_mode':'chatgpt','OPENAI_API_KEY':None,'tokens':{'id_token':b64({'alg':'none','typ':'JWT'})+'.'+b64({'email':'fake@example.invalid','https://api.openai.com/auth':{'chatgpt_plan_type':'pro','chatgpt_account_id':'selected'}})+'.c2lnbmF0dXJl','access_token':'synthetic-access','refresh_token':'synthetic-refresh','account_id':'selected'},'last_refresh':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime())}))
     if isolated:
         catalog = json.loads(pathlib.Path('/opt/pr-review/model.json').read_text())
-        model = next(item for item in catalog['models'] if item['slug']=='gpt-6-luna')
+        model = next(item for item in catalog['models'] if item['slug']=='gpt-6-sol')
     else:
         catalog = json.loads(subprocess.check_output(prefix + ['codex','debug','models','--bundled'],env=env,text=True))
-        model = next(item for item in catalog['models'] if item['slug']=='gpt-6-luna')
+        model = next(item for item in catalog['models'] if item['slug']=='gpt-6-sol')
         model.update(apply_patch_tool_type=None,shell_type='disabled',experimental_supported_tools=[],tool_mode='direct',supports_search_tool=False,multi_agent_version='disabled')
     if (model.get('apply_patch_tool_type') is not None or model.get('shell_type') != 'disabled' or model.get('experimental_supported_tools') != [] or model.get('tool_mode') != 'direct' or model.get('supports_search_tool') is not False or model.get('multi_agent_version') != 'disabled'):
         raise RuntimeError('Unsafe model metadata')
@@ -93,13 +93,13 @@ with tempfile.TemporaryDirectory(prefix='codex-wire-test-') as tmp:
     print(json.dumps({'requests':captured,'features':features}))
 `;
 
-const args = () => codexArgs({ model: "gpt-6-luna", effort: "medium", workDir: "[WORK]", instructionsFile: "[INSTRUCTIONS]", schemaFile: "[SCHEMA]", lastFile: "[LAST]" });
+const args = () => codexArgs({ model: "gpt-6-sol", effort: "medium", workDir: "[WORK]", instructionsFile: "[INSTRUCTIONS]", schemaFile: "[SCHEMA]", lastFile: "[LAST]" });
 function assertWire(result) {
   assert.equal(result.status, 0, result.stderr);
   const data = JSON.parse(result.stdout);
   assert.ok(data.requests.length > 0, "모의 ChatGPT 응답 엔드포인트에 요청이 도달해야 함");
   for (const request of data.requests) {
-    assert.equal(request.model, "gpt-6-luna");
+    assert.equal(request.model, "gpt-6-sol");
     assert.equal(request.input_valid, true, "실제 Responses 입력이어야 함");
     assert.ok(request.additional_count > 0, "Responses Lite의 추가 도구 구획이 있어야 함");
     for (const set of request.toolsets) {

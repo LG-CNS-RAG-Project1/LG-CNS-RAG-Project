@@ -58,7 +58,7 @@ const config = {
   verifyModel,
   llmEnabled: flag(env.REVIEW_LLM_ENABLED),
   provider: env.REVIEW_PROVIDER || "codex",
-  model: env.REVIEW_MODEL || "gpt-6-luna",
+  model: env.REVIEW_MODEL || "gpt-6-sol",
   effort: { full: effortOf(env.REVIEW_EFFORT_FULL, "medium"), incremental: effortOf(env.REVIEW_EFFORT_INCREMENTAL, "low") },
   maxOutputTokens: { full: positive(env.REVIEW_MAX_OUTPUT_TOKENS_FULL, 32_000), incremental: positive(env.REVIEW_MAX_OUTPUT_TOKENS_INCREMENTAL, 25_000) },
   inputBudget: positive(env.REVIEW_INPUT_BUDGET_BYTES, DEFAULT_INPUT_BUDGET),

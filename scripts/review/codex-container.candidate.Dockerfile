@@ -8,6 +8,6 @@ COPY scripts/review/codex_policy.mjs /opt/pr-review/codex_policy.mjs
 COPY scripts/review/codex-container.candidate.entry.mjs /opt/pr-review/entry.mjs
 RUN mkdir -p /tmp/catalog-home \
     && HOME=/tmp/catalog-home CODEX_HOME=/tmp/catalog-home codex debug models --bundled > /tmp/models.json \
-    && node --input-type=module -e 'import {readFileSync,writeFileSync} from "node:fs"; const m=JSON.parse(readFileSync("/tmp/models.json")).models.find(x=>x.slug==="gpt-6-luna"); if(!m) throw Error("model missing"); Object.assign(m,{tool_mode:"direct",shell_type:"disabled",apply_patch_tool_type:null,experimental_supported_tools:[],supports_search_tool:false,multi_agent_version:"disabled"}); writeFileSync("/opt/pr-review/model.json",JSON.stringify({models:[m]}));' \
+    && node --input-type=module -e 'import {readFileSync,writeFileSync} from "node:fs"; const m=JSON.parse(readFileSync("/tmp/models.json")).models.find(x=>x.slug==="gpt-6-sol"); if(!m) throw Error("model missing"); Object.assign(m,{tool_mode:"direct",shell_type:"disabled",apply_patch_tool_type:null,experimental_supported_tools:[],supports_search_tool:false,multi_agent_version:"disabled"}); writeFileSync("/opt/pr-review/model.json",JSON.stringify({models:[m]}));' \
     && rm -rf /tmp/catalog-home /tmp/models.json
 ENTRYPOINT ["node", "/opt/pr-review/entry.mjs"]

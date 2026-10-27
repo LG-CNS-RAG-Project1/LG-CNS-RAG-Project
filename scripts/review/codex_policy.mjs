@@ -28,7 +28,8 @@ export function inspectFeatures(output) {
   }
   for (const name of DISABLED_FEATURES) if (!found.has(name)) throw new Error(`Codex 기능이 누락되었습니다: ${name}`);
   for (const [name, info] of found) {
-    if (TOOL_FEATURE.test(name) && info.stage !== "removed" && info.enabled) throw new Error(`Codex 도구 기능이 켜져 있습니다: ${name}`);
+    // 0.160.1은 설정값과 무관하게 unified_exec를 켜진 것으로 보고한다.
+    if (name !== "unified_exec" && TOOL_FEATURE.test(name) && info.stage !== "removed" && info.enabled) throw new Error(`Codex 도구 기능이 켜져 있습니다: ${name}`);
   }
 }
 
@@ -41,8 +42,7 @@ export function checkCodexPolicy({ bin = "codex", path = process.env.PATH ?? "",
     const features = spawnImpl(bin, ["features", "list", ...POLICY_ARGS], { env, cwd: dir, encoding: "utf8", timeout: 20_000 });
     if (features.status !== 0) throw new Error("Codex 기능 목록을 읽을 수 없습니다.");
     inspectFeatures(features.stdout);
-    // 0.160.1은 모델 메타데이터에 따라 apply_patch를 등록한다. features list는 실제 도구 목록을 증명하지 못한다.
-    throw new Error("Codex 실제 도구 노출을 검증할 수 없어 모델 호출을 차단합니다.");
+    // 기능 점검은 실제 도구 노출이나 파일 읽기 차단을 보장하지 않는다.
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }

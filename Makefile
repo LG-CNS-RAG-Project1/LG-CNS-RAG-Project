@@ -45,7 +45,7 @@ review-preview: ## PR 분석 미리보기, Notion에 쓰지 않음 (예: make re
 		GITHUB_TOKEN="$$(gh auth token 2>/dev/null)" \
 		REVIEW_PREVIEW_OUT="$${TMPDIR:-/tmp}/review-preview-$(PR).json" node scripts/review/analyze_pr.mjs
 
-review-model-check: ## 분석기(REVIEW_PROVIDER, 기본 codex: ~/.codex의 ChatGPT 로그인 / openai: 셸 환경변수 OPENAI_API_KEY)로 REVIEW_MODEL(기본 gpt-6-luna) 최소 호출 1회, PR·Notion 미사용
+review-model-check: ## 분석기(REVIEW_PROVIDER, 기본 codex: ~/.codex의 ChatGPT 로그인 / openai: 셸 환경변수 OPENAI_API_KEY)로 REVIEW_MODEL(기본 gpt-6-sol) 최소 호출 1회, PR·Notion 미사용
 	node scripts/review/check_model.mjs
 
 review-codex-login: ## PR 분석 자동화 전용 ChatGPT 로그인을 만들어 Environment pr-analysis의 CODEX_AUTH_JSON에 저장(리더 PC에서 1회, 브라우저 로그인)

@@ -204,7 +204,7 @@ export function createFakeNotionApi({ failOn = () => null } = {}) {
   };
 }
 
-export function okResponse(output, { model = "gpt-6-luna", usage } = {}) {
+export function okResponse(output, { model = "gpt-6-sol", usage } = {}) {
   return {
     id: "resp_test", object: "response", model, status: "completed",
     output: [{ type: "reasoning", summary: [] }, { type: "message", role: "assistant", content: [{ type: "output_text", text: JSON.stringify(output) }] }],

@@ -19,7 +19,7 @@ try { servers = JSON.parse(mcp.stdout); } catch { throw new Error("MCP list inva
 if (mcp.status !== 0 || !Array.isArray(servers) || servers.length !== 0) throw new Error("MCP servers detected or unavailable");
 const models = spawnSync("codex", ["debug", "models", ...flags], options);
 let model;
-try { model = JSON.parse(models.stdout).models?.find((item) => item.slug === "gpt-6-luna"); } catch { throw new Error("Model catalog invalid"); }
+try { model = JSON.parse(models.stdout).models?.find((item) => item.slug === "gpt-6-sol"); } catch { throw new Error("Model catalog invalid"); }
 if (models.status !== 0 || !model || model.shell_type !== "disabled" || model.apply_patch_tool_type !== null || model.tool_mode !== "direct" || model.multi_agent_version !== "disabled" || model.supports_search_tool !== false || model.experimental_supported_tools?.length !== 0) throw new Error("Model catalog check failed");
 // Responses Lite는 tools를 input.additional_tools에 넣으므로 최상위 필드만 확인해서는 안 된다.
 let calls = 0, invalid = false, child;
@@ -36,7 +36,7 @@ const server = createServer((req, res) => {
       const payload = JSON.parse(Buffer.concat(chunks));
       const embedded = Array.isArray(payload.input) ? payload.input.filter((item) => item.type === "additional_tools") : [];
       calls += 1;
-      if (req.url !== "/v1/responses" || payload.model !== "gpt-6-luna" || embedded.length !== 1 || !Array.isArray(embedded[0].tools) || hasTools(payload)) invalid = true;
+      if (req.url !== "/v1/responses" || payload.model !== "gpt-6-sol" || embedded.length !== 1 || !Array.isArray(embedded[0].tools) || hasTools(payload)) invalid = true;
     } catch { invalid = true; }
     res.writeHead(400, { "content-type": "application/json" });
     res.end('{"error":{"message":"synthetic test"}}');
@@ -45,7 +45,7 @@ const server = createServer((req, res) => {
 });
 await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
 const fakeFlags = ["-c", 'model_provider="synthetic"', "-c", 'model_providers.synthetic.name="synthetic"', "-c", `model_providers.synthetic.base_url="http://127.0.0.1:${server.address().port}/v1"`, "-c", 'model_providers.synthetic.env_key="SYNTHETIC_KEY"', "-c", 'model_providers.synthetic.wire_api="responses"'];
-child = spawn("codex", ["exec", "--ignore-user-config", "--ignore-rules", "--ephemeral", "--skip-git-repo-check", "-s", "read-only", "-m", "gpt-6-luna", ...flags, ...fakeFlags, "synthetic test"], { cwd: "/work", env: { ...env, SYNTHETIC_KEY: "synthetic-only" }, stdio: "ignore" });
+child = spawn("codex", ["exec", "--ignore-user-config", "--ignore-rules", "--ephemeral", "--skip-git-repo-check", "-s", "read-only", "-m", "gpt-6-sol", ...flags, ...fakeFlags, "synthetic test"], { cwd: "/work", env: { ...env, SYNTHETIC_KEY: "synthetic-only" }, stdio: "ignore" });
 const timer = setTimeout(() => child.kill("SIGKILL"), 20_000);
 await new Promise((resolve, reject) => { child.on("close", resolve); child.on("error", reject); });
 clearTimeout(timer);

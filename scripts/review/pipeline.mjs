@@ -245,7 +245,7 @@ async function analyzeFlow(deps, pr) {
   let skip = null;
   if (mode === "none") skip = "no_change";
   else if (!config.llmEnabled) skip = "llm_disabled";
-  else if (!PROVIDERS.includes(config.provider) || config.model !== "gpt-6-luna") skip = "config";
+  else if (!PROVIDERS.includes(config.provider) || config.model !== "gpt-6-sol") skip = "config";
   else if (!deps.reviewer) skip = "no_key";
   else if (!config.actorAllowed) skip = "actor";
   else if (currentSecret) skip = "secret";

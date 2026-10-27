@@ -12,7 +12,7 @@ import { checkCodexPolicy, DISABLED_FEATURES, inspectFeatures } from "./codex_po
 import { selectReviewer } from "./pipeline.mjs";
 
 const SCHEMA = { type: "object", additionalProperties: false, required: ["ok"], properties: { ok: { type: "boolean" } } };
-const REQUEST = { model: "gpt-6-luna", instructions: "분석 지시문", input: "PR 입력", schema: SCHEMA, schemaName: "check", effort: "medium", maxOutputTokens: 32_000 };
+const REQUEST = { model: "gpt-6-sol", instructions: "분석 지시문", input: "PR 입력", schema: SCHEMA, schemaName: "check", effort: "medium", maxOutputTokens: 32_000 };
 
 function codexHome() {
   const dir = mkdtempSync(join(tmpdir(), "codex-home-test-"));
@@ -51,7 +51,7 @@ function fakeSpawn(plan) {
 const ok = { events: [{ type: "thread.started", thread_id: "t-1" }, { type: "turn.completed", usage: { input_tokens: 18670, cached_input_tokens: 2000, cache_write_input_tokens: 0, output_tokens: 1701, reasoning_output_tokens: 352 } }], last: JSON.stringify({ ok: true }) };
 
 test("실행 인자는 명령 실행·웹 검색·커넥터·다중 에이전트·훅·메모리를 끄고 사용자 설정을 읽지 않으며, 자식 환경에는 API 키·GitHub·Notion 토큰을 넘기지 않는다", async () => {
-  const args = codexArgs({ model: "gpt-6-luna", effort: "medium", workDir: "/w", instructionsFile: "/i.md", schemaFile: "/s.json", lastFile: "/l.json" });
+  const args = codexArgs({ model: "gpt-6-sol", effort: "medium", workDir: "/w", instructionsFile: "/i.md", schemaFile: "/s.json", lastFile: "/l.json" });
   for (const expected of ["--ignore-user-config", "--ignore-rules", "--ephemeral", "--skip-git-repo-check", "features.shell_tool=false", 'web_search="disabled"', "features.apps=false", "features.multi_agent=false", "features.hooks=false", "features.memories=false", "tools.update_plan.enabled=false", "tools.experimental_request_user_input.enabled=false", "agents.enabled=false", 'approval_policy="never"', 'history.persistence="none"', 'model_reasoning_effort="medium"', "--json"]) {
     assert.ok(args.includes(expected), expected);
   }
@@ -81,7 +81,7 @@ test("성공하면 공통 반환 계약으로 바꾸고, 사용량은 캐시·�
   assert.equal(result.status, "done");
   assert.deepEqual(result.output, { ok: true });
   assert.deepEqual(result.usage, { input: 18670, cached: 2000, cache_write: 0, output: 1701, reasoning: 352, total: 20371 });
-  assert.deepEqual([result.provider, result.requested_model, result.response_model, result.response_id, result.retries], ["codex", "gpt-6-luna", null, "t-1", 0]);
+  assert.deepEqual([result.provider, result.requested_model, result.response_model, result.response_id, result.retries], ["codex", "gpt-6-sol", null, "t-1", 0]);
 });
 
 test("결과 파일이 스키마에 맞지 않거나 JSON이 아니면 형식 실패로 둔다", async () => {
@@ -145,21 +145,22 @@ test("stderr에만 나온 갱신 오류도 인증 오류이며 원문은 반환�
 });
 
 test("Codex가 모델 전환을 보고하면 성공 결과도 폐기한다", async () => {
-  const fake = fakeSpawn(() => ({ ...ok, events: [{ type: "item.completed", item: { type: "error", message: "model rerouted: gpt-6-luna -> other (reason)" } }, ...ok.events] }));
+  const fake = fakeSpawn(() => ({ ...ok, events: [{ type: "item.completed", item: { type: "error", message: "model rerouted: gpt-6-sol -> other (reason)" } }, ...ok.events] }));
   const reviewer = createCodexReviewer({ codexHome: codexHome(), policyCheck: () => {}, spawnImpl: fake.spawnImpl });
   const result = await reviewer.review(REQUEST);
   assert.equal(result.error_class, "model_mismatch");
   assert.equal(result.output, null);
 });
 
-test("기능 목록의 도구 기능이 켜지거나 형식이 바뀌면 차단하고, 실제 도구 노출을 입증할 수 없으면 호출하지 않는다", async () => {
+test("기능 목록 점검은 unified_exec 예외만 허용하고 다른 도구 기능과 잘못된 형식을 차단한다", async () => {
   const lines = DISABLED_FEATURES.map((name) => `${name}  stable  false`).join("\n");
   assert.doesNotThrow(() => inspectFeatures(lines));
-  assert.throws(() => inspectFeatures(lines.replace("unified_exec  stable  false", "unified_exec  stable  true")), /unified_exec/);
+  assert.doesNotThrow(() => inspectFeatures(lines.replace("unified_exec  stable  false", "unified_exec  stable  true")));
+  assert.throws(() => inspectFeatures(lines.replace("shell_tool  stable  false", "shell_tool  stable  true")), /shell_tool/);
   assert.throws(() => inspectFeatures(`${lines}\nunknown_browser_use  stable  true`), /unknown_browser_use/);
   assert.throws(() => inspectFeatures("malformed"), /형식/);
   const fakeSync = (bin, args) => ({ status: 0, stdout: args[0] === "--version" ? "codex-cli 0.160.1\n" : lines });
-  assert.throws(() => checkCodexPolicy({ spawnImpl: fakeSync }), /실제 도구 노출/);
+  assert.doesNotThrow(() => checkCodexPolicy({ spawnImpl: fakeSync }));
   let spawned = false;
   const reviewer = createCodexReviewer({ codexHome: codexHome(), policyCheck: () => { throw new Error("blocked"); }, spawnImpl: () => { spawned = true; } });
   const result = await reviewer.review(REQUEST);
