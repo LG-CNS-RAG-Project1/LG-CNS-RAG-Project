@@ -1,10 +1,10 @@
 """KIPRIS 특허 검색 결과를 내부 문서 및 검색 청크로 변환한다."""
 
-from src.schemas import PatentChunk, PatentDocument
-from pathlib import Path
-from src.ingestion.kipris_client import search_patents as search_kipris_patents
-
 import argparse
+from pathlib import Path
+
+from src.schemas import PatentChunk, PatentDocument
+from src.ingestion.kipris_client import search_patents as search_kipris_patents
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 OUTPUT_PATH = ROOT_DIR / "data" / "patents" / "processed" / "patent_docs.jsonl"
@@ -78,6 +78,34 @@ def build_documents(records: list[dict]) -> list[PatentDocument]:
     return documents
 
 
+def collect_patents(
+    keywords: str | list[str],
+    limit: int = 20,
+) -> list[dict]:
+    """하나 이상의 키워드로 KIPRIS 특허를 수집한다."""
+    if isinstance(keywords, str):
+        keywords = [keywords]
+
+    if not keywords or any(
+        not isinstance(keyword, str) or not keyword.strip() for keyword in keywords
+    ):
+        raise ValueError("검색 키워드는 비어 있을 수 없습니다.")
+
+    if limit < 1:
+        raise ValueError("limit은 1 이상이어야 합니다.")
+
+    raw_patents = []
+
+    # 공백 정리 및 중복 키워드 제거 (입력 순서 유지)
+    unique_keywords = dict.fromkeys(keyword.strip() for keyword in keywords)
+
+    for keyword in unique_keywords:
+        results = search_kipris_patents(keyword, limit=limit)
+        raw_patents.extend(results)
+
+    return raw_patents
+
+
 def save_documents(
     documents: list[PatentDocument],
     path: Path = OUTPUT_PATH,
@@ -104,19 +132,22 @@ def save_documents(
     return path
 
 
-def run_pipeline(keyword: str, limit: int = 20) -> tuple[int, int, int]:
+def run_pipeline(
+    keyword: str | list[str],
+    limit: int = 20,
+) -> tuple[int, int, int]:
     """KIPRIS 특허 수집부터 ChromaDB 증분 색인까지 실행한다."""
     from src.retrieval.market_search import embed_texts
     from src.retrieval.patent_store import build_index, get_collection
 
-    # 1. KIPRIS 특허 수집
-    raw_patents = search_kipris_patents(keyword, limit=limit)
+    # 1. KIPRIS 특허 수집 (단일 또는 다중 키워드)
+    raw_patents = collect_patents(keyword, limit=limit)
 
     # 2. 문서 변환 및 중복 제거
     documents = build_documents(raw_patents)
 
     # 3. JSONL 누적 저장
-    save_documents(documents)
+    save_documents(documents, path=OUTPUT_PATH)
 
     # 4. 누적 특허 전체 로드
     all_documents = [
@@ -141,18 +172,19 @@ def run_pipeline(keyword: str, limit: int = 20) -> tuple[int, int, int]:
 
 
 def main() -> None:
-    """KIPRIS 특허를 수집·전처리하고 JSONL로 저장한다."""
+    """KIPRIS 특허를 수집·전처리하고 JSONL 및 ChromaDB에 저장한다."""
     parser = argparse.ArgumentParser(description="KIPRIS 특허 수집 및 전처리")
     parser.add_argument(
         "--keyword",
+        action="append",
         required=True,
-        help="특허 검색 키워드",
+        help="특허 검색 키워드 (여러 번 지정 가능)",
     )
     parser.add_argument(
         "--limit",
         type=int,
         default=20,
-        help="최대 수집 건수 (1~500)",
+        help="키워드당 최대 수집 건수 (1~500)",
     )
 
     args = parser.parse_args()

@@ -23,6 +23,7 @@ from src.ingestion.patent_processor import (
     build_documents,
     save_documents,
     run_pipeline,
+    collect_patents,
 )
 
 from src.retrieval.schemas import PatentQueryPlan, PatentSearchQuery
@@ -408,6 +409,156 @@ def test_run_pipeline(
     mock_embed.assert_not_called()
 
 
+@patch("src.retrieval.market_search.embed_texts")
+@patch("src.retrieval.patent_store.build_index")
+@patch("src.retrieval.patent_store.get_collection")
+@patch("src.ingestion.patent_processor.save_documents")
+@patch("src.ingestion.patent_processor.search_kipris_patents")
+def test_run_pipeline_no_results(
+    mock_search,
+    mock_save,
+    mock_collection,
+    mock_build_index,
+    mock_embed,
+    tmp_path,
+):
+    """검색 결과가 없어도 기존 특허를 유지하고 색인을 진행한다."""
+
+    # KIPRIS 검색 결과 없음
+    mock_search.return_value = []
+    mock_build_index.return_value = 0
+
+    # 기존에 저장된 특허 1건
+    existing_patent = PatentDocument(
+        patent_id="P001",
+        title="기존 설비 예지보전 특허",
+        abstract="진동 센서로 설비 고장을 예측한다.",
+    )
+
+    output_path = tmp_path / "patent_docs.jsonl"
+    output_path.write_text(
+        existing_patent.model_dump_json() + "\n",
+        encoding="utf-8",
+    )
+
+    # 실제 데이터 파일에 접근하지 않도록 경로 변경
+    with patch(
+        "src.ingestion.patent_processor.OUTPUT_PATH",
+        output_path,
+    ):
+        collected, total, indexed = run_pipeline(
+            "검색 결과 없는 키워드",
+            limit=3,
+        )
+
+    # 반환값 검증
+    assert (collected, total, indexed) == (0, 1, 0)
+
+    # 기존 특허가 유지되는지 확인
+    saved = [
+        PatentDocument.model_validate_json(line)
+        for line in output_path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    assert len(saved) == 1
+    assert saved[0].patent_id == "P001"
+
+    # 수집 및 색인 흐름 검증
+    mock_search.assert_called_once_with("검색 결과 없는 키워드", limit=3)
+    mock_save.assert_called_once_with([], path=output_path)
+    mock_collection.assert_called_once()
+    mock_build_index.assert_called_once()
+
+    # 실제 임베딩 API 호출은 발생하지 않아야 함
+    mock_embed.assert_not_called()
+
+
+@patch("src.retrieval.patent_store.build_index")
+@patch("src.retrieval.patent_store.get_collection")
+@patch("src.ingestion.patent_processor.search_kipris_patents")
+def test_run_pipeline_multiple_keywords(
+    mock_search,
+    mock_collection,
+    mock_build_index,
+    tmp_path,
+):
+    """다중 키워드 수집부터 중복 제거, 저장, 색인까지 검증한다."""
+    from src.ingestion import patent_processor
+
+    # 두 키워드에서 동일 출원번호 P002가 반환되는 상황
+    mock_search.side_effect = [
+        [
+            {
+                "application_number": "P001",
+                "title": "설비 예지보전 특허",
+                "abstract": "진동 데이터를 이용한 고장 예측",
+            },
+            {
+                "application_number": "P002",
+                "title": "공통 특허",
+                "abstract": "AI 기반 제조 공정 분석",
+            },
+        ],
+        [
+            {
+                "application_number": "P002",
+                "title": "공통 특허",
+                "abstract": "AI 기반 제조 공정 분석",
+            },
+            {
+                "application_number": "P003",
+                "title": "AI 품질 검사 특허",
+                "abstract": "영상 데이터를 이용한 불량 검출",
+            },
+        ],
+    ]
+
+    output_path = tmp_path / "patent_docs.jsonl"
+    mock_build_index.return_value = 3
+
+    # run_pipeline에서 사용하는 출력 경로를 임시 경로로 변경
+    with patch.object(patent_processor, "OUTPUT_PATH", output_path):
+        collected, total, indexed = patent_processor.run_pipeline(
+            keyword=["설비 예지보전", "AI 품질 검사"],
+            limit=3,
+        )
+
+    # 1. 키워드별 API 호출
+    assert mock_search.call_count == 2
+    mock_search.assert_any_call("설비 예지보전", limit=3)
+    mock_search.assert_any_call("AI 품질 검사", limit=3)
+
+    # 2. 중복 제거 후 반환값
+    assert (collected, total, indexed) == (3, 3, 3)
+
+    # 3. 실제 JSONL 저장 결과 검증
+    saved_documents = [
+        PatentDocument.model_validate_json(line)
+        for line in output_path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+
+    assert len(saved_documents) == 3
+    assert {doc.patent_id for doc in saved_documents} == {
+        "P001",
+        "P002",
+        "P003",
+    }
+
+    # 4. ChromaDB 색인 함수가 한 번만 호출됐는지 확인
+    mock_collection.assert_called_once()
+    mock_build_index.assert_called_once()
+
+    # 5. 색인 대상으로 전달된 데이터 검증
+    kwargs = mock_build_index.call_args.kwargs
+    assert len(kwargs["patents"]) == 3
+    assert {chunk.patent_id for chunk in kwargs["chunks"]} == {
+        "P001",
+        "P002",
+        "P003",
+    }
+
+
 def test_save_documents_incremental(tmp_path):
     path = tmp_path / "patent_docs.jsonl"
 
@@ -506,6 +657,50 @@ class TestPatentStore:
             include=["documents"],
         )
         assert saved["documents"] == ["진동 센서 기반 설비 고장 예측"]
+
+
+@patch("src.ingestion.patent_processor.search_kipris_patents")
+def test_collect_patents_multiple_keywords(mock_search):
+    """여러 키워드로 수집하고 결과를 통합한다."""
+
+    mock_search.side_effect = [
+        [{"application_number": "P001"}],
+        [{"application_number": "P002"}],
+    ]
+
+    result = collect_patents(
+        ["설비 예지보전", "AI 품질 검사"],
+        limit=3,
+    )
+
+    assert len(result) == 2
+    assert mock_search.call_count == 2
+    mock_search.assert_any_call("설비 예지보전", limit=3)
+    mock_search.assert_any_call("AI 품질 검사", limit=3)
+
+
+@patch("src.ingestion.patent_processor.search_kipris_patents")
+def test_collect_patents_duplicate_keywords(mock_search):
+    """동일한 검색 키워드는 한 번만 호출한다."""
+
+    mock_search.return_value = []
+
+    collect_patents(
+        ["설비 예지보전", "설비 예지보전"],
+        limit=3,
+    )
+
+    mock_search.assert_called_once_with("설비 예지보전", limit=3)
+
+
+@patch("src.ingestion.patent_processor.search_kipris_patents")
+def test_collect_patents_invalid_keywords(mock_search):
+    """빈 키워드는 API 호출 전에 거부한다."""
+
+    with pytest.raises(ValueError):
+        collect_patents(["설비 예지보전", ""], limit=3)
+
+    mock_search.assert_not_called()
 
 
 # ============================================================
