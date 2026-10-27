@@ -123,11 +123,15 @@ def mask(text: str, env: dict[str, str] | None = None) -> str:
 
 
 def run(cmd: list[str], *, capture: bool = True, timeout: float | None = None):
-    """명령을 저장소 루트에서 실행한다. 인자는 목록으로 넘겨 경로의 공백에 안전하다."""
+    """명령을 저장소 루트에서 실행한다. 인자는 목록으로 넘겨 경로의 공백에 안전하다.
+
+    표준입력은 넘기지 않는다(하위 명령이 확인 질문의 입력을 가로채지 않게 한다).
+    """
     try:
         return subprocess.run(
             cmd,
             cwd=ROOT,
+            stdin=subprocess.DEVNULL,
             capture_output=capture,
             text=True,
             encoding="utf-8",
@@ -147,6 +151,7 @@ def stream(cmd: list[str], env: dict[str, str]) -> int:
     process = subprocess.Popen(
         cmd,
         cwd=ROOT,
+        stdin=subprocess.DEVNULL,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,

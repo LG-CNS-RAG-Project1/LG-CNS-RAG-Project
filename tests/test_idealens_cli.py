@@ -142,3 +142,20 @@ def test_script_is_python39_compatible():
         ["python", str(SCRIPT), "--help"], capture_output=True, text=True
     )
     assert result.returncode == 0 and "doctor" in result.stdout
+
+
+def test_subprocesses_do_not_consume_stdin(monkeypatch):
+    seen = []
+    real_run = subprocess.run
+
+    def spy(cmd, **kwargs):
+        seen.append(kwargs.get("stdin"))
+        return real_run(cmd, **kwargs)
+
+    monkeypatch.setattr(idealens.subprocess, "run", spy)
+    idealens.run(["python", "-c", "print(1)"])
+    assert seen == [subprocess.DEVNULL]
+    code = idealens.stream(
+        ["python", "-c", "import sys; print(repr(sys.stdin.read()))"], {}
+    )
+    assert code == 0
