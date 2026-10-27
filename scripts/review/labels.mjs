@@ -50,8 +50,23 @@ export const LABELS = {
   },
   status: { ok: "✅ 문제 없음", warn: "⚠️ 확인해 주세요", fail: "❌ 보완 필요", "n/a": "– 해당 없음" },
   mode: { full: "처음부터 전체 분석", incremental: "바뀐 부분만", none: "코드 변경 없음(지난 결과 유지)", deterministic: "자동 규칙 점검만" },
-  analysis: { done: "완료", reused: "완료(지난 결과 유지)", failed: "AI 분석 안 됨", skipped: "AI 분석 안 함" },
+  analysis: {
+    done: "AI 분석 완료", partial: "AI 분석 완료(일부 범위)", reused: "AI 결과 유지(코드 변경 없음)", failed: "AI 분석 실패", skipped: "AI 분석 안 함",
+  },
+  // AI 호출 실패 분류(공식 오류 형태 기준)
+  error: {
+    auth: "인증 오류(리더 확인 필요)", model_access: "모델 접근 불가", quota: "사용·결제 한도 초과", rate_limit: "속도 제한",
+    server: "OpenAI 서버 오류", timeout: "시간 초과", network: "연결 오류", invalid_request: "요청 형식 오류",
+    incomplete: "응답 미완료(출력 한도)", refusal: "모델 거절", schema: "출력 형식 검증 실패", model_mismatch: "응답 모델 불일치",
+  },
+  // AI를 부르지 않은 이유
+  skip: {
+    draft: "초안", same_head: "같은 버전 이미 분석", no_change: "의미 있는 변경 없음", llm_disabled: "AI 분석 꺼짐(REVIEW_LLM_ENABLED)",
+    no_key: "API 키 없음(OPENAI_API_KEY)", config: "지원하지 않는 제공자·모델 설정", actor: "수동 실행 권한 없음",
+    secret: "비밀값 의심으로 생략", cooldown: "OpenAI 한도로 잠시 멈춤", retry_limit: "같은 버전 2회 실패로 자동 중단",
+  },
   owner: { author: "작성자", leader: "리더", team: "팀" },
   prState: { open: "열림", draft: "초안", merged: "병합", closed: "닫힘" },
   record: { latest: "최신", previous: "이전 분석" },
+  verdict: { merge_ok: "병합 가능", fix_then_merge: "보완 후 병합", discuss: "논의 후 결정", hold: "판단 보류" },
 };

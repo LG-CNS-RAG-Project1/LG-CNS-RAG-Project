@@ -25,7 +25,7 @@
 ```text
 .
 ├── .github/
-│   ├── workflows/           # CI, 리뷰어 자동 지정, Notion PR 문서화, PR 분석
+│   ├── workflows/           # CI, 리뷰어 자동 지정, PR 분석
 │   ├── ISSUE_TEMPLATE/      # 작업·버그 이슈 양식
 │   └── pull_request_template.md
 ├── .vscode/                 # 저장 시 black 적용 등 공용 편집기 설정
@@ -46,10 +46,9 @@
 ├── reports/                 # 생성한 경영진·R&D 보고서
 ├── scripts/
 │   ├── *.py                 # 특허 수집·색인 생성 실행 스크립트
-│   ├── create_notion_pr_page.mjs  # 병합 PR의 Notion 문서화 진입점
-│   ├── notion/              # PR 본문 → Notion 블록·mermaid 다이어그램 변환
+│   ├── notion/              # Notion 블록 도우미, 코드 해석 기반 서비스 아키텍처 그림(mermaid) 생성
 │   ├── github/              # PR 리뷰어 무작위 지정
-│   └── review/              # PR 자동 분석(규칙 점검·Claude 분석·Notion 'PR 분석' 표와 영역 요약 카드 기록)
+│   └── review/              # PR 자동 분석(규칙 점검·OpenAI GPT 분석·Notion PR 페이지와 영역 요약 카드 기록)
 ├── src/
 │   ├── main.py · pipeline.py · schemas.py  # API 진입점·분석 흐름·공통 모델
 │   ├── ingestion/           # 자료 수집·전처리·청크 생성
@@ -87,30 +86,23 @@ docker compose down               # 종료 (make down)
 
 ## Streamlit 화면 시연
 
-UI 담당자는 Python 3.12 가상환경에서 다음 명령으로 화면을 실행한다.
-
 ```powershell
 .\.venv\Scripts\python.exe -m pip install -r requirements-ui.txt
-.\.venv\Scripts\python.exe -m streamlit run frontend/app.py
+.\.venv\Scripts\python.exe -m streamlit run frontend/app.py --server.address 127.0.0.1 --server.port 8505
 ```
 
-현재는 API 키 없이 실행하는 **아이디어 검토실**이다. 아이디어 입력 → 문제·기술·고객 등
-브리프 확정 → 시장·기업 / 특허·기술 조사 → 구현 비용 → 종합 보고서 순서로 검토한다.
-‘예시 불러오기’로 가상 제조라인 검사 장치 사례를 확인할 수 있다.
-
-- 시장과 특허의 인용문·원문 위치·한계를 근거 패널에서 확인한다. 예시 문헌은 실제 자료가 아니다.
-- 장비·부품의 수량·단가·납기를 편집하고 ‘비용 반영하기’를 누르면 보고서에 반영한다.
-- 빈 금액은 미확인으로 남긴다. 입력 금액 소계는 총사업비·실제 견적이 아니다.
-- 팀 검토 메모와 다음 조사 항목을 저장한 후 Markdown 보고서를 내려받을 수 있다.
-- 입력은 현재 세션에 유지되며 영구 저장·팀 공동 편집은 제공하지 않는다.
-
-실행·사용 설명은 [UI 가이드](docs/ui-guide.md), 설계와 백엔드 연결 경계는
-[아이디어 검토실 구성](docs/idea-workspace-ui.md)을 참고한다.
-`frontend/workspace.py`는 예시·비용 계산·보고서, `frontend/styles.css`는 스타일,
-`tests/test_workspace_ui.py`는 브리프·비용·근거·보고서 동작을 담당한다.
-기존 `frontend/demo.py`는 기업 비교 모델을 보존하며 현재 화면에서는 사용하지 않는다.
+홈 로고와 클릭 가능한 상단 1~4단계·본문 버튼으로 **아이디어 입력 → 핵심 구성 확인 → 문헌 선정·근거 검토 → 종합 보고서**를 진행한다. 왼쪽 단계 사이드바는 사용하지 않는다.
+홈은 배경과 경계 없이 이어지는 조사 문서 비주얼과 입력 바로가기를 제공한다. 표지에는 특허 구성 도면·시장 흐름 그래프·근거 연결선과 유리 반사·그림자를 표현한 장식 돋보기를 배치하며 실제 특허·수요 데이터로 표시하지 않는다. 단계마다 아이보리·연녹색·크림·연청색으로 종이 색이 바뀌며 남은 장수가 3→2→1→0장으로 줄어든다. 앞뒤 이동 시 종이의 들림·회전·그림자를 표현하고 동작 줄이기 설정을 따른다. `frontend/assets/idealens-symbol.svg`와 `idealens-logo.svg`는 문서·돋보기·근거 연결을 결합한 심볼과 글자 로고다. 로고 버튼은 홈 이동 기능을 유지한다. `frontend/presentation.py`가 홈 비주얼을, `frontend/styles.css`가 종이 재질과 전환을 관리한다. 제공된 사진은 디자인 참고로만 사용하며 화면의 도해와 종이는 코드로 표현한다.
+입력 화면은 큰 본문과 우측 최근 입력, 조사 화면은 좌측 구성·중앙 특허/시장 후보·우측 선택 목록, 보고서는 좌측 선택 문헌·우측 본문으로 구성한다.
+핵심 구성은 최대 7개, 검토 질문은 최대 5개를 조건과 함께 확정한다. 3단계는 자동 연결 결과를 먼저 보여주며 사용 맥락·해결 과제·기술 구성·요구 성능·도입 제약·근거 범위의 판단 과정을 펼쳐 확인한다. 문헌 제외와 결과 수정은 선택 사항이다. 최소 2개 자료로 부분 보고서를 열 수 있으며, 질문별 근거 부족은 통합 판단 보류로 표시한다.
+정확한 기본 예시에만 가상 자료 4건과 사전 작성된 연결 초안을 자동 배치한다. 입력·구성·질문·조건을 바꾸면 해당 시연 판단을 재사용하지 않는다. 실제 AI 추출·검색·통합 판단은 UI에 미연결이며 예시도 실제 수요·성능 검증으로 표시하지 않는다.
+`frontend/automatic.py`는 시연 규칙과 팀 `MarketReport`/`PatentReport` 검증 모델의 근거 변환을 담당한다. 변환은 인용 ID를 영역별로 구분하고 출처·시점·인용문을 보존하는 준비 코드이며 실제 API 호출은 하지 않는다. `frontend/quick.py`는 보고서 규칙, `frontend/app.py`는 화면을 담당한다. 수정·제외는 보고서에도 반영하고 이전 스냅샷을 무효화한다.
+[실행·시연 가이드](docs/ui-guide.md)와 [참고 화면 구조 및 연결 계약](docs/quick-research-ui.md)을 참고한다. 기존 비용 함수는 후속 활용을 위해 유지한다.
 
 ### 시장 뉴스 수집·정제
+
+시장 조사 전체 흐름(아이디어 구조화 → 수집·색인 → 차원별 검색 → 분석 생성·인용 검증 → 평가)과
+단계별 코드 위치는 [docs/market_research.md](docs/market_research.md)를 참고한다.
 
 ```bash
 python -m src.ingestion.news_client --keyword-id smart_factory --max-items 10   # 키워드 1개 수집
@@ -134,19 +126,28 @@ python -m src.retrieval.market_search search "협동로봇 도입 확대" --idea
 - 에이전트 툴은 `search_market`(질의 1건)과 `search_by_dimensions`(수요·경쟁·가격·구매자·도입장벽 차원별 질의)이며, 같은 `dup_group` 결과는 1건만 반환한다.
 - 차원별 질의는 아이디어 5개 항목으로 만든다: 수요(고객·문제·기술), 경쟁(차별점·기술), 가격(고객·기술·수익모델), 구매자·도입장벽(고객·기술). 빈 항목은 질의에서 빠진다.
 
+### 아이디어 구조화
+
+```bash
+python -m src.generation.idea_parser "중소 부품 공장에 협동로봇과 비전 카메라를 턴키로 설치해 준다"
+```
+
+- 아이디어 한 문장을 `gpt-4o-mini`로 문제(`problem`)·기술(`technology`)·고객(`customers`)·차별점(`difference`)·수익모델(`revenue`)로 나눈다. 규칙은 `prompts/idea_parser.md`에서 관리하며, 문장에 없는 항목은 추측하지 않고 비워 둔다. `OPENAI_API_KEY`가 필요하다.
+- 빈 항목은 사용자에게 최대 2회 재질문한다. '모름'으로 답했거나 끝까지 비어 있는 항목은 `unknown`으로 확정하고, 항목별 출처(`extracted`·`user_answer`·`unknown`)를 함께 남긴다.
+- 완성된 결과(`IdeaDraft`)는 `build_requests`로 특허·시장 공통 입력(`StructuredIdea`)과 검색 요청(`PatentSearchRequest`·`MarketSearchRequest`)으로 변환한다.
+
 ## 환경변수
 
 `.env.example`을 `.env`로 복사해 값을 채운다. `.env`는 Git에 커밋하지 않는다.
 
 | 이름 | 용도 |
 |---|---|
-| `OPENAI_API_KEY` | 임베딩·답변 생성용 OpenAI API 키 |
+| `OPENAI_API_KEY` | 앱의 임베딩·답변 생성용 OpenAI API 키 |
 | `KIPRIS_API_KEY` | KIPRIS Plus 특허 API 키 |
 | `DART_API_KEY` | DART OpenAPI 공시 API 키 |
 | `NAVER_CLIENT_ID` · `NAVER_CLIENT_SECRET` | NAVER API HUB(네이버클라우드) Application의 Client ID·Secret. 해당 Application에서 뉴스 검색 API 활성화 필요 |
 
-GitHub Actions용 `NOTION_API_TOKEN`은 `.env`가 아니라 저장소의 **Settings → Secrets and variables → Actions**에 저장한다.
-PR 분석용 `CLAUDE_CODE_OAUTH_TOKEN`·`NOTION_REVIEW_TOKEN`은 develop에서만 열리는 Environment `pr-analysis`에 저장한다([docs/development.md](docs/development.md#pr-자동-분석-githubworkflowspr-analysisyml)).
+PR 분석 자동화용 `OPENAI_API_KEY`(앱 `.env`의 키와 별개)·`NOTION_REVIEW_TOKEN`은 `.env`가 아니라 develop에서만 열리는 GitHub Environment `pr-analysis`에 저장한다([docs/development.md](docs/development.md#pr-자동-분석-githubworkflowspr-analysisyml)).
 
 ## 개발 도구와 협업 자동화
 
@@ -154,8 +155,7 @@ PR 분석용 `CLAUDE_CODE_OAUTH_TOKEN`·`NOTION_REVIEW_TOKEN`은 develop에서�
 - **커밋 전 검사**: `pre-commit install` 후 커밋마다 black, 병합 충돌 표시, 개인키 노출, 대용량 파일, 줄끝 공백을 검사한다.
 - **CI**: develop·main 대상 PR과 push에서 black 검사, pytest, 자동화 스크립트 테스트, Docker 이미지 빌드를 실행한다.
 - **리뷰어 자동 지정**: PR에 리뷰어가 없으면 작성자를 제외한 팀원 중 한 명을 무작위로 지정한다. 후보는 저장소 변수 `REVIEWER_POOL`로 바꿀 수 있다.
-- **Notion PR 문서화**: develop에 병합된 PR의 설명을 Notion 블록으로 변환하고, 원문·커밋·변경 파일을 코드 블록으로, 변경 구조와 서비스 연결 구조를 mermaid 다이어그램으로 기록한다.
-- **PR 자동 분석**: develop 대상 PR이 열리거나 수정되면 규칙 점검과 Claude 분석 결과를 Notion 'RAG 기반 미니 프로젝트: IdeaLens' 아래 'PR 분석' 표에 태그(서비스 계층)·키워드·분석 내용과 함께 기록한다. 분석마다 새 행을 남기고, 수정본은 바뀐 파일만 다시 분석한다. 병합된 PR은 태그별 '영역 요약 카드' 표에 반영해 다음 분석의 출발점으로 쓴다. 참고용이며 승인·병합·GitHub 댓글은 하지 않는다. 판단 기준은 [docs/review-baseline.md](docs/review-baseline.md).
+- **PR 자동 분석**: develop 대상 PR이 검토 요청 상태로 열리거나 수정되면 규칙 점검과 OpenAI GPT(`gpt-6-luna`, API 키 방식) 분석 결과를 Notion 'RAG 기반 미니 프로젝트: IdeaLens' 아래 'PR 분석' 표의 PR별 페이지 하나에 기록한다. 페이지에는 태그(서비스 계층)·키워드·분석 내용, AI 병합 판단(4등급과 근거 3문장, 참고용), 첫 분석 때 코드로 한 번 그린 서비스 아키텍처 그림이 들어간다. 초안·병합·닫힘에는 모델을 부르지 않고, 수정본은 의미 있는 변경이 있을 때 바뀐 파일만 다시 분석한다. 병합되면 분석한 변경과 최종 변경이 같을 때만 카드 변경 후보를 태그별 '영역 요약 카드'에 항목 단위로 반영한다. API 사용료는 OpenAI API 결제로 따로 청구된다(Claude·ChatGPT 구독과 별개). 참고용이며 승인·병합·GitHub 댓글은 하지 않는다. 판단 기준은 [docs/review-baseline.md](docs/review-baseline.md), 운영 안내는 [docs/development.md](docs/development.md#pr-자동-분석-githubworkflowspr-analysisyml).
 - **의존성 갱신**: Dependabot이 pip·pre-commit·GitHub Actions 버전 갱신 PR을 월 1회 묶어서 만든다.
 
 ## 구현 방향
