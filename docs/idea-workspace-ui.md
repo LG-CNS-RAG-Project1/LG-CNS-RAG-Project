@@ -59,7 +59,7 @@
 ## 실행과 검증
 
 ```powershell
-python -m streamlit run frontend/app.py --server.address 127.0.0.1 --server.port 8504
+python -m streamlit run frontend/app.py --server.address 127.0.0.1 --server.port 8505
 python -m pytest tests/test_workspace_ui.py
 ```
 

@@ -1,17 +1,49 @@
 # 로컬 개발용 서비스 구성
 # - app: Python 개발 컨테이너. 저장소 전체를 /app에 마운트하므로 수집 데이터와
-#   Chroma 로컬 저장소(data/patents/chroma)가 호스트에 그대로 유지된다.
+#   로컬 Chroma 저장소(data/patents/chroma, data/market/chroma)가 호스트에 그대로 유지된다.
+# - ui: 같은 이미지로 Streamlit 화면을 실행한다. 호스트의 127.0.0.1:8505에만 공개한다.
 # API 키 등 환경변수는 .env에서 읽으며, .env가 없어도 컨테이너는 실행된다.
 name: lg-cns-rag
 
+x-app: &app
+  build:
+    context: .
+    target: dev
+  image: lg-cns-rag-app:dev
+  env_file:
+    - path: .env
+      required: false
+  volumes:
+    - .:/app
+
 services:
   app:
-    build:
-      context: .
-      target: dev
-    image: lg-cns-rag-app:dev
-    env_file:
-      - path: .env
-        required: false
-    volumes:
-      - .:/app
+    <<: *app
+
+  ui:
+    <<: *app
+    command:
+      - python
+      - -m
+      - streamlit
+      - run
+      - frontend/app.py
+      - --server.address=0.0.0.0
+      - --server.port=8505
+      - --server.headless=true
+    ports:
+      - "127.0.0.1:8505:8505"
+    environment:
+      # 화면 오류에 traceback을 싣지 않는다(키가 담긴 예외 문구 노출 방지).
+      STREAMLIT_CLIENT_SHOW_ERROR_DETAILS: type
+    init: true
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8505/_stcore/health', timeout=3)"
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 15s

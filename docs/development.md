@@ -7,11 +7,12 @@ README의 실행 방법을 보완하는 상세 문서. 개발 환경, 코드 포
 | 파일 | 역할 |
 |---|---|
 | `Dockerfile` | `base`(실행 의존성) → `dev`(black·pytest·pre-commit·git, 비루트 사용자 `app`) 2단계 이미지 |
-| `compose.yaml` | `app` 개발 컨테이너. 저장소를 `/app`에 마운트하고 `.env`가 있으면 환경변수로 읽는다 |
+| `compose.yaml` | 같은 이미지를 쓰는 `app`(개발)·`ui`(Streamlit, `127.0.0.1:8505`) 컨테이너. 저장소를 `/app`에 마운트하고 `.env`가 있으면 환경변수로 읽는다 |
 | `.dockerignore` | `.env`, `data/`, `reports/` 등을 빌드 컨텍스트에서 제외 |
 | `Makefile` | `make up`, `make test`, `make format` 등 공용 명령 |
 
-- 벡터 저장소는 로컬 Chroma(`data/patents/chroma/`)를 사용하며 별도 DB 컨테이너는 두지 않는다.
+- 벡터 저장소는 `CHROMA_HOST`가 비어 있으면 로컬 Chroma(`data/patents/chroma/`·`data/market/chroma/`), 설정되어 있으면 팀 공용 Chroma 서버를 쓴다([공용 Chroma 안내](shared-chroma.md)). 로컬 DB 컨테이너는 두지 않는다.
+- `make up`은 `app`과 `ui`를 함께 띄운다. 화면만 필요하면 `make ui`, 로그는 `make ui-logs`를 쓴다. `ui`는 화면 오류에 예외 종류만 표시한다(`STREAMLIT_CLIENT_SHOW_ERROR_DETAILS=type`).
 - 컨테이너 사용자는 UID 1000이다. Linux에서 호스트 UID가 다르면 `docker compose build --build-arg APP_UID=$(id -u) --build-arg APP_GID=$(id -g) app`으로 다시 빌드한다.
 - Windows에서 `make`가 없으면 README의 `docker compose` 명령을 직접 실행한다.
 

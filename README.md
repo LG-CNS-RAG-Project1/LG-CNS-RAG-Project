@@ -74,15 +74,23 @@ Docker Desktop(또는 Docker Engine + Compose v2.24 이상)을 기준으로 한�
 
 ```bash
 cp .env.example .env              # API 키 입력 (make env와 동일)
-docker compose up -d --build      # 개발 컨테이너 실행 (make up)
+docker compose up -d --build      # 개발(app)·화면(ui) 컨테이너 실행 (make up)
+docker compose up -d ui           # Streamlit 화면만 실행 → http://localhost:8505 (make ui)
 docker compose exec app bash      # 컨테이너 셸 접속 (make shell)
 docker compose run --rm app python -m pytest   # 테스트 (make test)
 docker compose down               # 종료 (make down)
 ```
 
-- `app` 컨테이너는 저장소 전체를 `/app`에 마운트하므로 코드 수정이 바로 반영되고, Chroma 저장소(`data/patents/chroma/`, `data/market/chroma/`)와 수집 데이터는 호스트에 유지된다.
+- `app`·`ui` 컨테이너는 같은 이미지를 쓰고 저장소 전체를 `/app`에 마운트하므로 코드 수정이 바로 반영된다. 로컬 Chroma 저장소(`data/patents/chroma/`, `data/market/chroma/`)와 수집 데이터는 호스트에 유지된다.
+- `ui`는 호스트의 `127.0.0.1:8505`에만 열린다. 화면 오류에는 예외 종류만 표시하고 상세 내용은 `docker compose logs ui`(`make ui-logs`)로 본다. `.env`를 바꾸면 `docker compose up -d --force-recreate ui`로 다시 만든다.
 - 의존성을 바꾸면 `docker compose build app`(`make build`)으로 이미지를 다시 만든다.
-- Docker 없이 실행할 때는 Python 3.12 가상환경에서 `pip install -r requirements-dev.txt`를 실행한다.
+- Docker 없이 실행할 때는 Python 3.12 가상환경에 고정 버전을 설치한다. 다른 버전의 Streamlit에서는 화면이 정상 동작하지 않는다.
+
+```bash
+uv venv --python 3.12 .venv
+uv pip install --python .venv/bin/python -r requirements-ui.txt   # Windows: .venv\Scripts\python.exe
+.venv/bin/python -m streamlit run frontend/app.py --server.address 127.0.0.1 --server.port 8505   # make ui-host
+```
 - `make help`로 공용 명령 목록을 확인한다. 상세 내용은 [docs/development.md](docs/development.md)를 참고한다.
 
 ## 공용 Chroma 연결
@@ -94,8 +102,7 @@ docker compose down               # 종료 (make down)
 ## Streamlit 화면 시연
 
 ```bash
-pip install -r requirements-ui.txt
-make ui                         # Streamlit on port 8505
+make ui                         # ui 컨테이너로 Streamlit 실행 → http://localhost:8505
 make patent-collect ARGS="--field-id SF-02 --limit 20 --include-claims"
 make patent-index ARGS="--field-id SF-02"
 ```
@@ -106,7 +113,7 @@ make patent-index ARGS="--field-id SF-02"
 핵심 구성은 최대 7개, 검토 질문은 최대 5개를 조건과 함께 확정한다. 3단계는 자동 연결 결과를 먼저 보여주며 사용 맥락·해결 과제·기술 구성·요구 성능·도입 제약·근거 범위의 판단 과정을 펼쳐 확인한다. 문헌 제외와 결과 수정은 선택 사항이다. 최소 2개 자료로 부분 보고서를 열 수 있으며, 질문별 근거 부족은 통합 판단 보류로 표시한다.
 정확한 기본 예시에만 가상 자료 4건과 사전 작성된 연결 초안을 자동 배치한다. `AI로 항목 초안 만들기 · 재질문`은 별도의 실제 분석 흐름으로, SF-02/SF-05 로컬 특허 색인과 시장 색인을 조회한다. 예시도 실제 수요·성능 검증으로 표시하지 않는다.
 `frontend/automatic.py`는 시연 규칙과 팀 보고서 모델의 근거 변환을 담당한다. 실제 실행은 `src.pipeline.run_pipeline`에서 특허·시장 서비스를 호출하고 `src.generation.report_builder`가 질문별 6개 기준으로 연결한다. 인용 ID는 영역별로 구분하며 한쪽 근거가 없으면 연결 판단을 보류한다. `frontend/quick.py`는 보고서 규칙, `frontend/app.py`는 화면을 담당한다. 수정·제외는 보고서에도 반영하고 이전 스냅샷을 무효화한다.
-[실행·시연 가이드](docs/ui-guide.md)와 [참고 화면 구조 및 연결 계약](docs/quick-research-ui.md)을 참고한다. 실제 보고서에는 구현 비용 항목을 입력할 수 있고, 누락 금액을 0으로 간주하지 않는 소계를 함께 표시한다. Streamlit 포트는 8505이며 `make ui`로 실행한다.
+[실행·시연 가이드](docs/ui-guide.md)와 [참고 화면 구조 및 연결 계약](docs/quick-research-ui.md)을 참고한다. 실제 보고서에는 구현 비용 항목을 입력할 수 있고, 누락 금액을 0으로 간주하지 않는 소계를 함께 표시한다. Streamlit 포트는 8505이며 `make ui`(Docker) 또는 `make ui-host`(고정 버전 가상환경)로 실행한다.
 
 ### 시장 뉴스 수집·정제
 
