@@ -61,38 +61,45 @@ def to_chroma_record(
     return document.chunk_id, document.content, metadata
 
 
-def build_index(
-    chunks: list[PatentChunk],
-    patents: list[PatentDocument],
-    collection,
-    embed_fn: EmbedFn,
-) -> int:
-    """특허 청크를 임베딩하여 ChromaDB에 저장한다."""
-
-    patent_map = {patent.patent_id: patent for patent in patents}
+def build_index(chunks, patents, collection, embed_fn):
+    """신규·변경 청크만 ChromaDB에 색인한다."""
+    patent_map = {p.patent_id: p for p in patents}
 
     records = [to_chroma_record(chunk, patent_map[chunk.patent_id]) for chunk in chunks]
 
     if not records:
         return 0
 
-    existing_ids = set(
-        collection.get(
-            ids=[record[0] for record in records],
-            include=[],
-        )["ids"]
+    ids = [record[0] for record in records]
+
+    existing = collection.get(
+        ids=ids,
+        include=["documents", "metadatas"],
     )
 
-    new_records = [record for record in records if record[0] not in existing_ids]
+    existing_map = {
+        chunk_id: (document, metadata)
+        for chunk_id, document, metadata in zip(
+            existing["ids"],
+            existing["documents"],
+            existing["metadatas"],
+        )
+    }
 
-    if not new_records:
+    changed_records = [
+        (chunk_id, content, metadata)
+        for chunk_id, content, metadata in records
+        if chunk_id not in existing_map or existing_map[chunk_id] != (content, metadata)
+    ]
+
+    if not changed_records:
         return 0
 
     collection.upsert(
-        ids=[record[0] for record in new_records],
-        documents=[record[1] for record in new_records],
-        metadatas=[record[2] for record in new_records],
-        embeddings=embed_fn([record[1] for record in new_records]),
+        ids=[record[0] for record in changed_records],
+        documents=[record[1] for record in changed_records],
+        metadatas=[record[2] for record in changed_records],
+        embeddings=embed_fn([record[1] for record in changed_records]),
     )
 
-    return len(new_records)
+    return len(changed_records)
