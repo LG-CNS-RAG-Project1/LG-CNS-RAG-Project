@@ -32,7 +32,7 @@ services:
       - --server.port=8505
       - --server.headless=true
     ports:
-      - "127.0.0.1:8505:8505"
+      - "127.0.0.1:${IDEALENS_UI_PORT:-8505}:8505"
     environment:
       # 화면 오류에 traceback을 싣지 않는다(키가 담긴 예외 문구 노출 방지).
       STREAMLIT_CLIENT_SHOW_ERROR_DETAILS: type
