@@ -9,3 +9,4 @@ def local_chroma_by_default(monkeypatch):
     monkeypatch.setenv("CHROMA_HOST", "")
     monkeypatch.setenv("CHROMA_PORT", "8000")
     monkeypatch.setenv("CHROMA_SSL", "false")
+    monkeypatch.setenv("CHROMA_API_KEY", "")
