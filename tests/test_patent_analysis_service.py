@@ -176,6 +176,7 @@ def test_kipris_candidates_supplement_short_local_results(monkeypatch):
 def test_local_indexed_claim_metadata_is_preserved(monkeypatch):
     import src.services.patent_service as service
 
+    monkeypatch.setattr(service, "judge_patent_candidates", judge_all)
     indexed = result(
         "P1", section="claims", content="제2항에 있어서, 카메라를 포함하는 장치."
     )
