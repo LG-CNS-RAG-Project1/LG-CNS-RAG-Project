@@ -23,7 +23,12 @@ from chromadb.api import ClientAPI
 from chromadb.config import Settings
 from dotenv import load_dotenv
 
-from src.schemas import ALL_DIMENSIONS, MarketDocument, MarketSearchRequest
+from src.schemas import (
+    ALL_DIMENSIONS,
+    IDEA_FIELDS,
+    MarketDocument,
+    MarketSearchRequest,
+)
 from src.retrieval.engine import RetrievalConfig, retrieve
 from src.retrieval.schemas import RetrievalResult, SearchDocument
 
@@ -34,7 +39,6 @@ COLLECTION_NAME = "news"
 EMBEDDING_MODEL = "text-embedding-3-small"
 EMBED_BATCH_SIZE = 100
 CANDIDATE_MULTIPLIER = 4
-IDEA_FIELDS = ["problem", "technology", "customers", "difference", "revenue"]
 
 # 차원별 검색 질의 템플릿. {필드}는 StructuredIdea의 5개 항목 값으로 채우며, 빈 항목은 빠진다.
 DIMENSION_QUERIES = {

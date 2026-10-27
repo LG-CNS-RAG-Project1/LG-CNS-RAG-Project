@@ -31,9 +31,10 @@ flowchart TD
   vector["벡터 검색<br/>text-embedding-3-small · 후보 Top-20"]
   group["중복 그룹 정리<br/>dup_group당 1건"]
   top["차원별 근거 Top-5 선정"]
-  enough{"충분성 확인<br/>임계 거리 이내 3건 이상?"}
+  judge["관련성 판정<br/>gpt-4o · 평가 라벨과 같은 기준<br/>기사마다 관련 여부·이유"]
+  enough{"충분성 확인<br/>관련 근거 2건 이상?"}
   live["네이버 API 실시간 보충<br/>색인 추가 후 재검색 (선택)"]
-  lack["자료 부족 표시"]
+  lack["근거 부족 상태 표시<br/>limited(1건) · insufficient(0건)"]
   nature["근거 성격 분류<br/>사업 신호 / 직접 수요"]
   verdict["차원별 판정<br/>확인됨 · 신호만 확인 · 미확인"]
   task["미확인 차원의<br/>검증 과제 1개 제안"]
@@ -50,12 +51,12 @@ flowchart TD
   subgraph eval["검색·답변 품질 평가와 개선"]
     direction TB
     cases["평가셋 25문항<br/>아이디어 5개 × 차원 5개<br/>정답 source_id 라벨"]
-    metrics["Hit@5 · Recall@5 · Precision@5 · MRR · nDCG@5 · 지연"]
+    metrics["Hit@5 · Recall@5 · Precision@5 · MRR · nDCG@5 · 지연<br/>관련성 판정 정밀도·kappa"]
     answer["Citation Accuracy ·<br/>오류 로그 E01–E10"]
     cost["Latency · 비용 측정<br/>응답 시간 · 토큰 · API 호출"]
     compare["LLM 단독 vs RAG 비교<br/>같은 25문항"]
     improved{"개선 효과 확인?"}
-    tune["키워드·질의 템플릿·<br/>임계값 조정"]
+    tune["키워드·질의 템플릿·<br/>판정 기준 조정"]
     fix["설정·데이터 버전 고정<br/>및 회귀 평가"]
     cases --> metrics --> answer --> cost --> compare --> improved
     improved -- 아니오 --> tune --> metrics
@@ -68,8 +69,8 @@ flowchart TD
   structure --> query
   structure -.-> patent
   index --> vector
-  query --> filter --> vector --> group --> top --> enough
-  enough -- 예 --> nature
+  query --> filter --> vector --> group --> top --> judge --> enough
+  enough -- 예 · sufficient --> nature
   enough -- 아니오 · 보충 사용 --> live
   enough -- 아니오 · 보충 미사용 --> lack
   live -. 재검색 1회 .-> vector
@@ -84,6 +85,7 @@ flowchart TD
   pass -- 예 --> contract
   contract --> handoff --> done
   top -. 검색 결과 평가 대상 .-> metrics
+  judge -. 판정 결과 평가 대상 .-> metrics
   check -. 인용 검증 결과 .-> answer
 
   classDef io fill:#eaf1fb,stroke:#6d8fbf,color:#1d2b3a
@@ -96,11 +98,11 @@ flowchart TD
 
   class start,done term
   class parse,ask,structure,patent,news,dart,clean,dedup,index io
-  class query,filter,vector,group,top,live,lack,nature search
+  class query,filter,vector,group,top,judge,live,lack,nature search
   class verdict,task,gen,cite,check,drop,contract,handoff genstep
   class cases,metrics,answer,cost,compare,tune,fix evalnode
   class filled,enough,pass,improved decide
-  class dart,enough,live,lack,nature,verdict,task,gen,cite,check,pass,drop,contract,answer,cost,compare,improved,tune,fix todo
+  class dart,live,nature,verdict,task,gen,cite,check,pass,drop,contract,answer,cost,compare,improved,tune,fix todo
 
   style data fill:#9aa3ad1f,stroke:#9aa3ad
   style eval fill:#9aa3ad1f,stroke:#9aa3ad
@@ -122,6 +124,32 @@ flowchart TD
 | 차별점 | `difference` | 경쟁/대체재 |
 | 수익모델 | `revenue` | 가격 |
 
+## 충분성 판정
+
+차원별 근거가 충분한지는 검색 거리가 아니라 LLM 관련성 판정으로 정한다.
+
+- 거리로는 관련 기사를 구분할 수 없다. 평가 라벨 300건에서 관련/비관련을 거리로 나눈 AUC는 0.52(도입장벽 0.33)이고, 어떤 임계값을 써도 충분성 판정 정확도가 '항상 부족'으로 답할 때(64%)보다 높지 않았다.
+- 상위 5건마다 `prompts/market_label_judge.md`(평가셋 라벨과 같은 기준)로 관련 여부와 이유를 판정하고, 관련 건수로 상태를 정한다.
+
+| 상태 | 조건 |
+|---|---|
+| `sufficient` | 관련 근거 2건 이상 |
+| `limited` | 관련 근거 1건 (신호 수준) |
+| `insufficient` | 검색 결과는 있으나 관련 근거 없음 |
+| `no_results` | 검색 결과 없음 |
+| `error` | 판정 실패 (검색 결과는 판정 없이 반환) |
+
+판정 모델은 사람 라벨 91건 기준으로 골랐다. 필터 없이 상위 5건을 쓰면 관련 비율(정밀도)은 0.54이다.
+
+| 모델 | 정확도 | 정밀도 | 재현율 | kappa |
+|---|---|---|---|---|
+| `gpt-4o` (기본) | 0.76 | 0.89 | 0.63 | 0.52 |
+| `gpt-4o-mini` | 0.68 | 0.69 | 0.73 | 0.36 |
+
+- 근거로 쓸 기사의 정확성이 중요하므로 정밀도가 높은 `gpt-4o`를 쓴다. 관련 기사를 일부 놓치는 대신 비관련 기사가 근거로 들어가는 경우를 줄인다.
+- 사람 라벨 중 사람·LLM 판정이 달랐던 행은 LLM 판정을 보고 확정했으므로, 두 모델 차이는 실제보다 크게 나타났을 수 있다.
+- 사람 라벨만 있는 6문항에서 충분성 상태 일치는 `gpt-4o` 5/6, `gpt-4o-mini` 4/6이다. 문항 수가 적어 상태 정확도의 근거로는 부족하다.
+
 ## 단계별 코드 위치
 
 | 단계 | 위치 |
@@ -132,11 +160,12 @@ flowchart TD
 | DART 공시 수집 | `src/ingestion/dart_client.py` |
 | 정제·중복 제거 | `src/ingestion/market_processor.py` → `data/market/processed/market_docs.jsonl` |
 | 색인·차원별 검색 툴 | `src/retrieval/market_search.py` → `data/market/chroma/` |
+| 관련성 판정·충분성 상태 | `src/retrieval/market_relevance.py`, `prompts/market_label_judge.md` |
 | 시장 조사 진입점 | `src/services/market_service.py` |
 | 시장 분석 생성 규칙 | `prompts/market_analysis.md`, `src/generation/market_analysis.py` |
 | 데이터 형식·결과 계약 | `src/schemas.py` (`MarketDocument`, `MarketSearchRequest`, `MarketReport`) |
 | 평가 문항·정답 라벨 | `evaluation/market_cases.json`, `evaluation/labels/`, `evaluation/market_labeling.py`, `evaluation/market_judge.py` |
-| 검색 평가 실행·결과 | `evaluation/evaluate.py` → `evaluation/results/` |
+| 검색·관련성 판정 평가 실행·결과 | `evaluation/evaluate.py`, `evaluation/market_relevance_eval.py` → `evaluation/results/` |
 
 ## 공통 검색 엔진
 
