@@ -123,7 +123,7 @@ export function buildContext({
   const factText = [facts, ...scopeLines].join("\n");
   sections.facts = bytes(factText);
 
-  const input = [
+  const input = maskPatch([
     factText,
     "",
     ...(priorText ? [`<prior_analysis_${nonce}>`, priorText, `</prior_analysis_${nonce}>`, ""] : []),
@@ -131,7 +131,7 @@ export function buildContext({
     "",
     `<untrusted_pr_${nonce}>`, prHead, "patch:", patchText, `</untrusted_pr_${nonce}>`,
     ...(sourceParts.length ? ["", `<area_source_${nonce}>`, ...sourceParts, `</area_source_${nonce}>`] : []),
-  ].join("\n");
+  ].join("\n"));
   return {
     input,
     sections,

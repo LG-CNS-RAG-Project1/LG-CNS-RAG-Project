@@ -56,7 +56,7 @@ export function classifyHttpError(status, body, headers) {
   return { ...base, error_class: "invalid_request" };
 }
 
-// 응답 모델이 요청 모델과 같은지 본다. 날짜 스냅샷 이름(예: gpt-6-luna-2026-05-18)은 같은 모델로 본다.
+// 응답 모델이 요청 모델과 같은지 본다. 날짜 스냅샷 이름(예: gpt-6-sol-2026-05-18)은 같은 모델로 본다.
 export function modelMatches(requested, actual) {
   if (!actual) return false;
   if (actual === requested) return true;

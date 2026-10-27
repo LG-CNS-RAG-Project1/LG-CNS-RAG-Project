@@ -153,7 +153,7 @@ test("renderReport는 화면에 영문 내부 값을 내보내지 않고, 사용
     assert.ok(!visible.includes(raw), `영문 값 노출: ${raw}`);
   }
   assert.ok(visible.includes("입력 1200(캐시 300) / 출력 900(추론 400) 토큰"));
-  assert.ok(visible.includes("AI(OpenAI GPT, API)"));
+  assert.ok(visible.includes("AI(OpenAI GPT)"));
   assert.equal(report.properties["준비 상태"], "🟡 리더가 한 번 보기");
   assert.equal(report.properties["AI 모델"], "openai · gpt-6-luna");
   assert.equal(report.properties["저장소"], "o/r");
