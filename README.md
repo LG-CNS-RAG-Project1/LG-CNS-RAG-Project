@@ -52,7 +52,7 @@
 ├── src/
 │   ├── main.py · pipeline.py · schemas.py  # API 진입점·분석 흐름·공통 모델
 │   ├── ingestion/           # 자료 수집·전처리·청크 생성
-│   ├── retrieval/           # 색인 구축·정확 검색·의미 검색
+│   ├── retrieval/           # 공통 Dense·BM25·Hybrid 검색·색인 구축
 │   ├── generation/          # 근거 검증·역할별 보고서 생성
 │   └── services/            # 특허·시장 분석 진입점
 ├── tests/                   # pytest 테스트
@@ -126,6 +126,13 @@ python -m src.retrieval.market_search search "협동로봇 도입 확대" --idea
 - 에이전트 툴은 `search_market`(질의 1건)과 `search_by_dimensions`(수요·경쟁·가격·구매자·도입장벽 차원별 질의)이며, 같은 `dup_group` 결과는 1건만 반환한다.
 - 차원별 질의는 아이디어 5개 항목으로 만든다: 수요(고객·문제·기술), 경쟁(차별점·기술), 가격(고객·기술·수익모델), 구매자·도입장벽(고객·기술). 빈 항목은 질의에서 빠진다.
 
+```bash
+python -m src.retrieval.market_relevance --idea-id SF-01   # 차원별 검색 + 관련성 판정·충분성 상태
+```
+
+- `search_with_relevance`는 차원별 검색 결과마다 `gpt-4o`로 관련 여부·이유를 판정하고(기준: `prompts/market_label_judge.md`), 관련 건수로 차원별 충분성 상태(`sufficient` 2건 이상 · `limited` 1건 · `insufficient` 0건 · `no_results` · `error`)를 붙여 반환한다. `OPENAI_API_KEY`가 필요하다.
+- 검색 거리는 관련성을 구분하지 못해(평가 라벨 기준 AUC 0.52) 충분성 판단에 쓰지 않는다. 판정 모델 선택 근거는 [docs/market_research.md](docs/market_research.md#충분성-판정).
+
 ### 아이디어 구조화
 
 ```bash
@@ -171,6 +178,36 @@ PR 분석 자동화용 `CODEX_AUTH_JSON`(ChatGPT 구독 로그인, `make review-
 
 ## 평가 계획
 
-- 검색 품질: Hit Rate@K, Recall@K, MRR.
+- 검색 품질: Hit@K, Recall@K, Precision@K, MRR, nDCG@K 및 검색 지연시간.
 - 답변 품질: 정확성, 근거 충실성, 인용 정확성.
 - 동일 자료집에서 검색 방식을 비교하고, 동일 질문의 일반 LLM 응답과 RAG 응답을 평가.
+
+### 시장 검색 평가
+
+```bash
+python -m evaluation.market_labeling init      # ideas.json × 5개 차원 → evaluation/market_cases.json 문항 생성
+python -m evaluation.market_labeling export    # 라벨링 후보 → evaluation/labels/market_candidates.csv
+python -m evaluation.market_judge prelabel     # (선택) gpt-4o 라벨 초안 → evaluation/labels/market_llm_labels.csv
+python -m evaluation.market_judge agreement    # (선택) 사람 라벨과 LLM 초안의 일치율·kappa
+python -m evaluation.market_judge merge        # (선택) 빈 relevant만 LLM 초안으로 채움
+python -m evaluation.market_labeling import    # relevant(1/0)를 채운 CSV → 문항별 정답 source_id 반영
+python -m evaluation.evaluate market --mode dense --label baseline
+python -m evaluation.evaluate market --mode bm25 --label baseline
+python -m evaluation.evaluate market --mode hybrid --label baseline
+python -m evaluation.evaluate market --mode hybrid --rerank --label baseline  # 선택 의존성 필요
+python -m evaluation.evaluate relevance --model gpt-4o  # 관련성 판정 vs 사람 라벨 → evaluation/results/
+```
+
+- 평가 아이디어는 `data/samples/ideas.json`의 SF-01~SF-05이며, 아이디어 5개 × 시장 차원 5개 = 25문항이다.
+- 라벨링 후보는 문항마다 벡터 검색 상위 8건과 그 아래 순위에서 차원 표현(가격·비용, 도입·사례 등)이 들어간 4건이다. 라벨 기준과 LLM 초안·사람 검토 절차는 [evaluation/market_labeling.md](evaluation/market_labeling.md).
+- 관련 문서가 없는 문항은 평균에서 빼고 따로 센다. 라벨 후보에 없던 문서가 상위 5건에 나오면 `unjudged`로 표시한다.
+- 관련성 판정 평가는 사람이 직접 라벨한 행(`label_source=human`)만 비교해 정확도·정밀도·재현율·kappa를 계산하고, 사람 라벨만 있는 문항의 충분성 상태 일치를 함께 출력한다.
+- 정답 `source_id`는 로컬에 수집한 뉴스 기준이므로, 다시 수집하면 문서가 달라질 수 있다.
+- `--mode`는 `dense`(기본, 기존 Chroma 검색), `bm25`, `hybrid`(RRF 결합) 중 선택한다. 검색 함수 기본 동작은 dense로 유지한다.
+- `--rerank`는 `pip install sentence-transformers` 후 `BAAI/bge-reranker-v2-m3` Cross-Encoder를 적용한다. 모델 파일은 최초 실행 때 내려받으며, 기본 실행 의존성에는 포함하지 않는다.
+- 평가는 문항별 Hit/Recall/Precision/MRR/nDCG와 검색 지연시간을 CSV로 저장한다. OpenAI 비용은 토큰 사용량 정보가 제공되지 않는 현 검색 인터페이스에서 계산하지 않는다.
+- 라벨이 완료된 시장 25문항은 평가 대상이다. 특허 평가셋(`evaluation/patent_cases.json`)과 로컬 특허 원문·색인은 비어 있어 특허 품질 수치를 만들지 않는다.
+
+### 특허 청구항 분석
+
+특허 분석 입력은 `PatentSearchRequest`, 반환 계약은 `PatentReport`이며 `src.services.patent_service.analyze_patents()`에서 호출한다. 문헌별 청구항 원문·버전·번호·종속항 참조를 인용 근거로 보존하고, KIPRIS 청구항 조회가 비어 있거나 실패하면 초록 근거와 미확인 상태를 반환한다. 구현 흐름과 Mock 통합 예제는 [docs/patent_rag.md](docs/patent_rag.md)를 참고한다.

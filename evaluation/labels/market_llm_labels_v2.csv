@@ -1,0 +1,73 @@
+﻿case_id,source_id,llm_label,llm_confidence,llm_reason
+SF-01-price,news-06c506bca6be,1,high,협동로봇 도입 시 시스템 통합 비용을 다룸
+SF-01-price,news-115faf6b2773,0,low,"협동로봇 도입 계기와 필요성 언급, 가격 정보는 없음"
+SF-01-price,news-31b95e8c5d61,0,high,주가 변동과 경영실적 자료로 제품 가격 정보가 없음
+SF-01-price,news-45725cde0db3,1,high,협동로봇을 임대하는 과금 방식으로 비용 부담을 다룸
+SF-01-price,news-4636e5bdbeb3,1,high,협동로봇의 내수·해외 가격을 구체적으로 제시함
+SF-01-price,news-5dbe9360f2c2,1,high,협동로봇의 평균 가격대를 직접 언급하여 가격 정보를 제공
+SF-01-price,news-6cd32e1dbabe,0,high,협동로봇 도입의 수요를 다루지만 가격 정보는 없음
+SF-01-price,news-824007994f53,0,high,주가 등락을 다룬 주식 시황 기사로 제품 가격 정보가 없음
+SF-01-price,news-b37edff3b4bc,0,high,협동로봇 도입 제안 기사로 가격이나 비용 정보가 없음
+SF-01-price,news-b80263840a0e,0,high,주가와 공모가를 다룬 기사로 제품 가격 정보가 없음
+SF-01-price,news-bde9220b6cc0,1,high,협동로봇 도입 시 총소유비용(TCO) 고려를 다룸
+SF-01-price,news-d6279e4c5144,0,low,협동로봇의 성장세를 언급했으나 가격 정보는 없음
+SF-01-buyer,news-115faf6b2773,1,high,광진의 협동로봇 도입 사례를 다룸
+SF-01-buyer,news-2c4e92e25b63,0,low,협동로봇 언급은 있으나 실제 도입 사례가 명확하지 않음
+SF-01-buyer,news-36f07ccf32ca,0,high,협동로봇 도입 사례가 아닌 도입 전망을 다룸
+SF-01-buyer,news-55ea4544fbe3,1,high,협동로봇 도입 사례로 실제 운영 중임을 다룸
+SF-01-buyer,news-60d070e797ef,0,high,"협동로봇 적용 범위 확대 기대만 언급, 실제 도입 사례 없음"
+SF-01-buyer,news-63f0fc72e0dd,0,high,협동로봇 머신비전 도입 사례나 고객 언급이 없음
+SF-01-buyer,news-649581df4a05,0,high,AI 도입의 어려움을 다루며 협동로봇 도입 사례는 없음
+SF-01-buyer,news-818f3b9769ab,0,high,협동로봇 도입 계획 부재와 투자 여력 부족을 언급해 실제 도입 사례가 없음
+SF-01-buyer,news-a481434ba27c,0,high,협동로봇 도입 필요성을 언급했으나 실제 도입 사례는 없음
+SF-01-buyer,news-b37edff3b4bc,0,low,협동로봇 도입 제안만 언급되고 실제 도입 사례는 없음
+SF-01-buyer,news-d6279e4c5144,0,high,협동로봇의 성장세를 언급했으나 실제 도입 사례는 없음
+SF-01-buyer,news-dead3dfbf46f,0,low,협동로봇 도입 경향을 다루지만 특정 도입 사례 언급이 없음
+SF-03-buyer,news-20b8d9f41fa5,1,high,AI 기반 예지보전 솔루션의 실제 구축 사례를 다룸
+SF-03-buyer,news-20d13c5ea510,1,high,설비 이상 징후 탐지와 예지보전 도입 사례를 다룸
+SF-03-buyer,news-2c8f8d833e35,0,low,AI 기반 예지보전의 도입 사례나 특정 고객 언급이 없음
+SF-03-buyer,news-4de1774372f2,1,high,발전소에 AI 기반 예지보전 도입 사례를 다룸
+SF-03-buyer,news-50ff73bdce47,0,low,발전소의 AI 기반 설비 점검 사례로 진동·전류 센서 도입 여부 불명확
+SF-03-buyer,news-82144ac96ae6,0,low,예지보전 기술을 다루지만 실제 도입 사례 언급이 없음
+SF-03-buyer,news-8e0fbddba792,0,high,AI 기반 예지보전 개발 수주 기사로 실제 도입 사례가 아님
+SF-03-buyer,news-9d00c0448728,1,high,삼성전자가 예지보전 기술을 협력사에 요구한 사례로 기술 범주가 일치
+SF-03-buyer,news-b74b7ec09401,0,low,기술 소개 기사로 특정 도입 기업·사례 언급이 없음
+SF-03-buyer,news-de73cbab02f5,0,high,스마트공장 지원 정책 기사로 예지보전 도입 사례 언급이 없음
+SF-03-buyer,news-e60f1790f079,0,low,예지보전 도입 사례 언급은 있으나 기술 범주가 불명확함
+SF-03-buyer,news-ed7e29074f16,0,low,예지보전 기술 소개로 실제 도입 사례 언급이 없음
+SF-02-competition,news-03bf6df9e48a,1,high,넥스트아이의 AI 비전 검사 기술을 다루며 경쟁 차원에 해당
+SF-02-competition,news-1532245826f8,1,high,2차전지 외관검사장비를 생산하는 경쟁 기업을 다룸
+SF-02-competition,news-17e2b6cbbd51,0,low,비전 검사 기술 공개 기사로 경쟁 기업·제품 언급이 없음
+SF-02-competition,news-20fb66b19106,1,high,머신비전 검사장비와 딥러닝 소프트웨어로 경쟁 기술을 다룸
+SF-02-competition,news-34abab9c2ed6,1,high,넥스트아이의 AI 검사로봇 개발은 비전 검사 경쟁 기업 사례에 해당
+SF-02-competition,news-440491d23594,1,high,러닝비전의 2차전지 외관 검사용 AI 시스템이 경쟁 제품임
+SF-02-competition,news-5ef05c86c089,1,high,AI 비전 검사 플랫폼 구축 사례로 경쟁 기술 적용 사례를 다룸
+SF-02-competition,news-7f39266c33db,1,high,비전 AI 기술의 대체 제품으로 해외 업체 검사 장비 언급
+SF-02-competition,news-9bd485a2d033,1,low,넥스트아이의 비전 검사 기술 개발로 경쟁 기업 정보가 일부 포함됨
+SF-02-competition,news-cafe1a2c4f32,1,high,트윔의 AI 비전 검사기가 2차전지 분야에 적용되어 경쟁을 다룸
+SF-02-competition,news-e571e2f06786,0,low,딥러닝 기반 검사기술 언급은 있으나 경쟁 기업·제품 정보가 부족함
+SF-02-competition,news-f677a72152db,1,high,AI 비전 검사장비와 자동검사 시스템으로 경쟁 기업의 사업 확장을 다룸
+SF-04-demand,news-0c52546f8c2c,1,high,FEMS 도입으로 전력 사용량 모니터링과 효율화 수요를 다룸
+SF-04-demand,news-18549346827e,1,high,FEMS 운영으로 에너지 효율 개선을 다뤄 수요 확대를 보여줌
+SF-04-demand,news-5e5d15343602,1,high,전기요금 절감 수요로 FEMS 도입 필요성을 시사
+SF-04-demand,news-65ba1a3c7017,1,high,FEMS 도입으로 전력비 절감 계획을 언급해 수요를 보여줌
+SF-04-demand,news-67cfebd17b6e,0,high,전기요금 인하로 인한 비용 절감 효과만 다루고 수요 언급 없음
+SF-04-demand,news-68a2caee6a8b,0,low,제약사의 에너지 자립 움직임을 다루며 FEMS 수요 언급이 없음
+SF-04-demand,news-7f840efe5672,1,high,FEMS 구축 확대와 전력 절감 효과로 수요를 보여줌
+SF-04-demand,news-a2ffbd0b8e96,0,high,재생에너지 사업 확대 기사로 FEMS 도입 수요와 직접 관련 없음
+SF-04-demand,news-ac1eb2ab27f4,0,low,FEMS 기술 언급은 있으나 고객 수요 관련 내용이 없음
+SF-04-demand,news-bdb76c6c2e30,1,high,FEMS 구축으로 에너지 데이터 활용 수요를 다룸
+SF-04-demand,news-e548023b30c6,0,low,FEMS 기술 설명만 있고 고객 수요 관련 내용이 없음
+SF-04-demand,news-ef1ba1d9912b,1,high,FEMS 도입 사례로 제조사의 수요를 보여줌
+SF-02-price,news-1e5dda27573a,0,high,반도체 검사 장비 가격 정보로 AI 비전 검사 장비와 관련 없음
+SF-02-price,news-20fb66b19106,1,high,AI 딥러닝 소프트웨어의 가격 관련 내용을 다룸
+SF-02-price,news-3782d7c51cef,1,high,AI 비전검사 시스템 도입 비용 4천만원을 직접 언급
+SF-02-price,news-3b41415368e6,1,high,외산 대비 가격 절반 수준의 머신비전 시스템 가격 정보가 있음
+SF-02-price,news-5ffe3dc67a3e,0,high,AI 비전 기술을 언급하지만 가격 정보는 없음
+SF-02-price,news-60a4b11433f3,0,high,장비 생산 기업 소개로 가격이나 비용 수준 정보가 없음
+SF-02-price,news-69c2c11f65dc,0,high,제품 생산과 실적 관련 내용으로 가격 정보가 없음
+SF-02-price,news-6d618ad26aca,0,low,AI 도입의 비용 부담을 언급하지만 비전 검사 장비 가격 정보는 없음
+SF-02-price,news-7abbb821d4aa,1,high,비전검사장비의 가격대가 1000만원 초반대임을 명시하여 가격 정보를 제공
+SF-02-price,news-d2de7696c740,0,high,부품 가격 상승 언급은 있지만 검사 장비의 도입 가격 정보는 없음
+SF-02-price,news-eccb5335617c,0,high,주가 관련 기사로 검사 장비의 가격 정보가 없음
+SF-02-price,news-f783fa2c8708,1,high,AI 비전 검사 장비의 총 구축비용이 30% 낮다는 가격 정보를 제공

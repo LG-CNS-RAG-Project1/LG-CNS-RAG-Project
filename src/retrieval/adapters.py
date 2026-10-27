@@ -18,6 +18,10 @@ def patent_to_search_document(
         metadata={
             "section": chunk.section,
             "chunk_index": chunk.chunk_index,
+            "claim_number": chunk.claim_number,
+            "claim_type": chunk.claim_type,
+            "depends_on": chunk.depends_on,
+            "version_id": chunk.version_id or patent.claim_version_id,
             "application_number": patent.application_number,
             "publication_number": patent.publication_number,
             "source_url": patent.source_url,
