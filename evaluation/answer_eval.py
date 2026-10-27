@@ -74,6 +74,10 @@ def run(limit=5, label="baseline"):
     load_dotenv(ROOT_DIR / ".env")
     client = OpenAI()
     collection = get_collection()
+    if collection.count() == 0:
+        raise RuntimeError(
+            "market Chroma index is empty; build the market index before answer evaluation"
+        )
     ideas = load_ideas()
     cases = [case for case in load_cases() if case.get("labeled")][:limit]
     if not cases:
