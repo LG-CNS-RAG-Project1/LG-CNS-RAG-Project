@@ -124,6 +124,23 @@ class Cancelled(RuntimeError):
     """영역 제한 시간이 지난 뒤 새 외부 호출을 막을 때 낸다."""
 
 
+class _GetCountCollection:
+    """공용 Chroma 컬렉션의 count()를 POST get으로 대신한다.
+
+    공용 서버의 인증 게이트웨이가 쿼리 문자열이 붙은 요청(count 등)을 404로 막으므로,
+    서비스에 넘기는 원격 컬렉션은 이 래퍼로 감싼다. 그 밖의 호출은 원래 컬렉션으로 넘긴다.
+    """
+
+    def __init__(self, collection):
+        self._collection = collection
+
+    def count(self) -> int:
+        return len(self._collection.get(include=[])["ids"])
+
+    def __getattr__(self, name):
+        return getattr(self._collection, name)
+
+
 class _EmptyCollection:
     """특허 로컬 색인이 없을 때 넘기는 빈 컬렉션. KIPRIS 보충 경로로 넘어가게 한다."""
 
@@ -226,10 +243,23 @@ def open_collection(name: str, local_dir: Path, client=None):
             )
     try:
         collection = client.get_collection(name, embedding_function=None)
-        count = collection.count()
-    except Exception as exc:  # chromadb NotFoundError 등: 컬렉션 없음으로 처리
-        reason = "컬렉션 없음" if "not" in str(exc).lower() else type(exc).__name__
+    except Exception as exc:  # chromadb NotFoundError 등
+        reason = (
+            "컬렉션 없음"
+            if type(exc).__name__ == "NotFoundError" or "does not exist" in str(exc)
+            else f"컬렉션을 열 수 없음({type(exc).__name__})"
+        )
         return None, IndexState(location=location, collection=name, reason=reason)
+    if location == "remote":
+        collection = _GetCountCollection(collection)
+    try:
+        count = collection.count()
+    except Exception as exc:
+        return None, IndexState(
+            location=location,
+            collection=name,
+            reason=f"건수 확인 실패({type(exc).__name__})",
+        )
     return collection, IndexState(location=location, collection=name, count=count)
 
 
