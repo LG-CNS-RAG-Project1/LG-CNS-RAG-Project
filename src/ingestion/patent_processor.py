@@ -4,13 +4,25 @@ import argparse
 import re
 from pathlib import Path
 
+import yaml
+
 from src.schemas import PatentChunk, PatentClaim, PatentDocument
-from src.ingestion.kipris_client import search_patents as search_kipris_patents
+from src.ingestion.kipris_client import (
+    KiprisAPIError,
+    fetch_patent_claims,
+    search_patents as search_kipris_patents,
+)
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 OUTPUT_PATH = ROOT_DIR / "data" / "patents" / "processed" / "patent_docs.jsonl"
+AREAS_PATH = ROOT_DIR / "configs" / "technology_areas.yaml"
 CLAIM_HEADING = re.compile(
     r"(?:^|\n)\s*(?:【\s*청구항\s*(\d+)\s*】|청구항\s*(\d+)\s*[.:：]?)",
+    re.IGNORECASE,
+)
+CLAIM_REFERENCE = re.compile(r"(?:제\s*(\d+)\s*항|청구항\s*(\d+)\s*항?)", re.IGNORECASE)
+DEPENDENT_CLAIM_REFERENCE = re.compile(
+    r"(?:제\s*\d+\s*항|청구항\s*\d+\s*항?).{0,24}에\s*있어서",
     re.IGNORECASE,
 )
 
@@ -51,14 +63,11 @@ def structure_claims(
         ):
             low, high = sorted((int(first), int(last)))
             refs.update(range(low, high + 1))
-        for ref in re.findall(r"(?:제|청구항\s*)\s*(\d+)\s*항", text):
-            refs.add(int(ref))
+        for match in CLAIM_REFERENCE.finditer(text):
+            refs.add(int(match.group(1) or match.group(2)))
         refs.discard(number)
         ordered_refs = sorted(ref for ref in refs if ref > 0)
-        explicit_relation = bool(
-            re.search(r"(?:제\s*\d+\s*항|청구항\s*\d+\s*항).{0,24}에\s*있어서", text)
-            or ordered_refs
-        )
+        explicit_relation = bool(DEPENDENT_CLAIM_REFERENCE.search(text) or ordered_refs)
         output.append(
             PatentClaim(
                 claim_number=number,
@@ -102,11 +111,21 @@ def to_patent_document(raw: dict) -> PatentDocument:
         claim_version_id=version_id,
         applicant=raw.get("applicant"),
         application_date=raw.get("application_date"),
+        publication_date=raw.get("publication_date"),
+        public_date=raw.get("public_date"),
         publication_number=raw.get("publication_number"),
         registration_number=raw.get("registration_number"),
         source=raw.get("source") or "KIPRIS Plus",
         source_url=raw.get("source_url"),
+        technology_area_ids=sorted(set(raw.get("technology_area_ids") or [])),
     )
+
+
+def load_technology_areas(path: Path = AREAS_PATH) -> dict[str, dict]:
+    """표준 기술 분야 설정을 ID 기준으로 반환한다."""
+    with open(path, encoding="utf-8") as file:
+        entries = yaml.safe_load(file).get("technology_areas", [])
+    return {entry["id"]: entry for entry in entries}
 
 
 def build_chunks(patents: list[PatentDocument]) -> list[PatentChunk]:
@@ -220,6 +239,16 @@ def save_documents(
                     merged[patent.patent_id] = patent
 
     for patent in documents:
+        previous = merged.get(patent.patent_id)
+        if previous:
+            patent = patent.model_copy(
+                update={
+                    "technology_area_ids": sorted(
+                        set(previous.technology_area_ids)
+                        | set(patent.technology_area_ids)
+                    )
+                }
+            )
         merged[patent.patent_id] = patent
 
     with open(path, "w", encoding="utf-8") as f:
@@ -229,34 +258,59 @@ def save_documents(
     return path
 
 
-def run_pipeline(
+def collect_to_jsonl(
     keyword: str | list[str],
     limit: int = 20,
-) -> tuple[int, int, int]:
-    """KIPRIS 특허 수집부터 ChromaDB 증분 색인까지 실행한다."""
-    from src.retrieval.market_search import embed_texts
-    from src.retrieval.patent_store import build_index, get_collection
-
-    # 1. KIPRIS 특허 수집 (단일 또는 다중 키워드)
+    technology_area_id: str | None = None,
+    include_claims: bool = False,
+    claim_fetcher=fetch_patent_claims,
+) -> tuple[int, int]:
+    """KIPRIS 검색 결과와 확보된 청구항을 문헌 JSONL로 누적 저장한다."""
     raw_patents = collect_patents(keyword, limit=limit)
 
-    # 2. 문서 변환 및 중복 제거
+    for raw in raw_patents:
+        if technology_area_id:
+            raw["technology_area_ids"] = [technology_area_id]
+        if include_claims:
+            application_number = str(raw.get("application_number") or "").strip()
+            if application_number:
+                try:
+                    raw["claim_items"] = claim_fetcher(application_number)
+                except KiprisAPIError as exc:
+                    print(f"청구항 미확보 ({application_number}): {exc}")
+
     documents = build_documents(raw_patents)
-
-    # 3. JSONL 누적 저장
     save_documents(documents, path=OUTPUT_PATH)
-
-    # 4. 누적 특허 전체 로드
     all_documents = [
         PatentDocument.model_validate_json(line)
         for line in OUTPUT_PATH.read_text(encoding="utf-8").splitlines()
         if line.strip()
     ]
+    return len(documents), len(all_documents)
 
-    # 5. 청크 생성
+
+def build_patent_index(
+    technology_area_id: str | None = None,
+    docs_path: Path | None = None,
+) -> tuple[int, int]:
+    """저장된 특허 JSONL을 청크화해 Chroma에 증분 색인한다."""
+    from src.retrieval.market_search import embed_texts
+    from src.retrieval.patent_store import build_index, get_collection
+
+    docs_path = docs_path or OUTPUT_PATH
+    all_documents = [
+        PatentDocument.model_validate_json(line)
+        for line in docs_path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    if technology_area_id:
+        all_documents = [
+            patent
+            for patent in all_documents
+            if technology_area_id in patent.technology_area_ids
+        ]
+
     all_chunks = build_chunks(all_documents)
-
-    # 6. ChromaDB 증분 색인
     collection = get_collection()
     indexed_count = build_index(
         chunks=all_chunks,
@@ -264,8 +318,27 @@ def run_pipeline(
         collection=collection,
         embed_fn=embed_texts,
     )
+    return len(all_documents), indexed_count
 
-    return len(documents), len(all_documents), indexed_count
+
+def run_pipeline(
+    keyword: str | list[str],
+    limit: int = 20,
+    technology_area_id: str | None = None,
+    include_claims: bool = False,
+    claim_fetcher=fetch_patent_claims,
+) -> tuple[int, int, int]:
+    """특허를 수집·저장한 뒤 로컬 Chroma에 증분 색인한다."""
+    collected_count, total_count = collect_to_jsonl(
+        keyword=keyword,
+        limit=limit,
+        technology_area_id=technology_area_id,
+        include_claims=include_claims,
+        claim_fetcher=claim_fetcher,
+    )
+    _, indexed_count = build_patent_index()
+
+    return collected_count, total_count, indexed_count
 
 
 def main() -> None:
@@ -274,8 +347,17 @@ def main() -> None:
     parser.add_argument(
         "--keyword",
         action="append",
-        required=True,
-        help="특허 검색 키워드 (여러 번 지정 가능)",
+        help="특허 검색 키워드 (여러 번 지정 가능; --field-id와 함께 사용 가능)",
+    )
+    parser.add_argument(
+        "--field-id",
+        choices=sorted(load_technology_areas()),
+        help="configs/technology_areas.yaml의 기술 분야 ID",
+    )
+    parser.add_argument(
+        "--include-claims",
+        action="store_true",
+        help="분야 설정의 검색어로 수집할 때 청구항 원문도 조회",
     )
     parser.add_argument(
         "--limit",
@@ -286,9 +368,19 @@ def main() -> None:
 
     args = parser.parse_args()
 
+    if args.field_id:
+        area = load_technology_areas()[args.field_id]
+        keywords = args.keyword or area["patent_keywords"]
+    elif args.keyword:
+        keywords = args.keyword
+    else:
+        parser.error("--keyword 또는 --field-id 중 하나가 필요합니다.")
+
     collected, total, indexed = run_pipeline(
-        keyword=args.keyword,
+        keyword=keywords,
         limit=args.limit,
+        technology_area_id=args.field_id,
+        include_claims=args.include_claims,
     )
 
     print(f"이번 수집: {collected}건")

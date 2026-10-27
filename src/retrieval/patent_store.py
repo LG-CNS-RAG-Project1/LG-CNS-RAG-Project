@@ -48,6 +48,7 @@ def to_chroma_record(
         "title": document.title,
         **document.metadata,
     }
+    metadata.update({f"area_{area_id}": True for area_id in patent.technology_area_ids})
 
     # ChromaDB 메타데이터에는 None을 저장하지 않는다.
     metadata = {
@@ -97,11 +98,28 @@ def build_index(chunks, patents, collection, embed_fn):
     if not changed_records:
         return 0
 
-    collection.upsert(
-        ids=[record[0] for record in changed_records],
-        documents=[record[1] for record in changed_records],
-        metadatas=[record[2] for record in changed_records],
-        embeddings=embed_fn([record[1] for record in changed_records]),
-    )
+    metadata_only_records = [
+        (chunk_id, metadata)
+        for chunk_id, content, metadata in changed_records
+        if chunk_id in existing_map and existing_map[chunk_id][0] == content
+    ]
+    metadata_only_ids = {chunk_id for chunk_id, _ in metadata_only_records}
+    content_records = [
+        record for record in changed_records if record[0] not in metadata_only_ids
+    ]
+
+    if metadata_only_records:
+        collection.update(
+            ids=[record[0] for record in metadata_only_records],
+            metadatas=[record[1] for record in metadata_only_records],
+        )
+
+    if content_records:
+        collection.upsert(
+            ids=[record[0] for record in content_records],
+            documents=[record[1] for record in content_records],
+            metadatas=[record[2] for record in content_records],
+            embeddings=embed_fn([record[1] for record in content_records]),
+        )
 
     return len(changed_records)

@@ -3,7 +3,7 @@
 - 신제품·사업 아이디어의 시장 수요, 기업 동향, 관련 특허와 구현 비용을 연결하는 프로젝트.
 - 주요 사용자: 사업 아이디어를 검토하는 기획자와 개발팀.
 - 산출물: 확정 브리프, 근거가 연결된 조사 노트, 비용표와 다음 검증 과제.
-- 현재 UI는 로컬 시연이다. AI 구조화·실제 검색·분석 API는 미연결이며, 예시를 변경하면 가상 결과를 적용하지 않는다.
+- UI에는 가상 자료를 사용하는 시연 흐름과, API 키·로컬 색인이 있을 때 실제 아이디어 구조화·특허/시장 조사·근거 연결을 실행하는 흐름이 있다.
 
 ## 코딩 에이전트 사용 전 필독
 
@@ -93,18 +93,20 @@ docker compose down               # 종료 (make down)
 
 ## Streamlit 화면 시연
 
-```powershell
-.\.venv\Scripts\python.exe -m pip install -r requirements-ui.txt
-.\.venv\Scripts\python.exe -m streamlit run frontend/app.py --server.address 127.0.0.1 --server.port 8505
+```bash
+pip install -r requirements-ui.txt
+make ui                         # Streamlit on port 8505
+make patent-collect ARGS="--field-id SF-02 --limit 20 --include-claims"
+make patent-index ARGS="--field-id SF-02"
 ```
 
 홈 로고와 클릭 가능한 상단 1~4단계·본문 버튼으로 **아이디어 입력 → 핵심 구성 확인 → 문헌 선정·근거 검토 → 종합 보고서**를 진행한다. 왼쪽 단계 사이드바는 사용하지 않는다.
 홈은 배경과 경계 없이 이어지는 조사 문서 비주얼과 입력 바로가기를 제공한다. 표지에는 특허 구성 도면·시장 흐름 그래프·근거 연결선과 유리 반사·그림자를 표현한 장식 돋보기를 배치하며 실제 특허·수요 데이터로 표시하지 않는다. 단계마다 아이보리·연녹색·크림·연청색으로 종이 색이 바뀌며 남은 장수가 3→2→1→0장으로 줄어든다. 앞뒤 이동 시 종이의 들림·회전·그림자를 표현하고 동작 줄이기 설정을 따른다. `frontend/assets/idealens-symbol.svg`와 `idealens-logo.svg`는 문서·돋보기·근거 연결을 결합한 심볼과 글자 로고다. 로고 버튼은 홈 이동 기능을 유지한다. `frontend/presentation.py`가 홈 비주얼을, `frontend/styles.css`가 종이 재질과 전환을 관리한다. 제공된 사진은 디자인 참고로만 사용하며 화면의 도해와 종이는 코드로 표현한다.
 입력 화면은 큰 본문과 우측 최근 입력, 조사 화면은 좌측 구성·중앙 특허/시장 후보·우측 선택 목록, 보고서는 좌측 선택 문헌·우측 본문으로 구성한다.
 핵심 구성은 최대 7개, 검토 질문은 최대 5개를 조건과 함께 확정한다. 3단계는 자동 연결 결과를 먼저 보여주며 사용 맥락·해결 과제·기술 구성·요구 성능·도입 제약·근거 범위의 판단 과정을 펼쳐 확인한다. 문헌 제외와 결과 수정은 선택 사항이다. 최소 2개 자료로 부분 보고서를 열 수 있으며, 질문별 근거 부족은 통합 판단 보류로 표시한다.
-정확한 기본 예시에만 가상 자료 4건과 사전 작성된 연결 초안을 자동 배치한다. 입력·구성·질문·조건을 바꾸면 해당 시연 판단을 재사용하지 않는다. 실제 AI 추출·검색·통합 판단은 UI에 미연결이며 예시도 실제 수요·성능 검증으로 표시하지 않는다.
-`frontend/automatic.py`는 시연 규칙과 팀 `MarketReport`/`PatentReport` 검증 모델의 근거 변환을 담당한다. 변환은 인용 ID를 영역별로 구분하고 출처·시점·인용문을 보존하는 준비 코드이며 실제 API 호출은 하지 않는다. `frontend/quick.py`는 보고서 규칙, `frontend/app.py`는 화면을 담당한다. 수정·제외는 보고서에도 반영하고 이전 스냅샷을 무효화한다.
-[실행·시연 가이드](docs/ui-guide.md)와 [참고 화면 구조 및 연결 계약](docs/quick-research-ui.md)을 참고한다. 기존 비용 함수는 후속 활용을 위해 유지한다.
+정확한 기본 예시에만 가상 자료 4건과 사전 작성된 연결 초안을 자동 배치한다. `AI로 항목 초안 만들기 · 재질문`은 별도의 실제 분석 흐름으로, SF-02/SF-05 로컬 특허 색인과 시장 색인을 조회한다. 예시도 실제 수요·성능 검증으로 표시하지 않는다.
+`frontend/automatic.py`는 시연 규칙과 팀 보고서 모델의 근거 변환을 담당한다. 실제 실행은 `src.pipeline.run_pipeline`에서 특허·시장 서비스를 호출하고 `src.generation.report_builder`가 질문별 6개 기준으로 연결한다. 인용 ID는 영역별로 구분하며 한쪽 근거가 없으면 연결 판단을 보류한다. `frontend/quick.py`는 보고서 규칙, `frontend/app.py`는 화면을 담당한다. 수정·제외는 보고서에도 반영하고 이전 스냅샷을 무효화한다.
+[실행·시연 가이드](docs/ui-guide.md)와 [참고 화면 구조 및 연결 계약](docs/quick-research-ui.md)을 참고한다. 실제 보고서에는 구현 비용 항목을 입력할 수 있고, 누락 금액을 0으로 간주하지 않는 소계를 함께 표시한다. Streamlit 포트는 8505이며 `make ui`로 실행한다.
 
 ### 시장 뉴스 수집·정제
 
@@ -117,9 +119,25 @@ python -m src.ingestion.news_client                                             
 python -m src.ingestion.market_processor                                        # 원본 → MarketDocument 정제
 ```
 
-- 키워드·수집 기준은 `configs/market_keywords.yaml`에서 관리한다.
+- 시장·특허 공통 기술 분야, 분야별 검색어 및 시장 수집 기준은 `configs/technology_areas.yaml`에서 관리한다. 공통 시장 키워드는 `shared_market_keywords`, 분야별 시장 키워드와 특허 키워드는 각 `technology_areas` 항목에 둔다.
 - NAVER API HUB 뉴스 검색 API의 제목·요약·링크·발행일만 `data/market/raw/news_{keyword_id}_{수집일}.json`에 저장한다.
 - 정제 단계는 같은 URL 기사를 합치고, 제목 유사도 0.8 초과·발행일 3일 이내 기사를 같은 `dup_group`으로 묶어 대표 1건만 `data/market/processed/market_docs.jsonl`에 저장한다.
+
+### 특허 문서 수집·분야별 사전 색인
+
+```bash
+python -m src.ingestion.patent_processor --field-id SF-02 --limit 20 --include-claims
+python -m src.ingestion.patent_processor --field-id SF-05 --limit 20 --include-claims
+```
+
+- 공통 분야 분류와 초기 검색어는 `configs/technology_areas.yaml`에서 SF-01~SF-08로 관리한다. 현재 우선 특허 색인 대상은 SF-02 AI 비전 품질검사와 SF-05 지능형 공정제어다.
+- `--field-id`는 분야 설정의 검색어로 KIPRIS 자료를 수집해 `data/patents/processed/patent_docs.jsonl`에 누적하고, 새 초록·청구항 청크를 `data/patents/chroma/`에 색인한다. 기존 색인 청크는 변경이 없으면 다시 임베딩하지 않는다.
+- `--include-claims`는 문헌별 청구항 상세 API를 조회한다. API에서 확보하지 못한 청구항은 생성하지 않고 초록만 색인한다. `KIPRIS_API_KEY`와 청구항 API 이용 권한이 필요하다.
+- 검색어 계획으로 별도 수집·색인을 하려면 `python -m scripts.collect_patents --request <PatentSearchRequest.json> --field-id SF-02 --include-claims` 후 `python -m scripts.build_patent_index --field-id SF-02`를 실행한다. `PatentQueryPlan`은 기술 요소를 최대 5개까지 허용한다.
+- KIPRIS 검색·청구항 API 원본 XML과 키를 제외한 요청 메타데이터는 `data/patents/raw/`에 저장한다. 해당 폴더는 로컬 전용이며 Git 추적 대상에서 제외된다.
+- 색인 시 문서 임베딩 API 호출이 필요하다(`OPENAI_API_KEY`). 이후 문서 벡터는 로컬 Chroma에서 재사용한다. Dense/Hybrid 검색의 질의 임베딩은 검색 때 별도로 생성된다.
+- `PatentSearchRequest.technology_area_id`를 지정하면 검색 결과를 해당 분야로 제한한다. 원문 JSONL과 Chroma DB는 로컬에 저장되고 Git에는 포함되지 않는다.
+- 기존 SF-05 시장 평가 샘플·라벨은 현장 작업자용 LLM 음성 어시스턴트 기준이다. 과거 검색어는 `legacy_market_keywords`에 기록하며 신규 뉴스 수집에는 사용하지 않는다. 새 SF-05 시장 성능을 평가하려면 아이디어 샘플을 갱신하고 자료를 다시 수집·라벨링해야 한다.
 
 ### 시장 근거 색인·검색
 
@@ -167,6 +185,9 @@ python -m src.generation.idea_parser "중소 부품 공장에 협동로봇과 �
 - 아이디어 한 문장을 `gpt-4o-mini`로 문제(`problem`)·기술(`technology`)·고객(`customers`)·차별점(`difference`)·수익모델(`revenue`)로 나눈다. 규칙은 `prompts/idea_parser.md`에서 관리하며, 문장에 없는 항목은 추측하지 않고 비워 둔다. `OPENAI_API_KEY`가 필요하다.
 - 빈 항목은 사용자에게 최대 2회 재질문한다. '모름'으로 답했거나 끝까지 비어 있는 항목은 `unknown`으로 확정하고, 항목별 출처(`extracted`·`user_answer`·`unknown`)를 함께 남긴다.
 - 완성된 결과(`IdeaDraft`)는 `build_requests`로 특허·시장 공통 입력(`StructuredIdea`)과 검색 요청(`PatentSearchRequest`·`MarketSearchRequest`)으로 변환한다.
+- Streamlit에서 `AI로 항목 초안 만들기 · 재질문`으로 구조화·재질문을 실행하고 SF-02/SF-05 특허 색인을 선택할 수 있다. 확인한 질문으로 특허·시장 통합 조사를 실행하고 원문 근거와 출원·공개일을 확인한다.
+- `src.pipeline.run_pipeline`의 입력·출력 및 보류 규칙은 [docs/api_contract.md](docs/api_contract.md#3-특허-조사-및-통합-파이프라인)에 명시한다.
+
 - 입력 가드레일: LLM 호출 전 규칙 검사(`src/generation/input_guard.py`: 길이, 지시 무시·시스템 프롬프트 공개 등 조작 표현)와 같은 LLM 호출의 `input_status` 판정(`ok`·`off_topic`·`unsafe`)으로 주제 이탈·프롬프트 조작·유해 목적 입력을 거절한다. 거절되면 `status="rejected"`와 안내 문구(`rejection_reason`)를 반환하고 검색 요청을 만들지 않는다. 재질문 답변도 규칙 검사를 거친다. 기준은 [docs/market_research.md](docs/market_research.md#입력-가드레일).
 
 ## 환경변수
@@ -196,7 +217,7 @@ PR 분석 자동화용 `CODEX_AUTH_JSON`(ChatGPT 구독 로그인, `make review-
 
 - 프로젝트 목표·세부 단계·이번 시기 우선순위·범위의 기준은 [docs/review-baseline.md](docs/review-baseline.md)이며, PR 자동 분석도 이 문서로 목표 연결을 판단한다.
 - 목표 흐름: 아이디어 구조화 → 특허·시장 수집·정제 → 색인·검색 → 판정·분석 생성 → 인용 검증 → 질문별 연결 → 종합 보고서(구현 비용표 포함) → 평가.
-- 기존 백엔드의 아이디어·특허·시장 모델(`src/schemas.py`)을 결과 계약으로 유지하며, 실제 검색·분석 결과를 받는 UI 연결은 별도 구현한다.
+- 백엔드 아이디어·특허·시장 모델(`src/schemas.py`)을 결과 계약으로 유지하고 `src.pipeline.run_pipeline`에서 두 조사와 통합 보고서 생성을 연결한다.
 - 데이터 출처: KIPRIS Plus, NAVER 뉴스 검색 API(교육 목적, 프로젝트 종료 시 폐기), DART, 공공기관·연구기관·기업의 공식 자료. 사내자료 연계는 향후 검토 범위.
 - 원문 구획과 청구항 구조를 보존하고, 각 주장에 출처·문헌 버전·원문 위치·링크를 연결.
 - 검색은 공통 엔진에서 의미 검색(dense)·단어 검색(BM25)·결합(hybrid) 중 선택하며, 임베딩은 `text-embedding-3-small`, 색인은 로컬 Chroma 또는 환경변수로 지정한 공용 Chroma를 사용.
@@ -218,15 +239,19 @@ python -m evaluation.market_judge prelabel     # (선택) gpt-4o 라벨 초안 �
 python -m evaluation.market_judge agreement    # (선택) 사람 라벨과 LLM 초안의 일치율·kappa
 python -m evaluation.market_judge merge        # (선택) 빈 relevant만 LLM 초안으로 채움
 python -m evaluation.market_labeling import    # relevant(1/0)를 채운 CSV → 문항별 정답 source_id 반영
-python -m evaluation.evaluate market --mode dense --label baseline
-python -m evaluation.evaluate market --mode bm25 --label baseline
-python -m evaluation.evaluate market --mode hybrid --label baseline
+python -m evaluation.evaluate market --idea-ids SF-01,SF-02,SF-03,SF-04 --mode dense --label refreshed
+python -m evaluation.evaluate market --idea-ids SF-01,SF-02,SF-03,SF-04 --mode bm25 --label refreshed
+python -m evaluation.evaluate market --idea-ids SF-01,SF-02,SF-03,SF-04 --mode hybrid --label refreshed
 python -m evaluation.evaluate market --mode hybrid --rerank --label baseline  # 선택 의존성 필요
 python -m evaluation.evaluate relevance --model gpt-4o  # 관련성 판정 vs 사람 라벨 → evaluation/results/
 python -m evaluation.evaluate guardrail                 # 입력 가드레일 차단율·오차단율 → evaluation/results/
+python -m evaluation.answer_eval --limit 5              # LLM 단독 vs RAG 답변 품질(LLM 평가, API 비용 발생)
+python -m evaluation.patent_labeling export              # SF-02/SF-05 특허 후보 CSV 내보내기 (사람 라벨 필요)
 ```
 
-- 평가 아이디어는 `data/samples/ideas.json`의 SF-01~SF-05이며, 아이디어 5개 × 시장 차원 5개 = 25문항이다.
+- 시장 평가에는 사람 라벨 25문항이 있으나 SF-05 라벨은 이전 '현장 작업자용 LLM 음성 어시스턴트' 기준이다. 현재 SF-05(지능형 공정제어)와 맞지 않으므로 최신 비교는 `--idea-ids SF-01,SF-02,SF-03,SF-04`로 20문항을 실행하고, SF-05는 새 수집·라벨 이후 포함한다.
+- 특허 평가셋은 현재 로컬 색인이 준비된 SF-02·SF-05에서 각각 기술 요소 질의로 구성한다. `patent_cases.json`의 사람 정답은 초기화 상태이며, CSV 라벨을 작성해 import한 뒤에만 검색 지표를 계산한다.
+- 검색 CSV에는 mode, 모델, prompt 적용 여부, 커밋 ID가 기록된다. LLM 단독/RAG 답변 비교는 `answer_eval`의 LLM 판정 점수이며 사람 정답 평가와 구분해야 한다.
 - 라벨링 후보는 문항마다 벡터 검색 상위 8건과 그 아래 순위에서 차원 표현(가격·비용, 도입·사례 등)이 들어간 4건이다. 라벨 기준과 LLM 초안·사람 검토 절차는 [evaluation/market_labeling.md](evaluation/market_labeling.md).
 - 관련 문서가 없는 문항은 평균에서 빼고 따로 센다. 라벨 후보에 없던 문서가 상위 5건에 나오면 `unjudged`로 표시한다.
 - 관련성 판정 평가는 사람이 직접 라벨한 행(`label_source=human`)만 비교해 정확도·정밀도·재현율·kappa를 계산하고, 사람 라벨만 있는 문항의 충분성 상태 일치를 함께 출력한다.

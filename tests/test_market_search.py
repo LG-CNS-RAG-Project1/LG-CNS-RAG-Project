@@ -113,6 +113,18 @@ def test_search_market_orders_and_formats(indexed):
     }
 
 
+def test_search_market_returns_empty_for_filter_with_no_matches(indexed):
+    assert (
+        search_market(
+            "협동로봇",
+            collection=indexed,
+            embed_fn=fake_embed,
+            source_types=["not-a-market-source"],
+        )
+        == []
+    )
+
+
 @pytest.mark.parametrize("mode", ["bm25", "hybrid"])
 def test_search_market_supports_shared_retrieval_modes(indexed, mode):
     hits = search_market(

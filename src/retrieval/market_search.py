@@ -175,6 +175,8 @@ def search_market(
     config = replace(config, top_k=config.candidate_k)
     where = build_where(idea_id, source_types, date_from)
     records = collection.get(where=where, include=["documents", "metadatas"])
+    if not records["ids"]:
+        return []
     documents = [
         SearchDocument(
             chunk_id=chunk_id,

@@ -30,20 +30,33 @@ MAX_DISPLAY = 100
 MAX_START = 1000
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
-KEYWORDS_PATH = ROOT_DIR / "configs" / "market_keywords.yaml"
+KEYWORDS_PATH = ROOT_DIR / "configs" / "technology_areas.yaml"
 RAW_DIR = ROOT_DIR / "data" / "market" / "raw"
 
 _TAG_RE = re.compile(r"<[^>]+>")
 
 
 def load_keyword_config(path: Path = KEYWORDS_PATH) -> dict:
-    """키워드 설정 YAML을 읽어 news 설정과 keywords 목록을 반환한다."""
+    """공통 분야 YAML을 기존 뉴스 수집 설정 계약으로 펼쳐 반환한다."""
     with open(path, encoding="utf-8") as f:
         config = yaml.safe_load(f)
-    ids = [k["id"] for k in config["keywords"]]
+
+    area_ids = {area["id"] for area in config["technology_areas"]}
+    keywords = []
+    for item in config.get("shared_market_keywords", []):
+        technology_area_ids = item.get("technology_area_ids", [])
+        if not set(technology_area_ids) <= area_ids:
+            raise ValueError(f"Unknown technology area in keyword {item['id']}")
+        keywords.append({**item, "idea_ids": technology_area_ids})
+
+    for area in config["technology_areas"]:
+        for item in area.get("market_keywords", []):
+            keywords.append({**item, "idea_ids": [area["id"]]})
+
+    ids = [k["id"] for k in keywords]
     if len(ids) != len(set(ids)):
-        raise ValueError("Duplicate keyword ids in market_keywords.yaml")
-    return config
+        raise ValueError("Duplicate market keyword IDs in technology_areas.yaml")
+    return {"news": config["news"], "keywords": keywords}
 
 
 def _get_credentials() -> tuple[str, str]:
@@ -202,7 +215,7 @@ def main() -> None:
     """--keyword-id로 지정한 키워드(미지정 시 전체)를 수집해 data/market/raw/에 저장한다."""
     parser = argparse.ArgumentParser(description="네이버 뉴스 시장 자료 수집")
     parser.add_argument(
-        "--keyword-id", help="market_keywords.yaml의 키워드 id (미지정 시 전체)"
+        "--keyword-id", help="technology_areas.yaml의 시장 키워드 ID (미지정 시 전체)"
     )
     parser.add_argument("--max-items", type=int, help="키워드당 최대 기사 수")
     args = parser.parse_args()
