@@ -203,6 +203,7 @@ python -m evaluation.market_labeling export    # 라벨링 후보 → evaluation
 python -m evaluation.market_judge prelabel     # (선택) gpt-4o 라벨 초안 → evaluation/labels/market_llm_labels.csv
 python -m evaluation.market_judge agreement    # (선택) 사람 라벨과 LLM 초안의 일치율·kappa
 python -m evaluation.market_judge merge        # (선택) 빈 relevant만 LLM 초안으로 채움
+python -m evaluation.market_labeling extend    # (방식 비교 전) dense·bm25·hybrid 상위 5건 중 새 문서를 후보에 추가
 python -m evaluation.market_labeling import    # relevant(1/0)를 채운 CSV → 문항별 정답 source_id 반영
 python -m evaluation.evaluate market --mode dense --label baseline
 python -m evaluation.evaluate market --mode bm25 --label baseline
@@ -213,7 +214,7 @@ python -m evaluation.evaluate guardrail                 # 입력 가드레일 �
 ```
 
 - 평가 아이디어는 `data/samples/ideas.json`의 SF-01~SF-05이며, 아이디어 5개 × 시장 차원 5개 = 25문항이다.
-- 라벨링 후보는 문항마다 벡터 검색 상위 8건과 그 아래 순위에서 차원 표현(가격·비용, 도입·사례 등)이 들어간 4건이다. 라벨 기준과 LLM 초안·사람 검토 절차는 [evaluation/market_labeling.md](evaluation/market_labeling.md).
+- 라벨링 후보는 문항마다 벡터 검색 상위 8건과 그 아래 순위에서 차원 표현(가격·비용, 도입·사례 등)이 들어간 4건, 그리고 `extend`로 추가한 bm25·hybrid 상위 5건 중 새 문서다. 방식 비교 결과는 [docs/market_research.md](docs/market_research.md#시장-검색-방식-비교). 라벨 기준과 LLM 초안·사람 검토 절차는 [evaluation/market_labeling.md](evaluation/market_labeling.md).
 - 관련 문서가 없는 문항은 평균에서 빼고 따로 센다. 라벨 후보에 없던 문서가 상위 5건에 나오면 `unjudged`로 표시한다.
 - 관련성 판정 평가는 사람이 직접 라벨한 행(`label_source=human`)만 비교해 정확도·정밀도·재현율·kappa를 계산하고, 사람 라벨만 있는 문항의 충분성 상태 일치를 함께 출력한다.
 - 정답 `source_id`는 로컬에 수집한 뉴스 기준이므로, 다시 수집하면 문서가 달라질 수 있다.
