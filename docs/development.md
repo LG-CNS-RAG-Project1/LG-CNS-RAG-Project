@@ -14,7 +14,8 @@ README의 실행 방법을 보완하는 상세 문서. 개발 환경, 코드 포
 - 벡터 저장소는 `CHROMA_HOST`가 비어 있으면 로컬 Chroma(`data/patents/chroma/`·`data/market/chroma/`), 설정되어 있으면 팀 공용 Chroma 서버를 쓴다([공용 Chroma 안내](shared-chroma.md)). 로컬 DB 컨테이너는 두지 않는다.
 - `make up`은 `app`과 `ui`를 함께 띄운다. 화면만 필요하면 `make ui`, 로그는 `make ui-logs`를 쓴다. `ui`는 화면 오류에 예외 종류만 표시한다(`STREAMLIT_CLIENT_SHOW_ERROR_DETAILS=type`).
 - 컨테이너 사용자는 UID 1000이다. Linux에서 호스트 UID가 다르면 `docker compose build --build-arg APP_UID=$(id -u) --build-arg APP_GID=$(id -g) app`으로 다시 빌드한다.
-- Windows에서 `make`가 없으면 README의 `docker compose` 명령을 직접 실행한다.
+- Windows에서 `make`가 없으면 `py scripts\idealens.py <명령>`(README '빠른 시작') 또는 README의 `docker compose` 명령을 직접 실행한다.
+- `scripts/idealens.py`는 표준 라이브러리만 쓰는 통합 실행 도구다(Python 3.9 이상). `doctor`는 키 값을 출력하지 않고 이름별 설정 여부만 보이며, 수집 명령의 출력도 키를 가린다. `data` 명령은 호출량을 보여 주고 확인을 받으며, 공용 Chroma 적재는 `--yes`로도 확인을 생략하지 않는다.
 
 ## 코드 포맷 (black)
 

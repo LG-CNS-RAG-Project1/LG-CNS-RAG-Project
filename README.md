@@ -46,6 +46,7 @@
 ├── prompts/                 # 아이디어 구조화·근거 검증·보고서 프롬프트
 ├── reports/                 # 생성한 경영진·R&D 보고서
 ├── scripts/
+│   ├── idealens.py          # 팀원용 통합 실행 도구(환경 점검·화면 실행·수집·색인·테스트, 표준 라이브러리만 사용)
 │   ├── *.py                 # 특허 수집·색인 생성 실행 스크립트
 │   ├── notion/              # Notion 블록 도우미, 코드 해석 기반 서비스 아키텍처 그림(mermaid) 생성
 │   ├── github/              # PR 리뷰어 무작위 지정
@@ -67,6 +68,40 @@
 
 - 원문·가공 데이터·검색 색인·생성 보고서는 Git 추적에서 제외. Chroma 색인은 로컬 또는 공용 서버에 보관.
 - 서비스 연결 구조는 [docs/architecture.md](docs/architecture.md)의 mermaid 다이어그램으로 관리.
+
+## 빠른 시작 (팀원용)
+
+필요: Docker Desktop 실행, Python 3.9 이상(통합 실행 도구용). macOS는 `python3`, Windows는 `py`(없으면 `python`)를 쓴다.
+
+```bash
+python3 scripts/idealens.py setup      # .env가 없을 때만 예시 복사 → 키 입력 후 이미지 빌드
+python3 scripts/idealens.py doctor     # Docker·키(이름만 표시)·공용 Chroma·색인·포트 점검
+python3 scripts/idealens.py ui         # 화면 실행 → http://localhost:8505 (make ui)
+python3 scripts/idealens.py logs | stop | test
+```
+
+| 명령 | 필요한 키 |
+|---|---|
+| `ui`(실제 분석) | `OPENAI_API_KEY`, `KIPRIS_API_KEY`(특허 실시간 검색), 공용 색인을 쓰면 `CHROMA_*` |
+| `data market` | `NAVER_CLIENT_ID`·`NAVER_CLIENT_SECRET`, `OPENAI_API_KEY` |
+| `data patents` | `KIPRIS_API_KEY`, `OPENAI_API_KEY` |
+
+- `data market`·`data patents [--field-id SF-02]`는 호출량을 보여 주고 확인을 받은 뒤 실행한다(API 비용 발생). 공용 Chroma에 적재할 때는 `--yes`로도 확인을 생략할 수 없으며, 색인은 한 사람만 실행한다. 시장 수집이 중간에 실패하면 같은 명령으로 오늘 미수집 키워드만 이어서 수집한다.
+- 공용 Chroma 키는 관리자에게 개인 메시지로 받아 개인 `.env`에만 둔다(Notion·GitHub 게시 금지). HTTPS 키 접속은 `CHROMA_PORT=443`·`CHROMA_SSL=true`다.
+- Python이 없으면 `docker compose up -d ui`로 화면만 실행할 수 있다.
+
+**문제 해결**
+
+| 증상 | 조치 |
+|---|---|
+| Docker 엔진에 연결할 수 없음 | Docker Desktop을 실행한다 |
+| 이미지가 없음·streamlit 버전 다름 | `setup`으로 다시 빌드한다(첫 빌드는 수 분) |
+| 공용 Chroma HTTP 401·403 | `CHROMA_API_KEY`를 확인하고, 폐기된 키면 재발급을 요청한다 |
+| `CHROMA_API_KEY requires HTTPS` | `CHROMA_SSL=true`, `CHROMA_PORT=443`으로 바꾼다 |
+| 공용 Chroma 연결 실패 | 네트워크·서버 상태를 확인한다. 시연은 예시 흐름(가상 시연)으로 전환할 수 있다 |
+| 포트 8505 사용 중 | 다른 프로그램을 끄거나 `IDEALENS_UI_PORT`(셸 환경변수)로 포트를 바꾼다 |
+| `.env` BOM·UTF-16 경고 | BOM 없는 UTF-8로 다시 저장한다(Windows 메모장 주의) |
+| `.env`를 바꿨는데 반영되지 않음 | `python3 scripts/idealens.py ui --recreate` |
 
 ## 실행 방법
 
