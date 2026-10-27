@@ -391,3 +391,35 @@ def test_missing_remote_collection_is_reported_as_missing(monkeypatch, tmp_path)
     monkeypatch.setattr(chroma_client, "connect_chroma", lambda path: Client())
     collection, state = open_collection("news", tmp_path / "chroma")
     assert collection is None and state.reason == "컬렉션 없음"
+
+
+def test_patent_relevance_is_retried_once_on_invalid_mapping(monkeypatch):
+    import threading
+
+    import src.retrieval.patent_relevance as patent_relevance
+
+    calls = []
+
+    def flaky(idea, results, llm_fn=None):
+        calls.append(1)
+        if len(calls) == 1:
+            raise ValueError(
+                "Patent relevance judgments must map one-to-one to candidates"
+            )
+        return {"ok": True}
+
+    monkeypatch.setattr(patent_relevance, "judge_patent_candidates", flaky)
+    relevance = pipeline._patent_defaults(threading.Event())["relevance_fn"]
+    assert relevance("idea", ["r"]) == {"ok": True} and len(calls) == 2
+
+
+def test_cancelled_calls_are_not_retried():
+    import threading
+
+    event = threading.Event()
+    event.set()
+    calls = []
+    guarded = pipeline._retry_invalid(pipeline._guard(lambda: calls.append(1), event))
+    with pytest.raises(Cancelled):
+        guarded()
+    assert calls == []

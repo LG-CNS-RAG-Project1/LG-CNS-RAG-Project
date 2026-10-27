@@ -353,6 +353,20 @@ def _guard(fn: Callable, event: threading.Event) -> Callable:
     return guarded
 
 
+def _retry_invalid(fn: Callable, attempts: int = 2) -> Callable:
+    """응답 형식 검증 실패(ValueError)일 때만 다시 호출한다. 취소(Cancelled)는 다시 호출하지 않는다."""
+
+    def retried(*args, **kwargs):
+        for attempt in range(attempts):
+            try:
+                return fn(*args, **kwargs)
+            except ValueError:
+                if attempt == attempts - 1:
+                    raise
+
+    return retried
+
+
 def _market_defaults(event: threading.Event) -> dict:
     from src.generation.market_analysis import call_analysis_llm
     from src.retrieval.market_relevance import call_relevance_llm
@@ -379,7 +393,8 @@ def _patent_defaults(event: threading.Event) -> dict:
         "claim_fetcher": _guard(fetch_patent_claims, event),
         "kipris_search_fn": _guard(search_kipris, event),
         "comparison_fn": _guard(compare_patent_evidence, event),
-        "relevance_fn": _guard(judge_patent_candidates, event),
+        # 판정 결과가 후보와 1:1로 맞지 않으면 특허 결과 전체가 error가 되므로 1회 다시 판정한다.
+        "relevance_fn": _retry_invalid(_guard(judge_patent_candidates, event)),
     }
 
 
