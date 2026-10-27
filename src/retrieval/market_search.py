@@ -18,9 +18,8 @@ from dataclasses import replace
 from pathlib import Path
 from typing import Callable
 
-import chromadb
 from chromadb.api import ClientAPI
-from chromadb.config import Settings
+from src.retrieval.chroma_client import connect_chroma
 from dotenv import load_dotenv
 
 from src.schemas import (
@@ -78,10 +77,8 @@ def get_collection(
 ):
     """cosine 거리를 쓰는 시장 근거 컬렉션을 열거나 생성한다. 임베딩은 항상 직접 전달한다."""
     if client is None:
-        chroma_dir.mkdir(parents=True, exist_ok=True)
-        client = chromadb.PersistentClient(
-            path=str(chroma_dir), settings=Settings(anonymized_telemetry=False)
-        )
+        client = connect_chroma(chroma_dir)
+
     return client.get_or_create_collection(
         name, metadata={"hnsw:space": "cosine"}, embedding_function=None
     )
