@@ -9,7 +9,7 @@ from typing import Callable
 
 from dotenv import load_dotenv
 from openai import OpenAI
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from src.generation.market_markdown import market_report_to_markdown
 from src.schemas import IDEA_FIELDS, IdeaDraft, MarketReport, PatentReport
@@ -67,9 +67,20 @@ _SAFE_URL = re.compile(r"https?://[^\s()<>\"'`]+")
 
 class CriterionLink(BaseModel):
     criterion: str
-    assessment: str
+    assessment: str = "미확인"
     citation_ids: list[str] = Field(default_factory=list)
-    next_check: str
+    next_check: str = ""
+
+    @field_validator("assessment", "next_check", mode="before")
+    @classmethod
+    def _null_text(cls, value):
+        """LLM이 빈 값을 null로 돌려줘도 연결 전체를 버리지 않는다."""
+        return "" if value is None else value
+
+    @field_validator("citation_ids", mode="before")
+    @classmethod
+    def _null_ids(cls, value):
+        return [] if value is None else value
 
 
 class QuestionLink(BaseModel):
@@ -461,7 +472,7 @@ def integrated_report_markdown(
             )
             lines.append(
                 f"- {escape_md(criterion.criterion)}: {escape_md(criterion.assessment)}"
-                f" ({refs}) · 다음 확인: {escape_md(criterion.next_check)}"
+                f" ({refs}) · 다음 확인: {escape_md(criterion.next_check) or '미정'}"
             )
         lines.append("")
     lines += _patent_lines(patent)

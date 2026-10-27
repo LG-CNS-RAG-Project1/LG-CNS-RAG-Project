@@ -220,3 +220,34 @@ def test_patent_location_variants():
     assert patent_location(evidence) == "초록"
     evidence.section = "claims"
     assert patent_location(evidence) == "청구항(번호 미확인)"
+
+
+def test_null_fields_from_llm_do_not_drop_links():
+    market, patent = reports()
+
+    def llm(system_prompt, user_text):
+        return {
+            "links": [
+                {
+                    "question_id": "Q1",
+                    "status": "connected",
+                    "summary": "s",
+                    "criteria": [
+                        {
+                            "criterion": c,
+                            "assessment": "확인",
+                            "citation_ids": ["M:1", "P:1"] if i == 0 else None,
+                            "next_check": None,
+                        }
+                        for i, c in enumerate(CRITERIA)
+                    ],
+                }
+            ]
+        }
+
+    links, warnings = link_questions_with_retry(QUESTIONS[:1], market, patent, llm)
+    assert warnings == [] and links[0].status == "connected"
+    assert (
+        links[0].criteria[1].citation_ids == []
+        and links[0].criteria[0].next_check == ""
+    )
