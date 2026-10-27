@@ -64,6 +64,7 @@ flowchart LR
   %% map configs/ runtime
   %% map Dockerfile runtime
   %% map compose.yaml runtime
+  %% map scripts/idealens.py runtime
   %% map requirements.txt runtime
   %% map requirements-dev.txt runtime
   %% map requirements-ui.txt runtime
