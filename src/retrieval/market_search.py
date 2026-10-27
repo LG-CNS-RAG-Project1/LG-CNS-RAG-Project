@@ -13,6 +13,8 @@
 import argparse
 import json
 import os
+import time
+from dataclasses import replace
 from pathlib import Path
 from typing import Callable
 
@@ -22,6 +24,8 @@ from chromadb.config import Settings
 from dotenv import load_dotenv
 
 from src.schemas import ALL_DIMENSIONS, MarketDocument, MarketSearchRequest
+from src.retrieval.engine import RetrievalConfig, retrieve
+from src.retrieval.schemas import RetrievalResult, SearchDocument
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 DOCS_PATH = ROOT_DIR / "data" / "market" / "processed" / "market_docs.jsonl"
@@ -145,6 +149,9 @@ def search_market(
     idea_id: str | None = None,
     source_types: list[str] | None = None,
     date_from: int | None = None,
+    retrieval_mode: str = "dense",
+    reranker=None,
+    retrieval_config: RetrievalConfig | None = None,
 ) -> list[dict]:
     """질의와 가까운 시장 근거를 거리 오름차순으로 최대 top_k건 반환한다.
 
@@ -152,45 +159,98 @@ def search_market(
     반환 항목: source_id, text, source_type, publisher, title, url, published_at,
     period, section, reliability, evidence_nature, distance(cosine, 0에 가까울수록 유사)
     """
+    search_started = time.perf_counter()
     collection = collection or get_collection()
     count = collection.count()
     if count == 0:
         return []
 
-    result = collection.query(
-        query_embeddings=embed_fn([query]),
-        n_results=min(top_k * CANDIDATE_MULTIPLIER, count),
-        where=build_where(idea_id, source_types, date_from),
-        include=["documents", "metadatas", "distances"],
+    if retrieval_mode not in {"dense", "bm25", "hybrid"}:
+        raise ValueError("retrieval_mode must be dense, bm25, or hybrid")
+    config = retrieval_config or RetrievalConfig(
+        candidate_k=max(top_k * CANDIDATE_MULTIPLIER, top_k),
+        top_k=top_k,
     )
-
+    config = replace(config, top_k=config.candidate_k)
+    where = build_where(idea_id, source_types, date_from)
+    records = collection.get(where=where, include=["documents", "metadatas"])
+    documents = [
+        SearchDocument(
+            chunk_id=chunk_id,
+            source_id=meta["source_id"],
+            source_type="market",
+            title=meta["title"],
+            content=text,
+            metadata=dict(meta),
+        )
+        for chunk_id, text, meta in zip(
+            records["ids"], records["documents"], records["metadatas"]
+        )
+    ]
+    dense_results = []
+    if retrieval_mode in {"dense", "hybrid"}:
+        result = collection.query(
+            query_embeddings=embed_fn([query]),
+            n_results=min(config.candidate_k, count),
+            where=where,
+            include=["documents", "metadatas", "distances"],
+        )
+        by_id = {document.chunk_id: document for document in documents}
+        dense_results = [
+            RetrievalResult(
+                document=by_id[chunk_id],
+                dense_score=1.0 - distance,
+                dense_rank=rank,
+            )
+            for rank, (chunk_id, distance) in enumerate(
+                zip(result["ids"][0], result["distances"][0]), 1
+            )
+            if chunk_id in by_id
+        ]
+    response = retrieve(
+        query,
+        documents,
+        dense_results,
+        mode=retrieval_mode,
+        config=config,
+        reranker=reranker,
+    )
     hits, seen_groups = [], set()
-    for text, meta, distance in zip(
-        result["documents"][0], result["metadatas"][0], result["distances"][0]
-    ):
-        group = meta.get("dup_group") or meta["source_id"]
+    total_search_ms = (time.perf_counter() - search_started) * 1000
+    by_chunk = {document.chunk_id: document for document in documents}
+    for result_item in response.results:
+        document = result_item.document
+        meta = by_chunk[document.chunk_id].metadata
+        group = meta.get("dup_group") or document.source_id
         if group in seen_groups:
             continue
         seen_groups.add(group)
         hits.append(
             {
-                "source_id": meta["source_id"],
-                "text": text,
+                "source_id": document.source_id,
+                "text": document.content,
                 "source_type": meta["source_type"],
                 "publisher": meta["publisher"],
-                "title": meta["title"],
+                "title": document.title,
                 "url": meta.get("url"),
                 "published_at": meta["published_at"],
                 "period": meta.get("period"),
                 "section": meta.get("section"),
                 "reliability": meta["reliability"],
                 "evidence_nature": meta["evidence_nature"],
-                "distance": round(distance, 4),
+                "distance": (
+                    round(1.0 - result_item.dense_score, 4)
+                    if result_item.dense_score is not None
+                    else None
+                ),
+                "bm25_score": result_item.bm25_score,
+                "rrf_score": result_item.rrf_score,
+                "rerank_score": result_item.rerank_score,
+                "search_ms": round(total_search_ms, 3),
+                "rerank_ms": round(response.rerank_ms, 3),
             }
         )
-        if len(hits) >= top_k:
-            break
-    return hits
+    return hits[:top_k]
 
 
 def build_dimension_queries(request: MarketSearchRequest) -> dict[str, str]:

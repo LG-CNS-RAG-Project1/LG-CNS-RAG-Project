@@ -11,6 +11,8 @@
 
 import argparse
 import csv
+import math
+import time
 from pathlib import Path
 
 from evaluation.market_labeling import (
@@ -32,6 +34,10 @@ RESULT_FIELDS = [
     "hit",
     "recall",
     "rr",
+    "precision",
+    "ndcg",
+    "search_ms",
+    "rerank_ms",
     "unjudged",
     "retrieved",
 ]
@@ -57,6 +63,23 @@ def reciprocal_rank(retrieved: list[str], relevant: set[str], k: int = K) -> flo
     return 0.0
 
 
+def precision_at_k(retrieved: list[str], relevant: set[str], k: int = K) -> float:
+    """Top-k 내 관련 문서 비율. 검색 결과가 k개보다 적으면 실제 반환 수로 나눈다."""
+    ranked = retrieved[:k]
+    return len(set(ranked) & relevant) / len(ranked) if ranked else 0.0
+
+
+def ndcg_at_k(retrieved: list[str], relevant: set[str], k: int = K) -> float:
+    """이진 관련도 기준 nDCG@k를 계산한다."""
+    dcg = sum(
+        1 / math.log2(rank + 1)
+        for rank, doc in enumerate(retrieved[:k], 1)
+        if doc in relevant
+    )
+    ideal = sum(1 / math.log2(rank + 1) for rank in range(1, min(len(relevant), k) + 1))
+    return dcg / ideal if ideal else 0.0
+
+
 def evaluate_market(
     cases: list[dict],
     ideas: dict[str, dict],
@@ -70,7 +93,10 @@ def evaluate_market(
         if not case.get("labeled"):
             continue
         idea_id = case["idea_id"] if idea_filter else None
+        started = time.perf_counter()
         hits = search_fn(case_query(case, ideas), k, idea_id)
+        search_ms = (time.perf_counter() - started) * 1000
+        rerank_ms = hits[0].get("rerank_ms", 0.0) if hits else 0.0
         retrieved = [h["source_id"] for h in hits]
         relevant = set(case["relevant_source_ids"])
         judged = set(case["judged_source_ids"])
@@ -84,6 +110,12 @@ def evaluate_market(
                 "hit": hit_at_k(retrieved, relevant, k) if has_relevant else None,
                 "recall": recall_at_k(retrieved, relevant, k) if has_relevant else None,
                 "rr": reciprocal_rank(retrieved, relevant, k) if has_relevant else None,
+                "precision": (
+                    precision_at_k(retrieved, relevant, k) if has_relevant else None
+                ),
+                "ndcg": ndcg_at_k(retrieved, relevant, k) if has_relevant else None,
+                "search_ms": round(search_ms, 3),
+                "rerank_ms": round(rerank_ms, 3),
                 "unjudged": sum(doc not in judged for doc in retrieved),
                 "retrieved": " ".join(retrieved),
             }
@@ -107,6 +139,14 @@ def summarize(rows: list[dict]) -> dict[str, dict]:
             "hit": sum(r["hit"] for r in scored) / n if n else None,
             "recall": sum(r["recall"] for r in scored) / n if n else None,
             "mrr": sum(r["rr"] for r in scored) / n if n else None,
+            "precision": sum(r["precision"] for r in scored) / n if n else None,
+            "ndcg": sum(r["ndcg"] for r in scored) / n if n else None,
+            "search_ms": (
+                sum(r["search_ms"] for r in group) / len(group) if group else 0.0
+            ),
+            "rerank_ms": (
+                sum(r["rerank_ms"] for r in group) / len(group) if group else 0.0
+            ),
             "unjudged": sum(r["unjudged"] for r in group),
         }
     return summary
@@ -129,24 +169,40 @@ def main() -> None:
     sub = parser.add_subparsers(dest="command", required=True)
     market = sub.add_parser("market", help="시장 근거 검색 평가")
     market.add_argument("--label", default="baseline", help="결과 파일 이름")
+    market.add_argument("--mode", choices=["dense", "bm25", "hybrid"], default="dense")
+    market.add_argument(
+        "--rerank",
+        action="store_true",
+        help="BGE reranker 사용 (sentence-transformers 필요)",
+    )
     market.add_argument(
         "--no-idea-filter", action="store_true", help="아이디어 필터 없이 전체 검색"
     )
     args = parser.parse_args()
 
+    reranker = None
+    if args.rerank:
+        from src.retrieval.engine import bge_reranker
+
+        reranker = bge_reranker()
     rows = evaluate_market(
         load_cases(),
         load_ideas(),
-        default_search_fn(),
+        default_search_fn(args.mode, reranker=reranker),
         idea_filter=not args.no_idea_filter,
     )
     if not rows:
         raise SystemExit("no labeled cases; run evaluation.market_labeling import")
-    path = save_results(rows, args.label)
+    path = save_results(
+        rows, f"{args.mode}_{'rerank_' if args.rerank else ''}{args.label}"
+    )
     print(f"{len(rows)} cases -> {path}")
     for name, s in summarize(rows).items():
         metrics = (
-            f"Hit@{K}={s['hit']:.2f} Recall@{K}={s['recall']:.2f} MRR={s['mrr']:.2f}"
+            f"Hit@{K}={s['hit']:.2f} Recall@{K}={s['recall']:.2f} "
+            f"Precision@{K}={s['precision']:.2f} MRR={s['mrr']:.2f} "
+            f"nDCG@{K}={s['ndcg']:.2f} latency={s['search_ms']:.1f}ms "
+            f"rerank={s['rerank_ms']:.1f}ms"
             if s["hit"] is not None
             else "관련 문서 없음"
         )

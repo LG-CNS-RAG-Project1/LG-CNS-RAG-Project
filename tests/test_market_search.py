@@ -105,7 +105,29 @@ def test_search_market_orders_and_formats(indexed):
         "reliability",
         "evidence_nature",
         "distance",
+        "bm25_score",
+        "rrf_score",
+        "rerank_score",
+        "search_ms",
+        "rerank_ms",
     }
+
+
+@pytest.mark.parametrize("mode", ["bm25", "hybrid"])
+def test_search_market_supports_shared_retrieval_modes(indexed, mode):
+    hits = search_market(
+        "협동로봇 비전 검사",
+        collection=indexed,
+        embed_fn=fake_embed,
+        top_k=3,
+        retrieval_mode=mode,
+    )
+
+    assert hits
+    assert all(hit["bm25_score"] is not None for hit in hits)
+    if mode == "hybrid":
+        assert all(hit["rrf_score"] is not None for hit in hits)
+    assert all(hit["search_ms"] >= 0 for hit in hits)
 
 
 def test_search_market_dedups_dup_group(indexed):
