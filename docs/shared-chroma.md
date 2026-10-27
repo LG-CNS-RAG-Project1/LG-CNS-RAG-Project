@@ -5,8 +5,7 @@
 GitHub는 코드와 설정을 관리한다. 수집한 벡터·문서·메타데이터는 Chroma 서버의 디스크에 보관한다.
 
 ```text
-팀원 PC의 수집·색인 코드 → Google IAP 보호 터널 → 공용 Chroma → 서버 영구 디스크
-팀원 PC의 검색·분석 코드 → Google IAP 보호 터널 → 같은 Chroma → 검색 결과
+팀원 PC의 수집·검색 코드 → HTTPS + 개인 API 키 → 인증 서비스 → 공용 Chroma → 서버 영구 디스크
 ```
 
 웹에서 이 흐름을 호출하는 API 연결은 별도 작업이다. 현재 Streamlit 화면은 시연이며 서버를 만들었다고 실제 검색 결과로 바뀌지 않는다. Chroma에는 색인할 문서와 벡터가 저장되며 원본 PDF·이미지 전체가 자동 업로드되는 것은 아니다.
@@ -23,7 +22,30 @@ GitHub는 코드와 설정을 관리한다. 수집한 벡터·문서·메타데�
 
 Docker를 이미 설치한 서버라면 `docker compose -f deploy/compose.chroma.yaml up -d`도 사용할 수 있다. Compose는 별도 named volume을 사용하므로 시작 스크립트의 데이터 폴더와 혼용하지 않는다.
 
-## 팀원 접속
+## 팀원 접속: HTTPS + API 키
+
+외부 API처럼 접속하려면 공용 연결 코드가 반영된 프로젝트와 Python 실행 환경을 준비하고, 개인 `.env`에 아래 설정을 추가한다. Google Cloud CLI·Google 로그인·터널 실행은 필요 없다. `CHROMA_API_KEY`는 관리자가 개인별로 발급한 값으로 교체한다.
+
+```dotenv
+CHROMA_HOST=idealens-db.34-132-51-20.sslip.io
+CHROMA_PORT=443
+CHROMA_SSL=true
+CHROMA_API_KEY=발급받은_개인_접속키
+```
+
+이 주소는 홈페이지가 아닌 DB 접속 주소다. `sslip.io`는 주소에 포함된 IP를 알려주는 외부 DNS 서비스이고 Google이나 GPT가 운영하는 DB가 아니다. 데이터 저장 위치는 Google Cloud 서버 그대로다. 무료 DNS·인증서를 쓰더라도 VM·디스크·트래픽은 무료체험 크레딧을 소비한다. 서버의 외부 IP가 바뀌면 호스트 주소와 인증서 설정을 갱신해야 한다.
+
+`src/retrieval/chroma_client.py`가 Bearer 인증 헤더를 보낸다. 키가 있는데 호스트가 비었거나 HTTPS가 아니면 요청 전에 오류를 낸다. 실제 키는 노션·GitHub에 올리지 않고 개인 `.env`로 보관한다. 브라우저에서 주소를 그냥 열었을 때 `401`이 나오는 것은 키 없는 요청을 차단한 정상 동작이다.
+
+서버에서는 `deploy/chroma_auth.py`가 127.0.0.1:8010에서 키의 SHA-256 해시를 검사하고, Caddy가 HTTPS·인증·127.0.0.1:8000 중계를 담당한다. 인증이 실패하면 Chroma에 요청을 전달하지 않는다. 이 경로는 HTTP 포트 80을 인증서 발급·HTTPS 전환 용도로, 443을 키 인증 API 용도로 사용하며 DB의 8000 포트를 공개하지 않는다.
+
+### 서버 설치와 키 관리
+
+Debian 서버에서 `deploy/chroma-api-setup.sh`를 실행할 때 `CHROMA_PUBLIC_HOST`와 `CHROMA_AUTH_KEY_FILE`을 지정한다. 후자는 `{"키이름":"64자리 SHA-256 해시"}` 형식의 JSON 파일 경로다. 원본 접속 키는 서버에 저장하지 않는다. 스크립트는 인증 서비스를 설치·시작하고 Caddy 설정을 검증한다. 외부 HTTPS 접속 규칙 검토 후 관리자가 `systemctl start caddy`로 활성화한다.
+
+키를 폐기하려면 `/etc/idealens/chroma-key-hashes.json`에서 해당 해시 항목을 제거한 뒤 `systemctl restart idealens-chroma-auth`를 실행한다. 빈 키 목록이나 잘못된 해시 파일은 시작을 거부한다. 키 소유자는 공용 컬렉션을 수정·삭제할 수 있으므로 노출된 키는 폐기·재발급한다. 키 인증은 팀원의 Google 결제·서버 관리자 권한을 부여하지 않는다.
+
+## 보조 접속: Google IAP 터널
 
 GitHub 권한과 Google Cloud 권한은 별개다. 팀원은 `Compute 뷰어`와 `IAP 보안 터널 사용자` 역할을 사용한다. IAP 역할 조건은 `destination.port == 8000 && destination.ip == "10.128.0.2"`로 DB만 허용한다. 서버 관리자·SSH 로그인·결제 역할은 필요 없다. DB 접속자는 같은 컬렉션을 읽고 수정·삭제할 수 있으므로 신뢰하는 팀원만 등록한다.
 
@@ -52,10 +74,10 @@ Docker Desktop의 개발 컨테이너에서 PC의 터널을 쓰려면 `host.dock
 
 `pytest`는 `tests/conftest.py`에서 공용 DB 환경변수를 격리해 로컬 테스트 저장소를 사용한다. 실제 공용 DB에 대한 연결·쓰기 검증은 일반 테스트 실행과 분리한다.
 
-터널을 연 뒤 연결과 컬렉션 개수를 확인한다. 아래 명령은 문서를 추가·삭제하거나 임베딩 API를 호출하지 않는다.
+HTTPS 설정 후 프로젝트의 공통 클라이언트로 연결과 컬렉션 개수를 확인한다. 아래 명령은 문서를 추가·삭제하거나 임베딩 API를 호출하지 않는다.
 
 ```powershell
-python -c "import chromadb; c=chromadb.HttpClient(host='127.0.0.1',port=18000); print('heartbeat', c.heartbeat()); print([(x.name,x.count()) for x in c.list_collections()])"
+python -c "from pathlib import Path; from src.retrieval.chroma_client import connect_chroma; c=connect_chroma(Path('data/patents/chroma')); print('heartbeat', c.heartbeat()); print([(x.name,x.count()) for x in c.list_collections()])"
 ```
 
 기존 PC의 로컬 색인은 자동 복사되지 않는다. 공용 연결을 설정한 다음 수집·색인 작업을 실행하면 새 자료가 서버에 저장된다. 이미 만든 색인을 이전하려면 컬렉션 설정과 임베딩을 보존해 별도로 이관해야 한다. 재수집·재임베딩은 외부 API 비용이 생길 수 있으므로 자료 담당자와 방법을 정한다.
