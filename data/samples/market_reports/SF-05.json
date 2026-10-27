@@ -20,7 +20,7 @@
       "verdict": "signal_only",
       "claims": [
         {
-          "statement": "한수원이 사내 지식 기반 생성형 AI 플랫폼과 AI 지능형 문서 작성 솔루션을 도입했다.",
+          "statement": "한수원이 사내망 전용 AI 문서 도구를 도입하며 문서 작업 방식을 개편하고 있다.",
           "claim_type": "fact",
           "citation_ids": [
             2
@@ -34,7 +34,7 @@
       "verdict": "signal_only",
       "claims": [
         {
-          "statement": "자율제조 AI 기업 인터엑스가 플랫폼 라이선스와 서비스형 소프트웨어(SaaS) 형태로 공급 방식을 다변화하고 있다.",
+          "statement": "자율제조 AI 기업 인터엑스가 플랫폼 라이선스와 AI 키트, SaaS 형태로 공급 방식을 다변화하고 있다.",
           "claim_type": "fact",
           "citation_ids": [
             3
@@ -47,7 +47,7 @@
       "dimension": "buyer",
       "verdict": "unverified",
       "claims": [],
-      "next_check": "제조 현장 작업자와 생산 관리자의 구매 의향을 확인하기 위해 인터뷰를 진행"
+      "next_check": "구매자(제조 현장 작업자와 생산 관리자)를 대상으로 한 도입 사례 조사"
     },
     {
       "dimension": "adoption_barrier",
@@ -58,6 +58,13 @@
           "claim_type": "fact",
           "citation_ids": [
             5
+          ]
+        },
+        {
+          "statement": "스마트공장 도입·공급기업들은 전문인력 부족을 겪고 있다.",
+          "claim_type": "fact",
+          "citation_ids": [
+            4
           ]
         }
       ],
@@ -112,7 +119,7 @@
       "period": null,
       "reliability": "medium",
       "recency": "high",
-      "directness": "medium",
+      "directness": "low",
       "evidence_nature": "business_signal",
       "similarity": 0.41100000000000003
     },

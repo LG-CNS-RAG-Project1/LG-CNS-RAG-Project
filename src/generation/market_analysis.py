@@ -11,6 +11,7 @@
     sufficient    confirmed · signal_only · unverified (수요 confirmed는 direct_demand 근거가 있을 때만)
     limited       signal_only · unverified
     그 밖         unverified
+차원이 기대는 아이디어 항목(DEPENDENT_FIELDS)이 비어 있으면(모름) 근거가 있어도 unverified만 허용한다.
 """
 
 import json
@@ -38,6 +39,14 @@ MAX_CLAIMS = 3
 RECENT_DAYS = 365
 STALE_DAYS = 3 * 365
 NUMBER_PATTERN = re.compile(r"\d+(?:[.,]\d+)*")
+# 시장 규모·가격·비율·건수처럼 단위가 붙은 수치. 사실 문장에 있으면 기준 연도를 함께 써야 한다.
+METRIC_PATTERN = re.compile(
+    r"\d+(?:[.,]\d+)*\s*(%|퍼센트|배|원|만|억|조|달러|건|대|개사|곳|명|개월)"
+)
+YEAR_PATTERN = re.compile(r"(19|20)\d{2}")
+
+# 시장 차원이 판정에 기대는 아이디어 항목
+DEPENDENT_FIELDS = {"price": "revenue", "buyer": "customers"}
 
 DEFAULT_CHECKS = {
     "demand": "목표 고객사 5곳 인터뷰로 현재 해결 방식과 도입 의향 확인",
@@ -129,11 +138,20 @@ def build_evidence(
     return evidence, ids_by_dimension
 
 
+def missing_dependent_field(idea: StructuredIdea, dimension: str) -> str | None:
+    """차원이 기대는 아이디어 항목이 비어 있으면 그 항목 이름(한국어)을 반환한다."""
+    field = DEPENDENT_FIELDS.get(dimension)
+    return FIELD_LABELS[field] if field and not getattr(idea, field) else None
+
+
 def allowed_verdicts(
-    dimension: str, status: str, cited: list[MarketEvidence]
+    dimension: str,
+    status: str,
+    cited: list[MarketEvidence],
+    missing_field: str | None = None,
 ) -> list[str]:
-    """충분성 상태와 근거 성격으로 이 차원에 쓸 수 있는 판정을 정한다."""
-    if not cited or status not in ("sufficient", "limited"):
+    """충분성 상태·근거 성격·아이디어 항목 공백으로 이 차원에 쓸 수 있는 판정을 정한다."""
+    if missing_field or not cited or status not in ("sufficient", "limited"):
         return ["unverified"]
     if status == "limited":
         return ["signal_only", "unverified"]
@@ -160,24 +178,30 @@ def analysis_input(
 
 
 def dimension_inputs(
+    idea: StructuredIdea,
     assessed: dict[str, dict],
     evidence: list[MarketEvidence],
     ids_by_dimension: dict[str, list[int]],
 ) -> list[dict]:
-    """차원별로 판정 범위와 근거 기사(인용 번호·제목·요약)를 정리한다."""
+    """차원별로 판정 범위와 근거 기사(인용 번호·제목·요약)를 정리한다.
+
+    기대는 아이디어 항목이 비어 있는 차원에는 missing_idea_field(항목 이름)를 붙인다.
+    """
     by_id = {e.citation_id: e for e in evidence}
     inputs = []
     for dimension in ALL_DIMENSIONS:
         if dimension not in assessed:
             continue
         cited = [by_id[i] for i in ids_by_dimension.get(dimension, [])]
+        missing = missing_dependent_field(idea, dimension)
         inputs.append(
             {
                 "dimension": dimension,
                 "label": DIMENSION_LABELS[dimension],
                 "allowed_verdicts": allowed_verdicts(
-                    dimension, assessed[dimension]["status"], cited
+                    dimension, assessed[dimension]["status"], cited, missing
                 ),
+                **({"missing_idea_field": missing} if missing else {}),
                 "evidence": [
                     {
                         "citation_id": e.citation_id,
@@ -194,6 +218,12 @@ def dimension_inputs(
     return inputs
 
 
+def publication_date_text(evidence: MarketEvidence) -> str:
+    """발행일의 연·월·일 숫자(앞자리 0 제거). '(2026년 3월 보도)' 같은 시점 표기를 숫자 검증에서 허용한다."""
+    published = _to_date(evidence.published_at)
+    return f"{published.year} {published.month} {published.day}"
+
+
 def numbers_in(text: str) -> set[str]:
     """문장 속 숫자를 쉼표를 뺀 문자열 집합으로 추출한다."""
     return {n.replace(",", "") for n in NUMBER_PATTERN.findall(text)}
@@ -207,6 +237,7 @@ def claim_errors(
     - 문장 유형이 fact·user_claim·ai_hypothesis 중 하나인지
     - fact는 인용이 1개 이상이고 모두 이 차원의 근거 ID인지
     - 문장의 숫자가 인용 기사(제목·요약·발행연도)나 아이디어 입력에 있는지
+    - fact 문장에 단위가 붙은 수치(METRIC_PATTERN)가 있으면 4자리 기준 연도도 있는지
     """
     statement = str(claim.get("statement", "")).strip()
     claim_type = claim.get("claim_type")
@@ -227,13 +258,19 @@ def claim_errors(
         idea_text
         + " "
         + " ".join(
-            f"{by_id[i].title} {by_id[i].quote} {str(by_id[i].published_at)[:4]}"
+            f"{by_id[i].title} {by_id[i].quote} {publication_date_text(by_id[i])}"
             for i in citation_ids
         )
     )
     missing = numbers_in(statement) - numbers_in(sources)
     if missing:
         return [f"근거에 없는 숫자 {sorted(missing)}: {statement}"]
+    if (
+        claim_type == "fact"
+        and METRIC_PATTERN.search(statement)
+        and not YEAR_PATTERN.search(statement)
+    ):
+        return [f"수치에 기준 연도가 없음 (예: '(2026년 3월 보도)'): {statement}"]
     return []
 
 
@@ -272,11 +309,12 @@ def finalize_dimension(
     allowed_ids: set[int],
     by_id: dict[int, MarketEvidence],
     idea_text: str,
+    default_check: str | None = None,
 ) -> MarketDimensionResult:
     """검증을 통과한 문장만 남겨 차원 결과를 확정한다.
 
     판정이 허용 범위 밖이거나 남은 fact 문장이 없으면 미확인으로 바꾸고, 검증 과제가 없으면
-    DEFAULT_CHECKS를 쓴다.
+    default_check(없으면 DEFAULT_CHECKS)를 쓴다.
     """
     raw = raw or {}
     claims = [
@@ -298,7 +336,7 @@ def finalize_dimension(
         verdict = "unverified"
     next_check = " ".join(str(raw.get("next_check") or "").split()) or None
     if verdict == "unverified" and not next_check:
-        next_check = DEFAULT_CHECKS[dimension]
+        next_check = default_check or DEFAULT_CHECKS[dimension]
     return MarketDimensionResult(
         dimension=dimension, verdict=verdict, claims=claims, next_check=next_check
     )
@@ -322,6 +360,14 @@ def generate_dimensions(
         d["dimension"]: (
             d["allowed_verdicts"],
             {e["citation_id"] for e in d["evidence"]},
+        )
+        for d in inputs
+    }
+    default_checks = {
+        d["dimension"]: (
+            f"아이디어 {d['missing_idea_field']} 항목을 정한 뒤 {DEFAULT_CHECKS[d['dimension']]}"
+            if d.get("missing_idea_field")
+            else DEFAULT_CHECKS[d["dimension"]]
         )
         for d in inputs
     }
@@ -352,7 +398,13 @@ def generate_dimensions(
 
     results = [
         finalize_dimension(
-            dimension, raw_by_dim.get(dimension), allowed, allowed_ids, by_id, idea_text
+            dimension,
+            raw_by_dim.get(dimension),
+            allowed,
+            allowed_ids,
+            by_id,
+            idea_text,
+            default_checks[dimension],
         )
         for dimension, (allowed, allowed_ids) in specs.items()
     ]
@@ -395,7 +447,7 @@ def build_report(
             data_as_of=data_as_of,
             unknowns=report_unknowns(idea, []),
         )
-    inputs = dimension_inputs(assessed, evidence, ids_by_dimension)
+    inputs = dimension_inputs(idea, assessed, evidence, ids_by_dimension)
     try:
         dimensions, _ = generate_dimensions(idea, inputs, evidence, llm_fn)
     except Exception as exc:  # 생성 실패를 보고서 단위 오류로 전달

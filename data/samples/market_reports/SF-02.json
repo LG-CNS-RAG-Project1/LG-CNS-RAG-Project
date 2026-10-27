@@ -13,7 +13,7 @@
           ]
         },
         {
-          "statement": "AI 검사 도입을 검토하는 제조기업과 실무자들이 관련 기술과 사례를 확인할 수 있는 기회가 제공되고 있다.",
+          "statement": "AI 검사 도입을 검토하는 제조기업들이 AI 머신비전 기술과 사례를 확인하고 있다.",
           "claim_type": "fact",
           "citation_ids": [
             2
@@ -45,28 +45,28 @@
       "verdict": "signal_only",
       "claims": [
         {
-          "statement": "충남의 산업용 비전검사장비 전문기업이 1000만원 초반대의 가격으로 비전검사 시스템을 제공하고 있다.",
+          "statement": "충남의 산업용 비전검사장비 전문기업이 1000만원 초반대의 가격으로 비전검사 시스템을 제공하고 있다 (2025년 12월 보도).",
           "claim_type": "fact",
           "citation_ids": [
             8
           ]
         }
       ],
-      "next_check": null
+      "next_check": "검사 장비 판매와 모델 유지보수 계약에 따른 가격대 확인"
     },
     {
       "dimension": "buyer",
-      "verdict": "signal_only",
+      "verdict": "confirmed",
       "claims": [
         {
-          "statement": "현대차·기아가 AI 기반의 터널형 외관검사 비전 시스템을 자체 개발하여 도입했다.",
+          "statement": "현대차·기아가 자체 개발한 터널형 외관검사 비전 시스템을 도입했다.",
           "claim_type": "fact",
           "citation_ids": [
             9
           ]
         },
         {
-          "statement": "식품 제조기업 에쓰푸드는 AI 비전검사 솔루션을 도입하여 검사 정확도를 높였다.",
+          "statement": "에쓰푸드는 베이컨 포장공정에 AI 비전검사 솔루션을 도입했다.",
           "claim_type": "fact",
           "citation_ids": [
             10
@@ -79,7 +79,7 @@
       "dimension": "adoption_barrier",
       "verdict": "unverified",
       "claims": [],
-      "next_check": "2차전지 및 전자부품 제조사 5곳과 인터뷰하여 AI 비전 검사 도입의 주요 장벽 확인"
+      "next_check": "2차전지·전자부품 제조사 품질 부서와 인터뷰로 AI 비전 검사 도입의 주요 장벽 확인"
     }
   ],
   "evidence": [
@@ -217,7 +217,7 @@
       "recency": "high",
       "directness": "medium",
       "evidence_nature": "business_signal",
-      "similarity": 0.5690999999999999
+      "similarity": 0.569
     },
     {
       "citation_id": 9,
