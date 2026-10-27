@@ -343,3 +343,51 @@ def test_status_cli_prints_json_only(monkeypatch, capsys):
     pipeline.main()
     data = json.loads(capsys.readouterr().out)
     assert data["market_runnable"] is True and data["keys"]["OPENAI_API_KEY"] is True
+
+
+class _GatewayBlockedCollection:
+    """count()가 공용 게이트웨이에서 404로 막히는 원격 컬렉션 흉내."""
+
+    def count(self):
+        raise Exception("<html>Error code: 404</html>")
+
+    def get(self, include=None, **kwargs):
+        return {"ids": ["a", "b"], "documents": [], "metadatas": []}
+
+
+class NotFoundError(Exception):
+    pass
+
+
+def test_remote_collection_counts_by_get_when_gateway_blocks_count(
+    monkeypatch, tmp_path
+):
+    import src.retrieval.chroma_client as chroma_client
+
+    monkeypatch.setenv("CHROMA_HOST", "chroma.example.test")
+    monkeypatch.setattr(pipeline, "remote_heartbeat", lambda: None)
+
+    class Client:
+        def get_collection(self, name, embedding_function=None):
+            return _GatewayBlockedCollection()
+
+    monkeypatch.setattr(chroma_client, "connect_chroma", lambda path: Client())
+    collection, state = open_collection("news", tmp_path / "chroma")
+    assert state.location == "remote" and state.count == 2
+    assert collection.count() == 2 and collection.get()["ids"] == ["a", "b"]
+    assert not (tmp_path / "chroma").exists()
+
+
+def test_missing_remote_collection_is_reported_as_missing(monkeypatch, tmp_path):
+    import src.retrieval.chroma_client as chroma_client
+
+    monkeypatch.setenv("CHROMA_HOST", "chroma.example.test")
+    monkeypatch.setattr(pipeline, "remote_heartbeat", lambda: None)
+
+    class Client:
+        def get_collection(self, name, embedding_function=None):
+            raise NotFoundError("Collection [news] does not exist")
+
+    monkeypatch.setattr(chroma_client, "connect_chroma", lambda path: Client())
+    collection, state = open_collection("news", tmp_path / "chroma")
+    assert collection is None and state.reason == "컬렉션 없음"
