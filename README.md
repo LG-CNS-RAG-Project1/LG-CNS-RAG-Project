@@ -153,6 +153,7 @@ python -m src.generation.idea_parser "중소 부품 공장에 협동로봇과 �
 - 아이디어 한 문장을 `gpt-4o-mini`로 문제(`problem`)·기술(`technology`)·고객(`customers`)·차별점(`difference`)·수익모델(`revenue`)로 나눈다. 규칙은 `prompts/idea_parser.md`에서 관리하며, 문장에 없는 항목은 추측하지 않고 비워 둔다. `OPENAI_API_KEY`가 필요하다.
 - 빈 항목은 사용자에게 최대 2회 재질문한다. '모름'으로 답했거나 끝까지 비어 있는 항목은 `unknown`으로 확정하고, 항목별 출처(`extracted`·`user_answer`·`unknown`)를 함께 남긴다.
 - 완성된 결과(`IdeaDraft`)는 `build_requests`로 특허·시장 공통 입력(`StructuredIdea`)과 검색 요청(`PatentSearchRequest`·`MarketSearchRequest`)으로 변환한다.
+- 입력 가드레일: LLM 호출 전 규칙 검사(`src/generation/input_guard.py`: 길이, 지시 무시·시스템 프롬프트 공개 등 조작 표현)와 같은 LLM 호출의 `input_status` 판정(`ok`·`off_topic`·`unsafe`)으로 주제 이탈·프롬프트 조작·유해 목적 입력을 거절한다. 거절되면 `status="rejected"`와 안내 문구(`rejection_reason`)를 반환하고 검색 요청을 만들지 않는다. 재질문 답변도 규칙 검사를 거친다. 기준은 [docs/market_research.md](docs/market_research.md#입력-가드레일).
 
 ## 환경변수
 
@@ -207,6 +208,7 @@ python -m evaluation.evaluate market --mode bm25 --label baseline
 python -m evaluation.evaluate market --mode hybrid --label baseline
 python -m evaluation.evaluate market --mode hybrid --rerank --label baseline  # 선택 의존성 필요
 python -m evaluation.evaluate relevance --model gpt-4o  # 관련성 판정 vs 사람 라벨 → evaluation/results/
+python -m evaluation.evaluate guardrail                 # 입력 가드레일 차단율·오차단율 → evaluation/results/
 ```
 
 - 평가 아이디어는 `data/samples/ideas.json`의 SF-01~SF-05이며, 아이디어 5개 × 시장 차원 5개 = 25문항이다.

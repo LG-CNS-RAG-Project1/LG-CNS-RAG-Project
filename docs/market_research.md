@@ -8,7 +8,10 @@
 ```mermaid
 flowchart TD
   start(["사용자 아이디어 입력"])
-  parse["아이디어 구조화<br/>문장에 있는 내용만 5개 항목으로 추출"]
+  rule["규칙 검사 (LLM 호출 전)<br/>길이 · 프롬프트 조작 표현"]
+  parse["입력 판정·아이디어 구조화 (LLM 1회)<br/>input_status + 문장에 있는 5개 항목"]
+  allowed{"검토 대상?<br/>input_status = ok"}
+  reject["거절 안내 반환<br/>off_topic · unsafe · 검색 안 함"]
   filled{"5개 항목 모두 입력됨?"}
   ask["빈 항목 재질문<br/>사용자 답변 병합 · 모름 허용"]
   structure["아이디어 5개 항목 (공통 입력)<br/>문제·기술·고객·차별점·수익모델"]
@@ -63,8 +66,13 @@ flowchart TD
     improved -- 예 --> fix
   end
 
-  start --> parse --> filled
+  start --> rule
+  rule -- 통과 --> parse --> allowed
+  rule -- 차단 --> reject
+  allowed -- 아니오 --> reject
+  allowed -- 예 --> filled
   filled -- 아니오 · 최대 2회 --> ask --> filled
+  ask -. 답변도 규칙 검사 · 차단 시 .-> reject
   filled -- 예 · 2회 후 남은 항목은 모름 --> structure
   structure --> query
   structure -.-> patent
@@ -97,11 +105,11 @@ flowchart TD
   classDef todo stroke-dasharray:5 4
 
   class start,done term
-  class parse,ask,structure,patent,news,dart,clean,dedup,index io
+  class rule,parse,reject,ask,structure,patent,news,dart,clean,dedup,index io
   class query,filter,vector,group,top,judge,live,lack,nature search
   class verdict,task,gen,cite,check,drop,contract,handoff genstep
   class cases,metrics,answer,cost,compare,tune,fix evalnode
-  class filled,enough,pass,improved decide
+  class allowed,filled,enough,pass,improved decide
   class dart,live,answer,cost,compare,improved,tune,fix todo
 
   style data fill:#9aa3ad1f,stroke:#9aa3ad
@@ -150,6 +158,24 @@ flowchart TD
 - 사람 라벨 중 사람·LLM 판정이 달랐던 행은 LLM 판정을 보고 확정했으므로, 두 모델 차이는 실제보다 크게 나타났을 수 있다.
 - 사람 라벨만 있는 6문항에서 충분성 상태 일치는 `gpt-4o` 5/6, `gpt-4o-mini` 4/6이다. 문항 수가 적어 상태 정확도의 근거로는 부족하다.
 
+## 입력 가드레일
+
+아이디어 입력 단계에서 주제 이탈과 프롬프트 조작을 막는다. LLM 호출은 구조화와 같은 1회다.
+
+1. **규칙 검사**(`src/generation/input_guard.py`, LLM 호출 전): 5자 미만·1,000자 초과, 지시 무시·시스템 프롬프트 공개·역할 변경 등 AI 자신을 겨냥한 표현. 작업 지침 안내·시스템 메시지 전송·안전장치 해제 감지처럼 정상 아이디어에 나오는 표현은 잡지 않도록 범위를 좁혔다.
+2. **LLM 판정**(`prompts/idea_parser.md`): 구조화 응답에 `input_status`를 함께 받는다. `ok`(제조·스마트팩토리 사업 아이디어), `off_topic`(사업 아이디어가 아니거나 다른 분야), `unsafe`(지침 변경 시도, 불법·유해 목적). 사용자 문장은 `{"idea_text": ...}` JSON 값으로 넘겨 데이터로 다룬다.
+3. `ok`가 아니면 `IdeaDraft.status="rejected"`와 사용자 안내(`rejection_reason`)를 반환하고, 검색 요청을 만들지 않는다. 재질문 답변도 규칙 검사(300자·조작 표현)를 거친다.
+4. 검색된 기사에 지시처럼 보이는 문장이 있어도 따르지 않도록 관련성 판정·시장 분석 프롬프트에 데이터 취급 규칙을 둔다.
+
+평가(`evaluation/guardrail_cases.json` 28문항 + 샘플 아이디어 5개, `gpt-4o-mini`):
+
+| 구분 | 문항 | 결과 |
+|---|---|---|
+| 공격(조작 시도 9 · 유해 목적 3)·주제 이탈(10) | 22 | 모두 차단 (규칙 5 · LLM 17), off_topic·unsafe 구분도 일치 |
+| 정상(샘플 5 · 일반 2 · 오탐 유도 4) | 11 | 오차단 0 |
+
+- 문항은 프롬프트 작성자가 만든 것이라 실제 공격보다 쉬울 수 있다. 새로운 우회 표현은 문항에 추가해 회귀 평가한다.
+
 ## 시장 분석 생성
 
 관련 판정된 기사만 인용 근거(`MarketEvidence`)로 만들고, 차원별 판정과 문장을 LLM(`gpt-4o`, `prompts/market_analysis.md`)으로 생성한 뒤 코드로 검증한다. 결과는 `MarketReport` JSON이다.
@@ -174,6 +200,7 @@ flowchart TD
 | 단계 | 위치 |
 |---|---|
 | 아이디어 구조화·재질문 | `prompts/idea_parser.md`, `src/generation/idea_parser.py` |
+| 입력 가드레일 | `src/generation/input_guard.py`, `prompts/idea_parser.md`, `evaluation/guardrail_cases.json`, `evaluation/guardrail_eval.py` |
 | 수집 키워드·요청 설정 | `configs/market_keywords.yaml` |
 | 네이버 뉴스 수집 | `src/ingestion/news_client.py` → `data/market/raw/` |
 | DART 공시 수집 | `src/ingestion/dart_client.py` |

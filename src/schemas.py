@@ -40,10 +40,14 @@ class IdeaDraft(BaseModel):
     revenue: str = ""
 
     field_sources: dict[IdeaField, FieldSource] = Field(default_factory=dict)
-    status: Literal["needs_input", "complete"] = "needs_input"
+    status: Literal["needs_input", "complete", "rejected"] = "needs_input"
     missing_fields: list[IdeaField] = Field(default_factory=list)
     questions: dict[IdeaField, str] = Field(default_factory=dict)
     rounds: int = Field(default=0, ge=0)  # 재질문에 답한 횟수
+
+    # 입력 검사 결과: off_topic(주제 이탈), unsafe(프롬프트 조작·유해 목적)이면 rejected
+    input_status: Literal["ok", "off_topic", "unsafe"] = "ok"
+    rejection_reason: str | None = None  # 사용자에게 보여 줄 거절 안내
 
     @model_validator(mode="after")
     def validate_draft(self):
@@ -51,6 +55,10 @@ class IdeaDraft(BaseModel):
             raise ValueError("complete draft must not have missing fields")
         if self.status == "needs_input" and not self.missing_fields:
             raise ValueError("needs_input draft requires missing fields")
+        if (self.status == "rejected") != (self.input_status != "ok"):
+            raise ValueError("rejected status must match a non-ok input_status")
+        if self.status == "rejected" and not self.rejection_reason:
+            raise ValueError("rejected draft requires rejection_reason")
         return self
 
     @property

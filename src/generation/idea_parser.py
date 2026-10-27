@@ -2,9 +2,13 @@
 빈 항목을 사용자에게 재질문한 뒤 특허·시장 검색 요청을 만든다.
 
 흐름:
-    parse_idea(text)              LLM이 문장에 있는 내용만 항목별로 추출 → IdeaDraft
-    apply_answers(draft, answers) 사용자 답변을 병합하고 빈 항목을 다시 확인
+    parse_idea(text)              규칙 검사 → LLM 1회 호출로 입력 판정(input_status)과 항목 추출 → IdeaDraft
+    apply_answers(draft, answers) 사용자 답변을 규칙 검사 후 병합하고 빈 항목을 다시 확인
     build_requests(draft)         완성된 아이디어로 PatentSearchRequest·MarketSearchRequest 생성
+
+입력이 주제 이탈(off_topic)이거나 프롬프트 조작·유해 목적(unsafe)이면 status가 "rejected"이고
+rejection_reason에 사용자 안내가 담긴다. rejected 초안으로는 검색 요청을 만들 수 없다.
+사용자 문장은 JSON 값({"idea_text": ...})으로 넘겨 지시가 아닌 데이터로 다룬다.
 
 재질문은 최대 MAX_FOLLOWUP_ROUNDS회다. 모름으로 답했거나 상한까지 비어 있는 항목은
 field_sources가 "unknown"인 빈 값으로 확정한다.
@@ -21,6 +25,12 @@ from typing import Callable
 
 from dotenv import load_dotenv
 
+from src.generation.input_guard import (
+    MAX_ANSWER_CHARS,
+    REJECTION_MESSAGES,
+    InputStatus,
+    screen_text,
+)
 from src.schemas import (
     IDEA_FIELDS,
     IdeaDraft,
@@ -87,11 +97,24 @@ def _clean(value) -> str:
     return " ".join(value.split()) if isinstance(value, str) else ""
 
 
+def reject(text: str, status: InputStatus, reason: str | None = None) -> IdeaDraft:
+    """거절된 입력의 초안을 만든다. reason이 없으면 상태별 기본 안내를 쓴다."""
+    return IdeaDraft(
+        original_text=text,
+        status="rejected",
+        input_status=status,
+        rejection_reason=reason or REJECTION_MESSAGES[status],
+    )
+
+
 def check_draft(draft: IdeaDraft) -> IdeaDraft:
     """빈 항목을 찾아 상태와 재질문을 갱신한다.
 
     재질문 상한에 닿았으면 남은 빈 항목을 모름으로 확정하고 complete로 반환한다.
+    거절된 초안은 그대로 반환한다.
     """
+    if draft.status == "rejected":
+        return draft
     sources = dict(draft.field_sources)
     missing = [
         f for f in IDEA_FIELDS if not getattr(draft, f) and sources.get(f) != "unknown"
@@ -111,12 +134,23 @@ def check_draft(draft: IdeaDraft) -> IdeaDraft:
 
 
 def parse_idea(text: str, llm_fn: LLMFn = call_llm) -> IdeaDraft:
-    """아이디어 문장을 LLM으로 항목별 추출하고 빈 항목 재질문을 준비한다."""
+    """아이디어 문장을 검사·항목별 추출하고 빈 항목 재질문을 준비한다.
+
+    규칙 검사에 걸리면 LLM을 부르지 않고 거절한다. LLM이 input_status를 off_topic·unsafe로
+    판정해도 거절하며, 알 수 없는 input_status는 off_topic으로 본다.
+    """
     text = _clean(text)
     if not text:
         raise ValueError("idea text is empty")
+    status, reason = screen_text(text)
+    if status != "ok":
+        return reject(text, status, reason)
 
-    raw = llm_fn(load_prompt(), text)
+    raw = llm_fn(load_prompt(), json.dumps({"idea_text": text}, ensure_ascii=False))
+    status = raw.get("input_status", "ok")
+    if status != "ok":
+        return reject(text, status if status in REJECTION_MESSAGES else "off_topic")
+
     values = {f: _clean(raw.get(f)) for f in IDEA_FIELDS}
     title = _clean(raw.get("title")) or text
     draft = IdeaDraft(
@@ -135,7 +169,11 @@ def apply_answers(draft: IdeaDraft, answers: dict[str, str]) -> IdeaDraft:
     - 빈 답변은 무시하고, UNKNOWN_ANSWERS에 해당하면 모름으로 확정한다.
     - 이미 채워진 항목도 답변으로 수정할 수 있으며 출처는 user_answer가 된다.
     - 재질문 중(needs_input)에 받은 답변이면 재질문 횟수를 1 늘린다.
+    - 답변이 규칙 검사(길이 MAX_ANSWER_CHARS·프롬프트 조작 표현)에 걸리면 초안 전체를 거절한다.
+    - 거절된 초안에는 답변을 받을 수 없다(ValueError).
     """
+    if draft.status == "rejected":
+        raise ValueError("cannot answer a rejected idea draft")
     invalid = set(answers) - set(IDEA_FIELDS)
     if invalid:
         raise ValueError(f"unknown idea fields: {sorted(invalid)}")
@@ -145,6 +183,9 @@ def apply_answers(draft: IdeaDraft, answers: dict[str, str]) -> IdeaDraft:
         value = _clean(answer)
         if not value:
             continue
+        status, reason = screen_text(value, MAX_ANSWER_CHARS, min_chars=1)
+        if status != "ok":
+            return reject(draft.original_text, status, reason)
         if value in UNKNOWN_ANSWERS:
             update[field], sources[field] = "", "unknown"
         else:
