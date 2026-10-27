@@ -125,19 +125,23 @@ IdeaLens/
 │   │   ├── kipris_client.py     # 특허 API 호출
 │   │   ├── patent_processor.py  # 특허 정제·청킹
 │   │   ├── dart_client.py       # DART 공시 수집
+│   │   ├── news_client.py       # 네이버 뉴스 수집
 │   │   └── market_processor.py  # 시장 자료 정제
 │   │
 │   ├── retrieval/
 │   │   ├── __init__.py
 │   │   ├── patent_store.py      # ChromaDB 색인
 │   │   ├── patent_search.py     # 특허 검색·재정렬
-│   │   └── market_search.py     # 시장 근거 검색
+│   │   ├── market_search.py     # 시장 근거 검색
+│   │   └── market_relevance.py  # 시장 근거 관련성 판정·충분성
 │   │
 │   ├── generation/
 │   │   ├── __init__.py
+│   │   ├── input_guard.py       # 아이디어 입력 규칙 검사
 │   │   ├── idea_parser.py       # 아이디어 구조화
 │   │   ├── patent_analysis.py   # 선행특허 비교
 │   │   ├── market_analysis.py   # 시장 신호 분석
+│   │   ├── market_markdown.py   # 시장 결과 마크다운 섹션
 │   │   └── report_builder.py    # 최종 보고서 구성
 │   │
 │   └── services/
