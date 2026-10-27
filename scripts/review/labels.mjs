@@ -58,11 +58,12 @@ export const LABELS = {
     auth: "인증 오류(리더 확인 필요)", model_access: "모델 접근 불가", quota: "사용·결제 한도 초과", rate_limit: "속도 제한",
     server: "OpenAI 서버 오류", timeout: "시간 초과", network: "연결 오류", invalid_request: "요청 형식 오류",
     incomplete: "응답 미완료(출력 한도)", refusal: "모델 거절", schema: "출력 형식 검증 실패", model_mismatch: "응답 모델 불일치",
+    plan_limit: "ChatGPT 구독 사용 한도 도달", codex_failed: "Codex 실행 실패",
   },
   // AI를 부르지 않은 이유
   skip: {
     draft: "초안", same_head: "같은 버전 이미 분석", no_change: "의미 있는 변경 없음", llm_disabled: "AI 분석 꺼짐(REVIEW_LLM_ENABLED)",
-    no_key: "API 키 없음(OPENAI_API_KEY)", config: "지원하지 않는 제공자·모델 설정", actor: "수동 실행 권한 없음",
+    no_key: "인증 정보 없음(Codex 로그인 또는 API 키)", config: "지원하지 않는 제공자·모델 설정", actor: "수동 실행 권한 없음",
     secret: "비밀값 의심으로 생략", cooldown: "OpenAI 한도로 잠시 멈춤", retry_limit: "같은 버전 2회 실패로 자동 중단",
   },
   owner: { author: "작성자", leader: "리더", team: "팀" },

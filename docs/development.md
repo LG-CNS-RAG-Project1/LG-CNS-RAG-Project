@@ -56,9 +56,18 @@ pre-commit run --all-files            # 전체 파일 검사 (make precommit)
 
 ## PR 자동 분석 (`.github/workflows/pr-analysis.yml`)
 
-develop 대상 PR을 OpenAI GPT(Responses API, 기본 모델 `gpt-6-luna`)로 분석해 Notion `RAG 기반 미니 프로젝트: IdeaLens` 바로 아래 `PR 분석` 표에 **PR마다 페이지 하나**로 기록한다. PR이 병합되면 검증된 카드 변경만 `영역 요약 카드` 표에 반영한다. 분석기는 GPT 하나뿐이며, 실패해도 다른 모델·제공자로 넘기지 않는다. 참고용이며 승인·병합·GitHub 댓글·라벨은 하지 않는다. 필수 체크가 아니다.
+develop 대상 PR을 GPT(기본 모델 `gpt-6-luna`)로 분석해 Notion `RAG 기반 미니 프로젝트: IdeaLens` 바로 아래 `PR 분석` 표에 **PR마다 페이지 하나**로 기록한다. PR이 병합되면 검증된 카드 변경만 `영역 요약 카드` 표에 반영한다. 참고용이며 승인·병합·GitHub 댓글·라벨은 하지 않는다. 필수 체크가 아니다.
+
+이 저장소의 [Actions 정책](https://github.com/LG-CNS-RAG-Project1/LG-CNS-RAG-Project/settings/actions/rules/9048)은 이 워크플로에 `pull_request_target`과 `workflow_dispatch`를 허용한다. 정책 생성은 확인했지만, 정책 적용 후 실제 워크플로 실행은 별도로 확인해야 한다.
+
+분석기는 저장소 변수 `REVIEW_PROVIDER`로 하나만 고른다. 실패해도 다른 모델이나 다른 분석기로 넘기지 않는다.
+- `codex`(기본): Codex CLI를 리더의 ChatGPT 구독 로그인으로 실행한다. API 요금 대신 구독 사용량을 쓴다.
+- `openai`: OpenAI API 키(Responses API)로 부른다. API 요금이 따로 청구된다.
+
+**Codex 구독 경로는 현재 보안 차단 상태다.** 0.160.1은 `unified_exec=false`를 지정해도 기능 목록에서 켜진 것으로 표시되며, 실제 도구 목록을 기능 목록만으로 검증할 수 없다. 소스상 `apply_patch`도 모델 설정에 따라 등록된다. Actions에서는 로그인 복원 전에, 로컬에서는 모델 호출 전에 중단한다. 이를 검증할 방법을 확보하고 별도 검토하기 전에는 `REVIEW_LLM_ENABLED`를 켜지 않는다.
 
 용어:
+- **ChatGPT 로그인 정보(`auth.json`)**: `codex login`으로 만든 접근·갱신 토큰 파일. 비밀번호처럼 다룬다.
 - **버전(head)**: PR 브랜치의 최신 커밋
 - **파일 지문**: 파일별 변경 내용(추가·삭제 줄)의 해시. 같으면 PR 변경 내용이 그대로라는 뜻이다.
 - **force**: Run workflow 화면의 체크박스
@@ -66,14 +75,22 @@ develop 대상 PR을 OpenAI GPT(Responses API, 기본 모델 `gpt-6-luna`)로 �
 
 ### 처음 설정(리더, 1회)
 
-1. OpenAI 플랫폼에서 이 자동화 전용 프로젝트와 API 키를 만들고, 그 프로젝트의 월 지출 상한을 정한다.
-2. 키를 GitHub 저장소 **Settings → Environments → `pr-analysis` → Environment secrets**에 `OPENAI_API_KEY` 이름으로 등록한다. 키는 화면·채팅·파일에 남기지 않는다.
-3. **Settings → Secrets and variables → Actions → Variables**에서 설정한다.
-   - `REVIEW_PROVIDER=openai`
+`REVIEW_PROVIDER=codex` 기준이다(`openai`이면 1·2 대신 `OPENAI_API_KEY`를 Environment secret으로 등록한다).
+
+1. 리더 PC에서 `make review-codex-login`을 실행한다.
+   - 브라우저에서 ChatGPT 계정으로 로그인하면 자동화 전용 로그인 정보가 만들어진다.
+   - 그 정보는 GitHub **Settings → Environments → `pr-analysis` → Environment secrets**의 `CODEX_AUTH_JSON`에 바로 저장된다.
+   - 평소 쓰는 Codex 로그인(`~/.codex`)과는 다른 세션이며, 값은 화면이나 파일에 남지 않는다.
+2. GitHub에서 세분화된 개인 토큰(fine-grained PAT)을 만든다.
+   - 범위: 리소스 소유자는 조직, 저장소는 이 저장소만, 권한은 Repository permissions의 **Environments: Read and write**만 준다.
+   - 같은 Environment secrets에 `CODEX_AUTH_WRITE_TOKEN`으로 등록한다.
+   - Codex가 실행 중 로그인 정보를 갱신하면 워크플로가 이 토큰으로 `CODEX_AUTH_JSON`을 다시 저장한다.
+3. **Settings → Secrets and variables → Actions → Variables**에서 다음 값을 설정한다.
+   - `REVIEW_PROVIDER=codex`
    - `REVIEW_MODEL=gpt-6-luna`: 다른 값(예: `claude-…`)이 남아 있으면 모델을 부르지 않는다.
    - `REVIEW_ENABLED=true`
 4. `REVIEW_LLM_ENABLED=false`인 채로 **Actions → PR Analysis → Run workflow**(develop)를 두 번 실행한다.
-   - `task=verify-model`과 최근 PR 번호: 모델 호출 1회로 상태·응답 모델·사용량만 확인한다(API 비용 발생).
+   - `task=verify-model`과 최근 PR 번호: 보안 차단이 해제된 이후 모델 호출 1회로 상태·사용량만 확인한다(구독 사용량 소모).
    - `task=notion-check`: Notion 읽기·쓰기를 확인한다.
 5. 두 점검이 통과하면 `REVIEW_LLM_ENABLED=true`로 바꾼다.
 6. 아래 '쓰지 않는 설정 정리'를 한다.
@@ -83,13 +100,45 @@ develop 대상 PR을 OpenAI GPT(Responses API, 기본 모델 `gpt-6-luna`)로 �
 | 구성 | 인증 | 하는 일 |
 |---|---|---|
 | GitHub Actions(`pull_request_target`) | `GITHUB_TOKEN`(읽기 전용 권한) | develop의 워크플로·스크립트만 받아 실행한다. PR 코드는 checkout·실행하지 않고, 충돌·그림 계산에 필요한 git 객체만 받는다 |
-| OpenAI Responses API | Environment `pr-analysis`의 `OPENAI_API_KEY` | PR 1건 분석(보고서 + 영역 카드 변경 후보)을 구조화 출력으로 받는다. 요청에는 이 키 외의 자격 증명을 넣지 않고 `store: false`로 보낸다 |
+| Codex CLI(`codex`, 0.160.1 고정) | Environment `pr-analysis`의 `CODEX_AUTH_JSON`(ChatGPT 구독 로그인) | PR 1건 분석(보고서 + 영역 카드 변경 후보)을 구조화 출력으로 받는다. 실행마다 로그인 정보를 임시 폴더에 복원하고, 갱신됐으면 `CODEX_AUTH_WRITE_TOKEN`으로 다시 저장한 뒤 지운다 |
+| OpenAI Responses API(`openai` 선택 시) | Environment `pr-analysis`의 `OPENAI_API_KEY` | 같은 분석을 API로 받는다. 요청에는 이 키 외의 자격 증명을 넣지 않고 `store: false`로 보낸다 |
 | Notion REST API | Environment `pr-analysis`의 `NOTION_REVIEW_TOKEN`(연결 `PR_Analysis`) | PR 페이지·분석 상태·영역 카드를 읽고 쓴다. 모델에는 Notion 자격 증명이 전달되지 않는다 |
 
 - Environment `pr-analysis`는 배포 브랜치를 develop으로 제한한다. 기능 브랜치의 워크플로는 비밀값을 읽지 못한다.
-- 이 자동화의 `OPENAI_API_KEY`는 앱이 `.env`로 읽는 같은 이름의 키와 별개다. GitHub Environment에만 둔다.
-- PR 제목·본문·커밋 메시지·변경 내용이 OpenAI API로 전송된다. 비밀값으로 보이는 값은 가려서 보내고, 현재 버전에 비밀값이 있으면 모델을 부르지 않는다.
-- API 사용료는 OpenAI API 결제로 따로 청구된다. Claude·ChatGPT 구독과 관계없다.
+- **Codex 실행 격리:** 도구 관련 기능을 명시적으로 끄고 빈 작업 폴더, 읽기 전용 샌드박스, 세션 미저장을 설정한다. 읽기 전용 샌드박스는 파일 읽기를 차단하지 않으며, 기능 점검만으로 실제 도구가 제거됐다고 증명할 수 없다. 그래서 현재는 모델 호출을 차단한다.
+- **자식 프로세스 환경변수:** Codex에는 실행에 필요한 변수(`PATH`·임시 `HOME`·`CODEX_HOME`·`LANG`·UTC 시간대)만 넘긴다. GitHub·Notion 토큰과 API 키는 넘기지 않는다.
+- **동시 실행 방지:** 모델을 부를 수 있는 잡은 concurrency 그룹 `pr-analysis-model`(`queue: max`)에서 직렬화한다. 상태만 갱신하는 실행과 AI가 꺼진 일반 실행은 별도 그룹을 쓴다. 같은 PR의 실행은 겹치지 않지만 GitHub는 이벤트 발생 순서를 보장하지 않으므로 실행 시점의 PR 상태를 확인한다. CI 결과 대기는 현재 분석 잡 안에 남는다.
+- **로그인 갱신:** 도구 점검과 PAT의 환경 공개키 조회가 성공해야 로그인 정보를 복원한다. 공개키 조회는 실제 Secret 쓰기 권한을 보장하지 않는다. 갱신 토큰이 있는 유효한 JSON만 되저장하고, 실패 시 오류를 남기며 임시 파일을 별도 단계에서 삭제한다. 러너 강제 종료나 취소 시 정리·되저장이 보장되지는 않는다.
+- **로그인 재등록:** 재등록 전 자동 AI 분석을 끄고 수동 모델 확인을 포함한 관련 실행이 진행·대기 중이지 않은지 확인한다. 실행 중 재등록하면 이전 잡이 새 로그인 정보를 덮어쓸 수 있다.
+- **키 구분:** 이 자동화의 `OPENAI_API_KEY`는 앱이 `.env`로 읽는 같은 이름의 키와 별개다.
+- **전송되는 내용:** PR 제목·본문·커밋 메시지·변경 내용이 분석기로 전송된다. 알려진 비밀값 패턴은 가려서 보내고, 제목·브랜치·파일 경로 또는 이전 상태·카드에 비밀값이 의심되면 모델 호출과 기록을 중단한다. 모델 응답에 같은 패턴이 있으면 폐기한다. 이 패턴 검사는 모든 비밀값을 식별하지는 못한다.
+- **데이터 처리:** `codex`는 리더 ChatGPT 계정의 데이터 설정(모델 개선 사용 여부 등)을 따른다. 리더가 계정 설정을 확인한다.
+- **비용:** `openai`는 API 요금이 따로 청구된다.
+
+### 공개 저장소에서 구독 로그인을 쓰는 위험
+
+OpenAI의 CI 인증 문서는 다음을 권한다.
+- ChatGPT 로그인 방식은 "공개·오픈소스 저장소에는 쓰지 말 것"
+- 신뢰된 비공개 인프라에서만 쓸 것
+- 자동화에는 API 키를 쓸 것
+
+이 저장소는 공개이며, 리더의 결정으로 이 방식을 쓴다.
+
+**줄이는 장치**
+- Environment는 develop 전용이고, PR 코드는 실행하지 않는다.
+- 도구를 끄도록 설정하고 실제 차단을 검증하지 못하면 모델 호출을 막는다.
+- 로그인 정보는 출력하지 않는다.
+- 자동화 전용 로그인 세션을 쓴다.
+- 실행을 저장소 전체에서 직렬로 처리한다.
+- 되저장 토큰은 이 저장소의 Environments 권한만 가진다.
+
+**남는 위험**
+- 워크플로를 고친 PR이 develop에 병합되면 로그인 정보를 읽을 수 있다. `.github/workflows/`·`scripts/review/`를 고치는 PR은 리더가 직접 확인한다.
+- `CODEX_AUTH_WRITE_TOKEN`이 새면 이 저장소의 Environment 설정과 비밀값을 바꿀 수 있다.
+- 로그인 정보가 새면 리더 ChatGPT 계정을 쓸 수 있다. 노출이 의심되면 다음 순서로 대응한다.
+  1. ChatGPT 계정 설정에서 로그인 세션을 정리한다.
+  2. `make review-codex-login`으로 다시 등록한다.
+  3. PAT를 폐기하고 새로 만든다.
 
 ### 이벤트별 동작과 모델 호출 수
 
@@ -119,10 +168,13 @@ develop 대상 PR을 OpenAI GPT(Responses API, 기본 모델 `gpt-6-luna`)로 �
 - **준비 상태:** 파일을 보지 못했으면 '일부만 분석'이 붙는다.
 - **넘기는 영역 카드:** 바뀐 파일의 계층과, 카드 근거에 바뀐 파일이 들어 있는 계층만 넘긴다. 카드가 충분하면 다른 PR 기록을 넣지 않는다. 카드가 없거나 기준 SHA 뒤 develop에서 그 계층이 바뀌었으면, 이 PR이 고친 파일의 develop 원본(최대 6개)을 함께 넘긴다.
 - **데이터 구획:** 사람이 쓴 글·지난 AI 출력·카드는 nonce 구획 안에 넣고 지시가 아닌 데이터로 다룬다. '프로그램이 확인한 사실' 구획의 파일·브랜치 이름은 한 줄 따옴표 문자열로만 넣는다.
-- **reasoning과 출력 상한:** 요청마다 명시한다. 전체 분석은 `medium`·32,000토큰, 바뀐 부분 분석은 `low`·25,000토큰이 기본값이다. 출력 상한에는 추론 토큰이 포함된다.
+- **reasoning과 출력 상한:** 요청마다 명시한다. 전체 분석은 `medium`, 바뀐 부분 분석은 `low`가 기본값이다.
+  - 출력 상한(전체 32,000토큰, 바뀐 부분 25,000토큰, 추론 포함)은 `openai`에만 적용된다. Codex CLI에는 출력 상한 설정이 없다.
+  - `codex` 실행은 10분이 지나면 끊는다.
 - **응답 검증:**
   - OpenAI strict 구조화 출력에 더해 로컬에서 JSON 스키마를 다시 확인한다.
-  - 응답의 `head_sha`가 분석 대상과 다르면 결과 전체를 버린다. 응답 모델이 요청 모델(또는 그 날짜 스냅샷)이 아니어도 결과를 쓰지 않는다.
+  - 응답의 `head_sha`가 분석 대상과 다르면 결과 전체를 버린다.
+  - `openai`는 응답 모델이 요청 모델(또는 그 날짜 스냅샷)이 아니면 결과를 쓰지 않는다. `codex`는 요청 모델(`-m`)을 기록하고 모델 전환 이벤트가 보이면 결과를 버린다. 이 이벤트가 항상 제공되는지와 서버 측 전환 자체를 막을 수 있는지는 확인되지 않았다.
   - 대상 밖 파일의 지적과 없는 이전 지적 ID는 버린다. 지적의 줄 번호는 앵커를 실제 변경 줄과 대조해 프로그램이 정한다.
   - 카드 후보는 patch로 확인되는 것만 남긴다.
     - 계약 추가: 그 계층 파일의 추가 줄에 근거 심볼(3자 이상 식별자)이 있어야 한다.
@@ -160,11 +212,16 @@ develop 대상 PR을 OpenAI GPT(Responses API, 기본 모델 `gpt-6-luna`)로 �
 
 | `마지막 시도`의 사유 | 뜻 | 자동 처리 | 리더가 할 일 |
 |---|---|---|---|
+| ChatGPT 구독 사용 한도 도달 | Codex 사용 한도(5시간·주간) | 다시 부르지 않고, 안내된 재설정 시각까지(없으면 1시간) 저장소 전체 AI 호출을 멈춘다 | 리더 본인의 Codex 사용과 한도를 함께 쓰므로 사용량 확인 |
+| 인증 오류(`codex`) | 로그인 정보가 만료·무효(갱신 토큰 회전 실패 등) | 다시 부르지 않고 6시간 멈춘다 | `make review-codex-login`으로 다시 등록, `CODEX_AUTH_WRITE_TOKEN` 확인 |
+| Codex 실행 실패 | 분류되지 않은 Codex 오류 | 다시 부르지 않는다 | 반복되면 Actions 경고의 오류 요약 확인 |
 | 속도 제한 | 429 `rate_limit`·`slow_down` | Retry-After(없으면 `x-ratelimit-reset-*`)만큼 기다려 최대 2번 다시 보낸다. 60초를 넘으면 다시 보내지 않고 그 시각까지 저장소 전체 AI 호출을 멈춘다 | 대부분 없음. 자주 나면 OpenAI 사용 등급 확인 |
 | 사용·결제 한도 초과 | 429 `insufficient_quota`·`*_spend_limit_exceeded` 등 | 다시 보내지 않고 저장소 전체 AI 호출을 6시간 멈춘다 | 결제·지출 상한 확인 |
 | 인증 오류·모델 접근 불가·응답 모델 불일치·요청 형식 오류 | 401·403·404·400, 응답 모델이 요청과 다름 | 다시 보내지 않고 저장소 전체 AI 호출을 6시간 멈춘다. 다른 모델로 바꾸지 않는다 | Secret 교체, OpenAI 프로젝트의 모델 권한·`REVIEW_MODEL` 확인 |
 | OpenAI 서버 오류·연결 오류 | 5xx·연결 실패 | 최대 2번 다시 보낸다 | 반복되면 OpenAI 상태 페이지 확인 |
-| 응답 미완료(출력 한도)·모델 거절·출력 형식 검증 실패·시간 초과(280초) | 응답을 쓸 수 없음 | 다시 보내지 않는다 | 같은 PR에서 반복되면 `force`로 다시 실행하거나 출력 상한 조정 |
+| 응답 미완료(출력 한도)·모델 거절·출력 형식 검증 실패·시간 초과(API 280초, Codex 10분) | 응답을 쓸 수 없음 | 다시 보내지 않는다 | 같은 PR에서 반복되면 `force`로 다시 실행하거나 출력 상한 조정 |
+
+- 표의 속도 제한·사용 한도·서버 오류·재시도 줄은 `openai` 기준이다. `codex`는 이 자동화가 다시 실행하지 않는다. Codex 내부에서는 연결을 최대 5번 다시 시도하는 것이 관찰됐다.
 
 - 같은 버전에서 실패가 2번 쌓이면 이후 자동 실행은 모델을 부르지 않는다(`같은 버전 2회 실패로 자동 중단`). 대기로 건너뛴 실행도 실패 횟수를 이어받는다.
 - 멈춘 시각이 지나도 자동으로 다시 실행하지 않는다. 다음 수정본이나 수동 실행 때 다시 부른다.
@@ -175,21 +232,28 @@ develop 대상 PR을 OpenAI GPT(Responses API, 기본 모델 `gpt-6-luna`)로 �
 - 호출마다 Actions 로그에 `PR_ANALYSIS_USAGE {…}` 한 줄이 남는다. 담는 값은 PR·버전·이벤트·목적·제공자·모델·실제 응답 모델·입력/캐시/캐시 쓰기/출력/추론 토큰·입력 구획별 바이트·시간·재시도·결과(success·failed:사유·skipped:사유)다.
 - 실행 요약에 같은 줄을 남긴다. PR 페이지의 '분석 기록' 표에는 토큰 수를 보여 준다.
 - 공식 정의대로 캐시 토큰은 입력의 일부, 추론 토큰은 출력의 일부이므로 더하지 않는다.
-- 응답을 받은 실패(미완료·형식 오류 등)도 입력·추론 토큰이 청구될 수 있다. 시간 초과·연결 오류는 사용량을 받지 못해 0으로 기록되므로 실제 청구는 OpenAI 플랫폼의 Usage·Billing 화면에서 확인한다.
+- `codex`는 API 요금이 아니라 리더 ChatGPT 구독의 Codex 사용량을 쓴다. 이 사용량은 리더 본인의 Codex 사용과 한도를 함께 쓴다.
+  - 남은 한도는 ChatGPT의 사용량 화면이나 Codex CLI `/status`로 확인한다.
+  - 실측(PR #26, reasoning medium): 입력 18,670·출력 1,701(추론 352) 토큰, 16.8초. 입력에는 Codex가 붙이는 도구 정의 등이 포함된다.
+- `openai`의 실패:
+  - 응답을 받은 실패(미완료·형식 오류 등)도 입력·추론 토큰이 청구될 수 있다.
+  - 시간 초과·연결 오류는 사용량을 받지 못해 0으로 기록된다. 실제 청구는 OpenAI 플랫폼의 Usage·Billing 화면에서 확인한다.
 - 측정하지 않은 절감 추정치는 기록하지 않는다.
 
 ### 설정
 
 | 이름 | 위치 | 내용 |
 |---|---|---|
-| `OPENAI_API_KEY` | Environment `pr-analysis` 비밀값 | OpenAI API 키(이 자동화 전용 프로젝트 키 권장). 분석 단계에만 전달하고 병합·닫힘·초안 전환·카드 잡에는 넘기지 않는다 |
+| `CODEX_AUTH_JSON` | Environment `pr-analysis` 비밀값 | 자동화 전용 ChatGPT 로그인 정보(`make review-codex-login`으로 등록). 분석 단계의 복원 단계에만 전달하고 병합·닫힘·초안 전환·카드 잡에는 넘기지 않는다 |
+| `CODEX_AUTH_WRITE_TOKEN` | Environment `pr-analysis` 비밀값 | 갱신된 로그인 정보를 다시 저장하는 세분화된 PAT(이 저장소, Environments 읽기·쓰기만). 사전 권한 확인과 되저장 단계에만 전달한다 |
+| `OPENAI_API_KEY` | Environment `pr-analysis` 비밀값(`openai` 선택 시) | OpenAI API 키. `REVIEW_PROVIDER=openai`일 때 분석 단계에만 전달한다 |
 | `NOTION_REVIEW_TOKEN` | Environment `pr-analysis` 비밀값 | Notion 연결 `PR_Analysis`(읽기·업데이트·삽입) 토큰 |
 | `REVIEW_ENABLED`·`REVIEW_LLM_ENABLED` | 저장소 변수 | `true`일 때 실행·AI 분석. 끄면 다음 실행부터 즉시 멈춘다 |
-| `REVIEW_PROVIDER`·`REVIEW_MODEL` | 저장소 변수 | `openai`·`gpt-6-luna`(비우면 이 값). 다른 제공자나 `gpt-`로 시작하지 않는 모델이면 모델을 부르지 않는다 |
+| `REVIEW_PROVIDER`·`REVIEW_MODEL` | 저장소 변수 | `codex`(또는 `openai`)·`gpt-6-luna`(비우면 `codex`·`gpt-6-luna`). 그 밖의 제공자나 모델이면 모델을 부르지 않는다 |
 | `REVIEW_EFFORT_FULL`·`REVIEW_EFFORT_INCREMENTAL` | 저장소 변수(선택) | reasoning 강도. 기본 `medium`·`low` |
-| `REVIEW_MAX_OUTPUT_TOKENS_FULL`·`REVIEW_MAX_OUTPUT_TOKENS_INCREMENTAL` | 저장소 변수(선택) | 출력 상한(추론 포함). 기본 32000·25000 |
+| `REVIEW_MAX_OUTPUT_TOKENS_FULL`·`REVIEW_MAX_OUTPUT_TOKENS_INCREMENTAL` | 저장소 변수(선택) | 출력 상한(추론 포함, `openai`만). 기본 32000·25000 |
 | `REVIEW_INPUT_BUDGET_BYTES` | 저장소 변수(선택) | 전체 입력 예산(바이트). 기본 160000 |
-| `REVIEW_ADMINS` | 저장소 변수(선택) | 수동 실행에서 AI 분석을 허용할 GitHub ID(쉼표 구분). 비우면 Run workflow 권한이 있는 누구나 실행해 API 비용을 쓸 수 있다 |
+| `REVIEW_ADMINS` | 저장소 변수(선택) | 수동 실행에서 AI 분석을 허용할 GitHub ID(쉼표 구분). 비우면 Run workflow 권한이 있는 누구나 실행해 구독 사용량이나 API 비용을 쓸 수 있다 |
 | `NOTION_PR_DATABASE_ID` | 저장소 변수 | `PR 분석` 표의 DB ID. 연결 `PR_Analysis`에 접근 권한이 있어야 한다 |
 | `NOTION_CARD_DATABASE_ID` | 저장소 변수 | `영역 요약 카드` 표의 DB ID. 없으면 카드를 읽거나 갱신하지 않는다 |
 | `NOTION_MEMORY_PAGE_ID` | 저장소 변수 | 상태 저장 페이지('분석 메모리') ID |
@@ -201,18 +265,20 @@ develop 대상 PR을 OpenAI GPT(Responses API, 기본 모델 `gpt-6-luna`)로 �
 ### 수동 실행·점검·복구
 
 ```bash
+make review-codex-login                   # 자동화 전용 ChatGPT 로그인을 만들어 CODEX_AUTH_JSON에 저장(브라우저 로그인, 갱신 실패 시 다시 실행)
+REVIEW_CODEX_DEVICE_AUTH=true make review-codex-login # 기기 코드 로그인(계정에서 허용해야 할 수 있음)
 make review-preview PR=26                 # 규칙 점검만, Notion에 쓰지 않고 결과를 $TMPDIR/review-preview-26.json에 저장
-make review-preview PR=26 LLM=true        # 셸 환경변수 OPENAI_API_KEY가 있으면 GPT 분석까지 미리보기(Notion에 쓰지 않음, API 비용 발생)
-make review-model-check                   # 셸 환경변수 OPENAI_API_KEY로 gpt-6-luna 최소 호출 1회(상태·응답 모델·사용량만 출력, API 비용 발생)
+make review-preview PR=26 LLM=true        # ~/.codex의 ChatGPT 로그인으로 GPT 분석까지 미리보기(Notion에 쓰지 않음, 구독 사용량 소모)
+make review-model-check                   # ~/.codex의 ChatGPT 로그인으로 gpt-6-luna 최소 호출 1회(상태·사용량만 출력)
 ```
 
 **Actions → PR Analysis → Run workflow**(develop에서 실행):
 - `task=analyze`
   - PR 번호로 분석·기록한다.
-  - `force`는 같은 버전·재시도 한도·대기 시간을 무시한다(API 비용 발생).
+  - `force`는 같은 버전·재시도 한도·대기 시간을 무시한다(구독 사용량 또는 API 비용 발생).
   - 병합된 PR이면 이어서 카드 반영도 다시 시도한다. 이미 처리한 병합은 건너뛴다.
 - `task=verify-model`
-  - 실제 PR 입력으로 모델을 한 번 부른다(API 비용 발생).
+  - 실제 PR 입력으로 모델을 한 번 부른다(구독 사용량 또는 API 비용 발생).
   - Notion에는 읽지도 쓰지도 않는다. 로그에는 상태·사용량만 남는다.
   - PR 이벤트와 대기열을 나눠 쓴다.
 - `task=notion-check`
@@ -222,10 +288,11 @@ make review-model-check                   # 셸 환경변수 OPENAI_API_KEY로 g
 워크플로는 develop의 스크립트만 쓰므로 분석기 변경은 develop 병합 후에 반영된다.
 
 **멈추는 법:**
-- AI만 멈춤: 저장소 변수 `REVIEW_LLM_ENABLED=false`. 규칙 점검·상태 갱신은 계속된다.
+- 자동 AI 분석만 멈춤: 저장소 변수 `REVIEW_LLM_ENABLED=false`. 규칙 점검·상태 갱신은 계속된다. 수동 `verify-model`은 별도로 모델을 호출할 수 있다(현재 Codex는 보안 차단 중).
 - 전체 멈춤: `REVIEW_ENABLED=false`.
 - 진행 중인 실행: Actions에서 취소한다.
-- 키 노출이 의심되면: OpenAI 플랫폼에서 키를 폐기하고 새 키로 Secret을 교체한다.
+- 로그인 정보 노출이 의심되면: 위 '공개 저장소에서 구독 로그인을 쓰는 위험'의 순서대로 처리한다.
+- API 키 노출이 의심되면: OpenAI 플랫폼에서 키를 폐기하고 새 키로 Secret을 교체한다.
 
 **복구:**
 - 잘못 기록된 페이지는 Notion 페이지 기록(버전 기록)에서 되돌린다. 지운 보고서 블록은 Notion 휴지통에 남는다.
