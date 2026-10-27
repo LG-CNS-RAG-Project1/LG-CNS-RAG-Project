@@ -56,7 +56,7 @@ pre-commit run --all-files            # 전체 파일 검사 (make precommit)
 
 ## PR 자동 분석 (`.github/workflows/pr-analysis.yml`)
 
-develop 대상 PR을 GPT(기본 모델 `gpt-6-luna`)로 분석해 Notion `RAG 기반 미니 프로젝트: IdeaLens` 바로 아래 `PR 분석` 표에 **PR마다 페이지 하나**로 기록한다. PR이 병합되면 검증된 카드 변경만 `영역 요약 카드` 표에 반영한다. 참고용이며 승인·병합·GitHub 댓글·라벨은 하지 않는다. 필수 체크가 아니다.
+develop 대상 PR을 GPT(기본 모델 `gpt-6-sol`)로 분석해 Notion `RAG 기반 미니 프로젝트: IdeaLens` 바로 아래 `PR 분석` 표에 **PR마다 페이지 하나**로 기록한다. PR이 병합되면 검증된 카드 변경만 `영역 요약 카드` 표에 반영한다. 참고용이며 승인·병합·GitHub 댓글·라벨은 하지 않는다. 필수 체크가 아니다.
 
 이 저장소의 [Actions 정책](https://github.com/LG-CNS-RAG-Project1/LG-CNS-RAG-Project/settings/actions/rules/9048)은 이 워크플로에 `pull_request_target`과 `workflow_dispatch`를 허용한다. 정책 생성은 확인했지만, 정책 적용 후 실제 워크플로 실행은 별도로 확인해야 한다.
 
@@ -64,7 +64,7 @@ develop 대상 PR을 GPT(기본 모델 `gpt-6-luna`)로 분석해 Notion `RAG �
 - `codex`(기본): Codex CLI를 리더의 ChatGPT 구독 로그인으로 실행한다. API 요금 대신 구독 사용량을 쓴다.
 - `openai`: OpenAI API 키(Responses API)로 부른다. API 요금이 따로 청구된다.
 
-**Codex 구독 경로는 현재 보안 차단 상태다.** 0.160.1은 `unified_exec=false`를 지정해도 기능 목록에서 켜진 것으로 표시되며, 실제 도구 목록을 기능 목록만으로 검증할 수 없다. 소스상 `apply_patch`도 모델 설정에 따라 등록된다. Actions에서는 로그인 복원 전에, 로컬에서는 모델 호출 전에 중단한다. 이를 검증할 방법을 확보하고 별도 검토하기 전에는 `REVIEW_LLM_ENABLED`를 켜지 않는다.
+**Codex 구독 경로의 도구 차단은 완전히 검증되지 않았다.** 0.160.1은 `unified_exec=false`를 지정해도 기능 목록에서 켜진 것으로 표시되므로 이 항목만 점검 예외로 허용한다. 실제 도구 목록을 기능 목록만으로 검증할 수 없고 `apply_patch`도 모델 설정에 따라 등록될 수 있다. 읽기 전용 설정은 인증정보 읽기를 막지 않는다. 공개 저장소의 PR 내용에 의한 인증정보 노출 위험을 확인한 뒤 운영 여부를 결정한다.
 
 용어:
 - **ChatGPT 로그인 정보(`auth.json`)**: `codex login`으로 만든 접근·갱신 토큰 파일. 비밀번호처럼 다룬다.
@@ -87,10 +87,10 @@ develop 대상 PR을 GPT(기본 모델 `gpt-6-luna`)로 분석해 Notion `RAG �
    - Codex가 실행 중 로그인 정보를 갱신하면 워크플로가 이 토큰으로 `CODEX_AUTH_JSON`을 다시 저장한다.
 3. **Settings → Secrets and variables → Actions → Variables**에서 다음 값을 설정한다.
    - `REVIEW_PROVIDER=codex`
-   - `REVIEW_MODEL=gpt-6-luna`: 다른 값(예: `claude-…`)이 남아 있으면 모델을 부르지 않는다.
+   - `REVIEW_MODEL=gpt-6-sol`: 다른 값(예: `claude-…`)이 남아 있으면 모델을 부르지 않는다.
    - `REVIEW_ENABLED=true`
 4. `REVIEW_LLM_ENABLED=false`인 채로 **Actions → PR Analysis → Run workflow**(develop)를 두 번 실행한다.
-   - `task=verify-model`과 최근 PR 번호: 보안 차단이 해제된 이후 모델 호출 1회로 상태·사용량만 확인한다(구독 사용량 소모).
+   - `task=verify-model`과 최근 PR 번호: 모델 호출 1회로 상태·사용량만 확인한다(구독 사용량 소모).
    - `task=notion-check`: Notion 읽기·쓰기를 확인한다.
 5. 두 점검이 통과하면 `REVIEW_LLM_ENABLED=true`로 바꾼다.
 6. 아래 '쓰지 않는 설정 정리'를 한다.
@@ -105,7 +105,7 @@ develop 대상 PR을 GPT(기본 모델 `gpt-6-luna`)로 분석해 Notion `RAG �
 | Notion REST API | Environment `pr-analysis`의 `NOTION_REVIEW_TOKEN`(연결 `PR_Analysis`) | PR 페이지·분석 상태·영역 카드를 읽고 쓴다. 모델에는 Notion 자격 증명이 전달되지 않는다 |
 
 - Environment `pr-analysis`는 배포 브랜치를 develop으로 제한한다. 기능 브랜치의 워크플로는 비밀값을 읽지 못한다.
-- **Codex 실행 격리:** 도구 관련 기능을 명시적으로 끄고 빈 작업 폴더, 읽기 전용 샌드박스, 세션 미저장을 설정한다. 읽기 전용 샌드박스는 파일 읽기를 차단하지 않으며, 기능 점검만으로 실제 도구가 제거됐다고 증명할 수 없다. 그래서 현재는 모델 호출을 차단한다.
+- **Codex 실행 격리:** 도구 관련 기능을 명시적으로 끄고 빈 작업 폴더, 읽기 전용 샌드박스, 세션 미저장을 설정한다. `unified_exec`를 제외한 도구성 기능이 활성화되거나 기능 목록을 해석할 수 없으면 호출을 막는다. 읽기 전용 샌드박스는 파일 읽기를 차단하지 않으며, 기능 점검은 실제 도구 제거를 보장하지 않는다.
 - **자식 프로세스 환경변수:** Codex에는 실행에 필요한 변수(`PATH`·임시 `HOME`·`CODEX_HOME`·`LANG`·UTC 시간대)만 넘긴다. GitHub·Notion 토큰과 API 키는 넘기지 않는다.
 - **동시 실행 방지:** 모델을 부를 수 있는 잡은 concurrency 그룹 `pr-analysis-model`(`queue: max`)에서 직렬화한다. 상태만 갱신하는 실행과 AI가 꺼진 일반 실행은 별도 그룹을 쓴다. 같은 PR의 실행은 겹치지 않지만 GitHub는 이벤트 발생 순서를 보장하지 않으므로 실행 시점의 PR 상태를 확인한다. CI 결과 대기는 현재 분석 잡 안에 남는다.
 - **로그인 갱신:** 도구 점검과 PAT의 환경 공개키 조회가 성공해야 로그인 정보를 복원한다. 공개키 조회는 실제 Secret 쓰기 권한을 보장하지 않는다. 갱신 토큰이 있는 유효한 JSON만 되저장하고, 실패 시 오류를 남기며 임시 파일을 별도 단계에서 삭제한다. 러너 강제 종료나 취소 시 정리·되저장이 보장되지는 않는다.
@@ -126,13 +126,14 @@ OpenAI의 CI 인증 문서는 다음을 권한다.
 
 **줄이는 장치**
 - Environment는 develop 전용이고, PR 코드는 실행하지 않는다.
-- 도구를 끄도록 설정하고 실제 차단을 검증하지 못하면 모델 호출을 막는다.
+- 도구를 끄도록 설정하고 기능 목록을 검사한다. 단, `unified_exec` 예외와 실제 도구 노출 가능성이 남는다.
 - 로그인 정보는 출력하지 않는다.
 - 자동화 전용 로그인 세션을 쓴다.
 - 실행을 저장소 전체에서 직렬로 처리한다.
 - 되저장 토큰은 이 저장소의 Environments 권한만 가진다.
 
 **남는 위험**
+- 악의적인 PR 지시가 모델에 노출된 도구를 이용하면 로그인 파일이나 부모 프로세스 환경의 GitHub·Notion 인증정보를 읽어 결과에 담을 가능성을 배제할 수 없다. 로컬 미리보기에도 같은 한계가 적용된다.
 - 워크플로를 고친 PR이 develop에 병합되면 로그인 정보를 읽을 수 있다. `.github/workflows/`·`scripts/review/`를 고치는 PR은 리더가 직접 확인한다.
 - `CODEX_AUTH_WRITE_TOKEN`이 새면 이 저장소의 Environment 설정과 비밀값을 바꿀 수 있다.
 - 로그인 정보가 새면 리더 ChatGPT 계정을 쓸 수 있다. 노출이 의심되면 다음 순서로 대응한다.
@@ -249,7 +250,7 @@ OpenAI의 CI 인증 문서는 다음을 권한다.
 | `OPENAI_API_KEY` | Environment `pr-analysis` 비밀값(`openai` 선택 시) | OpenAI API 키. `REVIEW_PROVIDER=openai`일 때 분석 단계에만 전달한다 |
 | `NOTION_REVIEW_TOKEN` | Environment `pr-analysis` 비밀값 | Notion 연결 `PR_Analysis`(읽기·업데이트·삽입) 토큰 |
 | `REVIEW_ENABLED`·`REVIEW_LLM_ENABLED` | 저장소 변수 | `true`일 때 실행·AI 분석. 끄면 다음 실행부터 즉시 멈춘다 |
-| `REVIEW_PROVIDER`·`REVIEW_MODEL` | 저장소 변수 | `codex`(또는 `openai`)·`gpt-6-luna`(비우면 `codex`·`gpt-6-luna`). 그 밖의 제공자나 모델이면 모델을 부르지 않는다 |
+| `REVIEW_PROVIDER`·`REVIEW_MODEL` | 저장소 변수 | `codex`(또는 `openai`)·`gpt-6-sol`(비우면 `codex`·`gpt-6-sol`). 그 밖의 제공자나 모델이면 모델을 부르지 않는다 |
 | `REVIEW_EFFORT_FULL`·`REVIEW_EFFORT_INCREMENTAL` | 저장소 변수(선택) | reasoning 강도. 기본 `medium`·`low` |
 | `REVIEW_MAX_OUTPUT_TOKENS_FULL`·`REVIEW_MAX_OUTPUT_TOKENS_INCREMENTAL` | 저장소 변수(선택) | 출력 상한(추론 포함, `openai`만). 기본 32000·25000 |
 | `REVIEW_INPUT_BUDGET_BYTES` | 저장소 변수(선택) | 전체 입력 예산(바이트). 기본 160000 |
@@ -269,7 +270,7 @@ make review-codex-login                   # 자동화 전용 ChatGPT 로그인�
 REVIEW_CODEX_DEVICE_AUTH=true make review-codex-login # 기기 코드 로그인(계정에서 허용해야 할 수 있음)
 make review-preview PR=26                 # 규칙 점검만, Notion에 쓰지 않고 결과를 $TMPDIR/review-preview-26.json에 저장
 make review-preview PR=26 LLM=true        # ~/.codex의 ChatGPT 로그인으로 GPT 분석까지 미리보기(Notion에 쓰지 않음, 구독 사용량 소모)
-make review-model-check                   # ~/.codex의 ChatGPT 로그인으로 gpt-6-luna 최소 호출 1회(상태·사용량만 출력)
+make review-model-check                   # ~/.codex의 ChatGPT 로그인으로 gpt-6-sol 최소 호출 1회(상태·사용량만 출력)
 ```
 
 **Actions → PR Analysis → Run workflow**(develop에서 실행):
@@ -288,7 +289,7 @@ make review-model-check                   # ~/.codex의 ChatGPT 로그인으로 
 워크플로는 develop의 스크립트만 쓰므로 분석기 변경은 develop 병합 후에 반영된다.
 
 **멈추는 법:**
-- 자동 AI 분석만 멈춤: 저장소 변수 `REVIEW_LLM_ENABLED=false`. 규칙 점검·상태 갱신은 계속된다. 수동 `verify-model`은 별도로 모델을 호출할 수 있다(현재 Codex는 보안 차단 중).
+- 자동 AI 분석만 멈춤: 저장소 변수 `REVIEW_LLM_ENABLED=false`. 규칙 점검·상태 갱신은 계속된다. 수동 `verify-model`은 별도로 모델을 호출할 수 있다.
 - 전체 멈춤: `REVIEW_ENABLED=false`.
 - 진행 중인 실행: Actions에서 취소한다.
 - 로그인 정보 노출이 의심되면: 위 '공개 저장소에서 구독 로그인을 쓰는 위험'의 순서대로 처리한다.

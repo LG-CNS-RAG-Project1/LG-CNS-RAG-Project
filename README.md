@@ -162,8 +162,8 @@ PR 분석 자동화용 `CODEX_AUTH_JSON`(ChatGPT 구독 로그인, `make review-
 - **커밋 전 검사**: `pre-commit install` 후 커밋마다 black, 병합 충돌 표시, 개인키 노출, 대용량 파일, 줄끝 공백을 검사한다.
 - **CI**: develop·main 대상 PR과 push에서 black 검사, pytest, 자동화 스크립트 테스트, Docker 이미지 빌드를 실행한다.
 - **리뷰어 자동 지정**: PR에 리뷰어가 없으면 작성자를 제외한 팀원 중 한 명을 무작위로 지정한다. 후보는 저장소 변수 `REVIEWER_POOL`로 바꿀 수 있다.
-- **PR 자동 분석**: develop 대상 PR이 검토 요청 상태로 열리거나 수정되면 규칙 점검과 GPT(`gpt-6-luna`, 기본은 Codex CLI + 리더 ChatGPT 구독 로그인, API 키 방식도 선택 가능) 분석 결과를 Notion 'RAG 기반 미니 프로젝트: IdeaLens' 아래 'PR 분석' 표의 PR별 페이지 하나에 기록한다. 페이지에는 태그(서비스 계층)·키워드·분석 내용, AI 병합 판단(4등급과 근거 3문장, 참고용), 첫 분석 때 코드로 한 번 그린 서비스 아키텍처 그림이 들어간다. 초안·병합·닫힘에는 모델을 부르지 않고, 수정본은 의미 있는 변경이 있을 때 바뀐 파일만 다시 분석한다. 병합되면 분석한 변경과 최종 변경이 같을 때만 카드 변경 후보를 태그별 '영역 요약 카드'에 항목 단위로 반영한다. 구독 방식은 리더의 Codex 사용량을 쓰고, API 키 방식은 OpenAI API 결제로 따로 청구된다. 구독 로그인은 OpenAI 문서가 공개 저장소에 권하지 않는 방식이라 위험과 대응을 운영 안내에 둔다. 참고용이며 승인·병합·GitHub 댓글은 하지 않는다. 판단 기준은 [docs/review-baseline.md](docs/review-baseline.md), 운영 안내는 [docs/development.md](docs/development.md#pr-자동-분석-githubworkflowspr-analysisyml).
-- **Codex 구독 경로 보안 차단:** Codex 0.160.1의 도구 노출을 완전히 검증할 수 없어 모델 호출을 차단한다. Actions와 로컬 미리보기 모두 적용되며, 안전한 차단 방법을 검증하기 전에는 활성화하지 않는다.
+- **PR 자동 분석**: develop 대상 PR이 검토 요청 상태로 열리거나 수정되면 규칙 점검과 GPT(`gpt-6-sol`, 기본은 Codex CLI + 리더 ChatGPT 구독 로그인, API 키 방식도 선택 가능) 분석 결과를 Notion 'RAG 기반 미니 프로젝트: IdeaLens' 아래 'PR 분석' 표의 PR별 페이지 하나에 기록한다. 페이지에는 태그(서비스 계층)·키워드·분석 내용, AI 병합 판단(4등급과 근거 3문장, 참고용), 첫 분석 때 코드로 한 번 그린 서비스 아키텍처 그림이 들어간다. 초안·병합·닫힘에는 모델을 부르지 않고, 수정본은 의미 있는 변경이 있을 때 바뀐 파일만 다시 분석한다. 병합되면 분석한 변경과 최종 변경이 같을 때만 카드 변경 후보를 태그별 '영역 요약 카드'에 항목 단위로 반영한다. 구독 방식은 리더의 Codex 사용량을 쓰고, API 키 방식은 OpenAI API 결제로 따로 청구된다. 구독 로그인은 OpenAI 문서가 공개 저장소에 권하지 않는 방식이라 위험과 대응을 운영 안내에 둔다. 참고용이며 승인·병합·GitHub 댓글은 하지 않는다. 판단 기준은 [docs/review-baseline.md](docs/review-baseline.md), 운영 안내는 [docs/development.md](docs/development.md#pr-자동-분석-githubworkflowspr-analysisyml).
+- **Codex 구독 경로 주의:** 도구 비활성화 설정과 기능 점검만으로 실제 도구 노출이나 파일 읽기 차단을 보장할 수 없다. 공개 저장소에서 구독 로그인을 사용하는 위험과 운영 절차를 확인한다.
 - **의존성 갱신**: Dependabot이 pip·pre-commit·GitHub Actions 버전 갱신 PR을 월 1회 묶어서 만든다.
 
 ## 구현 방향
