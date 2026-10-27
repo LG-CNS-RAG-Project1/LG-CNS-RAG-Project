@@ -7,10 +7,18 @@ apt-get update
 apt-get install -y docker.io curl
 systemctl enable --now docker
 mkdir -p /srv/idealens/chroma /srv/idealens/backups
+publish_args=(-p 127.0.0.1:8000:8000)
+if [[ -n "${CHROMA_INTERNAL_IP:-}" ]]; then
+    if ! ip -4 -o addr show | awk '{print $4}' | cut -d/ -f1 | grep -Fxq "$CHROMA_INTERNAL_IP"; then
+        echo "CHROMA_INTERNAL_IP must belong to this server"
+        exit 1
+    fi
+    publish_args+=(-p "${CHROMA_INTERNAL_IP}:8000:8000")
+fi
 if ! docker container inspect idealens-chroma >/dev/null 2>&1; then
     docker run -d --name idealens-chroma --restart unless-stopped \
       --log-opt max-size=10m --log-opt max-file=3 \
-      -p 127.0.0.1:8000:8000 \
+      "${publish_args[@]}" \
       -v /srv/idealens/chroma:/data \
       -e CHROMA_PERSIST_PATH=/data \
       -e ANONYMIZED_TELEMETRY=False \
