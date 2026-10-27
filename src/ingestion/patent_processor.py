@@ -4,11 +4,18 @@ import argparse
 import re
 from pathlib import Path
 
+import yaml
+
 from src.schemas import PatentChunk, PatentClaim, PatentDocument
-from src.ingestion.kipris_client import search_patents as search_kipris_patents
+from src.ingestion.kipris_client import (
+    KiprisAPIError,
+    fetch_patent_claims,
+    search_patents as search_kipris_patents,
+)
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 OUTPUT_PATH = ROOT_DIR / "data" / "patents" / "processed" / "patent_docs.jsonl"
+AREAS_PATH = ROOT_DIR / "configs" / "patent_technology_areas.yaml"
 CLAIM_HEADING = re.compile(
     r"(?:^|\n)\s*(?:【\s*청구항\s*(\d+)\s*】|청구항\s*(\d+)\s*[.:：]?)",
     re.IGNORECASE,
@@ -106,7 +113,15 @@ def to_patent_document(raw: dict) -> PatentDocument:
         registration_number=raw.get("registration_number"),
         source=raw.get("source") or "KIPRIS Plus",
         source_url=raw.get("source_url"),
+        technology_area_ids=sorted(set(raw.get("technology_area_ids") or [])),
     )
+
+
+def load_technology_areas(path: Path = AREAS_PATH) -> dict[str, dict]:
+    """표준 기술 분야 설정을 ID 기준으로 반환한다."""
+    with open(path, encoding="utf-8") as file:
+        entries = yaml.safe_load(file).get("technology_areas", [])
+    return {entry["id"]: entry for entry in entries}
 
 
 def build_chunks(patents: list[PatentDocument]) -> list[PatentChunk]:
@@ -220,6 +235,16 @@ def save_documents(
                     merged[patent.patent_id] = patent
 
     for patent in documents:
+        previous = merged.get(patent.patent_id)
+        if previous:
+            patent = patent.model_copy(
+                update={
+                    "technology_area_ids": sorted(
+                        set(previous.technology_area_ids)
+                        | set(patent.technology_area_ids)
+                    )
+                }
+            )
         merged[patent.patent_id] = patent
 
     with open(path, "w", encoding="utf-8") as f:
@@ -232,6 +257,9 @@ def save_documents(
 def run_pipeline(
     keyword: str | list[str],
     limit: int = 20,
+    technology_area_id: str | None = None,
+    include_claims: bool = False,
+    claim_fetcher=fetch_patent_claims,
 ) -> tuple[int, int, int]:
     """KIPRIS 특허 수집부터 ChromaDB 증분 색인까지 실행한다."""
     from src.retrieval.market_search import embed_texts
@@ -239,6 +267,17 @@ def run_pipeline(
 
     # 1. KIPRIS 특허 수집 (단일 또는 다중 키워드)
     raw_patents = collect_patents(keyword, limit=limit)
+
+    if technology_area_id:
+        for raw in raw_patents:
+            raw["technology_area_ids"] = [technology_area_id]
+            if include_claims:
+                application_number = str(raw.get("application_number") or "").strip()
+                if application_number:
+                    try:
+                        raw["claim_items"] = claim_fetcher(application_number)
+                    except KiprisAPIError as exc:
+                        print(f"청구항 미확보 ({application_number}): {exc}")
 
     # 2. 문서 변환 및 중복 제거
     documents = build_documents(raw_patents)
@@ -274,8 +313,17 @@ def main() -> None:
     parser.add_argument(
         "--keyword",
         action="append",
-        required=True,
-        help="특허 검색 키워드 (여러 번 지정 가능)",
+        help="특허 검색 키워드 (여러 번 지정 가능; --field-id와 함께 사용 가능)",
+    )
+    parser.add_argument(
+        "--field-id",
+        choices=sorted(load_technology_areas()),
+        help="configs/patent_technology_areas.yaml의 기술 분야 ID",
+    )
+    parser.add_argument(
+        "--include-claims",
+        action="store_true",
+        help="분야 설정의 검색어로 수집할 때 청구항 원문도 조회",
     )
     parser.add_argument(
         "--limit",
@@ -286,9 +334,19 @@ def main() -> None:
 
     args = parser.parse_args()
 
+    if args.field_id:
+        area = load_technology_areas()[args.field_id]
+        keywords = args.keyword or area["patent_keywords"]
+    elif args.keyword:
+        keywords = args.keyword
+    else:
+        parser.error("--keyword 또는 --field-id 중 하나가 필요합니다.")
+
     collected, total, indexed = run_pipeline(
-        keyword=args.keyword,
+        keyword=keywords,
         limit=args.limit,
+        technology_area_id=args.field_id,
+        include_claims=args.include_claims,
     )
 
     print(f"이번 수집: {collected}건")

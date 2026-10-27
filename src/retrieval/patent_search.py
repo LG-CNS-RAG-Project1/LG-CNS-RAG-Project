@@ -106,6 +106,7 @@ def search_patents(
     retrieval_mode: str = "dense",
     reranker=None,
     retrieval_config: RetrievalConfig | None = None,
+    technology_area_id: str | None = None,
 ) -> list[RetrievalResult]:
     """ChromaDB 특허 청크를 dense, BM25 또는 RRF hybrid 방식으로 검색한다."""
 
@@ -125,7 +126,10 @@ def search_patents(
     if collection is None:
         collection = get_collection()
 
-    if collection.count() == 0:
+    where = {f"area_{technology_area_id}": True} if technology_area_id else None
+    stored = collection.get(where=where, include=["documents", "metadatas"])
+    matching_count = len(stored["ids"])
+    if matching_count == 0:
         return []
 
     if embed_fn is None:
@@ -133,7 +137,6 @@ def search_patents(
 
         embed_fn = embed_texts
 
-    stored = collection.get(include=["documents", "metadatas"])
     documents = []
     for chunk_id, content, raw_metadata in zip(
         stored["ids"], stored["documents"], stored["metadatas"]
@@ -155,7 +158,8 @@ def search_patents(
         query_vector = embed_fn([query])[0]
         results = collection.query(
             query_embeddings=[query_vector],
-            n_results=min(config.candidate_k, collection.count()),
+            n_results=min(config.candidate_k, matching_count),
+            where=where,
             include=["distances"],
         )
         by_id = {document.chunk_id: document for document in documents}

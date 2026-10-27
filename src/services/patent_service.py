@@ -97,6 +97,7 @@ def analyze_patents(
                 collection=collection,
                 embed_fn=embed_fn,
                 top_k=request.top_k,
+                technology_area_id=request.technology_area_id,
             ):
                 previous = retrieved_by_id.get(result.document.source_id)
                 current_score = (

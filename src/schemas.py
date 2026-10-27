@@ -80,6 +80,7 @@ class IdeaDraft(BaseModel):
 class PatentSearchRequest(BaseModel):
     idea: StructuredIdea
     top_k: int = Field(default=5, ge=1, le=5)
+    technology_area_id: str | None = None
 
 
 # 3. 특허 청구항
@@ -109,6 +110,7 @@ class PatentDocument(BaseModel):
 
     source: str = "KIPRIS Plus"
     source_url: str | None = None
+    technology_area_ids: list[str] = Field(default_factory=list)
 
 
 # 5. 임베딩 대상 청크

@@ -54,6 +54,7 @@ def to_chroma_record(
         "title": document.title,
         **document.metadata,
     }
+    metadata.update({f"area_{area_id}": True for area_id in patent.technology_area_ids})
 
     # ChromaDB 메타데이터에는 None을 저장하지 않는다.
     metadata = {
