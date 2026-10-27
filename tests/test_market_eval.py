@@ -5,6 +5,8 @@ import pytest
 from evaluation.evaluate import (
     evaluate_market,
     hit_at_k,
+    ndcg_at_k,
+    precision_at_k,
     recall_at_k,
     reciprocal_rank,
     summarize,
@@ -61,6 +63,8 @@ def test_retrieval_metrics():
     assert recall_at_k(retrieved, set()) == 0.0
     assert reciprocal_rank(retrieved, {"c", "e"}) == pytest.approx(1 / 3)
     assert reciprocal_rank(retrieved, {"f"}) == 0.0
+    assert precision_at_k(retrieved, {"b", "c"}, 5) == pytest.approx(0.4)
+    assert ndcg_at_k(retrieved, {"b", "c"}, 5) == pytest.approx(0.6934264036)
 
 
 def test_make_cases_covers_all_dimensions():
@@ -155,6 +159,8 @@ def test_evaluate_market_and_summary():
 
     assert rows[0]["rr"] == 0.5
     assert rows[0]["unjudged"] == 1
+    assert rows[0]["precision"] == pytest.approx(1 / 3)
+    assert rows[0]["ndcg"] == pytest.approx(0.6309297536)
     assert rows[1]["hit"] is None
     assert summary["all"]["no_relevant"] == 1
     assert summary["all"]["mrr"] == 0.5

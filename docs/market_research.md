@@ -51,7 +51,7 @@ flowchart TD
   subgraph eval["검색·답변 품질 평가와 개선"]
     direction TB
     cases["평가셋 25문항<br/>아이디어 5개 × 차원 5개<br/>정답 source_id 라벨"]
-    metrics["Hit@5 · Recall@5 · MRR<br/>관련성 판정 정밀도·kappa"]
+    metrics["Hit@5 · Recall@5 · Precision@5 · MRR · nDCG@5 · 지연<br/>관련성 판정 정밀도·kappa"]
     answer["Citation Accuracy ·<br/>오류 로그 E01–E10"]
     cost["Latency · 비용 측정<br/>응답 시간 · 토큰 · API 호출"]
     compare["LLM 단독 vs RAG 비교<br/>같은 25문항"]
@@ -166,3 +166,9 @@ flowchart TD
 | 데이터 형식·결과 계약 | `src/schemas.py` (`MarketDocument`, `MarketSearchRequest`, `MarketReport`) |
 | 평가 문항·정답 라벨 | `evaluation/market_cases.json`, `evaluation/labels/`, `evaluation/market_labeling.py`, `evaluation/market_judge.py` |
 | 검색·관련성 판정 평가 실행·결과 | `evaluation/evaluate.py`, `evaluation/market_relevance_eval.py` → `evaluation/results/` |
+
+## 공통 검색 엔진
+
+특허·시장 검색은 기존 Dense 검색을 기본값으로 유지하며, 호출에서 `retrieval_mode="bm25"` 또는 `"hybrid"`를 선택할 수 있다. Hybrid는 dense·BM25 순위를 RRF로 결합한다. 특허 결과는 `source_id` 기준으로 한 문헌을 한 번만 반환하고, 시장은 기존 `dup_group` 정책을 적용한다. 메타데이터 동등 조건, 후보 수, 최종 Top-K, RRF 상수와 reranker 콜백은 공통 `RetrievalConfig`/검색 인터페이스에서 지정한다.
+
+`python -m evaluation.evaluate market --mode dense|bm25|hybrid`는 기존 25개 시장 라벨로 Hit@K·Recall@K·Precision@K·MRR·nDCG@K와 검색 지연을 기록한다. `--rerank`는 선택 설치한 `sentence-transformers`와 `BAAI/bge-reranker-v2-m3`를 사용하며, 설치되지 않은 Cross-Encoder의 품질·속도는 검증된 것으로 간주하지 않는다. 시장 처리 원문·색인이 로컬에 준비되지 않은 경우 평가를 실행하지 않는다. 특허 평가셋 및 원문 데이터가 준비되기 전에는 특허 품질 개선 수치를 보고하지 않는다.

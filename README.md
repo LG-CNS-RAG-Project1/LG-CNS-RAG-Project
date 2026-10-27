@@ -52,7 +52,7 @@
 ├── src/
 │   ├── main.py · pipeline.py · schemas.py  # API 진입점·분석 흐름·공통 모델
 │   ├── ingestion/           # 자료 수집·전처리·청크 생성
-│   ├── retrieval/           # 색인 구축·정확 검색·의미 검색
+│   ├── retrieval/           # 공통 Dense·BM25·Hybrid 검색·색인 구축
 │   ├── generation/          # 근거 검증·역할별 보고서 생성
 │   └── services/            # 특허·시장 분석 진입점
 ├── tests/                   # pytest 테스트
@@ -177,7 +177,7 @@ PR 분석 자동화용 `OPENAI_API_KEY`(앱 `.env`의 키와 별개)·`NOTION_RE
 
 ## 평가 계획
 
-- 검색 품질: Hit Rate@K, Recall@K, MRR.
+- 검색 품질: Hit@K, Recall@K, Precision@K, MRR, nDCG@K 및 검색 지연시간.
 - 답변 품질: 정확성, 근거 충실성, 인용 정확성.
 - 동일 자료집에서 검색 방식을 비교하고, 동일 질문의 일반 LLM 응답과 RAG 응답을 평가.
 
@@ -190,7 +190,10 @@ python -m evaluation.market_judge prelabel     # (선택) gpt-4o 라벨 초안 �
 python -m evaluation.market_judge agreement    # (선택) 사람 라벨과 LLM 초안의 일치율·kappa
 python -m evaluation.market_judge merge        # (선택) 빈 relevant만 LLM 초안으로 채움
 python -m evaluation.market_labeling import    # relevant(1/0)를 채운 CSV → 문항별 정답 source_id 반영
-python -m evaluation.evaluate market --label baseline   # Hit@5·Recall@5·MRR → evaluation/results/
+python -m evaluation.evaluate market --mode dense --label baseline
+python -m evaluation.evaluate market --mode bm25 --label baseline
+python -m evaluation.evaluate market --mode hybrid --label baseline
+python -m evaluation.evaluate market --mode hybrid --rerank --label baseline  # 선택 의존성 필요
 python -m evaluation.evaluate relevance --model gpt-4o  # 관련성 판정 vs 사람 라벨 → evaluation/results/
 ```
 
@@ -199,3 +202,7 @@ python -m evaluation.evaluate relevance --model gpt-4o  # 관련성 판정 vs �
 - 관련 문서가 없는 문항은 평균에서 빼고 따로 센다. 라벨 후보에 없던 문서가 상위 5건에 나오면 `unjudged`로 표시한다.
 - 관련성 판정 평가는 사람이 직접 라벨한 행(`label_source=human`)만 비교해 정확도·정밀도·재현율·kappa를 계산하고, 사람 라벨만 있는 문항의 충분성 상태 일치를 함께 출력한다.
 - 정답 `source_id`는 로컬에 수집한 뉴스 기준이므로, 다시 수집하면 문서가 달라질 수 있다.
+- `--mode`는 `dense`(기본, 기존 Chroma 검색), `bm25`, `hybrid`(RRF 결합) 중 선택한다. 검색 함수 기본 동작은 dense로 유지한다.
+- `--rerank`는 `pip install sentence-transformers` 후 `BAAI/bge-reranker-v2-m3` Cross-Encoder를 적용한다. 모델 파일은 최초 실행 때 내려받으며, 기본 실행 의존성에는 포함하지 않는다.
+- 평가는 문항별 Hit/Recall/Precision/MRR/nDCG와 검색 지연시간을 CSV로 저장한다. OpenAI 비용은 토큰 사용량 정보가 제공되지 않는 현 검색 인터페이스에서 계산하지 않는다.
+- 라벨이 완료된 시장 25문항은 평가 대상이다. 특허 평가셋(`evaluation/patent_cases.json`)과 로컬 특허 원문·색인은 비어 있어 특허 품질 수치를 만들지 않는다.
