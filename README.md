@@ -89,6 +89,8 @@ docker compose down               # 종료 (make down)
 
 기본값은 기존 로컬 Chroma다. 팀 공용 서버를 쓰려면 Google IAP 보호 터널을 열고 `.env`에 `CHROMA_HOST=127.0.0.1`, `CHROMA_PORT=18000`, `CHROMA_SSL=false`를 설정한다. 팀원은 서버 관리자·결제 권한 없이 DB 포트만 이용한다. 특허·시장 저장과 검색이 같은 원격 DB를 사용하며 연결 실패 시 로컬로 전환하지 않는다. 기존 로컬 자료는 자동 이관되지 않는다. 서버 배포·팀원 접속·백업은 [공용 Chroma 안내](docs/shared-chroma.md)를 참고한다. 웹 화면과 실제 검색 API 연결은 별도 구현 범위다.
 
+`pytest`는 공용 DB 설정을 격리하고 로컬 테스트 저장소를 사용한다. 실제 서버 연결 검증은 별도로 수행한다.
+
 ## Streamlit 화면 시연
 
 ```powershell

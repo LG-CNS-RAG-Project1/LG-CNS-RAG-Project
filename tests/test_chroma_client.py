@@ -6,7 +6,7 @@ from src.retrieval.chroma_client import connect_chroma
 
 
 @pytest.fixture(autouse=True)
-def clean_settings(monkeypatch):
+def clean_settings(monkeypatch, local_chroma_by_default):
     monkeypatch.setattr("src.retrieval.chroma_client.load_dotenv", lambda *args: None)
     for key in ("CHROMA_HOST", "CHROMA_PORT", "CHROMA_SSL"):
         monkeypatch.delenv(key, raising=False)
