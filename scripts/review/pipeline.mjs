@@ -21,16 +21,22 @@ import { fetchPull, readCi } from "./github.mjs";
 import { LABELS } from "./labels.mjs";
 import {
   baselineStatus, computeReadiness, decideMode, fileSignature, filesDigest, filterBaselineRefs, finalizeJudgment, findSecrets, keywordsOf,
-  mergeFindings, parseMappings, parsePatch, parseTagRules, runPrechecks, sha256, tagOf, tagsOf, validateReviewOutput, verifyFindings,
+  maskPatch, mergeFindings, parseMappings, parsePatch, parseTagRules, runPrechecks, sha256, tagOf, tagsOf, validateReviewOutput, verifyFindings,
 } from "./lib.mjs";
+import { safeMessage } from "./codex_engine.mjs";
 import { STATE_VERSION, diagramFirstLine, diagramStatusText, renderReport } from "./render.mjs";
 import { SCHEMA_NAME, SCHEMA_VERSION, buildReviewSchema } from "./review_schema.mjs";
 
 export const ANALYZER = "pr-analysis-3";
 export const MAX_ATTEMPTS_PER_HEAD = 2;
 export const QUOTA_COOLDOWN_MS = 6 * 60 * 60 * 1000;
+// 구독 사용 한도는 재설정 시각을 알면 그때까지, 모르면 1시간 멈춘다.
+export const PLAN_LIMIT_COOLDOWN_MS = 60 * 60 * 1000;
+// 분석기 제공자: openai=OpenAI API 키(Responses API), codex=Codex CLI + ChatGPT 구독 로그인. 설정한 하나만 쓰고 서로 대신하지 않는다.
+export const PROVIDERS = ["openai", "codex"];
+export const verificationSucceeded = (result) => result.llm_calls === 1 && ["done", "partial"].includes(result.ai_status);
 // 다른 PR에서도 똑같이 실패할 오류(결제 한도·인증·모델 접근·응답 모델 불일치·요청 형식)
-export const GLOBAL_STOP = ["quota", "auth", "model_access", "model_mismatch", "invalid_request"];
+export const GLOBAL_STOP = ["quota", "plan_limit", "auth", "model_access", "model_mismatch", "invalid_request"];
 export const MAX_SOURCE_FILES = 6;
 // patch가 없어도 내용 검토 대상이 아닌 바이너리 파일(이미지·글꼴·압축·문서 등)
 export const BINARY_FILE = /\.(png|jpe?g|gif|webp|ico|bmp|svgz|pdf|zip|gz|tgz|tar|7z|woff2?|ttf|otf|eot|mp3|mp4|mov|wav|parquet|pkl|npy|npz|db|sqlite|xlsx?|docx?|pptx?|hwp)$/i;
@@ -61,14 +67,38 @@ export function ledgerEntry({ config, pr, purpose = "review", result, call = nul
   };
 }
 
+// 설정한 제공자의 분석기만 만든다. 인증 정보가 없으면 null이며, 다른 제공자의 인증 정보가 있어도 그쪽으로 넘어가지 않는다.
+// factories: { codex(codexHome), openai(apiKey) }, hasCodexLogin(codexHome): auth.json 존재 여부
+export function selectReviewer({ step, provider, env, factories, hasCodexLogin }) {
+  if (step !== "analyze") return null;
+  if (provider === "codex") return env.CODEX_HOME && hasCodexLogin(env.CODEX_HOME) ? factories.codex(env.CODEX_HOME) : null;
+  if (provider === "openai") return env.OPENAI_API_KEY ? factories.openai(env.OPENAI_API_KEY) : null;
+  return null;
+}
+
 export async function runPr(deps) {
   const { config, github, log } = deps;
   const pr = await fetchPull(github, config.prNumber);
   log(`PR #${pr.number} (${pr.state}${pr.draft ? ", 초안" : ""}) head ${short(pr.head.sha)}`);
-  if (config.step === "cards") return applyCards(deps, pr);
-  if (config.eventAction === "closed" || pr.state === "closed") return closeFlow(deps, pr);
-  if (pr.draft) return draftFlow(deps, pr);
-  return analyzeFlow(deps, pr);
+  if (!config.verifyModel && config.step !== "cards" && pr.state === "closed") return closeFlow(deps, pr);
+  if (!config.verifyModel && config.step !== "cards" && (config.eventAction === "closed" || (config.eventAction === "converted_to_draft" && !pr.draft))) {
+    const state = pr.draft ? LABELS.prState.draft : LABELS.prState.open;
+    try { await deps.notion.markStatus(pr.number, state); }
+    catch (error) { deps.warn(`Notion 상태 갱신 실패: ${error.message}`); }
+    log(`지난 이벤트를 건너뛰고 현재 PR 상태 ${state}만 반영합니다(AI 호출 없음).`);
+    deps.ledger(ledgerEntry({ config, pr, purpose: "status", result: "skipped:stale_event" }));
+    return { action: "status", status: state, llm_calls: 0 };
+  }
+  if (!config.verifyModel && config.step !== "cards" && pr.draft) return draftFlow(deps, pr);
+  const files = await github.files(pr.number);
+  const metadata = [pr.title, pr.head?.ref, pr.base?.ref, ...files.flatMap((file) => [file.filename, file.previous_filename])];
+  if (metadata.some((value) => value && maskPatch(value) !== value)) {
+    deps.warn("PR 제목·브랜치·파일 경로에 비밀값이 의심되어 모델 호출과 기록을 중단했습니다.");
+    deps.ledger(ledgerEntry({ config, pr, result: "skipped:secret_metadata" }));
+    return { action: "skipped", reason: "secret_metadata", llm_calls: 0 };
+  }
+  if (config.step === "cards") return applyCards({ ...deps, prFiles: files }, pr);
+  return analyzeFlow({ ...deps, prFiles: files }, pr);
 }
 
 async function closeFlow(deps, pr) {
@@ -86,15 +116,11 @@ async function closeFlow(deps, pr) {
 
 async function draftFlow(deps, pr) {
   const { config, notion, log, warn, ledger } = deps;
-  if (config.eventAction === "converted_to_draft") {
-    try {
-      const count = await notion.markStatus(pr.number, LABELS.prState.draft);
-      log(`초안으로 바뀌어 기존 행 ${count}개의 상태만 '초안'으로 바꿨습니다.`);
-    } catch (error) {
-      warn(`Notion 상태 갱신 실패: ${error.message}`);
-    }
-  } else {
-    log("초안 PR이라 분석하지 않습니다(페이지·그림 없음, AI 호출 없음).");
+  try {
+    const count = await notion.markStatus(pr.number, LABELS.prState.draft);
+    log(`초안 PR의 기존 행 ${count}개 상태만 바꿨습니다(페이지·그림 없음, AI 호출 없음).`);
+  } catch (error) {
+    warn(`Notion 상태 갱신 실패: ${error.message}`);
   }
   ledger(ledgerEntry({ config, pr, result: "skipped:draft" }));
   return { action: "skipped", reason: "draft", llm_calls: 0 };
@@ -154,6 +180,11 @@ async function analyzeFlow(deps, pr) {
   } catch (error) {
     warn(`이전 분석 상태를 읽지 못했습니다(기존 페이지는 PR 번호로 다시 찾습니다): ${error.message}`);
   }
+  if (previous && maskPatch(JSON.stringify(previous)) !== JSON.stringify(previous)) {
+    warn("이전 분석 상태에 비밀값이 의심되어 모델 호출과 기록을 중단했습니다.");
+    ledger(ledgerEntry({ config, pr, result: "skipped:secret_state" }));
+    return { action: "skipped", reason: "secret_state", llm_calls: 0 };
+  }
   const success = previous?.last_successful_analysis ?? null;
   const sameVersions = Boolean(success) && Object.keys(versions).every((key) => success.versions?.[key] === versions[key]);
   if (!config.force && success && success.head === pr.head.sha && sameVersions && previous.last_attempt?.published !== false) {
@@ -171,9 +202,14 @@ async function analyzeFlow(deps, pr) {
   }
 
   // ---------- 수집·규칙 점검 ----------
-  const [files, commits, baseSha] = await Promise.all([github.files(pr.number), github.commits(pr.number), github.branchSha(pr.base.ref)]);
+  const [files, commits, baseSha] = await Promise.all([deps.prFiles, github.commits(pr.number), github.branchSha(pr.base.ref)]);
   const mergeBase = await github.mergeBase(baseSha, pr.head.sha);
   const conflict = repo.conflict({ prNumber: pr.number, headSha: pr.head.sha, baseSha, mergeBaseSha: mergeBase });
+  if ((conflict.files ?? []).some((path) => maskPatch(path) !== path)) {
+    warn("충돌 파일 경로에 비밀값이 의심되어 모델 호출과 기록을 중단했습니다.");
+    ledger(ledgerEntry({ config, pr, result: "skipped:secret_metadata" }));
+    return { action: "skipped", reason: "secret_metadata", llm_calls: 0 };
+  }
   const secretHits = files.flatMap((file) => findSecrets(file.filename, parsePatch(file.patch).added));
   for (const commit of commits.filter((item) => (item.parents ?? []).length === 1)) {
     const detail = await github.commit(commit.sha);
@@ -209,7 +245,7 @@ async function analyzeFlow(deps, pr) {
   let skip = null;
   if (mode === "none") skip = "no_change";
   else if (!config.llmEnabled) skip = "llm_disabled";
-  else if (config.provider !== "openai" || !/^gpt-/.test(config.model)) skip = "config";
+  else if (!PROVIDERS.includes(config.provider) || config.model !== "gpt-6-sol") skip = "config";
   else if (!deps.reviewer) skip = "no_key";
   else if (!config.actorAllowed) skip = "actor";
   else if (currentSecret) skip = "secret";
@@ -230,6 +266,11 @@ async function analyzeFlow(deps, pr) {
       cards = await notion.readCards();
     } catch (error) {
       warn(`영역 카드를 읽지 못했습니다(카드 없이 분석): ${error.message}`);
+    }
+    if (maskPatch(JSON.stringify(cards)) !== JSON.stringify(cards)) {
+      warn("영역 카드에 비밀값이 의심되어 모델 호출과 기록을 중단했습니다.");
+      ledger(ledgerEntry({ config, pr, result: "skipped:secret_card" }));
+      return { action: "skipped", reason: "secret_card", llm_calls: 0 };
     }
     relevant = relevantTags(targetPaths, tagOfPath, cards);
     snapshots = Object.fromEntries(relevant.map((tag) => [tag, cardSnapshot(cards[tag])]));
@@ -260,6 +301,9 @@ async function analyzeFlow(deps, pr) {
     log(`GPT 분석: ${config.model} · reasoning ${effort} · 출력 상한 ${maxOutputTokens} · 방식 ${mode} · 입력 ${context.total_bytes}바이트(예산 ${config.inputBudget ?? DEFAULT_INPUT_BUDGET}) · 카드 ${relevant.join(", ") || "없음"}`);
     call = await deps.reviewer.review({ model: config.model, instructions, input: context.input, schema, schemaName: SCHEMA_NAME, effort, maxOutputTokens });
     if (call.status === "done") {
+      if (maskPatch(JSON.stringify(call.output)) !== JSON.stringify(call.output)) call = { ...call, status: "failed", error_class: "schema", output: null, problems: ["응답에 비밀값이 의심되어 폐기했습니다."] };
+    }
+    if (call.status === "done") {
       validated = validateReviewOutput(call.output, {
         headSha: pr.head.sha, files, includedPaths: context.included, priorIds: (prior?.open_findings ?? []).map((item) => item.id), cardTags: relevant, snapshots, tagOfPath, cards,
       });
@@ -267,7 +311,11 @@ async function analyzeFlow(deps, pr) {
       else if (validated.dropped.length) log(`응답 검증: 대상과 맞지 않는 항목 ${validated.dropped.length}개를 버렸습니다(${[...new Set(validated.dropped)].join(", ")}).`);
     }
     if (call.status === "done") log(`  완료: ${Math.round(call.duration_ms / 1000)}초, 응답 모델 ${call.response_model}, 재시도 ${call.retries}회`);
-    else warn(`AI 분석 실패(${LABELS.error[call.error_class] ?? call.error_class}${call.http_status ? `, HTTP ${call.http_status}` : ""}${call.incomplete_reason ? `, ${call.incomplete_reason}` : ""}). 마지막 성공 결과를 유지하고 이번 버전은 실패로 표시합니다.`);
+    else {
+      // 스키마 오류의 키 이름에는 모델이 출력한 임의 문자열이 들어갈 수 있다.
+      const details = (call.error_class === "schema" && call.problems?.length ? ["응답 스키마 검증 실패"] : call.problems ?? []).slice(0, 3).map((item) => safeMessage(item));
+      warn(`AI 분석 실패(${LABELS.error[call.error_class] ?? call.error_class}${call.http_status ? `, HTTP ${call.http_status}` : ""}${call.incomplete_reason ? `, ${call.incomplete_reason}` : ""}). 마지막 성공 결과를 유지하고 이번 버전은 실패로 표시합니다.${details.length ? ` 요약: ${details.join(" | ")}` : ""}`);
+    }
     ledger(ledgerEntry({ config, pr, call, sections: context.sections, result: call.status === "done" ? "success" : `failed:${call.error_class}` }));
   } else {
     log(`AI를 부르지 않습니다: ${LABELS.skip[skip] ?? skip}`);
@@ -416,7 +464,11 @@ async function analyzeFlow(deps, pr) {
   }
   // 설정·결제 문제(모든 PR에 같은 실패가 반복되는 경우)는 저장소 전체 AI 호출을 멈춘다. 속도 제한은 재설정 시각까지만 멈춘다.
   if (call && call.status !== "done" && (GLOBAL_STOP.includes(call.error_class) || call.error_class === "rate_limit")) {
-    const until = call.error_class === "rate_limit" ? call.retry_after_at : new Date(now.getTime() + QUOTA_COOLDOWN_MS).toISOString();
+    const until = call.error_class === "rate_limit"
+      ? call.retry_after_at
+      : call.error_class === "plan_limit"
+        ? call.retry_after_at ?? new Date(now.getTime() + PLAN_LIMIT_COOLDOWN_MS).toISOString()
+        : new Date(now.getTime() + QUOTA_COOLDOWN_MS).toISOString();
     if (until && Date.parse(until) > now.getTime() + 60_000) {
       try {
         await notion.saveOps({ ...ops, cooldown_until: until, reason: call.error_class, set_at: now.toISOString(), pr: pr.number });
@@ -427,7 +479,7 @@ async function analyzeFlow(deps, pr) {
     }
   }
   deps.summary?.(`### PR 분석 (참고용)\n- PR #${pr.number} · ${short(pr.head.sha)} · 방식 ${LABELS.mode[displayMode]} · AI ${resultLabel} · 준비 상태 ${LABELS.readiness[readiness.state]} · 확인할 점 ${findings.length}건 · Notion ${published ? "기록" : "실패"}`);
-  return { action: "analyzed", mode: displayMode, ai_status: ai.status, llm_calls: call ? 1 : 0, published, state, report };
+  return { action: "analyzed", mode: displayMode, ai_status: ai.status, llm_calls: call ? (call.model_calls ?? 1) : 0, published, state, report };
 }
 
 // 병합된 PR의 카드 변경 후보를 검증해 항목 단위로 반영한다(모델 호출 없음).
@@ -440,6 +492,10 @@ async function applyCards(deps, pr) {
   }
   ledger(ledgerEntry({ config, pr, purpose: "cards", result: "skipped:merge" }));
   const state = upgradeState(await notion.readState(pr.number));
+  if (state && maskPatch(JSON.stringify(state)) !== JSON.stringify(state)) {
+    warn("기존 분석 상태에 비밀값이 의심되어 카드 반영을 중단했습니다.");
+    return { action: "cards", status: "secret_state", llm_calls: 0 };
+  }
   const mergeSha = pr.merge_commit_sha;
   if (state?.card_application?.merge_sha === mergeSha) {
     log(`PR #${pr.number}의 카드 반영은 이미 처리했습니다(${state.card_application.status}).`);
@@ -455,7 +511,7 @@ async function applyCards(deps, pr) {
   else if (!(delta.items ?? []).length) application = { status: "no_delta" };
   else {
     // 분석한 변경과 최종 병합된 PR 변경을 파일 지문으로 대조한다(병합·squash·rebase 커밋 SHA를 직접 비교하지 않는다).
-    const finalFiles = await github.files(pr.number);
+    const finalFiles = deps.prFiles;
     const finalSigs = Object.fromEntries(finalFiles.map((file) => [file.filename, fileSignature(file)]));
     // 상태 크기 때문에 파일별 지문을 버린 경우에는 요약 해시로 대조한다.
     const differ = success.files
@@ -465,6 +521,10 @@ async function applyCards(deps, pr) {
     else {
       const results = {};
       let cards = await notion.readCards({ fresh: true });
+      if (maskPatch(JSON.stringify(cards)) !== JSON.stringify(cards)) {
+        warn("영역 카드에 비밀값이 의심되어 카드 반영을 중단했습니다.");
+        return { action: "cards", status: "secret_card", llm_calls: 0 };
+      }
       for (const item of delta.items) {
         const tagFiles = finalFiles.map((file) => file.filename).filter((path) => tagOfPath(path) === item.tag);
         for (let round = 0; round < 2; round += 1) {
@@ -489,6 +549,10 @@ async function applyCards(deps, pr) {
           }
           // 읽은 뒤 다른 쪽이 카드를 고쳤다. 다시 읽어 같은 3-way 비교를 한 번 더 한다.
           cards = await notion.readCards({ fresh: true });
+          if (maskPatch(JSON.stringify(cards)) !== JSON.stringify(cards)) {
+            warn("갱신된 영역 카드에 비밀값이 의심되어 이후 카드 반영을 중단했습니다.");
+            return { action: "cards", status: "secret_card", llm_calls: 0 };
+          }
           if (round === 1) results[item.tag] = { status: "revision_changed" };
         }
       }
