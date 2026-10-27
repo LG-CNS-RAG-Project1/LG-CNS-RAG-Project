@@ -93,7 +93,11 @@ VALID = dims(
         "verdict": "signal_only",
         "claims": [fact(METRIC_FACT, 2)],
     },
-    {"dimension": "price", "verdict": "signal_only", "claims": [fact("가격 신호", 2)]},
+    {
+        "dimension": "price",
+        "verdict": "signal_only",
+        "claims": [fact("2026년 도입 30% 증가", 2)],
+    },
     {
         "dimension": "buyer",
         "verdict": "unverified",
@@ -172,8 +176,19 @@ def test_claim_errors():
 
     assert claim_errors(fact(METRIC_FACT, 2), {1, 2}, by_id, "") == []
     assert "기준 연도" in claim_errors(fact("도입 30% 증가", 2), {1, 2}, by_id, "")[0]
-    assert claim_errors(fact("5G 기반 협동로봇 출시", 2), {2}, by_id, "5G") == []
+    dated_quote = by_id[2].model_copy(update={"quote": "도입비용 2000만원"})
+    assert (
+        "기준 연도"
+        in claim_errors(fact("도입비용 2000만원", 2), {2}, {2: dated_quote}, "")[0]
+    )
+    assert (
+        claim_errors(fact("5G 기반 협동로봇 출시", 2), {2}, by_id, "5G 협동로봇") == []
+    )
     assert "숫자" in claim_errors(fact("2026년 도입 45% 증가", 2), {1, 2}, by_id, "")[0]
+    assert (
+        "핵심 표현"
+        in claim_errors(fact("해외 수출량이 급증", 2), {2}, {2: by_id[2]}, "")[0]
+    )
     assert "인용" in claim_errors(fact("근거 없음"), {1, 2}, by_id, "")[0]
     assert "근거에 없는 인용" in claim_errors(fact("다른 차원", 1), {2}, by_id, "")[0]
     hypothesis = {"statement": "약 10% 절감 가능", "claim_type": "ai_hypothesis"}

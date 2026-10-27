@@ -43,7 +43,7 @@ NUMBER_PATTERN = re.compile(r"\d+(?:[.,]\d+)*")
 METRIC_PATTERN = re.compile(
     r"\d+(?:[.,]\d+)*\s*(%|퍼센트|배|원|만|억|조|달러|건|대|개사|곳|명|개월)"
 )
-YEAR_PATTERN = re.compile(r"(19|20)\d{2}")
+YEAR_PATTERN = re.compile(r"(?<!\d)(?:19|20)\d{2}년")
 
 # 시장 차원이 판정에 기대는 아이디어 항목
 DEPENDENT_FIELDS = {"price": "revenue", "buyer": "customers"}
@@ -221,12 +221,27 @@ def dimension_inputs(
 def publication_date_text(evidence: MarketEvidence) -> str:
     """발행일의 연·월·일 숫자(앞자리 0 제거). '(2026년 3월 보도)' 같은 시점 표기를 숫자 검증에서 허용한다."""
     published = _to_date(evidence.published_at)
-    return f"{published.year} {published.month} {published.day}"
+    return f"{published.year}년 {published.month}월 {published.day}일"
 
 
 def numbers_in(text: str) -> set[str]:
     """문장 속 숫자를 쉼표를 뺀 문자열 집합으로 추출한다."""
     return {n.replace(",", "") for n in NUMBER_PATTERN.findall(text)}
+
+
+def content_overlap(statement: str, sources: str) -> float:
+    """문장과 인용 원문 사이의 핵심 표현 토큰 겹침 비율을 계산한다."""
+    from src.retrieval.engine import tokenize
+
+    statement_tokens = {
+        token for token in tokenize(statement) if len(token) > 1 and not token.isdigit()
+    }
+    source_tokens = {
+        token for token in tokenize(sources) if len(token) > 1 and not token.isdigit()
+    }
+    if not statement_tokens:
+        return 1.0
+    return len(statement_tokens & source_tokens) / len(statement_tokens)
 
 
 def claim_errors(
@@ -265,6 +280,8 @@ def claim_errors(
     missing = numbers_in(statement) - numbers_in(sources)
     if missing:
         return [f"근거에 없는 숫자 {sorted(missing)}: {statement}"]
+    if citation_ids and content_overlap(statement, sources) < 0.2:
+        return [f"문장 내용과 인용 원문의 핵심 표현이 연결되지 않음: {statement}"]
     if (
         claim_type == "fact"
         and METRIC_PATTERN.search(statement)
