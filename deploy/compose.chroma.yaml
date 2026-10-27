@@ -1,0 +1,19 @@
+name: idealens-shared
+services:
+  chroma:
+    image: chromadb/chroma:1.5.9
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${CHROMA_BIND_PORT:-8000}:8000"
+    volumes:
+      - chroma-data:/data
+    environment:
+      CHROMA_PERSIST_PATH: /data
+      ANONYMIZED_TELEMETRY: "False"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+volumes:
+  chroma-data:

@@ -39,6 +39,7 @@
 │   ├── patents/             # 특허 원문·정제 데이터·Chroma 벡터 저장소
 │   ├── market/              # 시장 자료 원문·정제 데이터
 │   └── samples/             # 시연용 샘플 아이디어·시장 결과(MarketReport) 예시
+├── deploy/                  # 공용 Chroma 서버 시작 스크립트·Compose 설정
 ├── docs/                    # 기획·설계·개발 환경 문서, 프로젝트 목표·PR 분석 안내서(review-baseline.md)
 ├── evaluation/              # 평가 질문·정답 근거·평가 실행
 ├── frontend/                # 아이디어 검토 UI, 스타일, 비용 계산과 예시 보고서
@@ -64,7 +65,7 @@
 └── README.md
 ```
 
-- 원문·가공 데이터·검색 색인·생성 보고서는 로컬에 보관하며 Git 추적에서 제외.
+- 원문·가공 데이터·검색 색인·생성 보고서는 Git 추적에서 제외. Chroma 색인은 로컬 또는 공용 서버에 보관.
 - 서비스 연결 구조는 [docs/architecture.md](docs/architecture.md)의 mermaid 다이어그램으로 관리.
 
 ## 실행 방법
@@ -83,6 +84,10 @@ docker compose down               # 종료 (make down)
 - 의존성을 바꾸면 `docker compose build app`(`make build`)으로 이미지를 다시 만든다.
 - Docker 없이 실행할 때는 Python 3.12 가상환경에서 `pip install -r requirements-dev.txt`를 실행한다.
 - `make help`로 공용 명령 목록을 확인한다. 상세 내용은 [docs/development.md](docs/development.md)를 참고한다.
+
+## 공용 Chroma 연결
+
+기본값은 기존 로컬 Chroma다. 팀 공용 서버를 쓰려면 SSH 터널을 열고 `.env`에 `CHROMA_HOST=127.0.0.1`, `CHROMA_PORT=18000`, `CHROMA_SSL=false`를 설정한다. 특허·시장 저장과 검색이 같은 원격 DB를 사용하며 연결 실패 시 로컬로 전환하지 않는다. 기존 로컬 자료는 자동 이관되지 않는다. 서버 배포·팀원 접속·백업은 [공용 Chroma 안내](docs/shared-chroma.md)를 참고한다. 웹 화면과 실제 검색 API 연결은 별도 구현 범위다.
 
 ## Streamlit 화면 시연
 
@@ -185,8 +190,8 @@ PR 분석 자동화용 `CODEX_AUTH_JSON`(ChatGPT 구독 로그인, `make review-
 - 기존 백엔드의 아이디어·특허·시장 모델(`src/schemas.py`)을 결과 계약으로 유지하며, 실제 검색·분석 결과를 받는 UI 연결은 별도 구현한다.
 - 데이터 출처: KIPRIS Plus, NAVER 뉴스 검색 API(교육 목적, 프로젝트 종료 시 폐기), DART, 공공기관·연구기관·기업의 공식 자료. 사내자료 연계는 향후 검토 범위.
 - 원문 구획과 청구항 구조를 보존하고, 각 주장에 출처·문헌 버전·원문 위치·링크를 연결.
-- 검색은 공통 엔진에서 의미 검색(dense)·단어 검색(BM25)·결합(hybrid) 중 선택하며, 임베딩은 `text-embedding-3-small`, 색인은 내장형 로컬 Chroma를 사용.
-- 시연은 로컬 PC의 Streamlit UI로 하고, 색인은 Docker Desktop의 `app` 컨테이너에서 만든 로컬 Chroma(`data/patents/chroma/`·`data/market/chroma/`)를 사용. 외부 호스팅·클라우드 DB 배포는 하지 않음.
+- 검색은 공통 엔진에서 의미 검색(dense)·단어 검색(BM25)·결합(hybrid) 중 선택하며, 임베딩은 `text-embedding-3-small`, 색인은 로컬 Chroma 또는 환경변수로 지정한 공용 Chroma를 사용.
+- 시연은 로컬 PC의 Streamlit UI로 한다. 기본 색인은 로컬 Chroma(`data/patents/chroma/`·`data/market/chroma/`)이며 공용 DB 접속은 선택 설정이다. UI 호스팅과 실제 분석 API 연결은 별도 구현한다.
 - 사실·해석·가설·미확인을 구분하고, 근거가 부족하면 판단을 보류. 최종 판단은 사용자가 수행.
 
 ## 평가 계획
