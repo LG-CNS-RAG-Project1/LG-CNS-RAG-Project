@@ -1,5 +1,4 @@
-"""IdeaLens 평가 실행. 시장 근거 검색 평가(market), 시장 관련성 필터 평가(relevance),
-아이디어 입력 가드레일 평가(guardrail)를 제공한다.
+"""IdeaLens 시장 근거·관련성, 특허 검색, 입력 가드레일 평가를 실행한다.
 
 시장 검색 평가는 evaluation/market_cases.json의 라벨이 끝난 문항마다 검색 툴과 같은
 질의로 상위 K건을 검색해 Hit@K·Recall@K·Precision@K·MRR·nDCG@K와 검색 지연을 계산하고 evaluation/results/에 CSV로 저장한다.
@@ -14,6 +13,7 @@
 
 사용 예:
     python -m evaluation.evaluate market --label baseline
+    python -m evaluation.evaluate patent --mode hybrid --label baseline
     python -m evaluation.evaluate relevance --model gpt-4o
     python -m evaluation.evaluate guardrail
 """
@@ -41,11 +41,14 @@ from evaluation.market_labeling import (
     read_label_rows,
     write_label_rows,
 )
+from src.retrieval.patent_search import search_patents as search_patent_documents
+from src.retrieval.patent_store import get_collection as get_patent_collection
 from evaluation.market_relevance_eval import evaluate_relevance
 from src.retrieval.market_relevance import RELEVANCE_MODEL, call_relevance_llm
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 RESULTS_DIR = ROOT_DIR / "evaluation" / "results"
+PATENT_CASES_PATH = ROOT_DIR / "evaluation" / "patent_cases.json"
 K = 5
 
 RESULT_FIELDS = [
@@ -145,6 +148,77 @@ def evaluate_market(
     return rows
 
 
+def evaluate_patents(cases: list[dict], search_fn, k: int = K) -> list[dict]:
+    """라벨된 특허 질의마다 문헌 단위 검색 지표와 지연시간을 계산한다."""
+    rows = []
+    for case in cases:
+        if not case.get("labeled"):
+            continue
+        started = time.perf_counter()
+        hits = search_fn(case["query"], k)
+        elapsed_ms = (time.perf_counter() - started) * 1000
+        rerank_ms = hits[0].get("rerank_ms", 0.0) if hits else 0.0
+        retrieved = [hit["source_id"] for hit in hits]
+        relevant = set(case["relevant_source_ids"])
+        judged = set(case["judged_source_ids"])
+        has_relevant = bool(relevant)
+        rows.append(
+            {
+                "case_id": case["case_id"],
+                "idea_id": case.get("idea_id", ""),
+                "dimension": case.get("technical_element", "patent"),
+                "n_relevant": len(relevant),
+                "hit": hit_at_k(retrieved, relevant, k) if has_relevant else None,
+                "recall": recall_at_k(retrieved, relevant, k) if has_relevant else None,
+                "rr": reciprocal_rank(retrieved, relevant, k) if has_relevant else None,
+                "precision": (
+                    precision_at_k(retrieved, relevant, k) if has_relevant else None
+                ),
+                "ndcg": ndcg_at_k(retrieved, relevant, k) if has_relevant else None,
+                "search_ms": round(max(elapsed_ms - rerank_ms, 0.0), 3),
+                "rerank_ms": round(rerank_ms, 3),
+                "unjudged": sum(doc not in judged for doc in retrieved),
+                "retrieved": " ".join(retrieved),
+            }
+        )
+    return rows
+
+
+def default_patent_search_fn(retrieval_mode: str = "dense", reranker=None):
+    """특허 Chroma 색인을 지정한 검색 모드로 평가하는 함수를 만든다."""
+    collection = get_patent_collection()
+    if collection.count() == 0:
+        raise RuntimeError(
+            "patent Chroma index is empty; ingest and index patent documents before evaluation"
+        )
+
+    def search(query: str, top_k: int) -> list[dict]:
+        rerank_times = []
+        timed_reranker = None
+        if reranker:
+
+            def timed_reranker(query_text, documents):
+                started = time.perf_counter()
+                scores = reranker(query_text, documents)
+                rerank_times.append((time.perf_counter() - started) * 1000)
+                return scores
+
+        hits = search_patent_documents(
+            query,
+            collection=collection,
+            top_k=top_k,
+            retrieval_mode=retrieval_mode,
+            reranker=timed_reranker,
+        )
+        rerank_ms = rerank_times[0] if rerank_times else 0.0
+        return [
+            {"source_id": hit.document.source_id, "rerank_ms": rerank_ms}
+            for hit in hits
+        ]
+
+    return search
+
+
 def summarize(rows: list[dict]) -> dict[str, dict]:
     """전체·차원별 평균 지표와 관련 문서 없는 문항 수를 계산한다."""
     groups = {"all": rows}
@@ -178,6 +252,17 @@ def save_results(rows: list[dict], label: str, results_dir: Path = RESULTS_DIR):
     """문항별 결과를 market_retrieval_{label}.csv로 저장한다."""
     results_dir.mkdir(parents=True, exist_ok=True)
     path = results_dir / f"market_retrieval_{label}.csv"
+    with open(path, "w", encoding="utf-8-sig", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=RESULT_FIELDS)
+        writer.writeheader()
+        writer.writerows(rows)
+    return path
+
+
+def save_patent_results(rows: list[dict], label: str, results_dir: Path = RESULTS_DIR):
+    """문항별 특허 검색 결과를 patent_retrieval_{label}.csv로 저장한다."""
+    results_dir.mkdir(parents=True, exist_ok=True)
+    path = results_dir / f"patent_retrieval_{label}.csv"
     with open(path, "w", encoding="utf-8-sig", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=RESULT_FIELDS)
         writer.writeheader()
@@ -246,6 +331,14 @@ def main() -> None:
     market.add_argument(
         "--no-idea-filter", action="store_true", help="아이디어 필터 없이 전체 검색"
     )
+    patent = sub.add_parser("patent", help="특허 문헌 검색 평가")
+    patent.add_argument("--label", default="baseline", help="결과 파일 이름")
+    patent.add_argument("--mode", choices=["dense", "bm25", "hybrid"], default="dense")
+    patent.add_argument(
+        "--rerank",
+        action="store_true",
+        help="BGE reranker 사용 (sentence-transformers 필요)",
+    )
     relevance = sub.add_parser("relevance", help="시장 관련성 필터 평가")
     relevance.add_argument(
         "--model", default=RELEVANCE_MODEL, help="판정 모델 (기본: 필터 기본 모델)"
@@ -267,18 +360,40 @@ def main() -> None:
         from src.retrieval.engine import bge_reranker
 
         reranker = bge_reranker()
-    rows = evaluate_market(
-        load_cases(),
-        load_ideas(),
-        default_search_fn(args.mode, reranker=reranker),
-        idea_filter=not args.no_idea_filter,
-    )
+    if args.command == "market":
+        rows = evaluate_market(
+            load_cases(),
+            load_ideas(),
+            default_search_fn(args.mode, reranker=reranker),
+            idea_filter=not args.no_idea_filter,
+        )
+        result_path = save_results(
+            rows, f"{args.mode}_{'rerank_' if args.rerank else ''}{args.label}"
+        )
+    else:
+        from evaluation.market_labeling import load_cases as load_json_cases
+
+        cases = load_json_cases(PATENT_CASES_PATH)
+        if not any(case.get("labeled") for case in cases):
+            raise SystemExit(
+                "no labeled patent cases; run python -m evaluation.patent_labeling export, "
+                "fill relevant=0/1, then run python -m evaluation.patent_labeling import"
+            )
+        rows = evaluate_patents(
+            cases,
+            default_patent_search_fn(args.mode, reranker=reranker),
+        )
+        result_path = save_patent_results(
+            rows, f"{args.mode}_{'rerank_' if args.rerank else ''}{args.label}"
+        )
     if not rows:
-        raise SystemExit("no labeled cases; run evaluation.market_labeling import")
-    path = save_results(
-        rows, f"{args.mode}_{'rerank_' if args.rerank else ''}{args.label}"
-    )
-    print(f"{len(rows)} cases -> {path}")
+        label_command = (
+            "evaluation.market_labeling import"
+            if args.command == "market"
+            else "evaluation.patent_labeling import"
+        )
+        raise SystemExit(f"no labeled cases; run python -m {label_command}")
+    print(f"{len(rows)} cases -> {result_path}")
     for name, s in summarize(rows).items():
         metrics = (
             f"Hit@{K}={s['hit']:.2f} Recall@{K}={s['recall']:.2f} "

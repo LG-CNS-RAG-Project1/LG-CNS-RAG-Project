@@ -1,0 +1,47 @@
+[
+  {
+    "case_id": "SF-01-cobot-vision",
+    "idea_id": "SF-01",
+    "technical_element": "협동로봇 머신비전 검사 시스템",
+    "query": "협동로봇 머신비전 검사 자동화 시스템",
+    "relevant_source_ids": [],
+    "judged_source_ids": [],
+    "labeled": false
+  },
+  {
+    "case_id": "SF-02-visual-inspection",
+    "idea_id": "SF-02",
+    "technical_element": "딥러닝 기반 외관 불량 검사",
+    "query": "딥러닝 AI 비전 2차전지 전자부품 외관 불량 검사",
+    "relevant_source_ids": [],
+    "judged_source_ids": [],
+    "labeled": false
+  },
+  {
+    "case_id": "SF-03-predictive-maintenance",
+    "idea_id": "SF-03",
+    "technical_element": "진동·전류 센서 예지보전",
+    "query": "진동 전류 센서 설비 고장 예측 이상 탐지 예지보전",
+    "relevant_source_ids": [],
+    "judged_source_ids": [],
+    "labeled": false
+  },
+  {
+    "case_id": "SF-04-energy-management",
+    "idea_id": "SF-04",
+    "technical_element": "공정별 전력 계측 및 에너지 관리",
+    "query": "공정별 전력 계측 공장 에너지 관리 FEMS 절감",
+    "relevant_source_ids": [],
+    "judged_source_ids": [],
+    "labeled": false
+  },
+  {
+    "case_id": "SF-05-voice-assistant",
+    "idea_id": "SF-05",
+    "technical_element": "음성 기반 작업 문서 검색 어시스턴트",
+    "query": "제조 현장 작업자 음성 인식 작업 표준서 설비 매뉴얼 검색",
+    "relevant_source_ids": [],
+    "judged_source_ids": [],
+    "labeled": false
+  }
+]
