@@ -209,6 +209,8 @@ flowchart TD
 | 색인·차원별 검색 툴 | `src/retrieval/market_search.py` → `data/market/chroma/` |
 | 관련성 판정·충분성 상태 | `src/retrieval/market_relevance.py`, `prompts/market_label_judge.md` |
 | 시장 조사 진입점 | `src/services/market_service.py` |
+| 보고서용 마크다운 섹션 | `src/generation/market_markdown.py` |
+| 연결 계약 (입력·출력·오류) | `docs/api_contract.md` |
 | 시장 분석 생성 규칙 | `prompts/market_analysis.md`, `src/generation/market_analysis.py` |
 | 데이터 형식·결과 계약 | `src/schemas.py` (`MarketDocument`, `MarketSearchRequest`, `MarketReport`) |
 | 평가 문항·정답 라벨 | `evaluation/market_cases.json`, `evaluation/labels/`, `evaluation/market_labeling.py`, `evaluation/market_judge.py` |
