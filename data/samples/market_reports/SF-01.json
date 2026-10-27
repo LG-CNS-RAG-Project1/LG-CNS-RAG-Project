@@ -27,10 +27,10 @@
           ]
         },
         {
-          "statement": "중소 제조기업에서도 비교적 유연하게 도입할 수 있는 로봇 용접자동화 모델이 소개되었다.",
+          "statement": "산업 현장에서 머신비전은 제품의 불량을 찾아내고 위치를 판별하는 역할을 맡아왔다.",
           "claim_type": "fact",
           "citation_ids": [
-            3
+            4
           ]
         }
       ],
@@ -44,14 +44,14 @@
           "statement": "제조업 고객이 로봇을 도입할 때는 초기 구매가격뿐 아니라 총소유비용(TCO)이 중요한 판단 기준이 된다.",
           "claim_type": "fact",
           "citation_ids": [
-            6
+            5
           ]
         },
         {
-          "statement": "협동로봇 도입 시 시스템 통합에 소요되는 비용도 고려해야 한다.",
+          "statement": "협동로봇 도입 비용 검토 시에는 코봇 본체 가격뿐만 아니라 시스템 통합에 소요되는 비용도 고려해야 한다.",
           "claim_type": "fact",
           "citation_ids": [
-            7
+            6
           ]
         }
       ],
@@ -65,28 +65,28 @@
           "statement": "광진은 두산로보틱스와의 만남을 계기로 협동로봇을 도입했다.",
           "claim_type": "fact",
           "citation_ids": [
-            8
+            7
           ]
         }
       ],
-      "next_check": "중소 제조사 5곳 인터뷰로 협동로봇 도입 의향 확인"
+      "next_check": null
     },
     {
       "dimension": "adoption_barrier",
       "verdict": "signal_only",
       "claims": [
         {
-          "statement": "중소기업은 설비 투자뿐 아니라 시스템 구축, 유지보수, 인력 교육까지 추가 비용이 발생해 초기 진입이 쉽지 않다.",
+          "statement": "중소기업은 설비 투자뿐 아니라 시스템 구축, 유지보수, 인력 교육까지 추가 비용이 발생하면서 초기 진입이 쉽지 않다.",
           "claim_type": "fact",
           "citation_ids": [
-            10
+            9
           ]
         },
         {
-          "statement": "경기 불확실성과 기술 변화 주기가 짧아지면서 설비를 직접 도입하기보다 월 단위로 빌려 쓰는 경향이 있다.",
+          "statement": "경기 불확실성과 기술 변화 주기가 짧아질수록 설비를 직접 도입하기보다 월 단위로 빌려 쓰는 경향이 있다.",
           "claim_type": "fact",
           "citation_ids": [
-            12
+            10
           ]
         }
       ],
@@ -130,23 +130,6 @@
     },
     {
       "citation_id": 3,
-      "source_id": "news-52434a29a818",
-      "source_type": "news",
-      "title": "[2026 전남광주미래산업박람회] 제이디텍, 로봇·AI비전 기반 제조업 피...",
-      "publisher": "etnews.com",
-      "quote": "중소 제조기업에서도 비교적 유연하게 도입할 수 있는 로봇 용접자동화 모델이라는 점이 특징이다. 두산로보틱스 협동로봇을 이용한 트레이닝 키트는 협동로봇 운용, 프로그래밍, 공정 응용 교육을 위한 장비다....",
-      "section": "title+description",
-      "url": "https://www.etnews.com/20260902000065",
-      "published_at": 20260902,
-      "period": null,
-      "reliability": "medium",
-      "recency": "high",
-      "directness": "medium",
-      "evidence_nature": "business_signal",
-      "similarity": 0.42190000000000005
-    },
-    {
-      "citation_id": 4,
       "source_id": "news-007a29ac06f8",
       "source_type": "news",
       "title": "조선소 누빌 휴머노이드 만든다…HD현대로보틱스, 양팔 로봇 공개",
@@ -163,7 +146,7 @@
       "similarity": 0.41679999999999995
     },
     {
-      "citation_id": 5,
+      "citation_id": 4,
       "source_id": "news-bbe83f8c1426",
       "source_type": "news",
       "title": "[AM리더스클럽 34] 화인스텍·화인로보틱스 김묵현 대표 \"비전으로 보고...",
@@ -180,7 +163,7 @@
       "similarity": 0.4151
     },
     {
-      "citation_id": 6,
+      "citation_id": 5,
       "source_id": "news-bde9220b6cc0",
       "source_type": "news",
       "title": "“휴머노이드 개발서 확보 피지컬AI 기술, 산업용·협동 로봇에도 확대...",
@@ -197,7 +180,7 @@
       "similarity": 0.5114000000000001
     },
     {
-      "citation_id": 7,
+      "citation_id": 6,
       "source_id": "news-06c506bca6be",
       "source_type": "news",
       "title": "성장하는 미국 협동로봇 시장, 우리 기업이 주목해야 할 기술은?",
@@ -214,7 +197,7 @@
       "similarity": 0.5008
     },
     {
-      "citation_id": 8,
+      "citation_id": 7,
       "source_id": "news-115faf6b2773",
       "source_type": "news",
       "title": "값싸도 중국산 안 쓴다...\"공장 에이스=K협동로봇\" 불량률 제로[르포]",
@@ -231,7 +214,7 @@
       "similarity": 0.5338
     },
     {
-      "citation_id": 9,
+      "citation_id": 8,
       "source_id": "news-b37edff3b4bc",
       "source_type": "news",
       "title": "로봇으로 만드니 생산성 23% '쑥' [COST ZERO]",
@@ -248,7 +231,7 @@
       "similarity": 0.5771
     },
     {
-      "citation_id": 10,
+      "citation_id": 9,
       "source_id": "news-c7da5c7cd4ba",
       "source_type": "news",
       "title": "[기획] 자동화·AI 도입하는 中企…비용 부담은 '가중'",
@@ -265,24 +248,7 @@
       "similarity": 0.5674
     },
     {
-      "citation_id": 11,
-      "source_id": "news-649581df4a05",
-      "source_type": "news",
-      "title": "중소기업 AI 전환, 제조 데이터·공동 인프라 구축이 관건",
-      "publisher": "viva100.com",
-      "quote": "축적하고 협동조합은 공통 기준과 공동 실증 기반을 마련하며, 정부는 이를 뒷받침할 인프라를 제공하는 역할 분담이 필요하다고 강조했다. 조주현 중소벤처기업연구원장은 중소기업이 AI 도입에 어려움을 겪는 이유로...",
-      "section": "title+description",
-      "url": "https://www.viva100.com/article/20261021500504",
-      "published_at": 20261021,
-      "period": null,
-      "reliability": "medium",
-      "recency": "high",
-      "directness": "medium",
-      "evidence_nature": "business_signal",
-      "similarity": 0.5514
-    },
-    {
-      "citation_id": 12,
+      "citation_id": 10,
       "source_id": "news-45725cde0db3",
       "source_type": "news",
       "title": "[기획] 설비도 로봇도 '빌려 쓴다'… 中企 경영, '소유'에서 '서비스'로",
