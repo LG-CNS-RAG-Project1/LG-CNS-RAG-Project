@@ -393,7 +393,18 @@ def test_missing_remote_collection_is_reported_as_missing(monkeypatch, tmp_path)
     assert collection is None and state.reason == "컬렉션 없음"
 
 
-def test_patent_relevance_is_retried_once_on_invalid_mapping(monkeypatch):
+def _candidates(*ids):
+    from types import SimpleNamespace
+
+    return [
+        SimpleNamespace(
+            document=SimpleNamespace(source_id=i, title="t", metadata={}, content="c")
+        )
+        for i in ids
+    ]
+
+
+def test_patent_relevance_retries_then_succeeds(monkeypatch):
     import threading
 
     import src.retrieval.patent_relevance as patent_relevance
@@ -409,17 +420,52 @@ def test_patent_relevance_is_retried_once_on_invalid_mapping(monkeypatch):
         return {"ok": True}
 
     monkeypatch.setattr(patent_relevance, "judge_patent_candidates", flaky)
-    relevance = pipeline._patent_defaults(threading.Event())["relevance_fn"]
-    assert relevance("idea", ["r"]) == {"ok": True} and len(calls) == 2
+    judge = pipeline._patent_defaults(threading.Event())["relevance_fn"]
+    assert judge("idea", _candidates("a")) == {"ok": True} and len(calls) == 2
 
 
-def test_cancelled_calls_are_not_retried():
+def test_patent_relevance_falls_back_to_per_candidate_mapping(monkeypatch):
     import threading
 
+    import src.retrieval.patent_relevance as patent_relevance
+
+    def partial(system_prompt, user_text):
+        return {
+            "judgments": [
+                {
+                    "source_id": "a",
+                    "relevant": True,
+                    "confidence": "high",
+                    "reason": "r",
+                },
+                {
+                    "source_id": "zzz",
+                    "relevant": True,
+                    "confidence": "high",
+                    "reason": "r",
+                },
+            ]
+        }
+
+    monkeypatch.setattr(patent_relevance, "call_relevance_llm", partial)
+    judge = pipeline._patent_defaults(threading.Event())["relevance_fn"]
+    result = judge(complete_draft(), _candidates("a", "b"))
+    assert set(result) == {"a", "b"}
+    assert result["a"].relevant and not result["b"].relevant
+
+
+def test_patent_relevance_is_not_called_after_cancel(monkeypatch):
+    import threading
+
+    import src.retrieval.patent_relevance as patent_relevance
+
+    called = []
+    monkeypatch.setattr(
+        patent_relevance, "call_relevance_llm", lambda *a: called.append(1)
+    )
     event = threading.Event()
     event.set()
-    calls = []
-    guarded = pipeline._retry_invalid(pipeline._guard(lambda: calls.append(1), event))
+    judge = pipeline._patent_defaults(event)["relevance_fn"]
     with pytest.raises(Cancelled):
-        guarded()
-    assert calls == []
+        judge(complete_draft(), _candidates("a"))
+    assert called == []
