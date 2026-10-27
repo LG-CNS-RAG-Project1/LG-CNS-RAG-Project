@@ -1,9 +1,10 @@
 # 빠른 조사 화면 실행·시연
 
-```powershell
-python -m pip install -r requirements-ui.txt
-python -m streamlit run frontend/app.py --server.address 127.0.0.1 --server.port 8505
+```bash
+docker compose up -d ui      # make ui → http://localhost:8505
 ```
+
+Docker 없이 실행할 때는 README '실행 방법'의 고정 버전 가상환경 절차(`make ui-host`)를 따른다.
 
 1. 큰 입력란에 아이디어를 작성하거나 예시를 불러온다. 우측은 세션의 최근 입력이다.
 2. 구성·검토 질문 확인에서 최대 7개 항목을 편집·이동·삭제한 뒤 조사를 시작한다.
