@@ -1,0 +1,26 @@
+﻿case_id,idea_id,dimension,n_relevant,hit,recall,rr,precision,ndcg,search_ms,rerank_ms,unjudged,retrieved
+SF-01-demand,SF-01,demand,9,1.0,0.3333333333333333,0.5,0.6,0.5296347172140421,108.463,0.0,0,news-e52b5f69291b news-80c5318445cb news-dc480beb0c7b news-c45a829aef8d news-2b9ff192588b
+SF-01-competition,SF-01,competition,9,1.0,0.3333333333333333,0.5,0.6,0.5296347172140421,115.773,0.0,0,news-3a5482585bad news-b562b7e68c03 news-e52b5f69291b news-06f830a9ad23 news-1126190d4fd4
+SF-01-price,SF-01,price,8,1.0,0.25,1.0,0.4,0.5531464700081437,106.492,0.0,0,news-b562b7e68c03 news-06f830a9ad23 news-c45a829aef8d news-1126190d4fd4 news-e52b5f69291b
+SF-01-buyer,SF-01,buyer,4,0.0,0.0,0.0,0.0,0.0,114.635,0.0,0,news-e52b5f69291b news-c45a829aef8d news-2b9ff192588b news-0182cfcc8921 news-80c5318445cb
+SF-01-adoption_barrier,SF-01,adoption_barrier,9,0.0,0.0,0.0,0.0,0.0,114.135,0.0,0,news-e52b5f69291b news-c45a829aef8d news-80c5318445cb news-2b9ff192588b news-0182cfcc8921
+SF-02-demand,SF-02,demand,5,1.0,0.2,1.0,0.2,0.3391602052736161,100.543,0.0,0,news-844f700c9af9 news-b7e06e87abba news-20fb66b19106 news-8e4cf65d286d news-6c8cd92d44ab
+SF-02-competition,SF-02,competition,14,1.0,0.2857142857142857,1.0,0.8,0.8539316501572937,99.979,0.0,0,news-20fb66b19106 news-e571e2f06786 news-6479f11d1626 news-65309ed11b62 news-2dce26828af0
+SF-02-price,SF-02,price,4,0.0,0.0,0.0,0.0,0.0,94.71,0.0,0,news-b7e06e87abba news-20fb66b19106 news-1126190d4fd4 news-60a4b11433f3 news-0c07f02c8cbd
+SF-02-buyer,SF-02,buyer,9,1.0,0.2222222222222222,0.3333333333333333,0.4,0.3156484524795145,88.876,0.0,0,news-b7e06e87abba news-65309ed11b62 news-c3687d963934 news-4b056d22c528 news-06ed0c27f50a
+SF-02-adoption_barrier,SF-02,adoption_barrier,4,0.0,0.0,0.0,0.0,0.0,96.19,0.0,0,news-b7e06e87abba news-65309ed11b62 news-20fb66b19106 news-c3687d963934 news-4b056d22c528
+SF-03-demand,SF-03,demand,8,1.0,0.5,1.0,0.8,0.830419897363192,123.586,0.0,0,news-9d00c0448728 news-cd15f97ec68b news-9067d5150fb9 news-93c1087ab309 news-3cc8ff2360b1
+SF-03-competition,SF-03,competition,12,1.0,0.3333333333333333,0.5,0.8,0.6608397947263839,89.708,0.0,0,news-f82a061bbf0d news-9d00c0448728 news-fbee959e37c4 news-8e0fbddba792 news-b74b7ec09401
+SF-03-price,SF-03,price,3,0.0,0.0,0.0,0.0,0.0,79.554,0.0,0,news-fbee959e37c4 news-cd15f97ec68b news-8e0fbddba792 news-f542203bd976 news-e4347828f4a9
+SF-03-buyer,SF-03,buyer,6,1.0,0.16666666666666666,0.5,0.2,0.21398626473452756,78.298,0.0,0,news-fbee959e37c4 news-cd15f97ec68b news-8e0fbddba792 news-f542203bd976 news-e4347828f4a9
+SF-03-adoption_barrier,SF-03,adoption_barrier,5,0.0,0.0,0.0,0.0,0.0,82.834,0.0,0,news-fbee959e37c4 news-cd15f97ec68b news-8e0fbddba792 news-f542203bd976 news-9d00c0448728
+SF-04-demand,SF-04,demand,10,1.0,0.5,1.0,1.0,1.0,88.792,0.0,0,news-0c52546f8c2c news-bdb76c6c2e30 news-6a772113dde4 news-cce3c1c80cd5 news-c9ea23b3602e
+SF-04-competition,SF-04,competition,7,1.0,0.2857142857142857,0.5,0.4,0.36005461457723403,96.542,0.0,0,news-0c52546f8c2c news-6a772113dde4 news-be882cbadac6 news-e9fad5c3cdb9 news-ef1ba1d9912b
+SF-04-price,SF-04,price,4,0.0,0.0,0.0,0.0,0.0,86.884,0.0,0,news-8e5e33925154 news-c9ea23b3602e news-841d76b1cfa2 news-81319390d6a6 news-c89e5b895fd8
+SF-04-buyer,SF-04,buyer,9,1.0,0.1111111111111111,0.3333333333333333,0.2,0.16958010263680806,81.728,0.0,0,news-c9ea23b3602e news-81319390d6a6 news-ef1ba1d9912b news-b39e9f244d9d news-cce3c1c80cd5
+SF-04-adoption_barrier,SF-04,adoption_barrier,1,0.0,0.0,0.0,0.0,0.0,81.005,0.0,0,news-c9ea23b3602e news-81319390d6a6 news-ef1ba1d9912b news-b39e9f244d9d news-7f840efe5672
+SF-05-demand,SF-05,demand,5,1.0,0.4,1.0,0.4,0.5087403079104241,91.701,0.0,0,news-1ce2d68fe727 news-fae8418ff121 news-045cfa586d02 news-dbe5abd623e4 news-40578a762830
+SF-05-competition,SF-05,competition,6,1.0,0.5,1.0,0.6,0.7227265726449519,87.473,0.0,0,news-74aa4fea0636 news-e10ba6409b18 news-7b69ad1d9418 news-a815e6154843 news-f64052e82357
+SF-05-price,SF-05,price,2,0.0,0.0,0.0,0.0,0.0,108.124,0.0,0,news-8f5ef14d3869 news-7f2f97677b85 news-910a8c124150 news-3304fe350e6f news-3dc7daac2b62
+SF-05-buyer,SF-05,buyer,5,1.0,0.2,0.5,0.2,0.21398626473452756,97.829,0.0,0,news-dbe5abd623e4 news-081df116e104 news-4edd079c8a53 news-fae8418ff121 news-c2d1a008b98b
+SF-05-adoption_barrier,SF-05,adoption_barrier,6,0.0,0.0,0.0,0.0,0.0,85.985,0.0,0,news-081df116e104 news-4edd079c8a53 news-fae8418ff121 news-c2d1a008b98b news-2df9294afd5d
