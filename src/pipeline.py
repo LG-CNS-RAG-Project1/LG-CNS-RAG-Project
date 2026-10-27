@@ -353,18 +353,54 @@ def _guard(fn: Callable, event: threading.Event) -> Callable:
     return guarded
 
 
-def _retry_invalid(fn: Callable, attempts: int = 2) -> Callable:
-    """응답 형식 검증 실패(ValueError)일 때만 다시 호출한다. 취소(Cancelled)는 다시 호출하지 않는다."""
+def _tolerant_relevance(event: threading.Event) -> Callable:
+    """특허 관련성 판정 함수. 원래 판정(형식 검증 포함)을 최대 2회 시도하고,
+    그래도 후보와 1:1로 맞지 않으면 마지막 응답에서 후보별 판정을 맞춘다.
 
-    def retried(*args, **kwargs):
-        for attempt in range(attempts):
+    응답에서 빠진 후보는 관련 없음으로 두고(근거로 쓰지 않음) 후보에 없는 ID는 버린다.
+    판정 형식 오류 하나로 특허 결과 전체가 error가 되는 것을 막기 위한 연결 계층의 보완이다.
+    """
+    from src.retrieval import patent_relevance
+
+    def judge(idea, results):
+        last = {}
+
+        def llm(system_prompt, user_text):
+            if event.is_set():
+                raise Cancelled("제한 시간이 지나 외부 호출을 중단했습니다.")
+            last["raw"] = patent_relevance.call_relevance_llm(system_prompt, user_text)
+            return last["raw"]
+
+        for _ in range(2):
             try:
-                return fn(*args, **kwargs)
+                return patent_relevance.judge_patent_candidates(
+                    idea, results, llm_fn=llm
+                )
+            except Cancelled:
+                raise
             except ValueError:
-                if attempt == attempts - 1:
-                    raise
+                continue
+        expected = [item.document.source_id for item in results]
+        judged = {}
+        for item in (last.get("raw") or {}).get("judgments", []):
+            try:
+                verdict = patent_relevance.RelevanceVerdict.model_validate(item)
+            except ValueError:
+                continue
+            if verdict.source_id in expected:
+                judged.setdefault(verdict.source_id, verdict)
+        return {
+            source_id: judged.get(source_id)
+            or patent_relevance.RelevanceVerdict(
+                source_id=source_id,
+                relevant=False,
+                confidence="low",
+                reason="판정 응답에서 빠져 관련 없음으로 처리",
+            )
+            for source_id in expected
+        }
 
-    return retried
+    return judge
 
 
 def _market_defaults(event: threading.Event) -> dict:
@@ -384,7 +420,6 @@ def _patent_defaults(event: threading.Event) -> dict:
     from src.ingestion.kipris_client import fetch_patent_claims
     from src.ingestion.kipris_client import search_patents as search_kipris
     from src.retrieval.market_search import embed_texts
-    from src.retrieval.patent_relevance import judge_patent_candidates
     from src.retrieval.patent_search import call_query_llm
 
     return {
@@ -393,8 +428,7 @@ def _patent_defaults(event: threading.Event) -> dict:
         "claim_fetcher": _guard(fetch_patent_claims, event),
         "kipris_search_fn": _guard(search_kipris, event),
         "comparison_fn": _guard(compare_patent_evidence, event),
-        # 판정 결과가 후보와 1:1로 맞지 않으면 특허 결과 전체가 error가 되므로 1회 다시 판정한다.
-        "relevance_fn": _retry_invalid(_guard(judge_patent_candidates, event)),
+        "relevance_fn": _tolerant_relevance(event),
     }
 
 
