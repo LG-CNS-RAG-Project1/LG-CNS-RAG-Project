@@ -13,14 +13,18 @@ from frontend.live import (
     COST_NOTE,
     FIELD_LABELS,
     LINK_LABELS,
+    MAX_PASSWORD_FAILURES,
+    PASSWORD_LOCK_SECONDS,
     PATENT_MODE_LABELS,
     RUN_LOCK,
     SOURCE_LABELS,
     analysis_key,
+    app_password,
     cost_markdown,
     cost_rows_list,
     friendly_error,
     live_available,
+    password_matches,
     run_line,
 )
 from src.generation.input_guard import MAX_IDEA_CHARS
@@ -72,6 +76,38 @@ for key, value in {
     if key not in st.session_state:
         st.session_state[key] = value
 s = st.session_state
+
+
+def password_gate():
+    """IDEALENS_APP_PASSWORD가 설정된 배포에서는 비밀번호를 확인하기 전까지 화면을 그리지 않는다."""
+    expected = app_password()
+    if not expected or s.get("authenticated"):
+        return
+    st.title("IdeaLens")
+    st.caption("접속 비밀번호를 입력해 주세요.")
+    locked_until = s.get("auth_locked_until", 0)
+    if time.time() < locked_until:
+        st.error(
+            f"비밀번호를 {MAX_PASSWORD_FAILURES}회 틀렸습니다. 잠시 후 다시 시도해 주세요."
+        )
+        st.stop()
+    with st.form("password_form"):
+        entered = st.text_input("비밀번호", type="password", key="app_password")
+        submitted = st.form_submit_button("들어가기")
+    if submitted:
+        if password_matches(entered, expected):
+            s.authenticated = True
+            s.auth_failures = 0
+            st.rerun()
+        s.auth_failures = s.get("auth_failures", 0) + 1
+        if s.auth_failures >= MAX_PASSWORD_FAILURES:
+            s.auth_locked_until = time.time() + PASSWORD_LOCK_SECONDS
+            s.auth_failures = 0
+        st.error("비밀번호가 맞지 않습니다.")
+    st.stop()
+
+
+password_gate()
 
 
 def invalidate_context():
