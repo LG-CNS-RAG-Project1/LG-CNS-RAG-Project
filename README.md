@@ -110,7 +110,7 @@ python -m src.ingestion.news_client                                             
 python -m src.ingestion.market_processor                                        # 원본 → MarketDocument 정제
 ```
 
-- 키워드·수집 기준은 `configs/market_keywords.yaml`에서 관리한다.
+- 시장·특허 공통 기술 분야, 분야별 검색어 및 시장 수집 기준은 `configs/technology_areas.yaml`에서 관리한다. 공통 시장 키워드는 `shared_market_keywords`, 분야별 시장 키워드와 특허 키워드는 각 `technology_areas` 항목에 둔다.
 - NAVER API HUB 뉴스 검색 API의 제목·요약·링크·발행일만 `data/market/raw/news_{keyword_id}_{수집일}.json`에 저장한다.
 - 정제 단계는 같은 URL 기사를 합치고, 제목 유사도 0.8 초과·발행일 3일 이내 기사를 같은 `dup_group`으로 묶어 대표 1건만 `data/market/processed/market_docs.jsonl`에 저장한다.
 
@@ -121,11 +121,12 @@ python -m src.ingestion.patent_processor --field-id SF-02 --limit 20 --include-c
 python -m src.ingestion.patent_processor --field-id SF-05 --limit 20 --include-claims
 ```
 
-- 분야 분류와 초기 검색어는 `configs/patent_technology_areas.yaml`에서 SF-01~SF-08로 관리한다. 현재 우선 색인 대상은 SF-02 AI 비전 품질검사와 SF-05 지능형 공정제어다.
+- 공통 분야 분류와 초기 검색어는 `configs/technology_areas.yaml`에서 SF-01~SF-08로 관리한다. 현재 우선 특허 색인 대상은 SF-02 AI 비전 품질검사와 SF-05 지능형 공정제어다.
 - `--field-id`는 분야 설정의 검색어로 KIPRIS 자료를 수집해 `data/patents/processed/patent_docs.jsonl`에 누적하고, 새 초록·청구항 청크를 `data/patents/chroma/`에 색인한다. 기존 색인 청크는 변경이 없으면 다시 임베딩하지 않는다.
 - `--include-claims`는 문헌별 청구항 상세 API를 조회한다. API에서 확보하지 못한 청구항은 생성하지 않고 초록만 색인한다. `KIPRIS_API_KEY`와 청구항 API 이용 권한이 필요하다.
 - 색인 시 문서 임베딩 API 호출이 필요하다(`OPENAI_API_KEY`). 이후 문서 벡터는 로컬 Chroma에서 재사용한다. Dense/Hybrid 검색의 질의 임베딩은 검색 때 별도로 생성된다.
 - `PatentSearchRequest.technology_area_id`를 지정하면 검색 결과를 해당 분야로 제한한다. 원문 JSONL과 Chroma DB는 로컬에 저장되고 Git에는 포함되지 않는다.
+- 기존 SF-05 시장 평가 샘플·라벨은 현장 작업자용 LLM 음성 어시스턴트 기준이다. 과거 검색어는 `legacy_market_keywords`에 기록하며 신규 뉴스 수집에는 사용하지 않는다. 새 SF-05 시장 성능을 평가하려면 아이디어 샘플을 갱신하고 자료를 다시 수집·라벨링해야 한다.
 
 ### 시장 근거 색인·검색
 

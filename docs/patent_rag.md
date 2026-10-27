@@ -25,7 +25,7 @@ KIPRIS 검색 API는 `openapi/rest/patUtiModInfoSearchSevice/freeSearchInfo`의 
 
 ### 분야별 특허 사전 색인
 
-`configs/patent_technology_areas.yaml`은 SF-01 산업용 로봇, SF-02 AI 비전 품질검사, SF-03 설비 예지보전, SF-04 에너지 관리, SF-05 지능형 공정제어, SF-06 디지털 트윈, SF-07 생산계획 최적화, SF-08 물류 자동화의 표준 분야명·주요 기술·특징·초기 KIPRIS 검색어를 관리한다. 초기 수집·색인 대상은 SF-02와 SF-05다.
+`configs/technology_areas.yaml`은 시장·특허가 함께 쓰는 SF-01 산업용 로봇, SF-02 AI 비전 품질검사, SF-03 설비 예지보전, SF-04 에너지 관리, SF-05 지능형 공정제어, SF-06 디지털 트윈, SF-07 생산계획 최적화, SF-08 물류 자동화의 표준 분야명·주요 기술·특징·검색어를 관리한다. 시장 키워드와 특허 키워드를 같은 분야 항목에 두며, 초기 특허 수집·색인 대상은 SF-02와 SF-05다.
 
 ```bash
 python -m src.ingestion.patent_processor --field-id SF-02 --limit 20 --include-claims

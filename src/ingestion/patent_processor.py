@@ -15,7 +15,7 @@ from src.ingestion.kipris_client import (
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 OUTPUT_PATH = ROOT_DIR / "data" / "patents" / "processed" / "patent_docs.jsonl"
-AREAS_PATH = ROOT_DIR / "configs" / "patent_technology_areas.yaml"
+AREAS_PATH = ROOT_DIR / "configs" / "technology_areas.yaml"
 CLAIM_HEADING = re.compile(
     r"(?:^|\n)\s*(?:【\s*청구항\s*(\d+)\s*】|청구항\s*(\d+)\s*[.:：]?)",
     re.IGNORECASE,
@@ -318,7 +318,7 @@ def main() -> None:
     parser.add_argument(
         "--field-id",
         choices=sorted(load_technology_areas()),
-        help="configs/patent_technology_areas.yaml의 기술 분야 ID",
+        help="configs/technology_areas.yaml의 기술 분야 ID",
     )
     parser.add_argument(
         "--include-claims",
