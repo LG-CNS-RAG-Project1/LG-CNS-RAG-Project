@@ -74,12 +74,23 @@ class PatentSearchRequest(BaseModel):
     top_k: int = Field(default=5, ge=1, le=5)
 
 
-# 3. 정제된 특허 문서
+# 3. 특허 청구항
+class PatentClaim(BaseModel):
+    claim_number: int = Field(ge=1)
+    text: str = Field(min_length=1)
+    claim_type: Literal["independent", "dependent", "unclassified"] = "unclassified"
+    depends_on: list[int] = Field(default_factory=list)
+    version_id: str | None = None
+
+
+# 4. 정제된 특허 문서
 class PatentDocument(BaseModel):
     patent_id: str
     title: str
     abstract: str
     claims: str = ""
+    claim_items: list[PatentClaim] = Field(default_factory=list)
+    claim_version_id: str | None = None
 
     application_number: str | None = None
     publication_number: str | None = None
@@ -92,16 +103,22 @@ class PatentDocument(BaseModel):
     source_url: str | None = None
 
 
-# 4. 임베딩 대상 청크
+# 5. 임베딩 대상 청크
 class PatentChunk(BaseModel):
     chunk_id: str
     patent_id: str
     section: Literal["abstract", "claims"]
     text: str = Field(min_length=1)
     chunk_index: int = Field(ge=0)
+    claim_number: int | None = Field(default=None, ge=1)
+    claim_type: Literal["independent", "dependent", "unclassified"] | None = None
+    depends_on: list[int] = Field(default_factory=list)
+    version_id: str | None = None
+    char_start: int | None = Field(default=None, ge=0)
+    char_end: int | None = Field(default=None, ge=0)
 
 
-# 5. 검색 근거
+# 6. 검색 근거
 class PatentEvidence(BaseModel):
     citation_id: int = Field(ge=1)
     patent_id: str
@@ -112,17 +129,25 @@ class PatentEvidence(BaseModel):
 
     similarity: float | None = Field(default=None, ge=0, le=1)
     source_url: str | None = None
+    application_number: str | None = None
+    publication_number: str | None = None
+    registration_number: str | None = None
+    claim_number: int | None = Field(default=None, ge=1)
+    claim_type: Literal["independent", "dependent", "unclassified"] | None = None
+    depends_on: list[int] = Field(default_factory=list)
+    version_id: str | None = None
 
 
-# 6. 기술 비교 결과
+# 7. 기술 비교 결과
 class PatentComparison(BaseModel):
     citation_id: int = Field(ge=1)
     similarity: str
     difference: str
     uncertainty: str
+    technical_element: str | None = None
 
 
-# 7. 최종 특허 RAG 결과
+# 8. 최종 특허 RAG 결과
 class PatentReport(BaseModel):
     status: Literal["completed", "no_results", "error"]
 
@@ -144,8 +169,8 @@ class PatentReport(BaseModel):
             if comparison.citation_id not in ids:
                 raise ValueError("Comparison references unknown citation")
 
-        if len(self.evidence) > 5:
-            raise ValueError("Maximum 5 patent evidences")
+        if len({e.patent_id for e in self.evidence}) > 5:
+            raise ValueError("Maximum 5 unique patents")
 
         return self
 

@@ -1,13 +1,74 @@
 """KIPRIS 특허 검색 결과를 내부 문서 및 검색 청크로 변환한다."""
 
 import argparse
+import re
 from pathlib import Path
 
-from src.schemas import PatentChunk, PatentDocument
+from src.schemas import PatentChunk, PatentClaim, PatentDocument
 from src.ingestion.kipris_client import search_patents as search_kipris_patents
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 OUTPUT_PATH = ROOT_DIR / "data" / "patents" / "processed" / "patent_docs.jsonl"
+CLAIM_HEADING = re.compile(
+    r"(?:^|\n)\s*(?:【\s*청구항\s*(\d+)\s*】|청구항\s*(\d+)\s*[.:：]?)",
+    re.IGNORECASE,
+)
+
+
+def structure_claims(
+    claims: str | list[dict], version_id: str | None = None
+) -> list[PatentClaim]:
+    """번호가 포함된 청구항 원문을 독립항·종속항 및 인용 관계로 정리한다."""
+    if isinstance(claims, list):
+        items = claims
+    else:
+        matches = list(CLAIM_HEADING.finditer(claims))
+        items = []
+        for index, match in enumerate(matches):
+            number = next((int(value) for value in match.groups() if value), None)
+            start = match.end()
+            end = (
+                matches[index + 1].start() if index + 1 < len(matches) else len(claims)
+            )
+            text = claims[start:end].strip()
+            if number and text:
+                items.append({"claim_number": number, "text": text})
+
+    output = []
+    seen_numbers = set()
+    for item in items:
+        try:
+            number = int(item["claim_number"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        text = str(item.get("text") or "").strip()
+        if number < 1 or not text or number in seen_numbers:
+            continue
+        seen_numbers.add(number)
+        refs = set()
+        for first, last in re.findall(
+            r"제\s*(\d+)\s*항\s*내지\s*제?\s*(\d+)\s*항", text
+        ):
+            low, high = sorted((int(first), int(last)))
+            refs.update(range(low, high + 1))
+        for ref in re.findall(r"(?:제|청구항\s*)\s*(\d+)\s*항", text):
+            refs.add(int(ref))
+        refs.discard(number)
+        ordered_refs = sorted(ref for ref in refs if ref > 0)
+        explicit_relation = bool(
+            re.search(r"(?:제\s*\d+\s*항|청구항\s*\d+\s*항).{0,24}에\s*있어서", text)
+            or ordered_refs
+        )
+        output.append(
+            PatentClaim(
+                claim_number=number,
+                text=text,
+                claim_type=("dependent" if explicit_relation else "independent"),
+                depends_on=ordered_refs,
+                version_id=item.get("version_id") or version_id,
+            )
+        )
+    return sorted(output, key=lambda claim: claim.claim_number)
 
 
 def to_patent_document(raw: dict) -> PatentDocument:
@@ -19,17 +80,32 @@ def to_patent_document(raw: dict) -> PatentDocument:
 
     application_number = str(application_number).strip()
 
+    raw_claims = raw.get("claims") or ""
+    version_id = (
+        raw.get("claim_version_id")
+        or raw.get("publication_number")
+        or raw.get("registration_number")
+    )
+    claim_items = structure_claims(raw.get("claim_items") or raw_claims, version_id)
+    claims_text = (
+        raw_claims
+        if isinstance(raw_claims, str)
+        else "\n".join(c.text for c in claim_items)
+    )
     return PatentDocument(
         patent_id=application_number,
         application_number=application_number,
         title=raw.get("title") or "",
         abstract=raw.get("abstract") or "",
-        claims=raw.get("claims") or "",
+        claims=claims_text,
+        claim_items=claim_items,
+        claim_version_id=version_id,
         applicant=raw.get("applicant"),
         application_date=raw.get("application_date"),
         publication_number=raw.get("publication_number"),
         registration_number=raw.get("registration_number"),
         source=raw.get("source") or "KIPRIS Plus",
+        source_url=raw.get("source_url"),
     )
 
 
@@ -38,22 +114,43 @@ def build_chunks(patents: list[PatentDocument]) -> list[PatentChunk]:
     chunks = []
 
     for patent in patents:
-        sections = {
-            "abstract": patent.abstract,
-            "claims": patent.claims,
-        }
-
-        for section, text in sections.items():
-            if not text or not text.strip():
-                continue
-
+        if patent.abstract.strip():
             chunks.append(
                 PatentChunk(
-                    chunk_id=f"{patent.patent_id}_{section}_0",
+                    chunk_id=f"{patent.patent_id}_abstract_0",
                     patent_id=patent.patent_id,
-                    section=section,
-                    text=text.strip(),
+                    section="abstract",
+                    text=patent.abstract.strip(),
                     chunk_index=0,
+                )
+            )
+        claims = patent.claim_items or structure_claims(
+            patent.claims, patent.claim_version_id
+        )
+        if not claims and patent.claims.strip():
+            chunks.append(
+                PatentChunk(
+                    chunk_id=f"{patent.patent_id}_claims_0",
+                    patent_id=patent.patent_id,
+                    section="claims",
+                    text=patent.claims.strip(),
+                    chunk_index=0,
+                    claim_type="unclassified",
+                    version_id=patent.claim_version_id,
+                )
+            )
+        for index, claim in enumerate(claims):
+            chunks.append(
+                PatentChunk(
+                    chunk_id=f"{patent.patent_id}_claim_{claim.claim_number}",
+                    patent_id=patent.patent_id,
+                    section="claims",
+                    text=claim.text,
+                    chunk_index=index,
+                    claim_number=claim.claim_number,
+                    claim_type=claim.claim_type,
+                    depends_on=claim.depends_on,
+                    version_id=claim.version_id or patent.claim_version_id,
                 )
             )
 
