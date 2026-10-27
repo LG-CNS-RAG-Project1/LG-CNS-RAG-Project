@@ -4,7 +4,7 @@ COMPOSE := docker compose
 RUN_APP := $(COMPOSE) run --rm app
 GITHUB_REPOSITORY ?= $(shell git remote get-url origin 2>/dev/null | sed -E 's#.*github\.com[:/]##; s#\.git$$##')
 
-.PHONY: help env up down build shell format format-check test precommit script-test review-preview review-model-check review-codex-login
+.PHONY: help env up down build shell format format-check test precommit script-test review-preview review-model-check review-codex-login ui patent-collect patent-index market-collect market-index answer-eval
 
 help: ## 명령 목록 출력
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-15s %s\n", $$1, $$2}'
@@ -50,3 +50,21 @@ review-model-check: ## 분석기(REVIEW_PROVIDER, 기본 codex: ~/.codex의 Chat
 
 review-codex-login: ## PR 분석 자동화 전용 ChatGPT 로그인을 만들어 Environment pr-analysis의 CODEX_AUTH_JSON에 저장(리더 PC에서 1회, 브라우저 로그인)
 	bash scripts/review/seed_codex_auth.sh
+
+ui: ## Streamlit 로컬 UI 실행 (8505)
+	streamlit run frontend/app.py --server.address 127.0.0.1 --server.port 8505
+
+patent-collect: ## 특허 수집·원본 저장 (ARGS로 옵션 전달)
+	$(RUN_APP) python -m scripts.collect_patents $(ARGS)
+
+patent-index: ## 처리된 특허 문서 색인 (ARGS로 옵션 전달)
+	$(RUN_APP) python -m scripts.build_patent_index $(ARGS)
+
+market-collect: ## 시장 뉴스 수집 (선택: ARGS=--keyword-id ...)
+	$(RUN_APP) python -m src.ingestion.news_client $(ARGS)
+
+market-index: ## 처리된 시장 뉴스 색인
+	$(RUN_APP) python -m src.retrieval.market_search build
+
+answer-eval: ## LLM 단독과 RAG 답변 품질 비교 (API 호출·비용 발생)
+	$(RUN_APP) python -m evaluation.answer_eval --limit $(or $(LIMIT),5) --label $(or $(LABEL),baseline)

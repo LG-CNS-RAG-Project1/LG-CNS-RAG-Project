@@ -53,3 +53,27 @@
 - 인용 표기: UI와 마크다운 모두 시장 근거를 `M:{citation_id}`로 쓴다(특허는 `P:`). 같은 기사는 여러 차원에서 같은 `citation_id`를 쓴다.
 - 해석 규칙: 수집 뉴스는 모두 `business_signal`(사업 신호)이므로 수요 `confirmed`는 고객 검증 자료(`direct_demand`)가 있을 때만 나온다. 종합 보고서에서도 '신호만 확인'을 수요 확인으로 바꿔 쓰지 않는다.
 - JSON Schema: `MarketReport.model_json_schema()`
+
+
+## 3. 특허 조사 및 통합 파이프라인
+
+| 함수 | 입력 | 출력 |
+|---|---|---|
+| `src.services.patent_service.analyze_patents(request, ...)` | `PatentSearchRequest` | `PatentReport` |
+| `src.pipeline.run_pipeline(draft, questions, ...)` | complete `IdeaDraft`, `{id, question, condition}` 목록, 선택 `technology_area_id` | `PipelineReport` (특허·시장 보고서, 질문별 연결, Markdown) |
+| `src.generation.report_builder.build_question_links(questions, market, patent)` | 질문 목록, `MarketReport`, `PatentReport` | 질문별 6개 기준 연결 (`QuestionLink`) |
+
+- 특허 검색은 요청별 기술요소 검색 결과를 문헌 단위로 합친 뒤 최대 20개 후보를 관련성 판정하고, 관련 후보에서 최대 5개 문헌을 분석한다. 후보가 부족하면 KIPRIS 검색 결과도 같은 판정을 통과해야 사용한다.
+- `PatentReport.status`는 `completed`·`no_results`·`error`다. 근거는 초록 또는 청구항 원문 인용과 출처 URL·문헌 번호·출원/공개일을 보존한다. 인용은 제공 원문에 포함되는지 검사하고 비교 생성은 1회 재시도한다.
+- 통합 연결은 사용 맥락·해결 과제·기술 구성·요구 성능·도입 제약·근거 범위 여섯 기준을 포함한다. 각 질문에서 시장(M:)과 특허(P:) 근거 중 하나라도 연결되지 않으면 `status="hold"`다.
+- API 키, KIPRIS 권한, 특허·시장 로컬 색인과 네트워크가 필요하다. Streamlit에서 `AI로 항목 초안 만들기 · 재질문`으로 시작하고 SF-02 또는 SF-05 색인을 선택한다. 실제 색인이 없는 분야는 해당 로컬 색인의 범위가 비어 있으므로 후보가 없을 수 있다.
+- 비용 입력은 `frontend.workspace.cost_summary` 규칙으로 계산한다. 비어 있는 금액은 0원 처리하지 않고 미입력 항목으로 남긴다.
+- JSON Schema: `PipelineReport.model_json_schema()` (`src.pipeline`)
+
+
+## 4. 평가 실행·재현 정보
+
+- 시장 검색 최신 비교: `python -m evaluation.evaluate market --idea-ids SF-01,SF-02,SF-03,SF-04 --mode {dense,bm25,hybrid} --label refreshed`. 이 20문항 집합은 새 SF-05 분야와 다른 기존 음성 어시스턴트 라벨을 제외한다.
+- 특허 후보 라벨링: `python -m evaluation.patent_labeling export` → `evaluation/labels/patent_candidates.csv`에서 사람 판단 `relevant=0/1` → `python -m evaluation.patent_labeling import` → `python -m evaluation.evaluate patent --mode {dense,bm25,hybrid} --label <name>`. 다섯 문항에는 아직 사람 정답이 없으므로 라벨 전에는 성능 수치를 만들지 않는다.
+- 답변 평가: `python -m evaluation.answer_eval --limit 5`는 같은 질문에서 LLM 단독과 검색 근거가 있는 답변을 만들고 LLM 평가자에게 인용 정확성·근거 충실성·사실 정확성(각 1~5)과 오류 유형을 기록한다. 사람 판정 점수가 아닌 탐색적 LLM 평가다.
+- 검색 결과 CSV는 mode, 모델, prompt 적용 여부, 현재 커밋 ID를 포함한다. 답변 결과는 두 prompt의 SHA-256, 생성/평가 모델, 지연, 토큰 사용량을 보존한다. API 키와 비용이 필요하다.
