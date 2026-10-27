@@ -13,6 +13,7 @@ from dotenv import load_dotenv
 
 from src.retrieval.patent_store import get_collection
 from src.retrieval.schemas import RetrievalResult, SearchDocument
+from src.retrieval.engine import RetrievalConfig, retrieve
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 
@@ -102,14 +103,24 @@ def search_patents(
     collection=None,
     embed_fn=None,
     top_k: int = 5,
+    retrieval_mode: str = "dense",
+    reranker=None,
+    retrieval_config: RetrievalConfig | None = None,
 ) -> list[RetrievalResult]:
-    """ChromaDB에서 의미적으로 유사한 특허 청크를 검색한다."""
+    """ChromaDB 특허 청크를 dense, BM25 또는 RRF hybrid 방식으로 검색한다."""
 
     if not query.strip():
         raise ValueError("검색어가 비어 있습니다.")
 
     if top_k < 1:
         raise ValueError("top_k는 1 이상이어야 합니다.")
+    if retrieval_mode not in {"dense", "bm25", "hybrid"}:
+        raise ValueError("retrieval_mode must be dense, bm25, or hybrid")
+    config = retrieval_config or RetrievalConfig(
+        candidate_k=max(top_k * 4, top_k),
+        top_k=top_k,
+        deduplicate_by_source=True,
+    )
 
     if collection is None:
         collection = get_collection()
@@ -122,47 +133,51 @@ def search_patents(
 
         embed_fn = embed_texts
 
-    query_vector = embed_fn([query])[0]
-
-    results = collection.query(
-        query_embeddings=[query_vector],
-        n_results=min(top_k, collection.count()),
-        include=["documents", "metadatas", "distances"],
-    )
-
-    output = []
-
-    for rank, (chunk_id, content, metadata, distance) in enumerate(
-        zip(
-            results["ids"][0],
-            results["documents"][0],
-            results["metadatas"][0],
-            results["distances"][0],
-        ),
-        start=1,
+    stored = collection.get(include=["documents", "metadatas"])
+    documents = []
+    for chunk_id, content, raw_metadata in zip(
+        stored["ids"], stored["documents"], stored["metadatas"]
     ):
-        metadata = dict(metadata)
-
-        source_id = metadata.pop("source_id")
-        metadata.pop("source_type", None)
-        title = metadata.pop("title")
-
-        document = SearchDocument(
-            chunk_id=chunk_id,
-            source_id=source_id,
-            source_type="patent",
-            title=title,
-            content=content,
-            metadata=metadata,
-        )
-
-        output.append(
-            RetrievalResult(
-                document=document,
-                dense_score=1.0 - distance,
-                dense_rank=rank,
-                final_rank=rank,
+        metadata = dict(raw_metadata)
+        documents.append(
+            SearchDocument(
+                chunk_id=chunk_id,
+                source_id=metadata.pop("source_id"),
+                source_type="patent",
+                title=metadata.pop("title"),
+                content=content,
+                metadata=metadata,
             )
         )
 
-    return output
+    dense_results = []
+    if retrieval_mode in {"dense", "hybrid"}:
+        query_vector = embed_fn([query])[0]
+        results = collection.query(
+            query_embeddings=[query_vector],
+            n_results=min(config.candidate_k, collection.count()),
+            include=["distances"],
+        )
+        by_id = {document.chunk_id: document for document in documents}
+        dense_results = [
+            RetrievalResult(
+                document=by_id[chunk_id],
+                dense_score=1.0 - distance,
+                dense_rank=rank,
+            )
+            for rank, (chunk_id, distance) in enumerate(
+                zip(results["ids"][0], results["distances"][0]), 1
+            )
+        ]
+    response = retrieve(
+        query,
+        documents,
+        dense_results,
+        mode=retrieval_mode,
+        config=config,
+        reranker=reranker,
+    )
+    return [
+        item.model_copy(update={"final_rank": rank})
+        for rank, item in enumerate(response.results[:top_k], 1)
+    ]

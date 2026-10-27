@@ -124,13 +124,22 @@ def case_query(case: dict, ideas: dict[str, dict]) -> str:
     return build_dimension_queries(request)[case["dimension"]]
 
 
-def default_search_fn() -> SearchFn:
+def default_search_fn(retrieval_mode: str = "dense", reranker=None) -> SearchFn:
     """로컬 Chroma 색인을 쓰는 검색 함수를 만든다. OPENAI_API_KEY가 필요하다."""
     from src.retrieval.market_search import get_collection, search_market
 
     collection = get_collection()
+    if collection.count() == 0:
+        raise RuntimeError(
+            "market Chroma index is empty; ingest and index market documents before evaluation"
+        )
     return lambda query, top_k, idea_id: search_market(
-        query, collection=collection, top_k=top_k, idea_id=idea_id
+        query,
+        collection=collection,
+        top_k=top_k,
+        idea_id=idea_id,
+        retrieval_mode=retrieval_mode,
+        reranker=reranker,
     )
 
 
