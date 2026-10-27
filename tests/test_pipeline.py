@@ -43,12 +43,16 @@ def test_pipeline_uses_both_service_contracts_and_returns_markdown(monkeypatch):
     monkeypatch.setattr(
         pipeline,
         "analyze_patents",
-        lambda request, **kwargs: PatentReport(status="no_results", search_scope="patent"),
+        lambda request, **kwargs: PatentReport(
+            status="no_results", search_scope="patent"
+        ),
     )
     monkeypatch.setattr(
         pipeline,
         "run_market_research",
-        lambda request, **kwargs: MarketReport(status="no_results", search_scope="market"),
+        lambda request, **kwargs: MarketReport(
+            status="no_results", search_scope="market"
+        ),
     )
     draft = IdeaDraft(
         original_text="공장 검사 자동화 아이디어",
@@ -62,7 +66,13 @@ def test_pipeline_uses_both_service_contracts_and_returns_markdown(monkeypatch):
     )
     result = run_pipeline(
         draft,
-        [{"id": "Q1", "question": "기술 구성이 문제를 해결하는가?", "condition": "현장 확인"}],
+        [
+            {
+                "id": "Q1",
+                "question": "기술 구성이 문제를 해결하는가?",
+                "condition": "현장 확인",
+            }
+        ],
         technology_area_id="SF-02",
         link_llm_fn=lambda *_: link_response(),
     )
