@@ -4,11 +4,14 @@
 - export: 문항마다 라벨링 후보를 CSV로 내보낸다.
   후보 = 벡터 검색 상위 VECTOR_POOL건 + 그 아래 순위(최대 TERM_SCAN위)에서 차원 표현이
   들어간 문서 TERM_POOL건. 검색 상위만 라벨링하면 놓친 관련 문서가 드러나지 않기 때문이다.
+- extend: 검색 방식(dense·bm25·hybrid)별 상위 EXTEND_TOP_K건 중 아직 후보에 없는 문서를 후보 CSV에
+  추가한다. 방식 비교 시 한 방식의 후보만 라벨링되어 있으면 다른 방식이 불리해지기 때문이다.
 - import: relevant 열(1/0)을 채운 CSV를 읽어 문항별 relevant_source_ids를 기록한다.
 
 사용 예:
     python -m evaluation.market_labeling init
     python -m evaluation.market_labeling export
+    python -m evaluation.market_labeling extend
     python -m evaluation.market_labeling import
 """
 
@@ -29,6 +32,8 @@ CANDIDATES_PATH = ROOT_DIR / "evaluation" / "labels" / "market_candidates.csv"
 VECTOR_POOL = 8
 TERM_POOL = 4
 TERM_SCAN = 60
+EXTEND_TOP_K = 5
+RETRIEVAL_MODES = ["dense", "bm25", "hybrid"]
 LABEL_VALUES = {"0", "1"}
 
 # 평가 문항(사람이 읽는 질문). LLM 단독 vs RAG 비교에도 같은 문장을 쓴다.
@@ -156,6 +161,28 @@ def collect_candidates(case: dict, ideas: dict[str, dict], search_fn: SearchFn):
     return vector + term
 
 
+def candidate_row(case: dict, hit: dict) -> dict:
+    """검색 결과 1건을 라벨링 후보 CSV 행으로 만든다 (relevant는 빈 값)."""
+    _, _, summary = hit["text"].partition("\n")
+    distance = hit.get("distance")
+    return {
+        "case_id": case["case_id"],
+        "idea_id": case["idea_id"],
+        "dimension": case["dimension"],
+        "question": case["question"],
+        "source_id": hit["source_id"],
+        "published_at": hit["published_at"],
+        "title": hit["title"],
+        "summary": summary[:200],
+        "url": hit.get("url") or "",
+        "relevant": "",
+        "note": "",
+        "pool": hit["pool"],
+        "rank": hit["rank"],
+        "distance": "" if distance is None else distance,
+    }
+
+
 def export_candidates(
     cases: list[dict],
     ideas: dict[str, dict],
@@ -170,27 +197,44 @@ def export_candidates(
     for case in cases:
         candidates = collect_candidates(case, ideas, search_fn)
         for hit in sorted(candidates, key=lambda h: h["source_id"]):
-            title, _, summary = hit["text"].partition("\n")
-            rows.append(
-                {
-                    "case_id": case["case_id"],
-                    "idea_id": case["idea_id"],
-                    "dimension": case["dimension"],
-                    "question": case["question"],
-                    "source_id": hit["source_id"],
-                    "published_at": hit["published_at"],
-                    "title": hit["title"],
-                    "summary": summary[:200],
-                    "url": hit.get("url") or "",
-                    "relevant": "",
-                    "note": "",
-                    "pool": hit["pool"],
-                    "rank": hit["rank"],
-                    "distance": hit["distance"],
-                }
-            )
+            rows.append(candidate_row(case, hit))
     write_label_rows(rows, CSV_FIELDS, path)
     return len(rows)
+
+
+def extend_candidates(
+    rows: list[dict],
+    cases: list[dict],
+    ideas: dict[str, dict],
+    search_fns: dict[str, SearchFn],
+    top_k: int = EXTEND_TOP_K,
+) -> tuple[list[dict], dict[str, int]]:
+    """검색 방식별 상위 top_k건 중 후보에 없는 문서를 빈 라벨 행으로 덧붙인다.
+
+    pool은 그 문서를 가져온 방식 이름(여러 방식이면 '+'로 연결), rank는 처음 가져온 방식의 순위다.
+    기존 행은 그대로 둔다. 반환: (전체 행, {방식: 그 방식 상위에 있었던 새 문서 수})
+    """
+    existing = {(r["case_id"], r["source_id"]) for r in rows}
+    added: dict[tuple[str, str], dict] = {}
+    counts = {mode: 0 for mode in search_fns}
+    for case in cases:
+        query = case_query(case, ideas)
+        for mode, search_fn in search_fns.items():
+            hits = search_fn(query, top_k, case["idea_id"])
+            for rank, hit in enumerate(hits, start=1):
+                key = (case["case_id"], hit["source_id"])
+                if key in existing:
+                    continue
+                counts[mode] += 1
+                if key in added:
+                    added[key]["pool"] += f"+{mode}"
+                else:
+                    added[key] = candidate_row(
+                        case, {**hit, "pool": mode, "rank": rank}
+                    )
+    fields = list(rows[0].keys()) if rows else CSV_FIELDS
+    new_rows = [{f: row.get(f, "") for f in fields} for row in added.values()]
+    return rows + new_rows, counts
 
 
 def read_label_rows(path: Path = CANDIDATES_PATH) -> list[dict]:
@@ -258,6 +302,7 @@ def main() -> None:
     init = sub.add_parser("init", help="ideas.json으로 평가 문항 생성")
     init.add_argument("--force", action="store_true", help="라벨이 있어도 다시 생성")
     sub.add_parser("export", help="라벨링 후보 CSV 생성")
+    sub.add_parser("extend", help="검색 방식별 상위 결과 중 새 문서를 후보에 추가")
     sub.add_parser("import", help="라벨링한 CSV를 평가 문항에 반영")
     args = parser.parse_args()
 
@@ -271,6 +316,14 @@ def main() -> None:
     elif args.command == "export":
         count = export_candidates(cases, ideas, default_search_fn())
         print(f"{count} candidates -> {CANDIDATES_PATH}")
+    elif args.command == "extend":
+        rows = read_label_rows(CANDIDATES_PATH)
+        search_fns = {mode: default_search_fn(mode) for mode in RETRIEVAL_MODES}
+        extended, counts = extend_candidates(rows, cases, ideas, search_fns)
+        write_label_rows(extended, list(extended[0].keys()), CANDIDATES_PATH)
+        print(f"{len(extended) - len(rows)} new candidates -> {CANDIDATES_PATH}")
+        for mode, count in counts.items():
+            print(f"  {mode}: 상위 {EXTEND_TOP_K}건 중 새 문서 {count}건")
     else:
         cases, pending = import_labels(cases)
         save_cases(cases)
