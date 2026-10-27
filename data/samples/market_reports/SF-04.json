@@ -1,0 +1,238 @@
+{
+  "status": "completed",
+  "dimensions": [
+    {
+      "dimension": "demand",
+      "verdict": "signal_only",
+      "claims": [
+        {
+          "statement": "공장에너지관리시스템(FEMS)을 통해 설비별 전력 사용량을 실시간으로 모니터링하고, 에너지 효율화 설비를 적용하는 사례가 있다.",
+          "claim_type": "fact",
+          "citation_ids": [
+            1
+          ]
+        },
+        {
+          "statement": "FEMS 구축을 통해 공장 내 에너지 흐름을 한눈에 확인할 수 있도록 하는 사업이 진행되고 있다.",
+          "claim_type": "fact",
+          "citation_ids": [
+            2
+          ]
+        }
+      ],
+      "next_check": null
+    },
+    {
+      "dimension": "competition",
+      "verdict": "signal_only",
+      "claims": [
+        {
+          "statement": "FEMS를 통해 전기료를 20% 절감한 사례가 있다.",
+          "claim_type": "fact",
+          "citation_ids": [
+            3
+          ]
+        },
+        {
+          "statement": "스마트 스케줄링 기술을 도입해 설비 가동 시간을 최적화하는 방식이 사용되고 있다.",
+          "claim_type": "fact",
+          "citation_ids": [
+            3
+          ]
+        }
+      ],
+      "next_check": null
+    },
+    {
+      "dimension": "price",
+      "verdict": "signal_only",
+      "claims": [
+        {
+          "statement": "FEMS 리스 사업은 기업이 초기 투자비 부담 없이 시스템을 도입할 수 있도록 한다.",
+          "claim_type": "fact",
+          "citation_ids": [
+            4
+          ]
+        }
+      ],
+      "next_check": null
+    },
+    {
+      "dimension": "buyer",
+      "verdict": "signal_only",
+      "claims": [
+        {
+          "statement": "HD건설기계는 공정별 에너지 소비량을 확인할 수 있는 FEMS를 운영 중이다.",
+          "claim_type": "fact",
+          "citation_ids": [
+            7
+          ]
+        },
+        {
+          "statement": "철강업계는 BESS+FEMS 시스템을 도입해 전력 피크 요금 절감 효과를 보고 있다.",
+          "claim_type": "fact",
+          "citation_ids": [
+            8
+          ]
+        }
+      ],
+      "next_check": null
+    },
+    {
+      "dimension": "adoption_barrier",
+      "verdict": "signal_only",
+      "claims": [
+        {
+          "statement": "FEMS 리스 사업은 초기 설비 투자비를 한꺼번에 부담하지 않아도 되는 방식이다.",
+          "claim_type": "fact",
+          "citation_ids": [
+            4
+          ]
+        }
+      ],
+      "next_check": null
+    }
+  ],
+  "evidence": [
+    {
+      "citation_id": 1,
+      "source_id": "news-0c52546f8c2c",
+      "source_type": "news",
+      "title": "[전기요금이 경쟁력이다] ② 공장마다 다른 낭비, 해법도 달라야 한다",
+      "publisher": "incheonilbo.com",
+      "quote": "이후 공장에너지관리시스템(FEMS)을 구축해 설비별 전력 사용량을 실시간으로 모니터링하고, 계측 데이터를 바탕으로 인버터, 자동제어 시스템, 최대수요전력 제어장치 등 공장에 적합한 에너지 효율화 설비를 적용한다....",
+      "section": "title+description",
+      "url": "https://www.incheonilbo.com/news/articleView.html?idxno=1329955",
+      "published_at": 20260819,
+      "period": null,
+      "reliability": "medium",
+      "recency": "high",
+      "directness": "medium",
+      "evidence_nature": "business_signal",
+      "similarity": 0.6808000000000001
+    },
+    {
+      "citation_id": 2,
+      "source_id": "news-bdb76c6c2e30",
+      "source_type": "news",
+      "title": "[전기요금이 경쟁력이다] ③ 공장 넘어 산단으로, 에너지 데이터의 진화...",
+      "publisher": "incheonilbo.com",
+      "quote": "사업 핵심은 공장에너지관리시스템(FEMS) 구축이다. 생산설비와 공기압축기, 냉각설비 등 주요 설비의 전력 사용량을 실시간으로 계측하고 데이터를 수집해 공장 내 에너지 흐름을 한눈에 확인할 수 있도록 한다. 설비별...",
+      "section": "title+description",
+      "url": "https://www.incheonilbo.com/news/articleView.html?idxno=1330384",
+      "published_at": 20260825,
+      "period": null,
+      "reliability": "medium",
+      "recency": "high",
+      "directness": "medium",
+      "evidence_nature": "business_signal",
+      "similarity": 0.6336999999999999
+    },
+    {
+      "citation_id": 3,
+      "source_id": "news-a583244881cc",
+      "source_type": "news",
+      "title": "미라콤 “에너지 효율화 시스템 ‘FEMS’로 전기료 20% 절감”",
+      "publisher": "hellot.net",
+      "quote": "3개월간 효과를 측정을 한 결과 FEMS 구축으로 전기료 20%를 절감한 것으로 나타났다. 이 회사는 그동안... 이를 해결하기 위해 스마트 스케줄링 기술을 도입해 설비 가동 시간을 최적화했다. 또 피크 시간대...",
+      "section": "title+description",
+      "url": "https://www.hellot.net/news/article.html?no=96406",
+      "published_at": 20241217,
+      "period": null,
+      "reliability": "medium",
+      "recency": "medium",
+      "directness": "medium",
+      "evidence_nature": "business_signal",
+      "similarity": 0.581
+    },
+    {
+      "citation_id": 4,
+      "source_id": "news-e548023b30c6",
+      "source_type": "news",
+      "title": "LS일렉트릭, 스마트 무선 조명 사업 확대…에너지 효율화 공략",
+      "publisher": "inthenews.co.kr",
+      "quote": "FEMS는 공장에너지관리시스템(Factory Energy Management System)으로, 공장의 전력 사용을 실시간으로 모니터링하고 분석·제어해 에너지 효율을 높이는 시스템입니다. FEMS 리스는 고객사가 초기 설비 투자비를 한꺼번에...",
+      "section": "title+description",
+      "url": "https://www.inthenews.co.kr/news/article.html?no=87298",
+      "published_at": 20260527,
+      "period": null,
+      "reliability": "medium",
+      "recency": "high",
+      "directness": "medium",
+      "evidence_nature": "business_signal",
+      "similarity": 0.6162000000000001
+    },
+    {
+      "citation_id": 5,
+      "source_id": "news-02729d50bc89",
+      "source_type": "news",
+      "title": "티엠씨솔루션즈, 이노비즈 A등급 인증 획득…무효전력공급장치 기반 FE...",
+      "publisher": "etnews.com",
+      "quote": "무효전력공급장치를 활용한 공장 생산설비의 역률 관리 기반 '공장에너지관리시스템(FEMS)'으로 곧 개발을 완료하고 실증 및 성과 확산에 나설 예정이다. 이번 과제는 △전력 사용 효율화 △에너지 비용 절감 △공장 설비...",
+      "section": "title+description",
+      "url": "https://www.etnews.com/20251029000200",
+      "published_at": 20251029,
+      "period": null,
+      "reliability": "medium",
+      "recency": "high",
+      "directness": "medium",
+      "evidence_nature": "business_signal",
+      "similarity": 0.5768
+    },
+    {
+      "citation_id": 6,
+      "source_id": "news-2c404475e72c",
+      "source_type": "news",
+      "title": "LS일렉트릭, 에너지 30% 절감 '스마트 무선 조명' 사업 박차",
+      "publisher": "news1.kr",
+      "quote": "한편 FEMS는 공장에너지관리시스템(Factory Energy Management System)의 약자로 공장의 전력 사용을 실시간으로 모니터링·분석·제어해 에너지 효율을 높이는 시스템이다. FEMS 리스 사업은 기업이 초기 투자비 부담 없이...",
+      "section": "title+description",
+      "url": "https://www.news1.kr/industry/general-industry/6178449",
+      "published_at": 20260527,
+      "period": null,
+      "reliability": "medium",
+      "recency": "high",
+      "directness": "medium",
+      "evidence_nature": "business_signal",
+      "similarity": 0.5595
+    },
+    {
+      "citation_id": 7,
+      "source_id": "news-d7e826258bbe",
+      "source_type": "news",
+      "title": "HD건설기계, 국내 사업장 재생에너지 비중 40%대로…2040 RE100 이행 속도",
+      "publisher": "g-enews.com",
+      "quote": "태양광 발전설비 설치와 재생에너지 인증서 구매, 온실가스 고배출 시설 교체 등을 추진하고 있으며 공정별 에너지 소비량을 확인할 수 있는 공장에너지관리시스템(FEMS)도 운영 중이다. 지난해에는 FEMS를 활용해...",
+      "section": "title+description",
+      "url": "https://www.g-enews.com/view.php?ud=2026080615471795724debea800_1",
+      "published_at": 20260806,
+      "period": null,
+      "reliability": "medium",
+      "recency": "high",
+      "directness": "medium",
+      "evidence_nature": "business_signal",
+      "similarity": 0.573
+    },
+    {
+      "citation_id": 8,
+      "source_id": "news-b5d882fb4a60",
+      "source_type": "news",
+      "title": "[초점] BESS+FEMS 융합, 에너지 자립 공장 현실화",
+      "publisher": "todayenergy.kr",
+      "quote": "철강업계 역시 에너지 다소비 산업 특성을 고려해 BESS+FEMS 시스템을 도입, 전력 피크 요금 절감 효과를 톡톡히 보고 있다. 정부 역시 스마트팩토리·스마트그리드 정책을 통해 BESS+FEMS 도입을 지원하며, 산업계...",
+      "section": "title+description",
+      "url": "https://www.todayenergy.kr/news/articleView.html?idxno=287916",
+      "published_at": 20250827,
+      "period": null,
+      "reliability": "medium",
+      "recency": "medium",
+      "directness": "medium",
+      "evidence_nature": "business_signal",
+      "similarity": 0.567
+    }
+  ],
+  "unknowns": [],
+  "search_scope": "네이버 뉴스 검색 API로 사전 수집한 스마트팩토리 기사 1895건(제목·요약, 발행일 20240102~20261023), 아이디어 SF-04 수집 키워드 범위",
+  "data_as_of": 20261027,
+  "error_message": null
+}

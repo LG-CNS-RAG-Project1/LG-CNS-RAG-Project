@@ -38,7 +38,7 @@
 │   ├── indexes/             # 검색 색인
 │   ├── patents/             # 특허 원문·정제 데이터·Chroma 벡터 저장소
 │   ├── market/              # 시장 자료 원문·정제 데이터
-│   └── samples/             # 시연용 샘플
+│   └── samples/             # 시연용 샘플 아이디어·시장 결과(MarketReport) 예시
 ├── docs/                    # 기획·설계·개발 환경 문서, PR 분석 안내서(review-baseline.md)
 ├── evaluation/              # 평가 질문·정답 근거·평가 실행
 ├── frontend/                # 아이디어 검토 UI, 스타일, 비용 계산과 예시 보고서
@@ -132,6 +132,17 @@ python -m src.retrieval.market_relevance --idea-id SF-01   # 차원별 검색 + 
 
 - `search_with_relevance`는 차원별 검색 결과마다 `gpt-4o`로 관련 여부·이유를 판정하고(기준: `prompts/market_label_judge.md`), 관련 건수로 차원별 충분성 상태(`sufficient` 2건 이상 · `limited` 1건 · `insufficient` 0건 · `no_results` · `error`)를 붙여 반환한다. `OPENAI_API_KEY`가 필요하다.
 - 검색 거리는 관련성을 구분하지 못해(평가 라벨 기준 AUC 0.52) 충분성 판단에 쓰지 않는다. 판정 모델 선택 근거는 [docs/market_research.md](docs/market_research.md#충분성-판정).
+
+### 시장 조사 실행 (MarketReport)
+
+```bash
+python -m src.services.market_service --idea-id SF-01                                         # MarketReport JSON 출력
+python -m src.services.market_service --idea-id SF-01 --out data/samples/market_reports/SF-01.json   # 파일로 저장
+```
+
+- `run_market_research(MarketSearchRequest)`가 차원별 검색 → 관련성 판정 → 시장 분석 생성·인용 검증을 실행해 `MarketReport`(`src/schemas.py`)를 반환한다. 분석 규칙은 `prompts/market_analysis.md`, 생성·검증은 `src/generation/market_analysis.py`에서 관리한다. `OPENAI_API_KEY`가 필요하다.
+- 사실 문장은 인용 근거(`evidence`의 `citation_id`)가 있어야 하고, 인용 기사·아이디어 입력에 없는 숫자가 있으면 재생성(최대 2회)하거나 해당 문장을 제거한다. 판정은 차원별 충분성 상태로 제한한다(근거 1건이면 최대 '신호만 확인').
+- `data/samples/market_reports/`에는 SF-01~SF-05 실행 결과 예시가 있다. 로컬 수집 뉴스 기준이므로 다시 수집하면 내용이 달라진다.
 
 ### 아이디어 구조화
 
