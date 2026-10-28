@@ -1,7 +1,7 @@
 """시장 관련성 필터(src.retrieval.market_relevance)를 사람 라벨과 비교해 평가한다.
 
 - 행 단위: 사람 라벨 행(label_source=human)마다 필터 판정과 비교해 정확도·정밀도·재현율·kappa 계산
-- 충분성 단위: 모든 후보가 사람 라벨인 문항에서 검색 상위 TOP_K건(벡터 순위)의 충분성 상태를
+- 충분성 단위: 벡터 후보가 모두 사람 라벨인 문항에서 검색 상위 TOP_K건(벡터 순위)의 충분성 상태를
   사람 라벨로 정한 상태와 비교
 LLM 라벨 행은 필터와 같은 기준의 LLM이 만든 값이므로 평가에 쓰지 않는다.
 """
@@ -76,11 +76,10 @@ def evaluate_relevance(rows: list[dict], ideas: dict[str, dict], judge_fn) -> di
 
     status = []
     for case_id, group in all_by_case.items():
-        if not all(r.get("label_source") == "human" for r in group):
+        vector = [r for r in group if r["pool"] == "vector"]
+        if not vector or not all(r.get("label_source") == "human" for r in vector):
             continue
-        top = sorted(
-            (r for r in group if r["pool"] == "vector"), key=lambda r: int(r["rank"])
-        )[:TOP_K]
+        top = sorted(vector, key=lambda r: int(r["rank"]))[:TOP_K]
         gold = [{"relevant": r["relevant"].strip() == "1"} for r in top]
         pred = [{"relevant": pred_by_key[(case_id, r["source_id"])]} for r in top]
         status.append(

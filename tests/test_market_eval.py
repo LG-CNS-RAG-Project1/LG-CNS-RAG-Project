@@ -15,6 +15,7 @@ from evaluation.market_labeling import (
     CSV_FIELDS,
     collect_candidates,
     export_candidates,
+    extend_candidates,
     import_labels,
     make_cases,
 )
@@ -93,6 +94,31 @@ def test_collect_candidates_adds_term_matches_below_vector_pool():
         "n15",
         "n17",
     ]
+
+
+def test_extend_candidates_adds_unjudged_docs_per_mode():
+    case = make_cases(IDEAS)[2]  # price
+    rows = [
+        {**{f: "" for f in CSV_FIELDS}, "case_id": case["case_id"], "source_id": sid}
+        for sid in ["a", "b", "c"]
+    ]
+    rows[0]["label_source"] = "human"
+    search_fns = {
+        "dense": fake_search(["a", "b", "c"]),
+        "bm25": fake_search(["x", "a", "y"]),
+        "hybrid": fake_search(["y", "b", "z"]),
+    }
+
+    extended, counts = extend_candidates(rows, [case], IDEAS, search_fns, top_k=3)
+
+    new = {r["source_id"]: r for r in extended[3:]}
+    assert extended[:3] == rows
+    assert set(new) == {"x", "y", "z"}
+    assert new["y"]["pool"] == "bm25+hybrid"
+    assert new["y"]["rank"] == 3
+    assert new["x"]["relevant"] == ""
+    assert "label_source" in new["x"]
+    assert counts == {"dense": 0, "bm25": 2, "hybrid": 2}
 
 
 def label_csv(path, labels):

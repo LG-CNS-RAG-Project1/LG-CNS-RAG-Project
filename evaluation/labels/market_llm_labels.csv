@@ -299,3 +299,126 @@ SF-05-adoption_barrier,news-ce5dce38a0c6,1,high,AI 도입 초기 비용과 기�
 SF-05-adoption_barrier,news-de56684ffbcf,1,high,제조 현장의 AI 도입 규제 장벽을 직접 다룸
 SF-05-adoption_barrier,news-f69a099e119a,0,low,제조 설비 투자 자금 지원 기사로 LLM 음성 어시스턴트 도입 장벽 정보가 없음
 SF-05-adoption_barrier,news-ffc868c4bdeb,0,high,중소기업의 원자재 비용 부담과 내수 약세를 다루며 기술 도입 장벽과 무관함
+SF-01-demand,news-e52b5f69291b,0,high,기사는 기술 발전을 다루며 중소 제조사의 수요를 언급하지 않음
+SF-01-demand,news-80c5318445cb,1,high,중소 제조기업의 협동로봇 도입 검토와 세미나 개최로 수요를 다룸
+SF-01-demand,news-dc480beb0c7b,1,high,섬유 염색·부품 제조 공장의 자동화 시급성과 기존 로봇 도입 어려움을 다룸
+SF-01-demand,news-c45a829aef8d,1,high,협동로봇이 현장 자동화를 이끌 것으로 예상해 수요 확대를 다룸
+SF-01-demand,news-2b9ff192588b,0,high,협동로봇 기술 개발 과제 참여 소식으로 고객 수요 정보가 없음
+SF-01-competition,news-3a5482585bad,0,high,공작기계 시장 동향 기사로 협동로봇 경쟁 정보가 없음
+SF-01-competition,news-b562b7e68c03,1,high,협동로봇 팔레타이징 패키지 공급으로 경쟁 제품 출시를 다룸
+SF-01-competition,news-e52b5f69291b,1,high,협동로봇과 머신비전 융합을 다루며 경쟁 기술로 볼 수 있음
+SF-01-competition,news-06f830a9ad23,1,high,협동로봇 팔레타이징 패키지 공급은 경쟁 솔루션 출시로 볼 수 있음
+SF-01-competition,news-1126190d4fd4,0,high,스마트공장 유지보수 관련 내용으로 경쟁 기업·제품 언급이 없음
+SF-01-price,news-b562b7e68c03,1,high,협동로봇 팔레타이징 패키지의 초기 도입 비용과 구축 부담을 줄이는 내용을 다룸
+SF-01-price,news-06f830a9ad23,1,high,협동로봇 도입의 초기 비용과 구축 부담을 낮추는 내용을 다룸
+SF-01-price,news-c45a829aef8d,0,high,협동로봇의 가격 정보 없이 휴머노이드의 가격만 언급됨
+SF-01-price,news-1126190d4fd4,0,high,스마트공장 유지보수 방식 관련 기사로 가격 정보가 없음
+SF-01-price,news-e52b5f69291b,0,high,기사는 기술 융합을 다루며 가격이나 비용 수준 정보가 없음
+SF-01-price,news-36f07ccf32ca,1,high,협동로봇 가격 하락이 중소기업 도입 문턱을 낮춘다는 내용을 다룸
+SF-01-buyer,news-e52b5f69291b,0,high,협동로봇 머신비전 도입 사례가 아닌 기술 융합 소개 기사
+SF-01-buyer,news-c45a829aef8d,0,high,협동로봇의 현장 자동화 가능성을 언급했으나 실제 도입 사례는 없음
+SF-01-buyer,news-2b9ff192588b,0,high,협동로봇 기술 개발 과제 참여 소식으로 실제 도입 사례가 아님
+SF-01-buyer,news-0182cfcc8921,0,low,제조 리더가 솔루션을 확인했다는 내용만으로 실제 도입 사례로 보기 어려움
+SF-01-buyer,news-80c5318445cb,0,high,협동로봇 도입 세미나와 견학 소개로 실제 도입 사례가 아님
+SF-01-buyer,news-67e7bb880d73,0,low,협동로봇 적용 사례 확산 언급은 있지만 구체적 도입 사례가 없음
+SF-01-buyer,news-0f8476a8a7f1,0,high,협동로봇 도입 검토 기사로 실제 도입 사례가 아님
+SF-01-buyer,news-106109344eee,1,high,중소 물류센터에 협동로봇 도입 사례로 같은 기술 범주를 다룸
+SF-01-adoption_barrier,news-e52b5f69291b,0,high,기사는 협동로봇과 머신비전 기술을 다루지만 도입 장벽에 대한 내용이 없음
+SF-01-adoption_barrier,news-c45a829aef8d,0,high,협동로봇의 도입 장벽이 아닌 기술 전망을 다룬 기사
+SF-01-adoption_barrier,news-80c5318445cb,0,high,협동로봇 도입 세미나와 견학을 다루며 도입 장벽에 대한 내용이 없음
+SF-01-adoption_barrier,news-2b9ff192588b,0,high,협동로봇 기술 개발 참여 소식으로 도입 장벽 내용이 없음
+SF-01-adoption_barrier,news-0182cfcc8921,0,high,기사는 솔루션 전시를 다루며 도입 장벽에 대한 내용이 없음
+SF-01-adoption_barrier,news-36f07ccf32ca,1,high,협동로봇 도입 문턱을 낮추는 요소를 다루며 장벽 관련 정보가 있음
+SF-01-adoption_barrier,news-499adb1e9109,0,high,제조업의 일반적 어려움을 다루며 협동로봇 도입 장벽은 언급되지 않음
+SF-02-demand,news-844f700c9af9,1,high,AI 비전 방식 도입 사례로 기술 범주와 수요를 다룸
+SF-02-demand,news-b7e06e87abba,0,high,주가 하락과 차익실현 매물 관련 내용으로 수요 정보가 없음
+SF-02-demand,news-8e4cf65d286d,0,high,건설기계 제조의 AI 도입 필요성을 다루며 2차전지·전자부품 수요와 무관
+SF-02-demand,news-6c8cd92d44ab,0,high,디스플레이 업계의 AI 비전 검사 기술 소개로 2차전지·전자부품 수요와 무관
+SF-02-competition,news-6479f11d1626,1,high,3D 레이저 프로파일 센서라는 대체 기술을 다루며 경쟁 차원에 부합
+SF-02-competition,news-65309ed11b62,0,high,웨비나 개최 소식으로 경쟁 기업·제품 정보가 없음
+SF-02-competition,news-2dce26828af0,1,high,뉴로클의 딥러닝 비전 검사 솔루션 발표로 경쟁 제품 정보가 있음
+SF-02-competition,news-a6d903e66a42,1,high,비전 AI 외관 검사 장비 AIM-T1의 출시와 도입 사례를 다룸
+SF-02-price,news-b7e06e87abba,0,high,주가 하락과 차익실현 매물 관련 내용으로 제품 가격 정보가 없음
+SF-02-price,news-1126190d4fd4,0,high,스마트공장 유지보수 관련 기사로 솔루션 가격 정보가 없음
+SF-02-price,news-0c07f02c8cbd,0,high,기사에 가격이나 비용 수준에 대한 정보가 전혀 없음
+SF-02-price,news-6479f11d1626,0,high,비전 검사 기술을 다루지만 가격이나 비용 수준 정보는 없음
+SF-02-buyer,news-b7e06e87abba,0,high,기사에 AI 비전 외관 검사 장비의 실제 도입 사례가 언급되지 않음
+SF-02-buyer,news-65309ed11b62,0,low,웨비나 발표 예고로 실제 도입 사례가 기사에 구체적으로 언급되지 않음
+SF-02-buyer,news-c3687d963934,1,high,딥러닝 비전검사 도입 사례를 다룬다고 명시되어 있음
+SF-02-buyer,news-4b056d22c528,1,high,딥러닝 비전검사 도입 사례를 다룬다고 명시되어 있음
+SF-02-buyer,news-06ed0c27f50a,0,high,기사에 특정 기업의 AI 비전 검사 도입 사례가 언급되지 않음
+SF-02-buyer,news-20fb66b19106,0,high,AI 비전 검사 기술을 다루지만 실제 도입 사례 언급이 없음
+SF-02-adoption_barrier,news-b7e06e87abba,0,high,기사는 주가와 검사 시스템 확장을 다루며 도입 장벽 정보가 없음
+SF-02-adoption_barrier,news-65309ed11b62,0,high,웨비나 소개 기사로 도입 장벽에 대한 정보가 없음
+SF-02-adoption_barrier,news-c3687d963934,0,low,도입 사례와 난제 해결을 다루지만 도입 장벽에 대한 정보는 없음
+SF-02-adoption_barrier,news-4b056d22c528,0,low,도입 사례와 난제 해결을 다루지만 구체적 장벽 언급이 없음
+SF-03-demand,news-cd15f97ec68b,1,high,AI 예지보전 시스템 구축은 관련 기술의 수요를 보여준다
+SF-03-demand,news-9067d5150fb9,0,high,기술 범주는 일치하나 수요 관련 내용이 없어 관련성이 없음
+SF-03-competition,news-f82a061bbf0d,0,low,예지보전 기술 언급은 있으나 경쟁 기업·제품 정보가 없음
+SF-03-competition,news-9d00c0448728,1,high,삼성전자의 예지보전 요구는 경쟁 기술로 관련 있음
+SF-03-competition,news-fbee959e37c4,1,high,명성에이앤티의 진동 센서 기반 예지보전 솔루션을 다뤄 경쟁 차원에 부합
+SF-03-competition,news-8e0fbddba792,1,high,AI 기반 예지보전 기술 개발로 경쟁 기술 범주에 해당
+SF-03-competition,news-cd15f97ec68b,1,high,AI 기반 예지보전 시스템 구축으로 경쟁 기술 범주에 해당
+SF-03-price,news-fbee959e37c4,0,high,제품 전시 소개로 가격이나 비용 수준 정보가 없음
+SF-03-price,news-8e0fbddba792,0,high,예지보전 기술 개발 수주 기사로 가격이나 비용 정보가 없음
+SF-03-price,news-f542203bd976,0,high,제품 출시 기사로 가격이나 비용 수준에 대한 정보가 없음
+SF-03-price,news-e4347828f4a9,0,high,기사는 제품 출시 소식만 다루며 가격이나 비용 정보는 없음
+SF-03-buyer,news-fbee959e37c4,0,high,제품 전시 소개로 실제 도입 사례나 고객 언급이 없음
+SF-03-buyer,news-cd15f97ec68b,1,high,AI 예지보전 시스템 구축 사례로 진동·전류 센서 기술 범주와 일치
+SF-03-buyer,news-f542203bd976,0,high,기사는 솔루션 출시 소식으로 실제 도입 사례나 고객 언급이 없음
+SF-03-buyer,news-e4347828f4a9,0,low,출시 소식만 있고 실제 도입 사례 언급이 없음
+SF-03-buyer,news-38ce12a8614e,1,high,AI 예지보전 기술의 실제 산업 적용 사례를 다룸
+SF-03-adoption_barrier,news-fbee959e37c4,0,high,기사는 기술 소개에 그치며 도입 장벽 관련 내용이 없음
+SF-03-adoption_barrier,news-cd15f97ec68b,0,high,AI 예지보전 시스템 구축 기사로 도입 장벽 내용이 없음
+SF-03-adoption_barrier,news-8e0fbddba792,0,high,예지보전 기술 개발 소식으로 도입 장벽 관련 내용이 없음
+SF-03-adoption_barrier,news-f542203bd976,0,high,기술 범주는 일치하나 도입 장벽에 대한 내용이 없음
+SF-03-adoption_barrier,news-614b39713acb,0,high,기사는 예지보전 AI 적용 사례로 도입 장벽을 다루지 않음
+SF-03-adoption_barrier,news-b74b7ec09401,0,high,기사는 예지보전 기술의 장점만 다루고 도입 장벽은 언급하지 않음
+SF-04-demand,news-6a772113dde4,1,high,FEMS 도입을 통한 에너지 사용 구조 전환 수요를 다룸
+SF-04-demand,news-cce3c1c80cd5,1,high,중소 제조업의 FEMS 도입 필요성을 다루며 수요 근거가 됨
+SF-04-demand,news-c9ea23b3602e,1,high,에너지 사용량이 많은 업종의 FEMS 도입 수요를 다룸
+SF-04-competition,news-6a772113dde4,1,high,FEMS 도입을 다루며 공정별 에너지 관리 경쟁을 언급
+SF-04-competition,news-be882cbadac6,0,low,FEMS 관련 내용이 있지만 경쟁 기업·제품 언급이 명확하지 않음
+SF-04-competition,news-e9fad5c3cdb9,1,high,에이디오트의 FEMS 사업 확장이 경쟁 기업 정보로 적합함
+SF-04-competition,news-ef1ba1d9912b,0,high,FEMS 도입 사례로 경쟁 기업·제품 정보가 없음
+SF-04-price,news-8e5e33925154,0,high,FEMS 도입 효과를 다루지만 가격이나 비용 수준 정보는 없음
+SF-04-price,news-c9ea23b3602e,0,high,FEMS 기술 개발 소식으로 가격이나 비용 수준 정보가 없음
+SF-04-price,news-841d76b1cfa2,0,high,FEMS 관련 제품 출시 기사지만 가격이나 비용 수준 정보가 없음
+SF-04-price,news-81319390d6a6,0,high,FEMS 기술 개발 기사로 가격이나 비용 수준 정보가 없음
+SF-04-price,news-c89e5b895fd8,0,high,FEMS 구축을 언급하지만 가격이나 비용 수준에 대한 정보는 없음
+SF-04-price,news-ef1ba1d9912b,0,high,FEMS 도입 사례는 있지만 가격이나 비용 수준 정보는 없음
+SF-04-buyer,news-c9ea23b3602e,0,high,FEMS 기술 개발 소식으로 실제 도입 사례나 고객 언급이 없음
+SF-04-buyer,news-81319390d6a6,0,high,ETRI의 기술 개발 설명으로 실제 도입 사례 언급이 없음
+SF-04-buyer,news-b39e9f244d9d,0,high,FEMS 리스 사업 구상만 언급되고 실제 도입 사례는 없음
+SF-04-buyer,news-cce3c1c80cd5,0,high,FEMS 도입 사례가 아닌 필요성을 강조하는 기사로 실제 도입 사례 언급이 없음
+SF-04-adoption_barrier,news-c9ea23b3602e,0,high,FEMS 기술 소개 기사로 도입 장벽에 대한 내용이 없음
+SF-04-adoption_barrier,news-81319390d6a6,0,high,기사는 기술 개발을 다루며 도입 장벽에 대한 내용이 없음
+SF-04-adoption_barrier,news-b39e9f244d9d,0,high,FEMS 도입의 어려움이 아닌 조명 제어 기술과 사업 구상을 다룸
+SF-04-adoption_barrier,news-7f840efe5672,0,high,FEMS 도입의 어려움이 아닌 절감 효과와 구축 확대를 다룸
+SF-05-demand,news-1ce2d68fe727,1,high,산업 현장 AI 혁신과 생산성 극대화로 제조업 수요를 다룸
+SF-05-demand,news-fae8418ff121,0,high,제조 현장 AI 확산을 언급하지만 LLM 음성 어시스턴트 수요는 다루지 않음
+SF-05-demand,news-045cfa586d02,1,high,생산설비 관리에 AI 도입 사례로 작업자 수요를 보여줌
+SF-05-demand,news-dbe5abd623e4,0,high,AI 기술 사례를 다루지만 LLM 음성 어시스턴트 수요 관련 내용이 없음
+SF-05-demand,news-40578a762830,0,high,AI 어시스턴트 도입 사례지만 LLM 음성 인식 수요와 직접 관련 없음
+SF-05-competition,news-e10ba6409b18,1,high,LLM 기반 음성 인식 AI 에이전트를 다루며 경쟁 차원에 부합
+SF-05-competition,news-a815e6154843,0,high,기사 내용이 AI 음성 어시스턴트의 경쟁이나 대체 제품과 관련 없음
+SF-05-competition,news-f64052e82357,0,high,차량 정보 확인 AI로 작업 지원 어시스턴트와 기술 범주가 다름
+SF-05-competition,news-101d572a6de1,1,high,AI 챗봇 어시스턴트가 대체 제품으로 경쟁 차원에 해당
+SF-05-price,news-8f5ef14d3869,0,high,AI 어시스턴트 사례를 다루지만 가격이나 비용 정보는 없음
+SF-05-price,news-7f2f97677b85,0,high,기사에 AI 솔루션의 가격이나 비용 수준에 대한 정보가 없음
+SF-05-price,news-910a8c124150,0,high,AI 어시스턴트 관련이지만 가격·비용 정보가 없음
+SF-05-price,news-3304fe350e6f,0,high,기사에 LLM 음성 어시스턴트의 가격이나 비용 정보가 없음
+SF-05-price,news-3dc7daac2b62,0,high,기사에 LLM 음성 어시스턴트의 가격이나 비용 정보가 없음
+SF-05-price,news-be2fe948698a,0,high,AI 도입 사례를 다루지만 가격이나 비용 수준 정보는 없음
+SF-05-buyer,news-dbe5abd623e4,0,high,LLM 음성 인식 작업 지원 어시스턴트 도입 사례가 없음
+SF-05-buyer,news-081df116e104,1,high,제조 현장에서 음성 대화형 AI 에이전트를 실증한 사례를 다룸
+SF-05-buyer,news-4edd079c8a53,0,high,AI 에이전트와 인간 협업을 다루지만 LLM 음성 인식 도입 사례는 없음
+SF-05-buyer,news-fae8418ff121,0,high,AI 이미지 인식 기술 사례로 LLM 음성 인식과 관련 없음
+SF-05-buyer,news-c2d1a008b98b,0,high,LLM 음성 인식 작업 지원 어시스턴트의 도입 사례가 기사에 없음
+SF-05-buyer,news-60d08c0d35bf,1,high,AI 챗봇 어시스턴트를 통한 정보 검색 사례로 기술 범주가 일치함
+SF-05-adoption_barrier,news-081df116e104,0,low,음성 대화형 로봇을 다루지만 도입 장벽에 대한 내용이 없음
+SF-05-adoption_barrier,news-4edd079c8a53,0,high,AI 에이전트와 인간 협업을 다루지만 도입 장벽 내용이 없음
+SF-05-adoption_barrier,news-fae8418ff121,0,high,AI 확산을 다루지만 도입 장벽에 대한 내용이 없음
+SF-05-adoption_barrier,news-c2d1a008b98b,0,high,AI 코딩 어시스턴트와 로봇 안전 메커니즘을 다루며 도입 장벽 언급 없음
+SF-05-adoption_barrier,news-2df9294afd5d,0,high,AI 도입 사례를 다루지만 도입 장벽에 대한 내용은 없음
+SF-05-adoption_barrier,news-9e19c9bb8f72,0,high,AI 어시스턴트 도입 성과를 다루며 도입 장벽은 언급되지 않음

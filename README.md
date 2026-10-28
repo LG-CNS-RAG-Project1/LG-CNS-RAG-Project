@@ -294,6 +294,7 @@ python -m evaluation.market_labeling export    # 라벨링 후보 → evaluation
 python -m evaluation.market_judge prelabel     # (선택) gpt-4o 라벨 초안 → evaluation/labels/market_llm_labels.csv
 python -m evaluation.market_judge agreement    # (선택) 사람 라벨과 LLM 초안의 일치율·kappa
 python -m evaluation.market_judge merge        # (선택) 빈 relevant만 LLM 초안으로 채움
+python -m evaluation.market_labeling extend    # (방식 비교 전) dense·bm25·hybrid 상위 5건 중 새 문서를 후보에 추가
 python -m evaluation.market_labeling import    # relevant(1/0)를 채운 CSV → 문항별 정답 source_id 반영
 python -m evaluation.evaluate market --idea-ids SF-01,SF-02,SF-03,SF-04 --mode dense --label refreshed
 python -m evaluation.evaluate market --idea-ids SF-01,SF-02,SF-03,SF-04 --mode bm25 --label refreshed
@@ -308,7 +309,7 @@ python -m evaluation.patent_labeling export              # SF-02/SF-05 특허 �
 - 시장 평가에는 사람 라벨 25문항이 있으나 SF-05 라벨은 이전 '현장 작업자용 LLM 음성 어시스턴트' 기준이다. 현재 SF-05(지능형 공정제어)와 맞지 않으므로 최신 비교는 `--idea-ids SF-01,SF-02,SF-03,SF-04`로 20문항을 실행하고, SF-05는 새 수집·라벨 이후 포함한다.
 - 특허 평가셋은 현재 로컬 색인이 준비된 SF-02·SF-05에서 각각 기술 요소 질의로 구성한다. `patent_cases.json`의 사람 정답은 초기화 상태이며, CSV 라벨을 작성해 import한 뒤에만 검색 지표를 계산한다.
 - 검색 CSV에는 mode, 모델, prompt 적용 여부, 커밋 ID가 기록된다. LLM 단독/RAG 답변 비교는 `answer_eval`의 LLM 판정 점수이며 사람 정답 평가와 구분해야 한다.
-- 라벨링 후보는 문항마다 벡터 검색 상위 8건과 그 아래 순위에서 차원 표현(가격·비용, 도입·사례 등)이 들어간 4건이다. 라벨 기준과 LLM 초안·사람 검토 절차는 [evaluation/market_labeling.md](evaluation/market_labeling.md).
+- 라벨링 후보는 문항마다 벡터 검색 상위 8건과 그 아래 순위에서 차원 표현(가격·비용, 도입·사례 등)이 들어간 4건, 그리고 `extend`로 추가한 bm25·hybrid 상위 5건 중 새 문서다. 방식 비교 결과는 [docs/market_research.md](docs/market_research.md#시장-검색-방식-비교). 라벨 기준과 LLM 초안·사람 검토 절차는 [evaluation/market_labeling.md](evaluation/market_labeling.md).
 - 관련 문서가 없는 문항은 평균에서 빼고 따로 센다. 라벨 후보에 없던 문서가 상위 5건에 나오면 `unjudged`로 표시한다.
 - 관련성 판정 평가는 사람이 직접 라벨한 행(`label_source=human`)만 비교해 정확도·정밀도·재현율·kappa를 계산하고, 사람 라벨만 있는 문항의 충분성 상태 일치를 함께 출력한다.
 - 정답 `source_id`는 로컬에 수집한 뉴스 기준이므로, 다시 수집하면 문서가 달라질 수 있다.
