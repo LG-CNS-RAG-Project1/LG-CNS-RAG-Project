@@ -32,7 +32,7 @@
 | `src.generation.market_markdown.market_report_to_markdown(report, heading_level=2)` | `MarketReport` | 종합 보고서용 마크다운 섹션 (str) |
 
 - `idea_id`는 평가·시연용 샘플 아이디어(`data/samples/ideas.json`)의 수집 범위로 검색을 좁힐 때만 준다. 사용자가 새로 입력한 아이디어는 `None`.
-- 소요 시간: 아이디어 1건당 약 13~20초 (관련성 판정 gpt-4o 25회 + 분석 gpt-4o 1~3회). 특허 조사와 입력·저장소가 독립적이라 병렬로 부를 수 있다(스레드 병렬 실행은 아직 검증하지 않음).
+- 소요 시간: 아이디어 1건당 약 13~20초 (관련성 판정 gpt-4o-mini 25회 + 분석 gpt-4o 1~3회). 특허 조사와 입력·저장소가 독립적이라 병렬로 부를 수 있다(스레드 병렬 실행은 아직 검증하지 않음).
 - 로컬 색인 `data/market/chroma/`와 `OPENAI_API_KEY`가 필요하다.
 - 결과 예시: `data/samples/market_reports/SF-0{1..5}.json`
 
