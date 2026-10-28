@@ -1,0 +1,36 @@
+{
+  "n": 30,
+  "agreement": 0.667,
+  "kappa": 0.242,
+  "confusion": {
+    "supported->supported": 17,
+    "unsupported->supported": 2,
+    "partial->partial": 3,
+    "unsupported->partial": 1,
+    "partial->supported": 5,
+    "supported->partial": 2
+  },
+  "by_arm": {
+    "naive_rag": {
+      "judged": 36,
+      "reviewed": 15,
+      "human_labels": {
+        "partial": 6,
+        "supported": 6,
+        "unsupported": 3
+      },
+      "judge_citation_accuracy": 0.833,
+      "corrected_citation_accuracy": 0.426
+    },
+    "idealens": {
+      "judged": 30,
+      "reviewed": 15,
+      "human_labels": {
+        "supported": 13,
+        "partial": 2
+      },
+      "judge_citation_accuracy": 1.0,
+      "corrected_citation_accuracy": 0.867
+    }
+  }
+}
