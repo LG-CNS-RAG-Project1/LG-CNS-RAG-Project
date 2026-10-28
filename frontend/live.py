@@ -22,8 +22,9 @@ FIELD_LABELS = {
 }
 SOURCE_LABELS = {
     "extracted": "입력에서 추출",
-    "user_answer": "재질문 답변",
-    "unknown": "모름",
+    "user_answer": "사용자 확인",
+    "ai_hypothesis": "AI 가설",
+    "unknown": "미확인",
 }
 
 STATE_LABELS = {

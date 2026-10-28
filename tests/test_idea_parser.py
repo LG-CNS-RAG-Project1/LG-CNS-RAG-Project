@@ -72,6 +72,21 @@ def test_parse_cleans_values_and_falls_back_title():
     assert draft.title == IDEA_TEXT[:30]
 
 
+def test_parse_extracts_short_idea_with_hypotheses_without_character_splitting():
+    response = {
+        **FULL_RESPONSE,
+        "technical_components": "진동 센서와 예측 모델",
+        "value_hypotheses": "점검 시간을 줄일 수 있다",
+        "target_segment": "중소 제조사",
+        "current_alternative": "정기 점검",
+    }
+    draft = parse_idea("설비 고장을 미리 알려주는 서비스", llm_fn=fake_llm(response))
+    assert draft.technical_components == ["진동 센서와 예측 모델"]
+    assert draft.value_hypotheses == ["점검 시간을 줄일 수 있다"]
+    assert draft.field_sources["value_hypotheses"] == "ai_hypothesis"
+    assert draft.to_structured_idea().target_segment == "중소 제조사"
+
+
 def test_parse_empty_text():
     with pytest.raises(ValueError):
         parse_idea("   ", llm_fn=fake_llm(FULL_RESPONSE))
@@ -88,6 +103,7 @@ def test_apply_answers_completes_draft():
     assert draft.revenue == "장비 판매와 유지보수 계약"
     assert draft.field_sources["problem"] == "user_answer"
     assert draft.field_sources["technology"] == "extracted"
+    assert "문제" not in draft.unknowns
 
 
 def test_unknown_answer_is_confirmed_as_unknown():

@@ -11,7 +11,11 @@ from dotenv import load_dotenv
 from openai import OpenAI
 from pydantic import BaseModel, Field, field_validator
 
-from src.generation.market_markdown import market_report_to_markdown
+from src.generation.business_review import (
+    BusinessReview,
+    RECOMMENDATION_LABELS,
+)
+from src.retrieval.market_relevance import DIMENSION_LABELS
 from src.schemas import IDEA_FIELDS, IdeaDraft, MarketReport, PatentReport
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
@@ -39,6 +43,7 @@ FIELD_LABELS = {
 SOURCE_LABELS = {
     "extracted": "입력에서 추출",
     "user_answer": "재질문 답변",
+    "ai_hypothesis": "AI 검증 가설",
     "unknown": "모름",
 }
 LINK_STATUS_LABELS = {"connected": "연결", "partial": "부분 연결", "hold": "판단 보류"}
@@ -49,6 +54,25 @@ RUN_STATE_LABELS = {
     "timeout": "시간 초과",
 }
 CLAIM_TYPE_LABELS = {"independent": "독립", "dependent": "종속"}
+PATENT_RELEVANCE_LABELS = {
+    "high": "높음",
+    "medium": "보통",
+    "low": "낮음",
+    "insufficient": "근거 부족",
+}
+PATENT_COMPONENT_STATUS_LABELS = {
+    "overlap": "직접 대응",
+    "partial": "부분 대응",
+    "different": "차이 확인",
+    "not_found": "제공 근거에서 미발견",
+    "uncertain": "근거 부족",
+}
+PATENTABILITY_STATUS_LABELS = {
+    "overlap_concern": "유사 청구항 주의",
+    "potentially_distinct": "차별 구성 신호",
+    "insufficient_evidence": "판단 근거 부족",
+}
+CONFIDENCE_LABELS = {"low": "낮음", "medium": "보통", "high": "높음"}
 
 _MD_ESCAPES = {
     "\\": "\\\\",
@@ -351,10 +375,21 @@ def escaped_market_report(market: MarketReport) -> MarketReport:
 
 def _brief_lines(draft: IdeaDraft) -> list[str]:
     lines = ["## 확정 브리프", "", "| 항목 | 내용 | 출처 |", "|---|---|---|"]
-    for field in IDEA_FIELDS:
+    fields = [
+        *((field, FIELD_LABELS[field], getattr(draft, field)) for field in IDEA_FIELDS),
+        ("current_alternative", "현재 대안", draft.current_alternative),
+        ("target_segment", "목표 세그먼트", draft.target_segment),
+        (
+            "technical_components",
+            "기술 구성요소",
+            ", ".join(draft.technical_components),
+        ),
+        ("value_hypotheses", "가치 가설", "; ".join(draft.value_hypotheses)),
+    ]
+    for field, label, field_value in fields:
         source = SOURCE_LABELS.get(draft.field_sources.get(field, ""), "입력에서 추출")
-        value = getattr(draft, field) or "모름"
-        lines.append(f"| {FIELD_LABELS[field]} | {escape_md(value)} | {source} |")
+        value = field_value or "모름"
+        lines.append(f"| {label} | {escape_md(value)} | {source} |")
     return lines + [""]
 
 
@@ -385,37 +420,329 @@ def _patent_lines(patent: PatentReport) -> list[str]:
     ]
     if patent.error_message:
         lines.append(f"- 오류: {escape_md(patent.error_message)}")
+    evidence_by_id = {item.citation_id: item for item in patent.evidence}
     comparisons = {c.citation_id: c for c in patent.comparisons}
-    for evidence in patent.evidence:
-        comparison = comparisons.get(evidence.citation_id)
-        url = safe_url(evidence.source_url)
-        dates = " · ".join(
-            f"{label} {value}"
-            for label, value in (
-                ("출원", _format_yyyymmdd(evidence.application_date)),
-                ("공개", _format_yyyymmdd(evidence.publication_date)),
+    if patent.patent_reviews:
+        for review in patent.patent_reviews:
+            first = (
+                evidence_by_id[review.citation_ids[0]] if review.citation_ids else None
             )
-            if value
-        )
+            dates = " · ".join(
+                f"{label} {value}"
+                for label, value in (
+                    (
+                        "출원",
+                        _format_yyyymmdd(first.application_date) if first else None,
+                    ),
+                    (
+                        "공개",
+                        _format_yyyymmdd(first.publication_date) if first else None,
+                    ),
+                )
+                if value
+            )
+            url = safe_url(first.source_url) if first else None
+            lines += [
+                "",
+                f"### {escape_md(review.title)}",
+                "",
+                f"- 문헌: {escape_md(review.patent_id)} · 관련성 {PATENT_RELEVANCE_LABELS[review.relevance]}"
+                + (f" · {dates}" if dates else "")
+                + (f" · [원문]({url})" if url else " · 원문 링크 미확인"),
+                f"- 관련성 근거: {escape_md(review.relevance_reason)}",
+                f"- 특허 단위 요약: {escape_md(review.overall_summary)}",
+                "",
+                "| 아이디어 구성 | 비교 상태 | 공통점 | 차이점 | 근거 | 미확인 |",
+                "|---|---|---|---|---|---|",
+            ]
+            for comparison in review.component_comparisons:
+                refs = (
+                    ", ".join(f"P:{cid}" for cid in comparison.citation_ids) or "없음"
+                )
+                lines.append(
+                    f"| {escape_md(comparison.idea_component)} | {PATENT_COMPONENT_STATUS_LABELS[comparison.status]} | "
+                    f"{escape_md(comparison.overlap)} | {escape_md(comparison.difference)} | "
+                    f"{refs} | {escape_md(comparison.uncertainty)} |"
+                )
+            for citation_id in review.citation_ids:
+                evidence = evidence_by_id[citation_id]
+                lines += [
+                    "",
+                    f"- [P:{citation_id}] {patent_location(evidence)} 원문: {escape_md(evidence.quote)}",
+                ]
+            for item in review.watchouts:
+                lines.append(f"- 주의: {escape_md(item)}")
+            for item in review.unknowns:
+                lines.append(f"- 미확인: {escape_md(item)}")
+    else:
+        for evidence in patent.evidence:
+            comparison = comparisons.get(evidence.citation_id)
+            url = safe_url(evidence.source_url)
+            lines += [
+                "",
+                f"### [P:{evidence.citation_id}] {escape_md(evidence.title)}",
+                "",
+                f"- 문헌: {escape_md(evidence.patent_id)}"
+                + (f" · [원문]({url})" if url else " · 원문 링크 미확인"),
+                f"- 근거 원문 ({patent_location(evidence)}): {escape_md(evidence.quote)}",
+            ]
+            if comparison:
+                lines += [
+                    f"- 유사점: {escape_md(comparison.similarity)}",
+                    f"- 차이점: {escape_md(comparison.difference)}",
+                    f"- 미확인: {escape_md(comparison.uncertainty)}",
+                ]
+    if patent.patentability_precheck:
+        precheck = patent.patentability_precheck
+        refs = ", ".join(f"P:{cid}" for cid in precheck.citation_ids) or "없음"
         lines += [
             "",
-            f"### [P:{evidence.citation_id}] {escape_md(evidence.title)}",
+            "### 등록 관련 예비 신호 (법적 판단 아님)",
             "",
-            f"- 문헌: {escape_md(evidence.patent_id)}"
-            + (f" · {dates}" if dates else "")
-            + (f" · [원문]({url})" if url else " · 원문 링크 미확인"),
-            f"- 근거 원문 ({patent_location(evidence)}): {escape_md(evidence.quote)}",
+            f"- 상태: {PATENTABILITY_STATUS_LABELS[precheck.status]}",
+            f"- 요약: {escape_md(precheck.summary)} ({refs})",
         ]
-        if comparison:
-            lines += [
-                f"- 유사점: {escape_md(comparison.similarity)}",
-                f"- 차이점: {escape_md(comparison.difference)}",
-                f"- 미확인: {escape_md(comparison.uncertainty)}",
-            ]
+        lines += [
+            f"- 차별점 가설: {escape_md(item)}"
+            for item in precheck.distinction_hypotheses
+        ]
+        lines += [
+            f"- 전문가 확인 질문: {escape_md(item)}"
+            for item in precheck.expert_questions
+        ]
+        lines += [f"- 한계: {escape_md(item)}" for item in precheck.limitations]
     if patent.unknowns:
         lines += ["", "### 특허 미확인 사항", ""]
         lines += [f"- {escape_md(item)}" for item in patent.unknowns]
     return lines + [""]
+
+
+def _business_review_lines(review: BusinessReview) -> list[str]:
+    lines = [
+        "## 한눈에 보는 사업 실행 검토",
+        "",
+        f"- 다음 행동 권고: **{RECOMMENDATION_LABELS[review.recommendation]}**",
+        f"- 판단 신뢰 수준: {CONFIDENCE_LABELS[review.confidence]}",
+        f"- 요약: {escape_md(review.summary)}",
+        f"- 범위: {escape_md(review.scope_note)}",
+        "",
+        "### 권고 근거",
+        "",
+    ]
+    for item in review.reasons:
+        refs = ", ".join(item.citation_ids) or "근거 인용 없음"
+        lines.append(
+            f"- **{escape_md(item.topic)}:** {escape_md(item.finding)} ({refs})"
+        )
+    for title, entries in (("기회", review.opportunities), ("위험", review.risks)):
+        lines += ["", f"### {title}", ""]
+        if not entries:
+            lines.append("- 현재 별도로 확인된 항목 없음")
+        for item in entries:
+            refs = ", ".join(item.citation_ids) or "근거 인용 없음"
+            lines.append(f"- {escape_md(item.finding)} ({refs})")
+    lines += ["", "### 다음 검증 행동", ""]
+    for action in review.next_steps:
+        refs = ", ".join(action.citation_ids)
+        lines += [
+            f"- **{escape_md(action.horizon)} · {escape_md(action.target)}:** {escape_md(action.action)}",
+            f"  성공 신호: {escape_md(action.success_signal)}"
+            + (f" ({refs})" if refs else ""),
+        ]
+    if review.unknowns:
+        lines += ["", "### 결론을 바꿀 수 있는 미확인 사항", ""]
+        lines += [f"- {escape_md(item)}" for item in review.unknowns]
+    return lines + [""]
+
+
+def _compact_text(value: str | None, limit: int = 140) -> str:
+    """최종 요약에 쓸 문장을 길이 제한과 Markdown 이스케이프를 적용해 반환한다."""
+    text = " ".join(str(value or "").split())
+    if len(text) > limit:
+        text = text[: limit - 1].rstrip() + "…"
+    return escape_md(text)
+
+
+def _compact_refs(values: list[int] | list[str], limit: int = 3) -> str:
+    refs = [str(value) for value in values[:limit]]
+    return ", ".join(refs) if refs else "근거 인용 없음"
+
+
+def _compact_patent_lines(patent: PatentReport) -> list[str]:
+    lines = ["## 특허 핵심", ""]
+    if patent.status == "error":
+        return lines + [f"- 조사 실패: {_compact_text(patent.error_message, 120)}", ""]
+    if patent.status == "no_results":
+        return lines + [
+            "- 검색 범위에서 비교 근거를 확보하지 못함. 특허 위험이 없다는 뜻은 아닙니다.",
+            "",
+        ]
+
+    evidence_by_id = {item.citation_id: item for item in patent.evidence}
+    precheck = patent.patentability_precheck
+    if precheck:
+        refs = _compact_refs([f"P:{item}" for item in precheck.citation_ids])
+        lines.append(
+            f"- 예비 신호: **{PATENTABILITY_STATUS_LABELS[precheck.status]}** · "
+            f"{_compact_text(precheck.summary, 180)} ({refs})"
+        )
+
+    if patent.patent_reviews:
+        for review in patent.patent_reviews[:2]:
+            lines += [
+                "",
+                f"- **{_compact_text(review.title, 55)}** · 관련성 {PATENT_RELEVANCE_LABELS[review.relevance]}",
+                f"  - {_compact_text(review.overall_summary, 130)}",
+            ]
+            comparisons = sorted(
+                review.component_comparisons,
+                key=lambda item: {
+                    "overlap": 0,
+                    "partial": 1,
+                    "uncertain": 2,
+                    "different": 3,
+                    "not_found": 4,
+                }[item.status],
+            )[:2]
+            for comparison in comparisons:
+                refs = _compact_refs([f"P:{item}" for item in comparison.citation_ids])
+                note = (
+                    comparison.overlap
+                    or comparison.difference
+                    or comparison.uncertainty
+                )
+                lines.append(
+                    f"  - {PATENT_COMPONENT_STATUS_LABELS[comparison.status]}: "
+                    f"{_compact_text(comparison.idea_component, 45)} — "
+                    f"{_compact_text(note, 100)} ({refs})"
+                )
+                for citation_id in comparison.citation_ids[:1]:
+                    evidence = evidence_by_id.get(citation_id)
+                    if evidence:
+                        lines.append(
+                            f"    - 근거 {patent_location(evidence)}: "
+                            f"{_compact_text(evidence.quote, 100)} [P:{citation_id}]"
+                        )
+    elif patent.comparisons:
+        for comparison in patent.comparisons[:2]:
+            evidence = evidence_by_id.get(comparison.citation_id)
+            if evidence:
+                lines.append(
+                    f"- {_compact_text(evidence.title, 55)} · 유사점 {_compact_text(comparison.similarity, 80)} · "
+                    f"차이 {_compact_text(comparison.difference, 80)} "
+                    f"[P:{comparison.citation_id}]"
+                )
+    else:
+        lines.append("- 구성요소별 비교 결과가 충분하지 않습니다.")
+
+    if precheck and precheck.distinction_hypotheses:
+        lines.append(
+            f"- 검토할 차별점: {_compact_text(precheck.distinction_hypotheses[0], 120)}"
+        )
+    lines += [
+        "- 범위: 검색 문헌 기반 예비 비교이며 등록 가능성·침해 여부를 확정하지 않습니다.",
+        "",
+    ]
+    return lines
+
+
+def _compact_market_lines(market: MarketReport) -> list[str]:
+    lines = ["## 시장성 핵심", ""]
+    if market.status == "error":
+        return lines + [f"- 조사 실패: {_compact_text(market.error_message, 120)}", ""]
+    if market.status == "no_results":
+        return lines + [
+            "- 시장 근거를 확보하지 못함. 시장 수요가 없다는 뜻은 아닙니다.",
+            "",
+        ]
+
+    review = market.opportunity_review
+    if review:
+        labels = {
+            "validated_demand": "직접 고객 검증 자료 있음",
+            "buyer_signals": "구매자 신호",
+            "indirect_signals": "간접 산업 신호",
+            "insufficient_evidence": "근거 부족",
+        }
+        lines.append(
+            f"- 수요 근거: **{labels[review.status]}** · 목표 고객: "
+            f"{_compact_text(review.target_segment or '미확인', 70)}"
+        )
+        for finding in review.reasons[:2]:
+            refs = _compact_refs([f"M:{item}" for item in finding.citation_ids])
+            lines.append(
+                f"- {_compact_text(finding.topic, 35)}: "
+                f"{_compact_text(finding.statement, 115)} ({refs})"
+            )
+
+    dimension_labels = {
+        "confirmed": "확인",
+        "signal_only": "신호",
+        "unverified": "미확인",
+    }
+    dimension_lines = []
+    for dimension in market.dimensions:
+        refs = dict.fromkeys(
+            citation_id
+            for claim in dimension.claims
+            for citation_id in claim.citation_ids
+        )
+        if dimension.verdict != "unverified" or refs:
+            dimension_lines.append(
+                f"{DIMENSION_LABELS[dimension.dimension]} {dimension_labels[dimension.verdict]} "
+                f"({_compact_refs([f'M:{item}' for item in refs])})"
+            )
+    if dimension_lines:
+        lines.append("- 차원별 신호: " + " · ".join(dimension_lines[:5]))
+    lines += [
+        "- 뉴스·기업 자료는 산업 신호이며, 직접 구매 의사로 보지 않습니다.",
+        "",
+    ]
+    return lines
+
+
+def _compact_business_lines(review: BusinessReview) -> list[str]:
+    lines = [
+        "## 실행 전 판단",
+        "",
+        f"- **권고: {RECOMMENDATION_LABELS[review.recommendation]}** · 신뢰도 {CONFIDENCE_LABELS[review.confidence]}",
+        f"- {_compact_text(review.summary, 220)}",
+    ]
+    if review.opportunities:
+        lines.append(
+            "- 기회: "
+            + " · ".join(
+                _compact_text(item.finding, 105) for item in review.opportunities[:2]
+            )
+        )
+    if review.risks:
+        lines.append(
+            "- 위험: "
+            + " · ".join(_compact_text(item.finding, 105) for item in review.risks[:2])
+        )
+    if review.unknowns:
+        lines.append(
+            "- 핵심 미확인: "
+            + " · ".join(_compact_text(item, 75) for item in review.unknowns[:3])
+        )
+    lines += ["", "## 다음 행동", ""]
+    if review.next_steps:
+        for action in review.next_steps[:3]:
+            refs = (
+                f" ({_compact_refs(action.citation_ids)})"
+                if action.citation_ids
+                else ""
+            )
+            lines.append(
+                f"- **{_compact_text(action.horizon, 25)} · {_compact_text(action.target, 55)}:** "
+                f"{_compact_text(action.action, 140)}{refs}"
+            )
+    else:
+        lines.append(
+            "- 추가 행동이 정해지지 않았습니다. 고객·특허 전문가와 후속 확인을 진행하세요."
+        )
+    lines += ["", f"> {_compact_text(review.scope_note, 180)}", ""]
+    return lines
 
 
 def integrated_report_markdown(
@@ -430,56 +757,42 @@ def integrated_report_markdown(
     analyzed_on: int | None = None,
     market_collected_at: int | None = None,
     warnings: list[str] | None = None,
+    business_review: BusinessReview | None = None,
 ) -> str:
-    """통합 보고서의 질문 연결, 출처, 상태를 Markdown으로 렌더링한다.
-
-    외부·사용자 텍스트는 escape_md로, 시장 절은 이스케이프한 사본을 market_report_to_markdown으로 그린다.
-    """
-    by_id = {link.question_id: link for link in links}
+    """핵심 의사결정 보고서를 짧게 렌더링한다. 세부 근거는 2·3단계에서 제공한다."""
     analyzed = _format_yyyymmdd(analyzed_on) or datetime.now().strftime("%Y-%m-%d")
     collected = _format_yyyymmdd(market_collected_at) or "미확인"
     lines = [
         f"# {escape_md(title) or '사업기획 검토 보고서'}",
         "",
-        f"> 실제 분석 결과 · 분석일 {analyzed} · 시장 자료 수집 기준 {collected}"
-        f" · 근거 발행 범위 {evidence_period(market, patent)}",
-        "> 근거와 미확인 사항을 정리한 자료이며, LLM 결과는 실행마다 달라질 수 있다.",
+        f"> 분석일 {analyzed} · 시장 자료 기준 {collected} · 근거 발행 범위 {evidence_period(market, patent)}",
         "",
     ]
-    if draft is not None:
-        lines += _brief_lines(draft)
-    if runs:
-        lines += _run_lines(runs)
-    if warnings:
-        lines += ["## 분석 경고", ""]
-        lines += [f"- {escape_md(item)}" for item in warnings]
-        lines.append("")
-    lines += ["## 검토 질문별 근거 연결", ""]
-    for question in questions:
-        link = by_id.get(question["id"])
-        if not link:
-            continue
+    if business_review:
+        lines += _compact_business_lines(business_review)
+    else:
         lines += [
-            f"### {escape_md(question['id'])} · {escape_md(question['question'])}",
+            "## 실행 전 판단",
             "",
-            f"- 상태: {LINK_STATUS_LABELS.get(link.status, link.status)}",
-            f"- 요약: {escape_md(link.summary)}",
+            "- 통합 근거 검토 결과를 만들지 못해 진행 권고를 보류합니다.",
+            "",
         ]
-        for criterion in link.criteria:
-            refs = (
-                ", ".join(f"[{escape_md(cid)}]" for cid in criterion.citation_ids)
-                or "근거 없음"
-            )
-            lines.append(
-                f"- {escape_md(criterion.criterion)}: {escape_md(criterion.assessment)}"
-                f" ({refs}) · 다음 확인: {escape_md(criterion.next_check) or '미정'}"
-            )
+    if draft is not None:
+        lines += [
+            "## 아이디어 요약",
+            "",
+            f"- 문제: {_compact_text(draft.problem, 90) or '미확인'}",
+            f"- 제안: {_compact_text(draft.technology, 90) or '미확인'}",
+            f"- 고객: {_compact_text(draft.target_segment or draft.customers, 75) or '미확인'}",
+            "",
+        ]
+    if warnings:
+        lines += ["## 분석 메모", ""]
+        lines += [f"- {_compact_text(item, 130)}" for item in warnings[:2]]
         lines.append("")
-    lines += _patent_lines(patent)
-    lines.append(market_report_to_markdown(escaped_market_report(market), 2))
     lines += [
-        "## 판단 범위",
-        "",
-        "이 보고서는 조사 근거와 미확인 사항을 정리하며 특허성·신규성·진보성·침해 여부 또는 사업성의 최종 판정을 제공하지 않습니다.",
+        *_compact_patent_lines(patent),
+        *_compact_market_lines(market),
+        "> 상세 비교표·원문 인용·시장 분석은 특허 및 시장성 단계의 상세 근거에서 확인할 수 있습니다.",
     ]
     return "\n".join(lines) + "\n"

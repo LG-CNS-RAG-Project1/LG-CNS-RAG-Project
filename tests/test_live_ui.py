@@ -8,15 +8,19 @@ from streamlit.testing.v1 import AppTest
 import src.generation.idea_parser as idea_parser
 import src.generation.report_builder as report_builder
 import src.pipeline as pipeline
+from src.generation.report_builder import integrated_report_markdown
 from frontend.live import cost_markdown, cost_rows_list
 from src.generation.report_builder import CRITERIA
 from src.pipeline import PartRun, SourceAnalysis
+from frontend.workflow import WORKFLOW_JOBS, WORKFLOW_JOBS_LOCK
 from src.schemas import (
     IdeaDraft,
     MarketReport,
-    PatentComparison,
+    PatentComponentComparison,
+    PatentDocumentReview,
     PatentEvidence,
     PatentReport,
+    PatentabilityPrecheck,
 )
 
 APP = Path(__file__).resolve().parents[1] / "frontend" / "app.py"
@@ -52,20 +56,39 @@ def sources():
                 patent_id="1020200000001",
                 title="진동 기반 고장 예측 장치",
                 section="claims",
-                quote="진동 신호로 고장을 예측하는 장치",
+                quote="진동 센서 분석으로 고장을 예측하는 장치",
                 claim_number=1,
                 claim_type="independent",
                 source_url="https://example.com/p1",
             )
         ],
-        comparisons=[
-            PatentComparison(
-                citation_id=1,
-                similarity="유사",
-                difference="차이",
-                uncertainty="미확인",
+        patent_reviews=[
+            PatentDocumentReview(
+                patent_id="1020200000001",
+                title="진동 기반 고장 예측 장치",
+                citation_ids=[1],
+                relevance="high",
+                relevance_reason="청구항에 센서 기반 예측 구성이 포함됨",
+                component_comparisons=[
+                    PatentComponentComparison(
+                        component_id="C1",
+                        idea_component="진동 센서 분석",
+                        status="partial",
+                        citation_ids=[1],
+                        matched_text="진동 센서 분석",
+                        overlap="진동 센서 분석 구성이 포함됨",
+                        difference="고장 예측 방식은 추가 확인 필요",
+                        uncertainty="전체 청구항 범위 미검토",
+                    )
+                ],
+                overall_summary="일부 기술 구성이 대응합니다.",
             )
         ],
+        patentability_precheck=PatentabilityPrecheck(
+            status="insufficient_evidence",
+            summary="등록 관련 판단에는 추가 선행기술 조사가 필요합니다.",
+            citation_ids=[1],
+        ),
     )
     return SourceAnalysis(
         patent=patent,
@@ -127,54 +150,111 @@ def click(app, label):
 def structured_app():
     app = AppTest.from_file(str(APP), default_timeout=30).run()
     app.text_area(key="raw_input").input(IDEA).run()
-    click(app, "핵심 구성 확인하기 →")
+    click(app, "아이디어 구조화·전체 보고서 시작 · API 비용 발생")
+    return app
+
+
+def confirm_draft(app):
+    app.text_input(key="ai_answer_revenue_0").input("모름")
+    click(app, "답변 반영")
     return app
 
 
 def test_direct_input_runs_followup_and_reaches_report(live):
     app = structured_app()
     assert app.session_state.stage == 1 and live["parse"] == 1
-    app.text_input(key="ai_answer_revenue_0").input("모름")  # 폼 값은 제출 때 반영
-    click(app, "답변 반영")
+    confirm_draft(app)
     draft = app.session_state.idea_draft
     assert draft.status == "complete" and draft.field_sources["revenue"] == "unknown"
-    assert app.session_state.real_mode
+    assert app.session_state.real_mode and app.session_state.stage == 2
 
-    click(app, "핵심 구성 확인하기 →")
-    assert app.session_state.stage == 2
-    click(app, "1개 구성으로 조사 시작하기 →")
+    # 초안 확정 뒤 백그라운드 전체 분석이 자동 시작된다.
+    assert live["analyze"] == 1
+    app.session_state.analysis_workflow_id = None
+    app.session_state.pipeline_result = pipeline.run_pipeline(
+        app.session_state.idea_draft,
+        [],
+        sources=sources(),
+    )
+    app.session_state.stage = 2
+    app.run()
+    assert any("진동 센서 분석" in item.value for item in app.markdown)
+    assert any("등록 가능성 예비 신호" in item.value for item in app.subheader)
+    click(app, "P:1 근거 원문 확인")
+    assert any(
+        "<mark><u>진동 센서 분석</u></mark>" in item.value for item in app.markdown
+    )
+
+    click(app, "시장성 보고서 →")
     assert app.session_state.stage == 3
-    click(app, "특허·시장 조사 실행")
-    result = app.session_state.pipeline_result
-    assert result is not None and live["analyze"] == 1
-    assert result.links[0].status == "hold"  # 시장 근거가 없어 통합 판단 보류
-
-    click(app, "종합 보고서 확인 →")
+    click(app, "최종 실행 검토 →")
     assert app.session_state.stage == 4
     text = "\n".join(m.value for m in app.markdown)
-    assert "실제 분석 결과" in text and "P:1" in text
+    assert "검토일" in text and "P:1" in text
     assert "시연용 가상 자료" not in text
 
 
-def test_question_change_reuses_sources_without_new_analysis(live):
+def test_four_report_stages_use_one_analysis_run(live):
     app = structured_app()
-    app.text_input(key="ai_answer_revenue_0").input("모름")  # 폼 값은 제출 때 반영
-    click(app, "답변 반영")
-    click(app, "핵심 구성 확인하기 →")
-    click(app, "1개 구성으로 조사 시작하기 →")
-    click(app, "특허·시장 조사 실행")
-    click(app, "← 구성·질문 수정")
-    version = app.session_state.version
-    app.text_area(key=f"question_{version}_Q1").input(
-        "현장 설치 비용을 줄일 수 있는가?"
-    ).run()
-    click(app, "1개 구성으로 조사 시작하기 →")
-    click(app, "질문 연결 다시 실행")
-    assert live["analyze"] == 1 and live["link"] == 2
-    assert (
-        app.session_state.pipeline_result.links[0].question_id == "Q1"
-        and "현장 설치 비용" in app.session_state.pipeline_result.markdown
+    confirm_draft(app)
+    # 전체 분석은 초안 확정 콜백에서 한 번 시작된다.
+    assert live["analyze"] == 1
+    app.session_state.analysis_workflow_id = None
+    app.session_state.pipeline_result = sources()
+    app.session_state.stage = 2
+    app.run()
+    click(app, "시장성 보고서 →")
+    assert app.session_state.stage == 3
+    click(app, "← 특허 비교")
+    assert app.session_state.stage == 2 and live["analyze"] == 1
+
+
+def test_running_workflow_allows_previous_completed_stage_navigation(live):
+    app = AppTest.from_file(str(APP), default_timeout=30).run()
+    draft = IdeaDraft(
+        original_text=IDEA,
+        **FIELDS,
+        revenue="구독",
+        field_sources={f: "extracted" for f in FIELDS},
+        status="complete",
     )
+    patent = PatentReport(status="completed", search_scope="test")
+    with WORKFLOW_JOBS_LOCK:
+        WORKFLOW_JOBS["navigation-test"] = {
+            "patent_report": patent,
+            "patent_run": PartRun(state="completed", seconds=1),
+            "market_report": None,
+            "market_run": None,
+            "phase": "market",
+            "result": None,
+            "sources": None,
+            "error": None,
+            "done": False,
+            "started_at": 0,
+            "updated_at": 0,
+        }
+    try:
+        app.session_state.analysis_workflow_id = "navigation-test"
+        app.session_state.idea_draft = draft
+        app.session_state.real_mode = True
+        app.session_state.confirmed_context = True
+        app.session_state.stage = 3
+        app.session_state.workflow_patent_displayed_at = 0
+        app.session_state.workflow_auto_patent_advanced = True
+        app.run()
+        assert not app.button(key="nav_1").disabled
+        assert not app.button(key="nav_2").disabled
+        assert app.button(key="nav_3").disabled is False  # 현재 분석 중인 단계
+        app.button(key="nav_1").click().run()
+        assert app.session_state.stage == 1
+        assert app.session_state.analysis_workflow_id == "navigation-test"
+        app.button(key="nav_2").click().run()
+        assert app.session_state.stage == 2
+        assert app.session_state.analysis_workflow_id == "navigation-test"
+        assert app.session_state.pipeline_result.patent.status == "completed"
+    finally:
+        with WORKFLOW_JOBS_LOCK:
+            WORKFLOW_JOBS.pop("navigation-test", None)
 
 
 def test_rejected_input_stays_on_first_step(live, monkeypatch):
@@ -203,12 +283,8 @@ def test_pipeline_error_message_hides_keys(live, monkeypatch):
 
     monkeypatch.setattr(pipeline, "analyze_sources", broken)
     app = structured_app()
-    app.text_input(key="ai_answer_revenue_0").input("모름")  # 폼 값은 제출 때 반영
-    click(app, "답변 반영")
-    click(app, "핵심 구성 확인하기 →")
-    click(app, "1개 구성으로 조사 시작하기 →")
-    click(app, "특허·시장 조사 실행")
-    errors = " ".join(e.value for e in app.error)
+    confirm_draft(app)
+    errors = app.session_state.pipeline_error
     assert "검색 실패" in errors
     assert "FAKE_KIPRIS_KEY_9" not in errors and "FAKEOPENAIKEY" not in errors
 
@@ -216,8 +292,10 @@ def test_pipeline_error_message_hides_keys(live, monkeypatch):
 def test_example_path_keeps_demo_flow_with_key(live):
     app = AppTest.from_file(str(APP), default_timeout=30).run()
     click(app, "예시 불러오기")
-    click(app, "핵심 구성 확인하기 →")
-    assert app.session_state.stage == 2 and live["parse"] == 0
+    assert app.session_state.raw_input
+    assert "카메라와 조명" in app.session_state.raw_input
+    assert app.session_state.stage == 1
+    assert live["parse"] == 0 and live["analyze"] == 0
     assert not app.session_state.real_mode
 
 
@@ -227,3 +305,11 @@ def test_cost_rows_and_markdown_escape():
     md = cost_markdown(rows)
     assert "센서\\|키트" in md and "&lt;b&gt;2주&lt;/b&gt;" in md
     assert "| 센서\\|키트 | 2 |  |  | &lt;b&gt;2주&lt;/b&gt; |" in md
+
+
+def test_short_idea_can_start_ai_draft(live):
+    app = AppTest.from_file(str(APP), default_timeout=30).run()
+    app.text_area(key="raw_input").set_value("고장 예측")
+    click(app, "아이디어 구조화·전체 보고서 시작 · API 비용 발생")
+    assert live["parse"] == 1
+    assert app.session_state.idea_draft.status == "needs_input"

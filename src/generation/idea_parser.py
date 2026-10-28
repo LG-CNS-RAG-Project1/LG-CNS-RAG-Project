@@ -119,13 +119,20 @@ def check_draft(draft: IdeaDraft) -> IdeaDraft:
     missing = [
         f for f in IDEA_FIELDS if not getattr(draft, f) and sources.get(f) != "unknown"
     ]
+    known_unknown_labels = set(FIELD_LABELS.values())
+    unknowns = [item for item in draft.unknowns if item not in known_unknown_labels]
+    unknowns.extend(
+        FIELD_LABELS[field] for field in IDEA_FIELDS if sources.get(field) == "unknown"
+    )
     if missing and draft.rounds >= MAX_FOLLOWUP_ROUNDS:
         sources.update({f: "unknown" for f in missing})
+        unknowns.extend(FIELD_LABELS[f] for f in missing)
         missing = []
     return IdeaDraft.model_validate(
         {
             **draft.model_dump(),
             "field_sources": sources,
+            "unknowns": list(dict.fromkeys(unknowns)),
             "status": "needs_input" if missing else "complete",
             "missing_fields": missing,
             "questions": {f: FOLLOWUP_QUESTIONS[f] for f in missing},
@@ -153,14 +160,67 @@ def parse_idea(text: str, llm_fn: LLMFn = call_llm) -> IdeaDraft:
 
     values = {f: _clean(raw.get(f)) for f in IDEA_FIELDS}
     title = _clean(raw.get("title")) or text
+    current_alternative = _clean(raw.get("current_alternative"))
+    target_segment = _clean(raw.get("target_segment"))
+    raw_components = raw.get("technical_components", [])
+    if isinstance(raw_components, str):
+        raw_components = [raw_components]
+    if not isinstance(raw_components, list):
+        raw_components = []
+    technical_components = list(
+        dict.fromkeys(_clean(value) for value in raw_components if _clean(value))
+    )[:7]
+    raw_hypotheses = raw.get("value_hypotheses", [])
+    if isinstance(raw_hypotheses, str):
+        raw_hypotheses = [raw_hypotheses]
+    if not isinstance(raw_hypotheses, list):
+        raw_hypotheses = []
+    value_hypotheses = list(
+        dict.fromkeys(_clean(value) for value in raw_hypotheses if _clean(value))
+    )[:3]
+    field_sources = {f: "extracted" for f in IDEA_FIELDS if values[f]}
+    if current_alternative:
+        field_sources["current_alternative"] = "extracted"
+    if target_segment:
+        field_sources["target_segment"] = "extracted"
+    if technical_components:
+        field_sources["technical_components"] = "extracted"
+    if value_hypotheses:
+        field_sources["value_hypotheses"] = "ai_hypothesis"
+    unknowns = []
     draft = IdeaDraft(
         original_text=text,
         title=title[:TITLE_MAX_LENGTH],
         **values,
-        field_sources={f: "extracted" for f in IDEA_FIELDS if values[f]},
+        current_alternative=current_alternative,
+        target_segment=target_segment,
+        technical_components=technical_components,
+        value_hypotheses=value_hypotheses,
+        unknowns=unknowns,
+        field_sources=field_sources,
         status="complete",
     )
     return check_draft(draft)
+
+
+def confirm_unknowns(draft: IdeaDraft) -> IdeaDraft:
+    """사용자가 미확인 항목을 남기고 구조화 초안을 확정한다."""
+    if draft.status == "rejected":
+        raise ValueError("cannot confirm a rejected idea draft")
+    sources = dict(draft.field_sources)
+    unknowns = list(draft.unknowns)
+    for field in draft.missing_fields:
+        sources[field] = "unknown"
+        unknowns.append(FIELD_LABELS[field])
+    return draft.model_copy(
+        update={
+            "field_sources": sources,
+            "unknowns": list(dict.fromkeys(unknowns)),
+            "missing_fields": [],
+            "questions": {},
+            "status": "complete",
+        }
+    )
 
 
 def apply_answers(draft: IdeaDraft, answers: dict[str, str]) -> IdeaDraft:
