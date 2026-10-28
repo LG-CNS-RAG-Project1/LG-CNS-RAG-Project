@@ -70,14 +70,21 @@ def build_executive_review(
     )
     buyer_ids = []
     barrier_ids = []
-    buyer_dimension = next((item for item in market.dimensions if item.dimension == "buyer"), None)
+    buyer_dimension = next(
+        (item for item in market.dimensions if item.dimension == "buyer"), None
+    )
     barrier_dimension = next(
-        (item for item in market.dimensions if item.dimension == "adoption_barrier"), None
+        (item for item in market.dimensions if item.dimension == "adoption_barrier"),
+        None,
     )
     if buyer_dimension:
-        buyer_ids = [cid for claim in buyer_dimension.claims for cid in claim.citation_ids]
+        buyer_ids = [
+            cid for claim in buyer_dimension.claims for cid in claim.citation_ids
+        ]
     if barrier_dimension:
-        barrier_ids = [cid for claim in barrier_dimension.claims for cid in claim.citation_ids]
+        barrier_ids = [
+            cid for claim in barrier_dimension.claims for cid in claim.citation_ids
+        ]
 
     findings: list[IntegratedFinding] = []
     if precheck:
@@ -106,7 +113,11 @@ def build_executive_review(
         )
 
     if market_review:
-        market_refs = [f"M:{cid}" for reason in market_review.reasons for cid in reason.citation_ids]
+        market_refs = [
+            f"M:{cid}"
+            for reason in market_review.reasons
+            for cid in reason.citation_ids
+        ]
         cited_patent_refs = (
             [f"P:{cid}" for cid in precheck.citation_ids]
             if precheck and precheck.citation_ids
@@ -124,19 +135,17 @@ def build_executive_review(
                 "해당 청구항을 전문가와 대조하기 전까지 제품 기능 투자를 보류하고, "
                 "구매자·예산 확인 전에는 시장 신호를 매출 전망으로 바꾸지 않습니다."
             )
-        elif precheck and precheck.status == "potentially_distinct" and cited_patent_refs:
+        elif (
+            precheck and precheck.status == "potentially_distinct" and cited_patent_refs
+        ):
             market_implication = (
                 "예비 차별 신호는 구매 증거가 아닙니다. 구매자·예산·도입 조건을 확인한 뒤 "
                 "제한 파일럿을 판단합니다."
             )
         elif not direct_demand:
-            market_implication = (
-                "구매자·예산 주체·도입 조건을 확인하기 전에는 수요 신호를 매출 전망으로 바꾸지 않습니다."
-            )
+            market_implication = "구매자·예산 주체·도입 조건을 확인하기 전에는 수요 신호를 매출 전망으로 바꾸지 않습니다."
         else:
-            market_implication = (
-                "제출된 고객 검증의 표본·구매 권한·실제 지불 조건을 확인한 뒤 제한 파일럿 여부를 결정합니다."
-            )
+            market_implication = "제출된 고객 검증의 표본·구매 권한·실제 지불 조건을 확인한 뒤 제한 파일럿 여부를 결정합니다."
         findings.append(
             IntegratedFinding(
                 label="시장 진입 근거",
@@ -178,14 +187,20 @@ def build_executive_review(
         )
 
     gates: list[ApprovalGate] = []
-    if patent.status != "completed" or not precheck or precheck.status != "potentially_distinct":
+    if (
+        patent.status != "completed"
+        or not precheck
+        or precheck.status != "potentially_distinct"
+    ):
         gates.append(
             ApprovalGate(
                 question="주요 기능이 선행 특허 청구항과 어떻게 구분되는가?",
                 owner="변리사 또는 특허 전문가",
                 proof_needed="우선 확인할 독립 청구항, 구성 대응표, 추가 검색 범위에 대한 서면 검토",
                 consequence="미확인 상태에서는 해당 기능의 제품화·권리 확보 일정을 확정하지 않습니다.",
-                evidence_ids=_refs([f"P:{cid}" for cid in (precheck.citation_ids if precheck else [])]),
+                evidence_ids=_refs(
+                    [f"P:{cid}" for cid in (precheck.citation_ids if precheck else [])]
+                ),
             )
         )
     if not direct_demand:
@@ -198,7 +213,9 @@ def build_executive_review(
                 evidence_ids=_refs([f"M:{cid}" for cid in buyer_ids]),
             )
         )
-    if (not draft.revenue or not draft.current_alternative or barrier_dimension is None) and len(gates) < 3:
+    if (
+        not draft.revenue or not draft.current_alternative or barrier_dimension is None
+    ) and len(gates) < 3:
         gates.append(
             ApprovalGate(
                 question="현재 대안보다 도입 가치가 크고 운영·예산 장벽을 감당할 수 있는가?",
@@ -211,11 +228,21 @@ def build_executive_review(
 
     actions = []
     if not direct_demand:
-        actions.append("1. 고객개발 담당자: 초기 세그먼트 후보와 인터뷰해 문제 빈도·현재 대안·구매결정자·예산 경로를 확인하고, 확인된 사례와 미확인을 분리 기록합니다.")
-    if patent.status != "completed" or not precheck or precheck.status == "overlap_concern":
-        actions.append("2. 특허 담당자: 우선순위가 높은 문헌의 독립 청구항과 실제 제품 기능을 변리사와 대조하고, 회피 설계·추가 조사 필요성을 문서화합니다.")
+        actions.append(
+            "1. 고객개발 담당자: 초기 세그먼트 후보와 인터뷰해 문제 빈도·현재 대안·구매결정자·예산 경로를 확인하고, 확인된 사례와 미확인을 분리 기록합니다."
+        )
+    if (
+        patent.status != "completed"
+        or not precheck
+        or precheck.status == "overlap_concern"
+    ):
+        actions.append(
+            "2. 특허 담당자: 우선순위가 높은 문헌의 독립 청구항과 실제 제품 기능을 변리사와 대조하고, 회피 설계·추가 조사 필요성을 문서화합니다."
+        )
     if len(actions) < 3:
-        actions.append("3. 제품·사업 담당자: 고객이 현재 대안과 제안 방식의 기준선·도입 조건을 합의한 뒤, 단일 고객·업무 범위의 파일럿 통과 기준과 중단 조건을 정합니다.")
+        actions.append(
+            "3. 제품·사업 담당자: 고객이 현재 대안과 제안 방식의 기준선·도입 조건을 합의한 뒤, 단일 고객·업무 범위의 파일럿 통과 기준과 중단 조건을 정합니다."
+        )
 
     if business.recommendation == "limited_pilot" and not direct_demand:
         recommendation = "validate_demand"
@@ -223,15 +250,22 @@ def build_executive_review(
         recommendation = business.recommendation
     confidence = (
         "낮음"
-        if market.status in {"error", "no_results"} or patent.status in {"error", "no_results"}
+        if market.status in {"error", "no_results"}
+        or patent.status in {"error", "no_results"}
         else {"low": "낮음", "medium": "보통", "high": "높음"}[business.confidence]
     )
     limitations = []
     if not direct_demand:
-        limitations.append("직접 고객 구매·지불 검증 자료가 없어 지불 의사는 미확인입니다.")
+        limitations.append(
+            "직접 고객 구매·지불 검증 자료가 없어 지불 의사는 미확인입니다."
+        )
     if patent.status != "completed":
-        limitations.append("특허 조사가 완료되지 않아 검색 범위 밖 문헌을 포함한 권리 판단은 불가능합니다.")
-    limitations.append("이 문서는 사업 검토용 예비 권고이며 법률 의견·시장 규모 산정·성공 예측이 아닙니다.")
+        limitations.append(
+            "특허 조사가 완료되지 않아 검색 범위 밖 문헌을 포함한 권리 판단은 불가능합니다."
+        )
+    limitations.append(
+        "이 문서는 사업 검토용 예비 권고이며 법률 의견·시장 규모 산정·성공 예측이 아닙니다."
+    )
 
     return ExecutiveReview(
         recommendation=recommendation,
@@ -293,5 +327,9 @@ def executive_report_markdown(
     lines.extend(f"- {escape_md(item)}" for item in review.next_actions)
     lines += ["", "## 판단 한계", ""]
     lines.extend(f"- {escape_md(item)}" for item in review.limitations)
-    lines += ["", "> 권고는 다음 검증 단계의 선택을 돕기 위한 것이며 사업 성공·투자·특허 등록을 보장하지 않습니다.", ""]
+    lines += [
+        "",
+        "> 권고는 다음 검증 단계의 선택을 돕기 위한 것이며 사업 성공·투자·특허 등록을 보장하지 않습니다.",
+        "",
+    ]
     return "\n".join(lines)

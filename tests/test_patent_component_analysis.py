@@ -104,7 +104,10 @@ def test_priority_orders_cited_overlap_before_partial_and_low_relevance():
         relevance="high",
         component_comparisons=[
             PatentComponentComparison(
-                component_id="C1", idea_component="x", status="overlap", citation_ids=[1]
+                component_id="C1",
+                idea_component="x",
+                status="overlap",
+                citation_ids=[1],
             )
         ],
     )
@@ -114,7 +117,10 @@ def test_priority_orders_cited_overlap_before_partial_and_low_relevance():
         relevance="medium",
         component_comparisons=[
             PatentComponentComparison(
-                component_id="C1", idea_component="x", status="partial", citation_ids=[2]
+                component_id="C1",
+                idea_component="x",
+                status="partial",
+                citation_ids=[2],
             )
         ],
     )

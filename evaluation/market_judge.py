@@ -35,7 +35,7 @@ from evaluation.market_labeling import (
 ROOT_DIR = Path(__file__).resolve().parents[1]
 JUDGE_PROMPT_PATH = ROOT_DIR / "prompts" / "market_label_judge.md"
 LLM_LABELS_PATH = ROOT_DIR / "evaluation" / "labels" / "market_llm_labels.csv"
-JUDGE_MODEL = "gpt-4o"
+JUDGE_MODEL = "gpt-4o-mini"
 LLM_FIELDS = ["case_id", "source_id", "llm_label", "llm_confidence", "llm_reason"]
 MERGED_FIELDS = CSV_FIELDS + ["label_source", "review"] + LLM_FIELDS[2:]
 

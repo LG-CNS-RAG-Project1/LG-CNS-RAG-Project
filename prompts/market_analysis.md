@@ -61,6 +61,7 @@ JSON으로 다음 값이 주어진다.
 
 - `confirmed`: 근거 기사들이 이 차원의 질문에 직접 답한다 (예: 가격 차원에서 같은 범주 솔루션의 가격·도입 비용이 금액으로 나옴, 구매자 차원에서 실제 도입 기업과 도입 내용이 나옴, 도입장벽 차원에서 도입을 막는 요인이 구체적으로 나옴).
 - `signal_only`: 기업 투자·제품 출시·제휴·정부 정책·주가·도입 확대 전망처럼 방향을 보여 주지만 질문에 직접 답하지는 않는다.
+- 근거가 모두 사업 신호(`business_signal`)·기업 주장(`company_claim`)·추정치(`estimate`)이면 `allowed_verdicts`에 `confirmed`가 없다. 뉴스 기사는 모두 사업 신호다.
 - `unverified`: 근거 기사가 없거나, 있어도 이 아이디어의 이 차원과 직접 관련이 없다.
 - **기술 범주를 먼저 확인한다.** `confirmed`는 아이디어의 기술(`technology`)과 같은 범주의 제품·서비스를 다룬 근거가 있을 때만 쓴다. 스마트공장·제조 AI·자동화 전반처럼 더 넓은 범주의 근거만 있으면 최대 `signal_only`이고, 문장에 "스마트공장 전반" 등 범주를 밝힌다. 다른 기술을 다룬 근거만 있으면 `unverified`다.
 - 판단이 갈리면 더 낮은 판정(`confirmed` → `signal_only` → `unverified`)을 쓴다.
@@ -86,7 +87,7 @@ JSON으로 다음 값이 주어진다.
 {
   "dimension": "price",
   "label": "가격",
-  "allowed_verdicts": ["confirmed", "signal_only", "unverified"],
+  "allowed_verdicts": ["signal_only", "unverified"],
   "evidence": [
     {"citation_id": 4, "title": "가상전자, 비전 검사 장비 월 구독형 출시", "quote": "가상전자는 초기 구매 없이 월 구독료로 쓰는 검사 장비를 내놨다.", "publisher": "가상일보", "published_at": 20260310, "evidence_nature": "business_signal"}
   ]
@@ -107,5 +108,5 @@ JSON으로 다음 값이 주어진다.
 }
 ```
 
-- 과금 방식은 있지만 금액이 없으므로 `confirmed`가 아니라 `signal_only`다.
+- 근거가 사업 신호 기사뿐이라 `confirmed`는 허용되지 않는다. 과금 방식이 나오므로 `unverified`가 아니라 `signal_only`다.
 - 기사에 없는 구독료 금액이나 시장 규모를 만들지 않았다.

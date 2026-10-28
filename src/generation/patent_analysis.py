@@ -116,12 +116,20 @@ def compare_patent_evidence(
         raw = llm_fn(system_prompt, user_text)
         comparison_ids = []
         try:
-            if not isinstance(raw, dict) or not isinstance(raw.get("comparisons"), list):
+            if not isinstance(raw, dict) or not isinstance(
+                raw.get("comparisons"), list
+            ):
                 raise ValueError("Response must contain a comparisons list")
-            comparisons = [PatentComparison.model_validate(item) for item in raw["comparisons"]]
+            comparisons = [
+                PatentComparison.model_validate(item) for item in raw["comparisons"]
+            ]
             comparison_ids = [item.citation_id for item in comparisons]
-            if set(comparison_ids) != expected_ids or len(comparison_ids) != len(expected_ids):
-                raise ValueError("Patent comparisons must map one-to-one to supplied evidence")
+            if set(comparison_ids) != expected_ids or len(comparison_ids) != len(
+                expected_ids
+            ):
+                raise ValueError(
+                    "Patent comparisons must map one-to-one to supplied evidence"
+                )
             by_id = {item.citation_id: item for item in comparisons}
             return [by_id[citation_id] for citation_id in evidence_ids]
         except Exception as exc:
@@ -129,7 +137,8 @@ def compare_patent_evidence(
             if attempt == 0:
                 missing = sorted(expected_ids - set(comparison_ids))
                 duplicated = sorted(
-                    citation_id for citation_id in set(comparison_ids)
+                    citation_id
+                    for citation_id in set(comparison_ids)
                     if comparison_ids.count(citation_id) > 1
                 )
                 correction = {
@@ -145,6 +154,7 @@ def compare_patent_evidence(
                     + json.dumps(correction, ensure_ascii=False)
                 )
     raise ValueError(str(last_error)) from last_error
+
 
 def review_patents_by_component(
     idea: StructuredIdea,

@@ -8,7 +8,8 @@
     build_report(...)               MarketReport로 묶음
 
 판정 제한 (차원별 충분성 상태 기준):
-    sufficient    confirmed · signal_only · unverified (수요 confirmed는 direct_demand 근거가 있을 때만)
+    sufficient    confirmed · signal_only · unverified (confirmed는 수요면 direct_demand 근거,
+                  그 밖의 차원은 사업 신호·기업 주장·추정치가 아닌 근거가 있을 때만)
     limited       signal_only · unverified
     그 밖         unverified
 차원이 기대는 아이디어 항목(DEPENDENT_FIELDS)이 비어 있으면(모름) 근거가 있어도 unverified만 허용한다.
@@ -36,7 +37,7 @@ from src.schemas import (
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 PROMPT_PATH = ROOT_DIR / "prompts" / "market_analysis.md"
-ANALYSIS_MODEL = "gpt-4o"
+ANALYSIS_MODEL = "gpt-4o-mini"
 MAX_RETRIES = 2
 MAX_CLAIMS = 3
 RECENT_DAYS = 365
@@ -50,6 +51,9 @@ YEAR_PATTERN = re.compile(r"(?<!\d)(?:19|20)\d{2}년")
 
 # 시장 차원이 판정에 기대는 아이디어 항목
 DEPENDENT_FIELDS = {"price": "revenue", "buyer": "customers"}
+
+# 이 성격의 근거만 있으면 어느 차원도 confirmed가 될 수 없다 (뉴스는 모두 business_signal)
+SIGNAL_ONLY_NATURES = {"business_signal", "company_claim", "estimate"}
 
 DEFAULT_CHECKS = {
     "demand": "목표 고객사 5곳 인터뷰로 현재 해결 방식과 도입 의향 확인",
@@ -161,14 +165,21 @@ def allowed_verdicts(
     cited: list[MarketEvidence],
     missing_field: str | None = None,
 ) -> list[str]:
-    """충분성 상태·근거 성격·아이디어 항목 공백으로 이 차원에 쓸 수 있는 판정을 정한다."""
+    """충분성 상태·근거 성격·아이디어 항목 공백으로 이 차원에 쓸 수 있는 판정을 정한다.
+
+    confirmed는 확인 가능한 성격의 근거가 있을 때만 허용한다: 수요는 direct_demand,
+    그 밖의 차원은 SIGNAL_ONLY_NATURES(사업 신호·기업 주장·추정치)가 아닌 근거.
+    """
     if missing_field or not cited or status not in ("sufficient", "limited"):
         return ["unverified"]
     if status == "limited":
         return ["signal_only", "unverified"]
-    if dimension == "demand" and not any(
-        e.evidence_nature == "direct_demand" for e in cited
-    ):
+    confirming = (
+        (lambda e: e.evidence_nature == "direct_demand")
+        if dimension == "demand"
+        else (lambda e: e.evidence_nature not in SIGNAL_ONLY_NATURES)
+    )
+    if not any(confirming(e) for e in cited):
         return ["signal_only", "unverified"]
     return ["confirmed", "signal_only", "unverified"]
 

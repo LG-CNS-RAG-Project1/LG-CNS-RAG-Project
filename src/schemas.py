@@ -251,7 +251,9 @@ class PatentReport(BaseModel):
                     for item in self.evidence
                     if item.citation_id in comparison.citation_ids
                 ):
-                    raise ValueError("Matched patent text must be verbatim cited evidence")
+                    raise ValueError(
+                        "Matched patent text must be verbatim cited evidence"
+                    )
         if self.patentability_precheck and not set(
             self.patentability_precheck.citation_ids
         ) <= set(ids):

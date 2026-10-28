@@ -130,7 +130,9 @@ def test_executive_report_synthesizes_patent_and_market_into_gates():
     assert "현재 구성의 제품화는 보류" in review.scope
     assert any("P:1" in item.evidence_ids for item in review.integrated_findings)
     assert any("M:1" in item.evidence_ids for item in review.integrated_findings)
-    market_finding = next(item for item in review.integrated_findings if item.label == "시장 진입 근거")
+    market_finding = next(
+        item for item in review.integrated_findings if item.label == "시장 진입 근거"
+    )
     assert {"P:1", "M:1"}.issubset(set(market_finding.evidence_ids))
     assert "유사 청구항 우려를 낮추지는 않습니다" in market_finding.business_implication
     assert "## 기회와 제약을 함께 본 판단" in markdown
@@ -144,7 +146,8 @@ def test_market_industry_signal_is_not_recast_as_direct_purchase():
     review = build_executive_review(
         draft, patent, market, build_business_review(draft, patent, market)
     )
-    market_finding = next(item for item in review.integrated_findings if item.label == "시장 진입 근거")
+    market_finding = next(
+        item for item in review.integrated_findings if item.label == "시장 진입 근거"
+    )
     assert "구매 의사는 미검증입니다" in market_finding.judgment
     assert "매출 전망" in market_finding.business_implication
-

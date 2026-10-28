@@ -49,8 +49,7 @@ from frontend.automatic import automatic_links
 from frontend.presentation import hero, brand_style
 
 st.set_page_config(page_title="IdeaLens · 빠른 조사", page_icon="▤", layout="wide")
-st.html(
-    """<style>
+st.html("""<style>
     @keyframes idealens-spin { to { transform: rotate(360deg); } }
     .workflow-spinner { display:inline-block; width:.82em; height:.82em; border:2px solid #9aa8a4;
       border-top-color:#1f4943; border-radius:50%; animation:idealens-spin .8s linear infinite;
@@ -58,8 +57,7 @@ st.html(
     .patent-quote { border-left:4px solid #d4a72c; background:#fff8d8; padding:1rem 1.1rem;
       line-height:1.9; white-space:pre-wrap; overflow-wrap:anywhere; }
     .patent-quote mark { background:#ffec80; color:#1f302e; padding:.08em .12em; }
-    </style>"""
-)
+    </style>""")
 st.html(Path(__file__).with_name("styles.css").read_text(encoding="utf-8"))
 st.html(brand_style())
 for key, value in {
@@ -524,7 +522,11 @@ def workflow_progress_fragment():
                 or (index == 3 and phase == "market" and not market_ready)
                 or (index == 4 and phase == "final_report" and final_result is None)
             )
-            marker = '<span class="workflow-spinner" aria-label="분석 중"></span> ' if active else ""
+            marker = (
+                '<span class="workflow-spinner" aria-label="분석 중"></span> '
+                if active
+                else ""
+            )
             column.markdown(f"{marker}**{state}**", unsafe_allow_html=True)
 
     if snapshot.get("error"):
@@ -585,7 +587,9 @@ def workflow_progress_fragment():
             f"현재 단계: {steps[{ 'patent': 1, 'market': 2, 'final_report': 3 }.get(phase, 0)][0]} · "
             f"진행 시간 {elapsed // 60}분 {elapsed % 60}초"
         )
-        st.caption("새 입력이 분석 결과에 섞이지 않도록 입력은 잠겨 있습니다. 이전 완료 단계는 상단 메뉴에서 다시 볼 수 있습니다.")
+        st.caption(
+            "새 입력이 분석 결과에 섞이지 않도록 입력은 잠겨 있습니다. 이전 완료 단계는 상단 메뉴에서 다시 볼 수 있습니다."
+        )
         if st.button("분석 취소하고 아이디어 수정", key=f"cancel_workflow_{job_id}"):
             cancel_report_workflow()
             st.rerun(scope="app")
@@ -598,7 +602,9 @@ def render_patent_report(patent):
     if patent.status == "error":
         st.error(patent.error_message or "특허 조사에 실패했습니다.")
     elif patent.status == "no_results":
-        st.warning("검색 범위에서 특허 근거를 찾지 못했습니다. 위험이 없다는 뜻은 아닙니다.")
+        st.warning(
+            "검색 범위에서 특허 근거를 찾지 못했습니다. 위험이 없다는 뜻은 아닙니다."
+        )
 
     precheck = patent.patentability_precheck
     precheck_labels = {
@@ -611,7 +617,9 @@ def render_patent_report(patent):
         st.info(f"{precheck_labels[precheck.status]} · {precheck.summary}")
         st.caption("검색된 자료를 바탕으로 한 예비 비교이며, 법률 의견이 아닙니다.")
     elif precheck:
-        st.warning("등록 가능성 예비 신호에 연결된 특허 인용이 없어 결론을 표시하지 않습니다.")
+        st.warning(
+            "등록 가능성 예비 신호에 연결된 특허 인용이 없어 결론을 표시하지 않습니다."
+        )
 
     relevance_labels = {
         "high": "높음",
@@ -656,15 +664,22 @@ def render_patent_report(patent):
             )
             for item in comparisons[:3]:
                 display_status = item.status if item.citation_ids else "uncertain"
-                refs = ", ".join(f"P:{cid}" for cid in item.citation_ids) or "근거 없음·판단 보류"
+                refs = (
+                    ", ".join(f"P:{cid}" for cid in item.citation_ids)
+                    or "근거 없음·판단 보류"
+                )
                 st.markdown(
                     f"- **{escape_md(item.idea_component)}** · {comparison_labels[display_status]} ({refs})"
                 )
-                detail = " · ".join(
-                    value
-                    for value in (item.overlap, item.difference, item.uncertainty)
-                    if value
-                ) if item.citation_ids else "인용 근거가 없어 유사·차이 판단을 보류합니다."
+                detail = (
+                    " · ".join(
+                        value
+                        for value in (item.overlap, item.difference, item.uncertainty)
+                        if value
+                    )
+                    if item.citation_ids
+                    else "인용 근거가 없어 유사·차이 판단을 보류합니다."
+                )
                 if detail:
                     st.caption(detail)
                 citation_id = next(
@@ -676,7 +691,9 @@ def render_patent_report(patent):
                     None,
                 )
                 if citation_id is not None:
-                    evidence = next(ev for ev in patent.evidence if ev.citation_id == citation_id)
+                    evidence = next(
+                        ev for ev in patent.evidence if ev.citation_id == citation_id
+                    )
                     if st.button(
                         f"P:{citation_id} 근거 원문 확인",
                         key=f"patent_evidence_{review.patent_id}_{item.component_id}_{citation_id}",
@@ -692,11 +709,14 @@ def render_patent_report(patent):
                 rows = [
                     {
                         "아이디어 구성": item.idea_component,
-                        "비교": comparison_labels[item.status if item.citation_ids else "uncertain"],
+                        "비교": comparison_labels[
+                            item.status if item.citation_ids else "uncertain"
+                        ],
                         "공통점": item.overlap if item.citation_ids else "",
                         "차이점": item.difference if item.citation_ids else "",
                         "근거": ", ".join(f"P:{cid}" for cid in item.citation_ids),
-                        "미확인": item.uncertainty or ("비교 인용 근거 없음" if not item.citation_ids else ""),
+                        "미확인": item.uncertainty
+                        or ("비교 인용 근거 없음" if not item.citation_ids else ""),
                     }
                     for item in review.component_comparisons
                 ]
@@ -714,7 +734,11 @@ def render_patent_report(patent):
                 )
                 for citation_id in citation_ids:
                     evidence = next(
-                        (item for item in patent.evidence if item.citation_id == citation_id),
+                        (
+                            item
+                            for item in patent.evidence
+                            if item.citation_id == citation_id
+                        ),
                         None,
                     )
                     if not evidence:
@@ -731,10 +755,14 @@ def render_patent_report(patent):
                 for item in review.unknowns:
                     st.caption(f"미확인: {item}")
 
-    if precheck and precheck.citation_ids and (
-        precheck.distinction_hypotheses
-        or precheck.expert_questions
-        or precheck.limitations
+    if (
+        precheck
+        and precheck.citation_ids
+        and (
+            precheck.distinction_hypotheses
+            or precheck.expert_questions
+            or precheck.limitations
+        )
     ):
         with st.expander("차별점 가설·전문가 확인사항"):
             for item in precheck.distinction_hypotheses:
@@ -752,7 +780,11 @@ def render_patent_report(patent):
         with st.expander("특허별 비교 및 원문"):
             for comparison in patent.comparisons[:10]:
                 evidence = next(
-                    (item for item in patent.evidence if item.citation_id == comparison.citation_id),
+                    (
+                        item
+                        for item in patent.evidence
+                        if item.citation_id == comparison.citation_id
+                    ),
                     None,
                 )
                 st.write(
@@ -777,9 +809,13 @@ def patent_evidence_dialog(evidence_data, component, explanation, matched_text="
     if explanation:
         st.write(f"비교 판단: {explanation}")
     if matched_text:
-        st.caption("아래는 검색·분석에 사용된 특허 원문 발췌입니다. 노란색 구절은 분석기가 인용문에서 그대로 지정한 대응 문구이며, 전체 문서는 출처 링크에서 확인하세요.")
+        st.caption(
+            "아래는 검색·분석에 사용된 특허 원문 발췌입니다. 노란색 구절은 분석기가 인용문에서 그대로 지정한 대응 문구이며, 전체 문서는 출처 링크에서 확인하세요."
+        )
     else:
-        st.caption("아래는 검색·분석에 사용된 특허 원문 발췌입니다. 분석기가 정확한 대응 구절을 지정하지 않아 자동 강조는 없습니다. 전체 문서는 출처 링크에서 확인하세요.")
+        st.caption(
+            "아래는 검색·분석에 사용된 특허 원문 발췌입니다. 분석기가 정확한 대응 구절을 지정하지 않아 자동 강조는 없습니다. 전체 문서는 출처 링크에서 확인하세요."
+        )
     escaped = highlight_verbatim_excerpt(evidence.quote, matched_text)
     st.markdown(
         '<div class="patent-quote">' + escaped + "</div>",
@@ -796,7 +832,9 @@ def render_market_report(market, draft=None):
     if market.status == "error":
         st.error(market.error_message or "시장 조사에 실패했습니다.")
     elif market.status == "no_results":
-        st.warning("검색 범위에서 시장 근거를 찾지 못했습니다. 수요가 없다는 뜻은 아닙니다.")
+        st.warning(
+            "검색 범위에서 시장 근거를 찾지 못했습니다. 수요가 없다는 뜻은 아닙니다."
+        )
 
     review = market.opportunity_review
     labels = {
@@ -830,7 +868,10 @@ def render_market_report(market, draft=None):
         if review.reasons:
             st.markdown("**사업 판단에 참고할 시장 신호**")
             for item in review.reasons[:2]:
-                refs = ", ".join(f"M:{cid}" for cid in item.citation_ids) or "근거 인용 없음"
+                refs = (
+                    ", ".join(f"M:{cid}" for cid in item.citation_ids)
+                    or "근거 인용 없음"
+                )
                 st.markdown(f"- **{item.topic}:** {item.statement} ({refs})")
         if review.validation_actions:
             st.markdown("**다음 검증 행동**")
@@ -852,14 +893,25 @@ def render_market_report(market, draft=None):
         }
         key_dimensions = ["demand", "buyer", "competition", "price", "adoption_barrier"]
         for key in key_dimensions:
-            dimension = next((item for item in market.dimensions if item.dimension == key), None)
+            dimension = next(
+                (item for item in market.dimensions if item.dimension == key), None
+            )
             if not dimension:
                 continue
-            st.markdown(f"**{DIMENSION_LABELS[key]} · {verdict_labels[dimension.verdict]}**")
+            st.markdown(
+                f"**{DIMENSION_LABELS[key]} · {verdict_labels[dimension.verdict]}**"
+            )
             if dimension.claims:
                 for claim in dimension.claims[:1]:
-                    label = {"fact": "자료 사실", "user_claim": "입력 내용", "ai_hypothesis": "검증 전 해석"}[claim.claim_type]
-                    citations = ", ".join(f"M:{cid}" for cid in claim.citation_ids) or "인용 근거 없음"
+                    label = {
+                        "fact": "자료 사실",
+                        "user_claim": "입력 내용",
+                        "ai_hypothesis": "검증 전 해석",
+                    }[claim.claim_type]
+                    citations = (
+                        ", ".join(f"M:{cid}" for cid in claim.citation_ids)
+                        or "인용 근거 없음"
+                    )
                     st.markdown(f"- [{label}] {claim.statement} ({citations})")
             else:
                 st.caption(dimension.next_check or "검증 자료가 없습니다.")
@@ -867,9 +919,7 @@ def render_market_report(market, draft=None):
     if market.dimensions or market.evidence:
         from src.generation.market_markdown import market_report_to_markdown
 
-        with st.expander(
-            f"시장 차원별 분석·기사 목록·원문 ({len(market.evidence)}건)"
-        ):
+        with st.expander(f"시장 차원별 분석·기사 목록·원문 ({len(market.evidence)}건)"):
             st.markdown(market_report_to_markdown(market, heading_level=3))
             from src.generation.report_builder import escape_md, safe_url
 
@@ -1104,13 +1154,40 @@ if active_job:
             st.caption("열람할 단계를 선택해도 백그라운드 분석은 계속됩니다.")
         job_steps = [
             ("완료", True),
-            ("완료" if active_job.get("patent_report") else ("분석 중" if active_phase == "patent" else "대기"), can_visit(2)),
-            ("완료" if active_job.get("market_report") else ("분석 중" if active_phase == "market" else "대기"), can_visit(3)),
-            ("완료" if active_job.get("result") else ("작성 중" if active_phase == "final_report" else "대기"), can_visit(4)),
+            (
+                (
+                    "완료"
+                    if active_job.get("patent_report")
+                    else ("분석 중" if active_phase == "patent" else "대기")
+                ),
+                can_visit(2),
+            ),
+            (
+                (
+                    "완료"
+                    if active_job.get("market_report")
+                    else ("분석 중" if active_phase == "market" else "대기")
+                ),
+                can_visit(3),
+            ),
+            (
+                (
+                    "완료"
+                    if active_job.get("result")
+                    else ("작성 중" if active_phase == "final_report" else "대기")
+                ),
+                can_visit(4),
+            ),
         ]
-        for number, (label, (state_label, available)) in enumerate(zip(steps, job_steps), 1):
+        for number, (label, (state_label, available)) in enumerate(
+            zip(steps, job_steps), 1
+        ):
             if number == s.stage:
-                st.button(f"현재 화면 · {number} {label} · {state_label}", disabled=True, key=f"workflow_pop_current_{number}")
+                st.button(
+                    f"현재 화면 · {number} {label} · {state_label}",
+                    disabled=True,
+                    key=f"workflow_pop_current_{number}",
+                )
             else:
                 st.button(
                     f"{number} {label} · {state_label} · 열기",
@@ -1127,9 +1204,13 @@ if not s.confirmed_context and s.raw:
 if s.stage == 1:
     st.html(hero())
     if s.get("workflow_cancelled"):
-        st.info("이전 분석은 취소했습니다. 입력을 수정하고 새 분석을 시작할 수 있습니다.")
+        st.info(
+            "이전 분석은 취소했습니다. 입력을 수정하고 새 분석을 시작할 수 있습니다."
+        )
         if RUN_LOCK.locked():
-            st.caption("이미 외부로 전송된 분석 요청은 즉시 중단되지 않을 수 있습니다. 요청이 끝난 뒤 다시 분석할 수 있으며, 해당 호출의 비용은 발생할 수 있습니다.")
+            st.caption(
+                "이미 외부로 전송된 분석 요청은 즉시 중단되지 않을 수 있습니다. 요청이 끝난 뒤 다시 분석할 수 있으며, 해당 호출의 비용은 발생할 수 있습니다."
+            )
         s.workflow_cancelled = False
 previous_stage = s.get("displayed_stage", s.stage)
 if previous_stage != s.stage:
@@ -1178,7 +1259,9 @@ with st.container(key=f"sheet_{s.stage}_{direction}"):
                     disabled=bool(s.get("analysis_workflow_id")),
                 )
                 b.button(
-                    "예시 불러오기", on_click=load, args=(DEMO_TEXT, EXAMPLE["idea"]),
+                    "예시 불러오기",
+                    on_click=load,
+                    args=(DEMO_TEXT, EXAMPLE["idea"]),
                     disabled=bool(s.get("analysis_workflow_id")),
                 )
                 st.selectbox(
@@ -1208,11 +1291,13 @@ with st.container(key=f"sheet_{s.stage}_{direction}"):
                                     question, key=f"ai_answer_{field}_{draft.rounds}"
                                 )
                             st.form_submit_button(
-                                "답변 반영", on_click=apply_ai_answers,
+                                "답변 반영",
+                                on_click=apply_ai_answers,
                                 disabled=bool(s.get("analysis_workflow_id")),
                             )
                         if st.button(
-                            "모르는 항목은 미확인으로 두고 계속", key="confirm_unknowns",
+                            "모르는 항목은 미확인으로 두고 계속",
+                            key="confirm_unknowns",
                             disabled=bool(s.get("analysis_workflow_id")),
                         ):
                             from src.generation.idea_parser import confirm_unknowns
@@ -1498,7 +1583,9 @@ with st.container(key=f"sheet_{s.stage}_{direction}"):
         )
         workflow_job = current_workflow_job()
         if s.real_mode and workflow_job and not workflow_job.get("market_report"):
-            st.caption("특허 결과를 확인할 수 있습니다. 시장 결과가 준비되면 이 화면에 이어서 표시합니다.")
+            st.caption(
+                "특허 결과를 확인할 수 있습니다. 시장 결과가 준비되면 이 화면에 이어서 표시합니다."
+            )
         elif s.real_mode and s.pipeline_result:
             market = s.pipeline_result.market
             render_market_report(market, s.idea_draft)
@@ -1567,7 +1654,9 @@ with st.container(key=f"sheet_{s.stage}_{direction}"):
                 s.get("pipeline_error")
                 or "통합 실행 검토를 만들지 못했습니다. 완료된 조사 결과는 보존했습니다."
             )
-            st.caption("특허·시장 근거는 각 단계에서 확인할 수 있습니다. 최종 보고서만 다시 생성할 수 있습니다.")
+            st.caption(
+                "특허·시장 근거는 각 단계에서 확인할 수 있습니다. 최종 보고서만 다시 생성할 수 있습니다."
+            )
             if st.button(
                 "최종 검토 다시 작성",
                 key="retry_executive_report",

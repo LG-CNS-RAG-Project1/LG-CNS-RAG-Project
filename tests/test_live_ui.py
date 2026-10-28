@@ -181,7 +181,9 @@ def test_direct_input_runs_followup_and_reaches_report(live):
     assert any("진동 센서 분석" in item.value for item in app.markdown)
     assert any("등록 가능성 예비 신호" in item.value for item in app.subheader)
     click(app, "P:1 근거 원문 확인")
-    assert any("<mark><u>진동 센서 분석</u></mark>" in item.value for item in app.markdown)
+    assert any(
+        "<mark><u>진동 센서 분석</u></mark>" in item.value for item in app.markdown
+    )
 
     click(app, "시장성 보고서 →")
     assert app.session_state.stage == 3

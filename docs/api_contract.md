@@ -34,7 +34,7 @@
 | `src.generation.market_markdown.market_report_to_markdown(report, heading_level=2)` | `MarketReport` | 종합 보고서용 마크다운 섹션 (str) |
 
 - `idea_id`는 평가·시연용 샘플 아이디어(`data/samples/ideas.json`)의 수집 범위로 검색을 좁힐 때만 준다. 사용자가 새로 입력한 아이디어는 `None`.
-- 소요 시간: 아이디어 1건당 약 13~20초 (관련성 판정 gpt-4o-mini 25회 + 분석 gpt-4o 1~3회). 특허 조사와 입력·저장소가 독립적이라 병렬로 부를 수 있다(스레드 병렬 실행은 아직 검증하지 않음).
+- 소요 시간: 아이디어 1건당 약 13~20초 (관련성 판정 gpt-4o-mini 25회 + 분석 gpt-4o-mini 1~3회). 특허 조사와 입력·저장소가 독립적이라 병렬로 부를 수 있다(스레드 병렬 실행은 아직 검증하지 않음).
 - 로컬 색인 `data/market/chroma/`와 `OPENAI_API_KEY`가 필요하다.
 - 결과 예시: `data/samples/market_reports/SF-0{1..5}.json`
 
@@ -54,7 +54,7 @@
 
 - 오류는 예외 대신 `status="error"` 보고서로 돌려준다(검색·판정·분석 생성 실패 모두).
 - 인용 표기: UI와 마크다운 모두 시장 근거를 `M:{citation_id}`로 쓴다(특허는 `P:`). 같은 기사는 여러 차원에서 같은 `citation_id`를 쓴다.
-- 해석 규칙: 수집 뉴스는 모두 `business_signal`(사업 신호)이므로 수요 `confirmed`는 고객 검증 자료(`direct_demand`)가 있을 때만 나온다. 종합 보고서에서도 '신호만 확인'을 수요 확인으로 바꿔 쓰지 않는다.
+- 해석 규칙: 수집 뉴스는 모두 `business_signal`(사업 신호)이므로 뉴스 근거만으로는 어느 차원도 `confirmed`가 되지 않는다(최대 `signal_only`). 수요 `confirmed`는 고객 검증 자료(`direct_demand`)가 있을 때만 나온다. 종합 보고서에서도 '신호만 확인'을 수요 확인으로 바꿔 쓰지 않는다.
 - JSON Schema: `MarketReport.model_json_schema()`
 
 

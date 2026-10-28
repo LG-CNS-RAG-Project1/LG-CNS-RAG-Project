@@ -605,10 +605,12 @@ def _compact_patent_lines(patent: PatentReport) -> list[str]:
                 }[item.status],
             )[:2]
             for comparison in comparisons:
-                refs = _compact_refs(
-                    [f"P:{item}" for item in comparison.citation_ids]
+                refs = _compact_refs([f"P:{item}" for item in comparison.citation_ids])
+                note = (
+                    comparison.overlap
+                    or comparison.difference
+                    or comparison.uncertainty
                 )
-                note = comparison.overlap or comparison.difference or comparison.uncertainty
                 lines.append(
                     f"  - {PATENT_COMPONENT_STATUS_LABELS[comparison.status]}: "
                     f"{_compact_text(comparison.idea_component, 45)} — "
@@ -726,7 +728,11 @@ def _compact_business_lines(review: BusinessReview) -> list[str]:
     lines += ["", "## 다음 행동", ""]
     if review.next_steps:
         for action in review.next_steps[:3]:
-            refs = f" ({_compact_refs(action.citation_ids)})" if action.citation_ids else ""
+            refs = (
+                f" ({_compact_refs(action.citation_ids)})"
+                if action.citation_ids
+                else ""
+            )
             lines.append(
                 f"- **{_compact_text(action.horizon, 25)} · {_compact_text(action.target, 55)}:** "
                 f"{_compact_text(action.action, 140)}{refs}"
