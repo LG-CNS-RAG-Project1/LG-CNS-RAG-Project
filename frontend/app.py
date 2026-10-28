@@ -966,6 +966,7 @@ with st.container(key="brandbar"):
     records.button("내 기록", on_click=open_page, args=("history",))
 
 if s.page == "home":
+    play_intro = not s.get("home_intro_played", False)
     with st.container(key="landing"):
         copy_markup, art_markup = hero_parts()
         copy_column, art_column = st.columns(
@@ -983,6 +984,11 @@ if s.page == "home":
                     help="돋보기를 클릭하거나 Enter 키를 눌러 아이디어 조사를 시작하세요.",
                     on_click=start_research,
                 )
+    if play_intro:
+        from frontend.landing_motion import intro_markup
+
+        st.html(intro_markup(), unsafe_allow_javascript=True)
+        s.home_intro_played = True
     st.stop()
 if s.page in ("about", "difference"):
     from frontend.introduction import render_introduction

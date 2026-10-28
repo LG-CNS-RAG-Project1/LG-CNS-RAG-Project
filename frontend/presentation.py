@@ -28,7 +28,7 @@ def hero():
       <h1>한 장의 생각에서,<br>근거 있는 아이디어로.</h1>
       <p>흩어진 생각을 정리하고, 특허와 시장을 나란히 살펴보세요.<br>한 장씩 넘길수록 다음 질문이 선명해집니다.</p>
       <span class="hero-note">구체화 → 특허·시장 검토 → 보고서</span>
-      <p class="lens-instruction">오른쪽 돋보기를 눌러<br><strong>내 아이디어 조사를 시작하세요.</strong> <span aria-hidden="true">↗</span></p></div>
+      </div>
       <div class="paper-scene">
         <div class="visual-paper back-paper" aria-hidden="true"></div>
         <div class="visual-paper middle-paper" aria-hidden="true"></div>
