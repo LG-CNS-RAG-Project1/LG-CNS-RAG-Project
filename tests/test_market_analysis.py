@@ -132,7 +132,6 @@ def test_allowed_verdicts():
     evidence, _ = build_evidence(ASSESSED, AS_OF)
 
     assert allowed_verdicts("price", "sufficient", evidence) == [
-        "confirmed",
         "signal_only",
         "unverified",
     ]
@@ -140,6 +139,18 @@ def test_allowed_verdicts():
         "signal_only",
         "unverified",
     ]
+    purchase = [evidence[0].model_copy(update={"evidence_nature": "purchase_signal"})]
+    assert allowed_verdicts("price", "sufficient", evidence + purchase) == [
+        "confirmed",
+        "signal_only",
+        "unverified",
+    ]
+    assert allowed_verdicts("demand", "sufficient", purchase) == [
+        "signal_only",
+        "unverified",
+    ]
+    direct = [evidence[0].model_copy(update={"evidence_nature": "direct_demand"})]
+    assert allowed_verdicts("demand", "sufficient", direct)[0] == "confirmed"
     assert allowed_verdicts("price", "limited", evidence) == [
         "signal_only",
         "unverified",

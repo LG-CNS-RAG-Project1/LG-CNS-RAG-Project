@@ -6,18 +6,23 @@
       "verdict": "signal_only",
       "claims": [
         {
-          "statement": "증권사 연구원은 글로벌 제조 현장의 인구구조 변화와 인건비 상승으로 인해 산업용 및 협동로봇 도입이 필수라고 보았다.",
+          "statement": "글로벌 제조 현장의 인구구조 변화와 인건비 상승으로 인해 산업용 및 협동로봇 도입은 선택이 아닌 필수라는 주장이 있다.",
           "claim_type": "fact",
           "citation_ids": [
             1
           ]
         },
         {
-          "statement": "중소기업의 AI 도입이 더딘 이유로 개별 기업이 비용과 실패 위험을 혼자 감당하기 때문이라는 분석이 있다.",
+          "statement": "중소기업의 AI 도입이 더딘 이유로 개별 기업이 비용과 실패 위험을 혼자 감당하기 어렵다는 의견이 있다.",
           "claim_type": "fact",
           "citation_ids": [
             2
           ]
+        },
+        {
+          "statement": "중소 제조사에서 협동로봇 도입이 필요할 가능성이 있다.",
+          "claim_type": "ai_hypothesis",
+          "citation_ids": []
         }
       ],
       "next_check": null
@@ -27,18 +32,23 @@
       "verdict": "signal_only",
       "claims": [
         {
-          "statement": "이 대표는 비전을 결합한 직교로봇·협동로봇이 현장 자동화를 이끌 것으로 예상했다.",
+          "statement": "비전을 결합한 협동로봇이 현장 자동화를 이끌 것으로 예상된다는 주장이 있다.",
           "claim_type": "fact",
           "citation_ids": [
             3
           ]
         },
         {
-          "statement": "협동로봇을 활용한 산업 자동화 기술이 전시되었다.",
+          "statement": "협동로봇을 활용한 산업 자동화 기술이 선보이고 있다는 보도가 있다.",
           "claim_type": "fact",
           "citation_ids": [
             4
           ]
+        },
+        {
+          "statement": "협동로봇과 머신비전의 결합이 경쟁력을 높일 가능성이 있다.",
+          "claim_type": "ai_hypothesis",
+          "citation_ids": []
         }
       ],
       "next_check": null
@@ -48,18 +58,23 @@
       "verdict": "signal_only",
       "claims": [
         {
-          "statement": "로봇 도입 시 총소유비용(TCO)이 중요한 판단 기준이 된다는 보도가 있다.",
+          "statement": "제조업 고객이 로봇을 도입할 때 총소유비용(TCO)이 중요한 판단 기준이라는 주장이 있다.",
           "claim_type": "fact",
           "citation_ids": [
             6
           ]
         },
         {
-          "statement": "협동로봇 도입 비용에는 본체 가격뿐만 아니라 시스템 통합 비용도 고려해야 한다.",
+          "statement": "협동로봇 도입 시 시스템 통합에 소요되는 비용도 고려해야 한다는 의견이 있다.",
           "claim_type": "fact",
           "citation_ids": [
             8
           ]
+        },
+        {
+          "statement": "협동로봇 도입 비용이 중소 제조사에 부담이 될 가능성이 있다.",
+          "claim_type": "ai_hypothesis",
+          "citation_ids": []
         }
       ],
       "next_check": null
@@ -69,18 +84,23 @@
       "verdict": "signal_only",
       "claims": [
         {
-          "statement": "매경기업비용절감센터는 생산 라인 내에 협동로봇을 중심으로 한 자동화 시스템 도입을 제안했다.",
+          "statement": "중소 제조사에서 협동로봇 도입이 필요하다는 주장이 있다.",
           "claim_type": "fact",
           "citation_ids": [
             7
           ]
         },
         {
-          "statement": "광진은 두산로보틱스와의 만남을 계기로 협동로봇을 도입했다.",
+          "statement": "광진의 협동로봇 도입 계기는 두산로보틱스와의 만남에서 시작되었다는 보도가 있다.",
           "claim_type": "fact",
           "citation_ids": [
             9
           ]
+        },
+        {
+          "statement": "중소 제조사에서 협동로봇의 반복성, 유지보수성, 비용이 중요한 요소일 가능성이 있다.",
+          "claim_type": "ai_hypothesis",
+          "citation_ids": []
         }
       ],
       "next_check": null
@@ -90,18 +110,23 @@
       "verdict": "signal_only",
       "claims": [
         {
-          "statement": "중소기업은 설비 투자뿐 아니라 시스템 구축, 유지보수, 인력 교육까지 추가 비용이 발생하면서 초기 진입이 쉽지 않다.",
+          "statement": "중소기업은 설비 투자뿐 아니라 시스템 구축, 유지보수, 인력 교육까지 추가 비용이 발생한다는 주장이 있다.",
           "claim_type": "fact",
           "citation_ids": [
             10
           ]
         },
         {
-          "statement": "경기 불확실성과 기술 변화 주기가 짧아질수록 설비를 직접 도입하기보다 월 단위로 빌려 쓰는 경향이 있다.",
+          "statement": "중소기업의 디지털 전환 진입장벽이 낮아지고 있다는 보도가 있다.",
           "claim_type": "fact",
           "citation_ids": [
             12
           ]
+        },
+        {
+          "statement": "중소 제조사에서 초기 진입 장벽이 존재할 가능성이 있다.",
+          "claim_type": "ai_hypothesis",
+          "citation_ids": []
         }
       ],
       "next_check": null

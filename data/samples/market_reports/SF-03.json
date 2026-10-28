@@ -6,18 +6,23 @@
       "verdict": "signal_only",
       "claims": [
         {
-          "statement": "삼성전자가 엔비디아와 손잡고 디지털 트윈·예지보전 기반 ‘AI 자율 공장’ 구축에 나섰다.",
-          "claim_type": "fact",
-          "citation_ids": [
-            1
-          ]
-        },
-        {
-          "statement": "AI 기반 설비진단 기술이 산업 전반에 걸쳐 생산성 향상과 비용 절감의 긍정적인 변화를 이끌 것이라는 전망이 있다.",
+          "statement": "AI 기반 예지보전 기술이 산업 전반에 걸쳐 생산성 향상과 비용 절감의 긍정적인 변화를 이끌 것이라는 주장이 있다.",
           "claim_type": "fact",
           "citation_ids": [
             2
           ]
+        },
+        {
+          "statement": "삼성전자가 예지보전 기능을 요구하고 있으며, 이를 통해 고장 징후를 미리 파악할 수 있다고 보도되었다.",
+          "claim_type": "fact",
+          "citation_ids": [
+            3
+          ]
+        },
+        {
+          "statement": "제조업계에서 예지보전 시스템 구축이 활발히 이루어지고 있다는 신호가 있다.",
+          "claim_type": "ai_hypothesis",
+          "citation_ids": []
         }
       ],
       "next_check": null
@@ -27,42 +32,47 @@
       "verdict": "signal_only",
       "claims": [
         {
-          "statement": "지멘스가 독일의 유제품 가공 공장에 AI 기반 예지보전 솔루션을 성공적으로 구축했다.",
+          "statement": "지멘스가 AI 기반 예지보전 솔루션을 성공적으로 구축하여 비용 절감을 이끌었다고 보도되었다.",
           "claim_type": "fact",
           "citation_ids": [
             5
           ]
         },
         {
-          "statement": "아이티공간이 차세대 AI 전류 예지보전 기술을 선보였다.",
+          "statement": "LG전자가 예지보전과 위험성 평가를 지원하는 AI 솔루션을 검토하고 있다는 보도가 있다.",
           "claim_type": "fact",
           "citation_ids": [
-            8
+            6
           ]
+        },
+        {
+          "statement": "예지보전 분야에서 다양한 기업들이 경쟁하고 있다는 신호가 있다.",
+          "claim_type": "ai_hypothesis",
+          "citation_ids": []
         }
       ],
       "next_check": null
     },
     {
       "dimension": "price",
-      "verdict": "signal_only",
+      "verdict": "unverified",
       "claims": [
         {
-          "statement": "지멘스의 예지보전 솔루션이 대규모 생산 환경에서 상당한 비용 절감을 이루었다.",
+          "statement": "지멘스의 예지보전 솔루션이 상당한 비용 절감을 이끌었다는 보도가 있다.",
           "claim_type": "fact",
           "citation_ids": [
             9
           ]
         }
       ],
-      "next_check": null
+      "next_check": "수익모델(판매·구독 등)을 정한 뒤 공급사 견적으로 가격대 확인"
     },
     {
       "dimension": "buyer",
       "verdict": "signal_only",
       "claims": [
         {
-          "statement": "삼성전자가 반도체 협력사에 예지보전 기능을 요구했다.",
+          "statement": "삼성전자가 예지보전 기능을 요구하고 있다는 보도가 있다.",
           "claim_type": "fact",
           "citation_ids": [
             3
@@ -76,7 +86,7 @@
       "verdict": "signal_only",
       "claims": [
         {
-          "statement": "중소기업은 설비 투자, 시스템 구축, 유지보수, 인력 교육까지 추가 비용이 발생하면서 초기 진입이 쉽지 않다.",
+          "statement": "중소기업이 설비 투자와 시스템 구축, 유지보수, 인력 교육 등으로 인해 초기 진입이 쉽지 않다는 보도가 있다.",
           "claim_type": "fact",
           "citation_ids": [
             10
@@ -258,7 +268,9 @@
       "similarity": 0.5307
     }
   ],
-  "unknowns": [],
+  "unknowns": [
+    "가격 근거 미확인"
+  ],
   "search_scope": "네이버 뉴스 검색 API로 사전 수집한 스마트팩토리 기사 1895건(제목·요약, 발행일 20240102~20261023), 아이디어 SF-03 수집 키워드 범위",
   "data_as_of": 20261028,
   "error_message": null

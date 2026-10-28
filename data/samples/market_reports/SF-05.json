@@ -6,18 +6,23 @@
       "verdict": "signal_only",
       "claims": [
         {
-          "statement": "현대차그룹은 AI를 활용해 생산 라인의 업무 방식을 변화시키고 있다.",
+          "statement": "현대차그룹은 현장에 AI를 도입하여 업무 방식을 변화시키고 있다.",
           "claim_type": "fact",
           "citation_ids": [
             1
           ]
         },
         {
-          "statement": "포스코는 중소기업의 스마트공장 지원을 확대하고 있다.",
+          "statement": "중소 제조기업은 자동화 설비 투자와 디지털 전환의 필요성이 커지고 있다.",
           "claim_type": "fact",
           "citation_ids": [
             2
           ]
+        },
+        {
+          "statement": "제조 현장에서 AI 어시스턴트의 도입이 증가할 가능성이 있다.",
+          "claim_type": "ai_hypothesis",
+          "citation_ids": []
         }
       ],
       "next_check": null
@@ -27,18 +32,23 @@
       "verdict": "signal_only",
       "claims": [
         {
-          "statement": "MS와 LG전자는 AI 홈 음성 에이전트의 대화 품질을 개선하고 있다.",
+          "statement": "LG전자는 AI 홈 음성 에이전트의 대화 품질을 개선하고 있다.",
           "claim_type": "fact",
           "citation_ids": [
             3
           ]
         },
         {
-          "statement": "한수원은 사내망 전용 AI 문서 도구를 도입하여 문서 작업 방식을 개편하고 있다.",
+          "statement": "산업안전 AI 어시스턴트와 같은 경쟁 제품이 등장하고 있다.",
           "claim_type": "fact",
           "citation_ids": [
-            5
+            4
           ]
+        },
+        {
+          "statement": "AI 문서 도구와 같은 대체재가 존재할 가능성이 있다.",
+          "claim_type": "ai_hypothesis",
+          "citation_ids": []
         }
       ],
       "next_check": null
@@ -54,11 +64,16 @@
       "verdict": "signal_only",
       "claims": [
         {
-          "statement": "현대차그룹은 AI를 활용해 생산 라인의 업무 방식을 변화시키고 있다.",
+          "statement": "현대차그룹은 AI 어시스턴트를 도입하여 현장 업무 방식을 변화시키고 있다.",
           "claim_type": "fact",
           "citation_ids": [
             1
           ]
+        },
+        {
+          "statement": "제조 현장 작업자와 생산 관리자가 주요 고객이 될 가능성이 있다.",
+          "claim_type": "ai_hypothesis",
+          "citation_ids": []
         }
       ],
       "next_check": null
@@ -68,18 +83,23 @@
       "verdict": "signal_only",
       "claims": [
         {
-          "statement": "스마트공장 도입 기업들은 전문인력 부족 문제를 겪고 있다.",
+          "statement": "스마트공장 도입에 있어 전문인력 부족이 문제로 지적되고 있다.",
           "claim_type": "fact",
           "citation_ids": [
             6
           ]
         },
         {
-          "statement": "중소기업은 AI 도입 시 설비 투자와 시스템 구축 등으로 인한 비용 부담을 겪고 있다.",
+          "statement": "중소기업은 초기 설비 투자와 시스템 구축에 어려움을 겪고 있다.",
           "claim_type": "fact",
           "citation_ids": [
             7
           ]
+        },
+        {
+          "statement": "도입장벽이 존재할 가능성이 있다.",
+          "claim_type": "ai_hypothesis",
+          "citation_ids": []
         }
       ],
       "next_check": null
