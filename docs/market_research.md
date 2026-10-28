@@ -202,7 +202,7 @@ flowchart TD
 |---|---|
 | 아이디어 구조화·재질문 | `prompts/idea_parser.md`, `src/generation/idea_parser.py` |
 | 입력 가드레일 | `src/generation/input_guard.py`, `prompts/idea_parser.md`, `evaluation/guardrail_cases.json`, `evaluation/guardrail_eval.py` |
-| 수집 키워드·요청 설정 | `configs/market_keywords.yaml` |
+| 공통 기술 분야·시장/특허 키워드·시장 수집 설정 | `configs/technology_areas.yaml` |
 | 네이버 뉴스 수집 | `src/ingestion/news_client.py` → `data/market/raw/` |
 | DART 공시 수집 | `src/ingestion/dart_client.py` |
 | 정제·중복 제거 | `src/ingestion/market_processor.py` → `data/market/processed/market_docs.jsonl` |

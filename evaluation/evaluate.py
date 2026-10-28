@@ -22,6 +22,7 @@ import argparse
 import csv
 import math
 import time
+import subprocess
 from collections import Counter
 from functools import partial
 from pathlib import Path
@@ -65,6 +66,10 @@ RESULT_FIELDS = [
     "rerank_ms",
     "unjudged",
     "retrieved",
+    "mode",
+    "model",
+    "prompt",
+    "commit",
 ]
 
 
@@ -155,7 +160,10 @@ def evaluate_patents(cases: list[dict], search_fn, k: int = K) -> list[dict]:
         if not case.get("labeled"):
             continue
         started = time.perf_counter()
-        hits = search_fn(case["query"], k)
+        try:
+            hits = search_fn(case["query"], k, case.get("technology_area_id"))
+        except TypeError:
+            hits = search_fn(case["query"], k)
         elapsed_ms = (time.perf_counter() - started) * 1000
         rerank_ms = hits[0].get("rerank_ms", 0.0) if hits else 0.0
         retrieved = [hit["source_id"] for hit in hits]
@@ -192,7 +200,9 @@ def default_patent_search_fn(retrieval_mode: str = "dense", reranker=None):
             "patent Chroma index is empty; ingest and index patent documents before evaluation"
         )
 
-    def search(query: str, top_k: int) -> list[dict]:
+    def search(
+        query: str, top_k: int, technology_area_id: str | None = None
+    ) -> list[dict]:
         rerank_times = []
         timed_reranker = None
         if reranker:
@@ -209,6 +219,7 @@ def default_patent_search_fn(retrieval_mode: str = "dense", reranker=None):
             top_k=top_k,
             retrieval_mode=retrieval_mode,
             reranker=timed_reranker,
+            technology_area_id=technology_area_id,
         )
         rerank_ms = rerank_times[0] if rerank_times else 0.0
         return [
@@ -270,6 +281,26 @@ def save_patent_results(rows: list[dict], label: str, results_dir: Path = RESULT
     return path
 
 
+def attach_run_metadata(rows: list[dict], mode: str, rerank: bool) -> list[dict]:
+    """검색 평가 결과에 재현에 필요한 모드·모델·프롬프트·커밋 정보를 붙인다."""
+    commit = subprocess.run(
+        ["git", "rev-parse", "HEAD"], capture_output=True, text=True, check=False
+    ).stdout.strip()
+    model = (
+        "BAAI/bge-reranker-v2-m3"
+        if rerank
+        else ("text-embedding-3-small" if mode in {"dense", "hybrid"} else "BM25")
+    )
+    for row in rows:
+        row.update(
+            mode=mode + ("+rerank" if rerank else ""),
+            model=model,
+            prompt="n/a · retrieval",
+            commit=commit,
+        )
+    return rows
+
+
 def run_relevance(model: str, label: str) -> None:
     """관련성 필터를 사람 라벨과 비교하고 행별 결과를 market_relevance_{label}.csv로 저장한다."""
     result = evaluate_relevance(
@@ -322,6 +353,9 @@ def main() -> None:
     sub = parser.add_subparsers(dest="command", required=True)
     market = sub.add_parser("market", help="시장 근거 검색 평가")
     market.add_argument("--label", default="baseline", help="결과 파일 이름")
+    market.add_argument(
+        "--idea-ids", help="평가할 아이디어 ID를 쉼표로 제한 (예: SF-01,SF-02)"
+    )
     market.add_argument("--mode", choices=["dense", "bm25", "hybrid"], default="dense")
     market.add_argument(
         "--rerank",
@@ -361,12 +395,19 @@ def main() -> None:
 
         reranker = bge_reranker()
     if args.command == "market":
+        market_cases = load_cases()
+        if args.idea_ids:
+            included = set(args.idea_ids.split(","))
+            market_cases = [
+                case for case in market_cases if case["idea_id"] in included
+            ]
         rows = evaluate_market(
-            load_cases(),
+            market_cases,
             load_ideas(),
             default_search_fn(args.mode, reranker=reranker),
             idea_filter=not args.no_idea_filter,
         )
+        attach_run_metadata(rows, args.mode, args.rerank)
         result_path = save_results(
             rows, f"{args.mode}_{'rerank_' if args.rerank else ''}{args.label}"
         )
@@ -383,6 +424,7 @@ def main() -> None:
             cases,
             default_patent_search_fn(args.mode, reranker=reranker),
         )
+        attach_run_metadata(rows, args.mode, args.rerank)
         result_path = save_patent_results(
             rows, f"{args.mode}_{'rerank_' if args.rerank else ''}{args.label}"
         )

@@ -20,7 +20,7 @@ from frontend.quick import (
     validate_link,
     review_rows,
 )
-from frontend.workspace import EXAMPLE
+from frontend.workspace import EXAMPLE, empty_costs, cost_summary
 from frontend.automatic import automatic_links
 from frontend.presentation import hero, brand_style
 
@@ -43,6 +43,11 @@ for key, value in {
     "confirmed_context": False,
     "link_version": 0,
     "next_qid": 3,
+    "idea_draft": None,
+    "real_mode": False,
+    "pipeline_result": None,
+    "technology_area_id": "SF-02",
+    "cost_rows": empty_costs(),
 }.items():
     if key not in st.session_state:
         st.session_state[key] = value
@@ -95,10 +100,81 @@ def prepare_input():
         s.version += 1
         invalidate_context()
         s.memo = ""
+        s.idea_draft = None
+        s.real_mode = False
+        s.pipeline_result = None
         s.saved_memo = ""
         item = {"text": text, "title": title}
         s.recent = [item] + [x for x in s.recent if x != item][:4]
     return True
+
+
+def make_ai_draft():
+    from src.generation.idea_parser import parse_idea
+
+    try:
+        draft = parse_idea(s.get("raw_input", s.raw).strip())
+        s.idea_draft = draft
+        s.real_mode = draft.status != "rejected"
+        s.pipeline_result = None
+        if draft.status == "complete":
+            s.parts = [draft.technology] if draft.technology else [draft.problem]
+            s.questions = [
+                {
+                    "id": "Q1",
+                    "question": f"{draft.problem}을 {draft.technology}로 해결할 수 있는가?",
+                    "condition": "",
+                }
+            ]
+            s.version += 1
+            invalidate_context()
+        st.session_state.ai_draft_error = None
+    except Exception as exc:
+        st.session_state.ai_draft_error = str(exc)
+
+
+def apply_ai_answers():
+    from src.generation.idea_parser import apply_answers
+
+    answers = {
+        field: st.session_state.get(f"ai_answer_{field}", "")
+        for field in s.idea_draft.questions
+    }
+    try:
+        s.idea_draft = apply_answers(s.idea_draft, answers)
+        s.real_mode = s.idea_draft.status != "rejected"
+        if s.idea_draft.status == "complete":
+            s.parts = (
+                [s.idea_draft.technology]
+                if s.idea_draft.technology
+                else [s.idea_draft.problem]
+            )
+            s.questions = [
+                {
+                    "id": "Q1",
+                    "question": f"{s.idea_draft.problem}을 {s.idea_draft.technology}로 해결할 수 있는가?",
+                    "condition": "",
+                }
+            ]
+            s.version += 1
+        st.session_state.ai_draft_error = None
+    except Exception as exc:
+        st.session_state.ai_draft_error = str(exc)
+
+
+def run_real_pipeline():
+    from src.pipeline import run_pipeline
+
+    try:
+        s.pipeline_result = run_pipeline(
+            s.idea_draft,
+            s.questions,
+            technical_components=s.parts,
+            technology_area_id=s.technology_area_id,
+        )
+        st.session_state.pipeline_error = None
+    except Exception as exc:
+        st.session_state.pipeline_error = str(exc)
 
 
 def effective_links():
@@ -229,7 +305,7 @@ with st.container(key="brandbar"):
         "IdeaLens", key="home", on_click=navigate, args=(1,), help="홈페이지로 이동"
     )
     section.caption("시장·특허 조사")
-    status.caption("로컬 시연 · 실제 분석 미연결")
+    status.caption("실제 분석 실행 · 가상 시연")
 steps = ["아이디어 입력", "구성·검토 질문", "근거·연결 검토", "종합 보고서"]
 with st.container(key="stepnav"):
     for i, column in enumerate(st.columns(4), 1):
@@ -291,6 +367,44 @@ with st.container(key=f"sheet_{s.stage}_{direction}"):
                 b.button(
                     "예시 불러오기", on_click=load, args=(DEMO_TEXT, EXAMPLE["idea"])
                 )
+                st.selectbox(
+                    "특허 색인 분야",
+                    ["SF-02", "SF-05"],
+                    format_func=lambda key: (
+                        "SF-02 · AI 비전 품질검사"
+                        if key == "SF-02"
+                        else "SF-05 · 지능형 공정제어"
+                    ),
+                    key="technology_area_id",
+                )
+                if st.button(
+                    "AI로 항목 초안 만들기 · 재질문", use_container_width=True
+                ):
+                    if len(raw.strip()) < 10:
+                        st.error("아이디어 내용을 10자 이상 입력해 주세요.")
+                    else:
+                        prepare_input()
+                        make_ai_draft()
+                if st.session_state.get("ai_draft_error"):
+                    st.error(st.session_state.ai_draft_error)
+                if s.idea_draft is not None:
+                    draft = s.idea_draft
+                    if draft.status == "rejected":
+                        st.warning(draft.rejection_reason)
+                    elif draft.status == "needs_input":
+                        st.info("빈 항목을 보완해 주세요. ‘모름’도 입력할 수 있습니다.")
+                        with st.form("ai_followup_form"):
+                            for field, question in draft.questions.items():
+                                st.text_input(
+                                    question, key=f"ai_answer_{field}_{draft.rounds}"
+                                )
+                            st.form_submit_button(
+                                "답변 반영", on_click=apply_ai_answers
+                            )
+                    elif draft.status == "complete":
+                        st.success(
+                            "AI 초안이 준비됐습니다. 구성·질문을 검토한 뒤 실제 조사를 실행할 수 있습니다."
+                        )
                 if st.button(
                     "핵심 구성 확인하기 →", type="primary", use_container_width=True
                 ):
@@ -301,7 +415,7 @@ with st.container(key=f"sheet_{s.stage}_{direction}"):
                         s.stage = 2
                         st.rerun()
             st.caption(
-                "AI 특징 추출은 미연결입니다. 다음 단계에서 직접 구성을 작성·확인합니다."
+                "AI 초안 생성은 선택 기능입니다. 직접 입력한 뒤 구성만 작성해도 시연을 진행할 수 있습니다."
             )
         with recent:
             st.subheader("최근 입력 내용")
@@ -327,9 +441,13 @@ with st.container(key=f"sheet_{s.stage}_{direction}"):
         with editor:
             st.subheader("핵심 구성")
             st.info(
-                "예시는 미리 작성된 구성입니다. AI 추출 결과가 아닙니다."
-                if s.raw == DEMO_TEXT
-                else "특징 추출 미연결 · 핵심 구성을 직접 작성해 주세요."
+                "AI가 추출한 초안입니다. 검색 전에 내용을 확인하고 수정해 주세요."
+                if s.real_mode and s.idea_draft and s.idea_draft.status == "complete"
+                else (
+                    "예시는 미리 작성된 구성입니다. AI 추출 결과가 아닙니다."
+                    if s.raw == DEMO_TEXT
+                    else "특징 추출 미연결 · 핵심 구성을 직접 작성해 주세요."
+                )
             )
             for i, part in enumerate(s.parts):
                 with st.container(border=True):
@@ -418,8 +536,16 @@ with st.container(key=f"sheet_{s.stage}_{direction}"):
                         for q in s.questions
                     ]
                     s.confirmed_context = True
-                    s.selected = [source["id"] for source in candidates(s.raw)]
-                    s.stage = 3
+                    if (
+                        s.real_mode
+                        and s.idea_draft
+                        and s.idea_draft.status == "complete"
+                    ):
+                        s.pipeline_result = None
+                        s.stage = 3
+                    else:
+                        s.selected = [source["id"] for source in candidates(s.raw)]
+                        s.stage = 3
                     st.rerun()
         with original:
             with st.container(border=True):
@@ -431,330 +557,418 @@ with st.container(key=f"sheet_{s.stage}_{direction}"):
             )
         st.button("← 입력 수정", on_click=navigate, args=(1,))
     elif s.stage == 3:
-        chosen = selected_sources(s.raw, s.selected)
-        bar, action = st.columns([3, 1])
-        bar.subheader(s.research_title or "문헌 선정·근거 검토")
-        with action:
-            if st.button(
-                "종합 보고서 생성 →",
-                type="primary",
-                disabled=len(chosen) < 2,
-                use_container_width=True,
-            ):
-                snapshot()
-                s.stage = 4
-                st.rerun()
-        st.caption(
-            "특허·시장 조사는 별도 결과로 검토합니다. 현재 후보는 실제 검색 결과가 아닌 가상 자료입니다."
-        )
-        left, middle, right = st.columns([1, 2.1, 1.5], gap="medium")
-        with left:
-            st.subheader("아이디어의 구성")
-            for i, part in enumerate(s.parts, 1):
-                with st.container(border=True):
-                    st.caption(f"구성 {i}")
-                    st.write(part)
-            st.button("구성 수정", on_click=navigate, args=(2,))
-        with middle:
-            st.subheader("후보 자료")
-            connections, patent, market = st.tabs(
-                ["자동 연결 결과", "특허·기술 조사", "시장·기업 조사"]
-            )
-            for tab, kinds in [(patent, {"특허"}), (market, {"시장", "기업"})]:
-                with tab:
-                    rows = [r for r in candidates(s.raw) if r["kind"] in kinds]
-                    st.caption(
-                        "가상 예시 준비 · 실검색 미연결"
-                        if rows
-                        else "검색 미연결 · 결과 없음과 다릅니다"
-                    )
-                    if not rows:
-                        st.info(
-                            "실제 검색은 연결 전입니다. 이 입력에 가상 분석을 붙이지 않았습니다."
-                        )
-                    for row in rows:
-                        with st.container(border=True):
-                            st.caption(
-                                f"{row['id']} · {row['kind']} · 시연용 가상 자료"
-                            )
-                            st.markdown(f"#### {row['title']}")
-                            st.write(row["quote"])
-                            related = [
-                                q["id"]
-                                for q in s.questions
-                                if row["id"]
-                                in effective_links()
-                                .get(q["id"], {})
-                                .get("market_ids", [])
-                                + effective_links()
-                                .get(q["id"], {})
-                                .get("patent_ids", [])
-                                + effective_links()
-                                .get(q["id"], {})
-                                .get("counter_ids", [])
-                            ]
-                            st.caption(
-                                "연결 검토 질문: "
-                                + (", ".join(related) or "아직 미연결")
-                            )
-                            with st.expander("문헌 상세·원문 근거"):
-                                st.caption(row["location"])
-                                st.write(row["limit"])
-                                st.caption(
-                                    f"대상: {row['entity']} · 기준 시점: {row['period']} · 문헌 버전: {row['version']}"
-                                )
-                                st.caption(
-                                    "구성별 대응: 미검토 · 실제 원문·출처·도면 미연결"
-                                )
-                            st.button(
-                                (
-                                    "선택 해제"
-                                    if row["id"] in s.selected
-                                    else "＋ 검토 자료에 추가"
-                                ),
-                                key=f"pick_{row['id']}",
-                                on_click=select,
-                                args=(row["id"],),
-                                use_container_width=True,
-                            )
-        with right:
-            st.subheader("선택한 검토 자료")
-            count = sum(r["kind"] == "특허" for r in chosen)
-            st.caption(f"특허 {count}건 · 시장·기업 {len(chosen)-count}건")
-            if not chosen:
-                st.info("중앙 후보에서 보고서에 사용할 자료를 선택하세요.")
-            for row in chosen:
-                with st.container(border=True):
-                    st.write(f"[{row['id']}] {row['title']}")
-                    st.button(
-                        "제외",
-                        key=f"exclude_{row['id']}",
-                        on_click=select,
-                        args=(row["id"],),
-                    )
+        if s.real_mode:
+            st.title("실제 특허·시장 조사")
             st.caption(
-                "2건 선택은 보고서 열기 조건일 뿐입니다. 질문별 연결은 별도로 검토합니다."
+                "선택 분야의 로컬 특허 색인과 시장 색인을 사용합니다. API 키와 데이터가 필요합니다."
             )
-            if chosen and (count == 0 or count == len(chosen)):
-                st.warning("한 영역만 선택됐어요. 다른 영역은 미확인으로 표시합니다.")
-            st.markdown("**질문별 연결 상태**")
-            for entry in review_rows(
-                s.raw, s.parts, s.selected, s.questions, effective_links()
-            ):
-                st.write(entry["question"])
-                st.caption(entry["status"])
-            st.caption(
-                "중앙 자동 연결 결과에서 기준별 판단 과정과 양쪽 근거를 확인하세요."
-            )
-        with connections:
-            with st.expander("연결 검토 기준 6가지"):
-                st.markdown(
-                    "- 사용 맥락: 고객·작업·환경이 같은가?\n- 해결 과제: 같은 문제를 다루는가?\n- 기술 구성: 입력·부품·방법·출력이 대응하는가?\n- 요구 성능: 시험 조건과 수치가 비교 가능한가?\n- 도입 제약: 가격·설치·운영·인증 조건이 맞는가?\n- 근거 범위: 기업·제품·기간·국가와 인용의 범위가 맞는가?"
+            if s.pipeline_result is None:
+                st.info(
+                    "검색·관련성 판정·분석을 순서대로 실행합니다. 외부 API 호출이 발생할 수 있습니다."
                 )
-            st.info(
-                "2단계에서 확정한 질문·조건으로 자동 결과를 구성했습니다. 현재는 사전 작성된 예시 규칙의 시연이며 실제 AI 분석이 아닙니다. 수정한 입력은 분석 미연결로 판단 보류합니다."
-            )
-            for q in s.questions:
-                saved = effective_links().get(q["id"], {})
-                with st.expander(f"{q['id']} · {q['question']}", expanded=True):
-                    st.caption(f"도입 조건: {q['condition'] or '미입력'}")
-                    if q["id"] in s.excluded_questions:
-                        st.warning(
-                            "보고서 연결 검토에서 제외한 질문입니다. 자료의 원문 목록은 유지됩니다."
-                        )
-                    else:
-                        entry = next(
-                            e
-                            for e in review_rows(
-                                s.raw,
-                                s.parts,
-                                s.selected,
-                                s.questions,
-                                effective_links(),
-                            )
-                            if e["id"] == q["id"]
-                        )
-                        st.caption(entry["status"])
-                        st.write(f"연결 유형: {entry['relation']}")
-                        st.write(entry["reason"])
-                        st.caption(f"다음 검증: {entry['next_check']}")
-                        with st.expander("판단 과정·기준별 근거 보기"):
-                            for criterion in entry["assessment"]:
-                                st.markdown(
-                                    f"**{criterion['criterion']} · {criterion['result']}**"
-                                )
-                                st.write(criterion["reason"])
-                                st.caption(
-                                    "근거: "
-                                    + (
-                                        ", ".join(criterion["source_ids"])
-                                        or "없음 · 추가 검증 필요"
-                                    )
-                                )
-                            if not entry["assessment"]:
-                                st.caption(
-                                    "사용자 수정 내용입니다. 자동 기준 평가를 통과했다는 의미는 아닙니다."
-                                )
-                            st.write(f"한계: {entry['conditions']}")
-                            st.write(f"반대·미조사: {entry['counter_reason']}")
-                        st.button(
-                            "이 연결 제외",
-                            key=f"exclude_auto_{q['id']}",
-                            on_click=drop_link,
-                            args=(q["id"],),
-                        )
-                    st.button(
-                        "자동 결과로 되돌리기",
-                        key=f"restore_{q['id']}",
-                        on_click=restore_link,
-                        args=(q["id"],),
+                if st.button(
+                    "특허·시장 조사 실행", type="primary", on_click=run_real_pipeline
+                ):
+                    pass
+                if st.session_state.get("pipeline_error"):
+                    st.error(st.session_state.pipeline_error)
+            else:
+                result = s.pipeline_result
+                st.write(
+                    f"특허: {result.patent.status} · 근거 {len(result.patent.evidence)}건"
+                )
+                st.write(
+                    f"시장: {result.market.status} · 근거 {len(result.market.evidence)}건"
+                )
+                if result.errors:
+                    for error in result.errors:
+                        st.warning(error)
+                st.subheader("질문별 통합 연결")
+                for link in result.links:
+                    with st.expander(
+                        f"{link.question_id} · {link.status}", expanded=True
+                    ):
+                        st.write(link.summary)
+                        for criterion in link.criteria:
+                            st.write(f"{criterion.criterion}: {criterion.assessment}")
+                            st.caption(", ".join(criterion.citation_ids) or "근거 없음")
+                st.subheader("원문 근거")
+                for item in result.patent.evidence:
+                    st.markdown(
+                        f"**P:{item.citation_id} · {item.title} · {item.section}**"
                     )
-                    with st.expander("필요할 때만 결과 수정"):
-                        with st.form(f"link_form_{s.link_version}_{q['id']}"):
-                            labels = {
-                                f"C{i}": f"C{i} · {p}" for i, p in enumerate(s.parts, 1)
-                            }
-                            comps = st.multiselect(
-                                "관련 구성",
-                                key=f"link_{s.link_version}_{q['id']}_comps",
-                                options=list(labels),
-                                default=[
-                                    i
-                                    for i in saved.get("component_ids", [])
-                                    if i in labels
-                                ],
-                                format_func=lambda i: labels[i],
+                    st.write(item.quote)
+                    st.caption(
+                        f"출원 {item.application_date or '미확인'} · 공개 {item.publication_date or '미확인'} · {item.source_url or ''}"
+                    )
+                for item in result.market.evidence:
+                    st.markdown(f"**M:{item.citation_id} · {item.title}**")
+                    st.write(item.quote)
+                    st.caption(
+                        f"{item.publisher} · {item.published_at or '발행일 미확인'} · {item.url}"
+                    )
+                if st.button("종합 보고서 확인 →", type="primary"):
+                    s.stage = 4
+                    st.rerun()
+            st.button("← 구성·질문 수정", on_click=navigate, args=(2,))
+        else:
+            chosen = selected_sources(s.raw, s.selected)
+            bar, action = st.columns([3, 1])
+            bar.subheader(s.research_title or "문헌 선정·근거 검토")
+            with action:
+                if st.button(
+                    "종합 보고서 생성 →",
+                    type="primary",
+                    disabled=len(chosen) < 2,
+                    use_container_width=True,
+                ):
+                    snapshot()
+                    s.stage = 4
+                    st.rerun()
+            st.caption(
+                "특허·시장 조사는 별도 결과로 검토합니다. 현재 후보는 실제 검색 결과가 아닌 가상 자료입니다."
+            )
+            left, middle, right = st.columns([1, 2.1, 1.5], gap="medium")
+            with left:
+                st.subheader("아이디어의 구성")
+                for i, part in enumerate(s.parts, 1):
+                    with st.container(border=True):
+                        st.caption(f"구성 {i}")
+                        st.write(part)
+                st.button("구성 수정", on_click=navigate, args=(2,))
+            with middle:
+                st.subheader("후보 자료")
+                connections, patent, market = st.tabs(
+                    ["자동 연결 결과", "특허·기술 조사", "시장·기업 조사"]
+                )
+                for tab, kinds in [(patent, {"특허"}), (market, {"시장", "기업"})]:
+                    with tab:
+                        rows = [r for r in candidates(s.raw) if r["kind"] in kinds]
+                        st.caption(
+                            "가상 예시 준비 · 실검색 미연결"
+                            if rows
+                            else "검색 미연결 · 결과 없음과 다릅니다"
+                        )
+                        if not rows:
+                            st.info(
+                                "실제 검색은 연결 전입니다. 이 입력에 가상 분석을 붙이지 않았습니다."
                             )
-                            market_ids = [
-                                r["id"] for r in chosen if r["kind"] != "특허"
-                            ]
-                            patent_ids = [
-                                r["id"] for r in chosen if r["kind"] == "특허"
-                            ]
-                            markets = st.multiselect(
-                                "시장 근거",
-                                key=f"link_{s.link_version}_{q['id']}_markets",
-                                options=market_ids,
-                                default=[
-                                    i
-                                    for i in saved.get("market_ids", [])
-                                    if i in market_ids
-                                ],
-                            )
-                            patents = st.multiselect(
-                                "특허 근거",
-                                key=f"link_{s.link_version}_{q['id']}_patents",
-                                options=patent_ids,
-                                default=[
-                                    i
-                                    for i in saved.get("patent_ids", [])
-                                    if i in patent_ids
-                                ],
-                            )
-                            relation = st.selectbox(
-                                "연결 유형",
-                                key=f"link_{s.link_version}_{q['id']}_relation",
-                                options=RELATIONS,
-                                index=RELATIONS.index(
-                                    saved.get("relation", RELATIONS[0])
-                                ),
-                            )
-                            reason = st.text_area(
-                                "연결 이유 (사용자 가설)",
-                                key=f"link_{s.link_version}_{q['id']}_reason",
-                                value=saved.get("reason", ""),
-                            )
-                            conditions = st.text_area(
-                                "사용 환경·성능·기업·시점의 차이와 한계",
-                                key=f"link_{s.link_version}_{q['id']}_conditions",
-                                value=saved.get("conditions", ""),
-                            )
-                            counter_ids = st.multiselect(
-                                "반대·충돌 근거",
-                                key=f"link_{s.link_version}_{q['id']}_counter",
-                                options=[r["id"] for r in chosen],
-                                default=[
-                                    i
-                                    for i in saved.get("counter_ids", [])
-                                    if i in s.selected
-                                ],
-                            )
-                            counter_reason = st.text_area(
-                                "반대 근거 또는 미조사 사항",
-                                key=f"link_{s.link_version}_{q['id']}_counter_reason",
-                                value=saved.get("counter_reason", ""),
-                            )
-                            next_check = st.text_area(
-                                "다음 검증 과제 *",
-                                key=f"link_{s.link_version}_{q['id']}_next_check",
-                                value=saved.get("next_check", ""),
-                            )
-                            submitted = st.form_submit_button(
-                                "연결 검토 저장", key=f"save_{q['id']}"
-                            )
-                        if submitted:
-                            link = dict(
-                                question_id=q["id"],
-                                component_ids=comps,
-                                market_ids=markets,
-                                patent_ids=patents,
-                                relation=relation,
-                                reason=reason,
-                                conditions=conditions,
-                                counter_ids=counter_ids,
-                                counter_reason=counter_reason,
-                                next_check=next_check,
-                            )
-                            error = validate_link(
-                                link, s.raw, s.parts, s.selected, s.questions
-                            )
-                            if error:
-                                st.error(error)
-                            else:
-                                link["origin"] = "user"
-                                s.excluded_questions = [
-                                    i for i in s.excluded_questions if i != q["id"]
+                        for row in rows:
+                            with st.container(border=True):
+                                st.caption(
+                                    f"{row['id']} · {row['kind']} · 시연용 가상 자료"
+                                )
+                                st.markdown(f"#### {row['title']}")
+                                st.write(row["quote"])
+                                related = [
+                                    q["id"]
+                                    for q in s.questions
+                                    if row["id"]
+                                    in effective_links()
+                                    .get(q["id"], {})
+                                    .get("market_ids", [])
+                                    + effective_links()
+                                    .get(q["id"], {})
+                                    .get("patent_ids", [])
+                                    + effective_links()
+                                    .get(q["id"], {})
+                                    .get("counter_ids", [])
                                 ]
-                                s.links[q["id"]] = link
-                                s.report_snapshot = None
-                                st.rerun()
-                        if q["id"] in s.links:
-                            st.caption("저장된 사용자 검토 · 원문 검증 전")
+                                st.caption(
+                                    "연결 검토 질문: "
+                                    + (", ".join(related) or "아직 미연결")
+                                )
+                                with st.expander("문헌 상세·원문 근거"):
+                                    st.caption(row["location"])
+                                    st.write(row["limit"])
+                                    st.caption(
+                                        f"대상: {row['entity']} · 기준 시점: {row['period']} · 문헌 버전: {row['version']}"
+                                    )
+                                    st.caption(
+                                        "구성별 대응: 미검토 · 실제 원문·출처·도면 미연결"
+                                    )
+                                st.button(
+                                    (
+                                        "선택 해제"
+                                        if row["id"] in s.selected
+                                        else "＋ 검토 자료에 추가"
+                                    ),
+                                    key=f"pick_{row['id']}",
+                                    on_click=select,
+                                    args=(row["id"],),
+                                    use_container_width=True,
+                                )
+            with right:
+                st.subheader("선택한 검토 자료")
+                count = sum(r["kind"] == "특허" for r in chosen)
+                st.caption(f"특허 {count}건 · 시장·기업 {len(chosen)-count}건")
+                if not chosen:
+                    st.info("중앙 후보에서 보고서에 사용할 자료를 선택하세요.")
+                for row in chosen:
+                    with st.container(border=True):
+                        st.write(f"[{row['id']}] {row['title']}")
+                        st.button(
+                            "제외",
+                            key=f"exclude_{row['id']}",
+                            on_click=select,
+                            args=(row["id"],),
+                        )
+                st.caption(
+                    "2건 선택은 보고서 열기 조건일 뿐입니다. 질문별 연결은 별도로 검토합니다."
+                )
+                if chosen and (count == 0 or count == len(chosen)):
+                    st.warning(
+                        "한 영역만 선택됐어요. 다른 영역은 미확인으로 표시합니다."
+                    )
+                st.markdown("**질문별 연결 상태**")
+                for entry in review_rows(
+                    s.raw, s.parts, s.selected, s.questions, effective_links()
+                ):
+                    st.write(entry["question"])
+                    st.caption(entry["status"])
+                st.caption(
+                    "중앙 자동 연결 결과에서 기준별 판단 과정과 양쪽 근거를 확인하세요."
+                )
+            with connections:
+                with st.expander("연결 검토 기준 6가지"):
+                    st.markdown(
+                        "- 사용 맥락: 고객·작업·환경이 같은가?\n- 해결 과제: 같은 문제를 다루는가?\n- 기술 구성: 입력·부품·방법·출력이 대응하는가?\n- 요구 성능: 시험 조건과 수치가 비교 가능한가?\n- 도입 제약: 가격·설치·운영·인증 조건이 맞는가?\n- 근거 범위: 기업·제품·기간·국가와 인용의 범위가 맞는가?"
+                    )
+                st.info(
+                    "2단계에서 확정한 질문·조건으로 자동 결과를 구성했습니다. 현재는 사전 작성된 예시 규칙의 시연이며 실제 AI 분석이 아닙니다. 수정한 입력은 분석 미연결로 판단 보류합니다."
+                )
+                for q in s.questions:
+                    saved = effective_links().get(q["id"], {})
+                    with st.expander(f"{q['id']} · {q['question']}", expanded=True):
+                        st.caption(f"도입 조건: {q['condition'] or '미입력'}")
+                        if q["id"] in s.excluded_questions:
+                            st.warning(
+                                "보고서 연결 검토에서 제외한 질문입니다. 자료의 원문 목록은 유지됩니다."
+                            )
+                        else:
+                            entry = next(
+                                e
+                                for e in review_rows(
+                                    s.raw,
+                                    s.parts,
+                                    s.selected,
+                                    s.questions,
+                                    effective_links(),
+                                )
+                                if e["id"] == q["id"]
+                            )
+                            st.caption(entry["status"])
+                            st.write(f"연결 유형: {entry['relation']}")
+                            st.write(entry["reason"])
+                            st.caption(f"다음 검증: {entry['next_check']}")
+                            with st.expander("판단 과정·기준별 근거 보기"):
+                                for criterion in entry["assessment"]:
+                                    st.markdown(
+                                        f"**{criterion['criterion']} · {criterion['result']}**"
+                                    )
+                                    st.write(criterion["reason"])
+                                    st.caption(
+                                        "근거: "
+                                        + (
+                                            ", ".join(criterion["source_ids"])
+                                            or "없음 · 추가 검증 필요"
+                                        )
+                                    )
+                                if not entry["assessment"]:
+                                    st.caption(
+                                        "사용자 수정 내용입니다. 자동 기준 평가를 통과했다는 의미는 아닙니다."
+                                    )
+                                st.write(f"한계: {entry['conditions']}")
+                                st.write(f"반대·미조사: {entry['counter_reason']}")
                             st.button(
                                 "이 연결 제외",
-                                key=f"drop_link_{q['id']}",
-                                on_click=lambda qid=q["id"]: drop_link(qid),
+                                key=f"exclude_auto_{q['id']}",
+                                on_click=drop_link,
+                                args=(q["id"],),
                             )
-                    ids = list(
-                        dict.fromkeys(
-                            saved.get("market_ids", [])
-                            + saved.get("patent_ids", [])
-                            + saved.get("counter_ids", [])
+                        st.button(
+                            "자동 결과로 되돌리기",
+                            key=f"restore_{q['id']}",
+                            on_click=restore_link,
+                            args=(q["id"],),
                         )
-                    )
-                    for row in chosen:
-                        if row["id"] in ids:
-                            st.markdown(f"**[{row['id']}] {row['title']}**")
-                            st.write(row["quote"])
-                            related = [
-                                q["id"]
-                                for q in s.questions
-                                if row["id"]
-                                in effective_links()
-                                .get(q["id"], {})
-                                .get("market_ids", [])
-                                + effective_links()
-                                .get(q["id"], {})
-                                .get("patent_ids", [])
-                                + effective_links()
-                                .get(q["id"], {})
-                                .get("counter_ids", [])
-                            ]
-                            st.caption(
-                                "연결 검토 질문: "
-                                + (", ".join(related) or "아직 미연결")
+                        with st.expander("필요할 때만 결과 수정"):
+                            with st.form(f"link_form_{s.link_version}_{q['id']}"):
+                                labels = {
+                                    f"C{i}": f"C{i} · {p}"
+                                    for i, p in enumerate(s.parts, 1)
+                                }
+                                comps = st.multiselect(
+                                    "관련 구성",
+                                    key=f"link_{s.link_version}_{q['id']}_comps",
+                                    options=list(labels),
+                                    default=[
+                                        i
+                                        for i in saved.get("component_ids", [])
+                                        if i in labels
+                                    ],
+                                    format_func=lambda i: labels[i],
+                                )
+                                market_ids = [
+                                    r["id"] for r in chosen if r["kind"] != "특허"
+                                ]
+                                patent_ids = [
+                                    r["id"] for r in chosen if r["kind"] == "특허"
+                                ]
+                                markets = st.multiselect(
+                                    "시장 근거",
+                                    key=f"link_{s.link_version}_{q['id']}_markets",
+                                    options=market_ids,
+                                    default=[
+                                        i
+                                        for i in saved.get("market_ids", [])
+                                        if i in market_ids
+                                    ],
+                                )
+                                patents = st.multiselect(
+                                    "특허 근거",
+                                    key=f"link_{s.link_version}_{q['id']}_patents",
+                                    options=patent_ids,
+                                    default=[
+                                        i
+                                        for i in saved.get("patent_ids", [])
+                                        if i in patent_ids
+                                    ],
+                                )
+                                relation = st.selectbox(
+                                    "연결 유형",
+                                    key=f"link_{s.link_version}_{q['id']}_relation",
+                                    options=RELATIONS,
+                                    index=RELATIONS.index(
+                                        saved.get("relation", RELATIONS[0])
+                                    ),
+                                )
+                                reason = st.text_area(
+                                    "연결 이유 (사용자 가설)",
+                                    key=f"link_{s.link_version}_{q['id']}_reason",
+                                    value=saved.get("reason", ""),
+                                )
+                                conditions = st.text_area(
+                                    "사용 환경·성능·기업·시점의 차이와 한계",
+                                    key=f"link_{s.link_version}_{q['id']}_conditions",
+                                    value=saved.get("conditions", ""),
+                                )
+                                counter_ids = st.multiselect(
+                                    "반대·충돌 근거",
+                                    key=f"link_{s.link_version}_{q['id']}_counter",
+                                    options=[r["id"] for r in chosen],
+                                    default=[
+                                        i
+                                        for i in saved.get("counter_ids", [])
+                                        if i in s.selected
+                                    ],
+                                )
+                                counter_reason = st.text_area(
+                                    "반대 근거 또는 미조사 사항",
+                                    key=f"link_{s.link_version}_{q['id']}_counter_reason",
+                                    value=saved.get("counter_reason", ""),
+                                )
+                                next_check = st.text_area(
+                                    "다음 검증 과제 *",
+                                    key=f"link_{s.link_version}_{q['id']}_next_check",
+                                    value=saved.get("next_check", ""),
+                                )
+                                submitted = st.form_submit_button(
+                                    "연결 검토 저장", key=f"save_{q['id']}"
+                                )
+                            if submitted:
+                                link = dict(
+                                    question_id=q["id"],
+                                    component_ids=comps,
+                                    market_ids=markets,
+                                    patent_ids=patents,
+                                    relation=relation,
+                                    reason=reason,
+                                    conditions=conditions,
+                                    counter_ids=counter_ids,
+                                    counter_reason=counter_reason,
+                                    next_check=next_check,
+                                )
+                                error = validate_link(
+                                    link, s.raw, s.parts, s.selected, s.questions
+                                )
+                                if error:
+                                    st.error(error)
+                                else:
+                                    link["origin"] = "user"
+                                    s.excluded_questions = [
+                                        i for i in s.excluded_questions if i != q["id"]
+                                    ]
+                                    s.links[q["id"]] = link
+                                    s.report_snapshot = None
+                                    st.rerun()
+                            if q["id"] in s.links:
+                                st.caption("저장된 사용자 검토 · 원문 검증 전")
+                                st.button(
+                                    "이 연결 제외",
+                                    key=f"drop_link_{q['id']}",
+                                    on_click=lambda qid=q["id"]: drop_link(qid),
+                                )
+                        ids = list(
+                            dict.fromkeys(
+                                saved.get("market_ids", [])
+                                + saved.get("patent_ids", [])
+                                + saved.get("counter_ids", [])
                             )
-                            st.caption(f"{row['location']} · {row['limit']}")
+                        )
+                        for row in chosen:
+                            if row["id"] in ids:
+                                st.markdown(f"**[{row['id']}] {row['title']}**")
+                                st.write(row["quote"])
+                                related = [
+                                    q["id"]
+                                    for q in s.questions
+                                    if row["id"]
+                                    in effective_links()
+                                    .get(q["id"], {})
+                                    .get("market_ids", [])
+                                    + effective_links()
+                                    .get(q["id"], {})
+                                    .get("patent_ids", [])
+                                    + effective_links()
+                                    .get(q["id"], {})
+                                    .get("counter_ids", [])
+                                ]
+                                st.caption(
+                                    "연결 검토 질문: "
+                                    + (", ".join(related) or "아직 미연결")
+                                )
+                                st.caption(f"{row['location']} · {row['limit']}")
+    elif s.stage == 4 and s.real_mode and s.pipeline_result:
+        st.title("시장·특허 통합 보고서")
+        st.markdown(s.pipeline_result.markdown)
+        st.subheader("구현 비용 입력")
+        edited_costs = st.data_editor(
+            s.cost_rows,
+            num_rows="dynamic",
+            use_container_width=True,
+            key="real_cost_rows",
+        )
+        s.cost_rows = edited_costs.to_dict("records")
+        costs = cost_summary(s.cost_rows)
+        st.metric("입력 항목 소계 (만원)", f"{costs['total']:,.1f}")
+        if costs["missing"]:
+            st.caption("금액 미입력: " + ", ".join(costs["missing"]))
+        if costs["errors"]:
+            st.warning("유효하지 않은 비용 입력: " + ", ".join(costs["errors"]))
+        cost_markdown = (
+            "\n## 구현 비용표\n\n| 항목 | 수량 | 단가(만원) | 근거 / 가정 | 납기 |\n|---|---:|---:|---|---|\n"
+            + "\n".join(
+                f"| {r.get('항목','')} | {r.get('수량','')} | {r.get('단가(만원)','')} | {r.get('근거 / 가정','')} | {r.get('납기','')} |"
+                for r in s.cost_rows
+            )
+        )
+        st.download_button(
+            "보고서 다운로드 (.md)",
+            s.pipeline_result.markdown + cost_markdown,
+            file_name="idealens-research.md",
+            mime="text/markdown",
+        )
     elif s.stage == 4 and s.report_snapshot:
         snap = s.report_snapshot
         chosen = snap["sources"]
@@ -884,7 +1098,7 @@ with st.container(key=f"sheet_{s.stage}_{direction}"):
                 mime="text/markdown",
             )
     st.caption(
-        "입력은 현재 세션에서만 유지됩니다. 실제 특허·시장·가격 API는 미연결입니다."
+        "입력은 현재 세션에서만 유지됩니다. 실제 조사는 API 키와 로컬 색인 범위에 따라 결과가 달라집니다."
     )
 
 if previous_stage != s.stage:
