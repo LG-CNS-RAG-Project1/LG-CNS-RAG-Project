@@ -27,7 +27,10 @@ from src.schemas import (
     IDEA_FIELDS,
     MarketDimensionResult,
     MarketEvidence,
+    MarketOpportunityFinding,
+    MarketOpportunityReview,
     MarketReport,
+    MarketValidationAction,
     StructuredIdea,
 )
 
@@ -57,6 +60,14 @@ DEFAULT_CHECKS = {
 }
 
 LLMFn = Callable[[str, str], dict]
+MARKET_IDEA_FIELDS = {
+    "title",
+    *IDEA_FIELDS,
+    "current_alternative",
+    "target_segment",
+    "value_hypotheses",
+    "field_sources",
+}
 
 
 def call_analysis_llm(system_prompt: str, user_text: str) -> dict:
@@ -169,7 +180,7 @@ def analysis_input(
 ) -> str:
     """분석 프롬프트에 넘길 입력 JSON(아이디어·차원별 판정 범위·근거)을 만든다."""
     data = {
-        "idea": idea.model_dump(include={"title", *IDEA_FIELDS}),
+        "idea": idea.model_dump(include=MARKET_IDEA_FIELDS),
         "dimensions": dimension_inputs,
     }
     if previous_errors:
@@ -372,7 +383,11 @@ def generate_dimensions(
     """
     system_prompt = PROMPT_PATH.read_text(encoding="utf-8")
     by_id = {e.citation_id: e for e in evidence}
-    idea_text = " ".join(idea.model_dump(include={"title", *IDEA_FIELDS}).values())
+    idea_text = " ".join(
+        str(value)
+        for key, value in idea.model_dump(include=MARKET_IDEA_FIELDS).items()
+        if key != "value_hypotheses" and key != "field_sources"
+    )
     specs = {
         d["dimension"]: (
             d["allowed_verdicts"],
@@ -445,6 +460,118 @@ def report_unknowns(
     return unknowns
 
 
+def opportunity_review(
+    idea: StructuredIdea,
+    dimensions: list[MarketDimensionResult],
+    evidence: list[MarketEvidence],
+) -> MarketOpportunityReview:
+    """차원별 근거를 아이디어 시장성·다음 검증 행동으로 요약한다."""
+    by_dimension = {item.dimension: item for item in dimensions}
+    by_id = {item.citation_id: item for item in evidence}
+    direct = [
+        item
+        for item in evidence
+        if item.source_type == "customer_validation"
+        and item.evidence_nature == "direct_demand"
+    ]
+    buyer = by_dimension.get("buyer")
+    buyer_ids = (
+        list(dict.fromkeys(cid for claim in buyer.claims for cid in claim.citation_ids))
+        if buyer
+        else []
+    )
+    if direct:
+        status = "validated_demand"
+    elif buyer_ids:
+        status = "buyer_signals"
+    elif evidence:
+        status = "indirect_signals"
+    else:
+        status = "insufficient_evidence"
+
+    reasons = []
+    for dimension in dimensions:
+        cited = list(
+            dict.fromkeys(
+                cid for claim in dimension.claims for cid in claim.citation_ids
+            )
+        )
+        if dimension.verdict != "unverified" or cited:
+            labels = {
+                "demand": "수요",
+                "competition": "경쟁·대체재",
+                "price": "가격·수익모델",
+                "buyer": "구매자",
+                "adoption_barrier": "도입장벽",
+            }
+            reasons.append(
+                MarketOpportunityFinding(
+                    topic=labels[dimension.dimension],
+                    statement=(
+                        f"{labels[dimension.dimension]} 판단은 {dimension.verdict}이며, "
+                        f"현재 확정 아이디어의 고객·문제 범위 안에서 해석해야 합니다."
+                    ),
+                    citation_ids=cited,
+                )
+            )
+
+    unknowns = []
+    if not idea.customers:
+        unknowns.append("목표 고객과 구매 결정자")
+    if not idea.current_alternative:
+        unknowns.append("고객의 현재 해결 방식과 대체재")
+    if not direct:
+        unknowns.append("고객 인터뷰·구매 검토·파일럿 등 직접 수요 증거")
+    if not idea.revenue:
+        unknowns.append("과금 방식과 지불 주체")
+    if not idea.value_hypotheses:
+        unknowns.append("고객 가치와 ROI를 계산할 측정 변수")
+    unknowns.extend(
+        f"{dimension.dimension} 차원 추가 근거"
+        for dimension in dimensions
+        if dimension.verdict == "unverified"
+    )
+
+    actions = []
+    if not direct:
+        actions.append(
+            MarketValidationAction(
+                title="목표 고객 문제·구매 검증",
+                target=idea.target_segment or idea.customers or "목표 고객 후보",
+                method="현재 해결 방식, 문제 발생 맥락, 비용 영향, 구매결정자와 도입 조건을 묻는 인터뷰를 수행하고 익명 요약만 기록",
+                success_signal="여러 고객이 같은 문제와 현재 대안을 구체적 사례로 확인하고, 구매 절차 또는 후속 실증 의사를 설명함",
+            )
+        )
+    if not idea.revenue or not idea.customers:
+        actions.append(
+            MarketValidationAction(
+                title="구매자·과금 가설 정리",
+                target=idea.target_segment or idea.customers or "목표 고객 후보",
+                method="사용자, 구매 결정자, 예산 주체, 구매·구독·유지보수 중 가능한 과금 방식을 구분하고 공급사 견적과 대조",
+                success_signal="구매 주체·예산 경로·비교 가능한 가격 기준이 확인되거나 미확인 사유가 명시됨",
+                citation_ids=[cid for cid in buyer_ids if cid in by_id],
+            )
+        )
+    if not idea.value_hypotheses:
+        actions.append(
+            MarketValidationAction(
+                title="고객 가치 측정 기준 설정",
+                target=idea.target_segment or idea.customers or "목표 고객 후보",
+                method="고객과 함께 문제 빈도, 현재 처리시간·불량·비용 중 측정 가능한 기준을 선택하고 파일럿 전후에 같은 방식으로 기록",
+                success_signal="현재 기준선과 목표 효과를 고객이 합의하고, 측정 자료 접근 범위가 정해짐",
+            )
+        )
+
+    return MarketOpportunityReview(
+        status=status,
+        target_segment=idea.target_segment or idea.customers,
+        value_hypotheses=idea.value_hypotheses,
+        reasons=reasons,
+        unknowns=list(dict.fromkeys(unknowns)),
+        validation_actions=actions,
+    )
+
+
 def build_report(
     idea: StructuredIdea,
     assessed: dict[str, dict],
@@ -463,6 +590,7 @@ def build_report(
             search_scope=search_scope,
             data_as_of=data_as_of,
             unknowns=report_unknowns(idea, []),
+            opportunity_review=opportunity_review(idea, [], []),
         )
     inputs = dimension_inputs(idea, assessed, evidence, ids_by_dimension)
     try:
@@ -474,11 +602,14 @@ def build_report(
             search_scope=search_scope,
             data_as_of=data_as_of,
             error_message=f"market analysis failed: {exc}",
+            opportunity_review=opportunity_review(idea, [], evidence),
+            unknowns=report_unknowns(idea, []),
         )
     return MarketReport(
         status="completed",
         dimensions=dimensions,
         evidence=evidence,
+        opportunity_review=opportunity_review(idea, dimensions, evidence),
         unknowns=report_unknowns(idea, dimensions),
         search_scope=search_scope,
         data_as_of=data_as_of,

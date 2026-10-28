@@ -11,12 +11,17 @@ class StructuredIdea(BaseModel):
     difference: str = ""
     revenue: str = ""
     technical_components: list[str] = Field(default_factory=list)
+    current_alternative: str = ""
+    target_segment: str = ""
+    value_hypotheses: list[str] = Field(default_factory=list)
+    field_sources: dict[str, str] = Field(default_factory=dict)
 
 
 IdeaField = Literal["problem", "technology", "customers", "difference", "revenue"]
 FieldSource = Literal[
     "extracted",  # 입력 문장에서 LLM이 추출
     "user_answer",  # 재질문에 사용자가 직접 답변
+    "ai_hypothesis",  # AI가 분석용 가설로 제안
     "unknown",  # 사용자가 모름으로 답했거나 재질문 상한까지 비어 있음
 ]
 
@@ -39,7 +44,12 @@ class IdeaDraft(BaseModel):
     difference: str = ""
     revenue: str = ""
 
-    field_sources: dict[IdeaField, FieldSource] = Field(default_factory=dict)
+    field_sources: dict[str, FieldSource] = Field(default_factory=dict)
+    current_alternative: str = ""
+    target_segment: str = ""
+    technical_components: list[str] = Field(default_factory=list)
+    value_hypotheses: list[str] = Field(default_factory=list)
+    unknowns: list[str] = Field(default_factory=list)
     status: Literal["needs_input", "complete", "rejected"] = "needs_input"
     missing_fields: list[IdeaField] = Field(default_factory=list)
     questions: dict[IdeaField, str] = Field(default_factory=dict)
@@ -73,6 +83,11 @@ class IdeaDraft(BaseModel):
         return StructuredIdea(
             title=self.title,
             **{field: getattr(self, field) for field in IDEA_FIELDS},
+            current_alternative=self.current_alternative,
+            target_segment=self.target_segment,
+            technical_components=self.technical_components,
+            value_hypotheses=self.value_hypotheses,
+            field_sources=self.field_sources,
         )
 
 
@@ -161,12 +176,46 @@ class PatentComparison(BaseModel):
     technical_element: str | None = None
 
 
+class PatentComponentComparison(BaseModel):
+    component_id: str
+    idea_component: str
+    status: Literal["overlap", "partial", "different", "not_found", "uncertain"]
+    citation_ids: list[int] = Field(default_factory=list)
+    overlap: str = ""
+    difference: str = ""
+    uncertainty: str = ""
+    matched_text: str = ""
+
+
+class PatentDocumentReview(BaseModel):
+    patent_id: str
+    title: str
+    citation_ids: list[int] = Field(default_factory=list)
+    relevance: Literal["high", "medium", "low", "insufficient"] = "insufficient"
+    relevance_reason: str = ""
+    component_comparisons: list[PatentComponentComparison] = Field(default_factory=list)
+    overall_summary: str = ""
+    watchouts: list[str] = Field(default_factory=list)
+    unknowns: list[str] = Field(default_factory=list)
+
+
+class PatentabilityPrecheck(BaseModel):
+    status: Literal["overlap_concern", "potentially_distinct", "insufficient_evidence"]
+    summary: str
+    citation_ids: list[int] = Field(default_factory=list)
+    distinction_hypotheses: list[str] = Field(default_factory=list)
+    expert_questions: list[str] = Field(default_factory=list)
+    limitations: list[str] = Field(default_factory=list)
+
+
 # 8. 최종 특허 RAG 결과
 class PatentReport(BaseModel):
     status: Literal["completed", "no_results", "error"]
 
     evidence: list[PatentEvidence] = Field(default_factory=list)
     comparisons: list[PatentComparison] = Field(default_factory=list)
+    patent_reviews: list[PatentDocumentReview] = Field(default_factory=list)
+    patentability_precheck: PatentabilityPrecheck | None = None
     unknowns: list[str] = Field(default_factory=list)
 
     search_scope: str
@@ -182,6 +231,31 @@ class PatentReport(BaseModel):
         for comparison in self.comparisons:
             if comparison.citation_id not in ids:
                 raise ValueError("Comparison references unknown citation")
+
+        evidence_by_patent = {}
+        for item in self.evidence:
+            evidence_by_patent.setdefault(item.patent_id, set()).add(item.citation_id)
+        reviewed = set()
+        for review in self.patent_reviews:
+            if review.patent_id in reviewed:
+                raise ValueError("Duplicate patent reviews")
+            reviewed.add(review.patent_id)
+            allowed = evidence_by_patent.get(review.patent_id, set())
+            if not set(review.citation_ids) <= allowed:
+                raise ValueError("Patent review references unknown citation")
+            for comparison in review.component_comparisons:
+                if not set(comparison.citation_ids) <= allowed:
+                    raise ValueError("Component comparison references unknown citation")
+                if comparison.matched_text and not any(
+                    comparison.matched_text in item.quote
+                    for item in self.evidence
+                    if item.citation_id in comparison.citation_ids
+                ):
+                    raise ValueError("Matched patent text must be verbatim cited evidence")
+        if self.patentability_precheck and not set(
+            self.patentability_precheck.citation_ids
+        ) <= set(ids):
+            raise ValueError("Patentability precheck references unknown citation")
 
         if len({e.patent_id for e in self.evidence}) > 5:
             raise ValueError("Maximum 5 unique patents")
@@ -359,12 +433,38 @@ class MarketDimensionResult(BaseModel):
         return self
 
 
+class MarketValidationAction(BaseModel):
+    title: str
+    target: str
+    method: str
+    success_signal: str
+    citation_ids: list[int] = Field(default_factory=list)
+
+
+class MarketOpportunityFinding(BaseModel):
+    topic: str
+    statement: str
+    citation_ids: list[int] = Field(default_factory=list)
+
+
+class MarketOpportunityReview(BaseModel):
+    status: Literal[
+        "validated_demand", "buyer_signals", "indirect_signals", "insufficient_evidence"
+    ]
+    target_segment: str = ""
+    value_hypotheses: list[str] = Field(default_factory=list)
+    reasons: list[MarketOpportunityFinding] = Field(default_factory=list)
+    unknowns: list[str] = Field(default_factory=list)
+    validation_actions: list[MarketValidationAction] = Field(default_factory=list)
+
+
 # 14. 최종 시장 근거 결과
 class MarketReport(BaseModel):
     status: Literal["completed", "no_results", "error"]
 
     dimensions: list[MarketDimensionResult] = Field(default_factory=list)
     evidence: list[MarketEvidence] = Field(default_factory=list)
+    opportunity_review: MarketOpportunityReview | None = None
     unknowns: list[str] = Field(default_factory=list)
 
     search_scope: str
@@ -398,6 +498,18 @@ class MarketReport(BaseModel):
                 ):
                     raise ValueError(
                         "demand 'confirmed' requires direct_demand evidence"
+                    )
+
+        if self.opportunity_review:
+            for finding in self.opportunity_review.reasons:
+                if not set(finding.citation_ids) <= set(ids):
+                    raise ValueError(
+                        "Market opportunity finding references unknown citation"
+                    )
+            for action in self.opportunity_review.validation_actions:
+                if not set(action.citation_ids) <= set(ids):
+                    raise ValueError(
+                        "Market validation action references unknown citation"
                     )
 
         if self.status == "no_results" and self.evidence:

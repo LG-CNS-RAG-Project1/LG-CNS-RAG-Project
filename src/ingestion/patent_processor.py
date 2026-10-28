@@ -25,6 +25,7 @@ DEPENDENT_CLAIM_REFERENCE = re.compile(
     r"(?:제\s*\d+\s*항|청구항\s*\d+\s*항?).{0,24}에\s*있어서",
     re.IGNORECASE,
 )
+DELETED_CLAIM = re.compile(r"^(?:\d+\s*[.．:]\s*)?(?:삭제|취하|폐지)\s*[.]?$", re.I)
 
 
 def structure_claims(
@@ -54,7 +55,12 @@ def structure_claims(
         except (KeyError, TypeError, ValueError):
             continue
         text = str(item.get("text") or "").strip()
-        if number < 1 or not text or number in seen_numbers:
+        if (
+            number < 1
+            or not text
+            or DELETED_CLAIM.fullmatch(text)
+            or number in seen_numbers
+        ):
             continue
         seen_numbers.add(number)
         refs = set()

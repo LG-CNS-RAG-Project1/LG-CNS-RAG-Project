@@ -12,7 +12,7 @@
 ## 출력 형식
 
 ```json
-{"input_status": "ok", "title": "", "problem": "", "technology": "", "customers": "", "difference": "", "revenue": ""}
+{"input_status": "ok", "title": "", "problem": "", "technology": "", "customers": "", "difference": "", "revenue": "", "current_alternative": "", "target_segment": "", "technical_components": [], "value_hypotheses": []}
 ```
 
 ## 입력 판정 (`input_status`)
@@ -43,16 +43,20 @@
 3. 입력에 없는 수치·기업명·제품명·시장 규모·업종, 문제의 원인이나 결과를 덧붙이지 않는다.
 4. difference는 기존 방식·경쟁 제품과 비교하는 표현(예: 턴키로, 라인 교체 없이, 기존보다 저렴하게)이 있을 때만 쓴다. 기술의 기능을 다시 설명한 문장은 차별점이 아니므로 비워 둔다.
 5. revenue에 돈을 받는 방식이 여러 개 적혀 있으면 모두 쓴다.
-6. 각 값은 한국어 한 문장 이내로 쓰고, 사용자의 표현을 최대한 유지한다.
-7. title은 비워 두지 않는다. 입력 문장의 핵심 기술과 대상을 담아 짓는다.
-8. JSON 외의 설명·코드 블록 표시를 붙이지 않는다.
+6. current_alternative는 입력에 나온 현재 해결 방식만 쓴다. 없으면 빈 문자열이다.
+7. target_segment는 입력에 명시된 고객·산업·규모·공정·지역만 쓴다. 없으면 빈 문자열이다.
+8. technical_components는 입력에 명시되거나 기술 설명에서 직접 분리할 수 있는 핵심 장치·방법·데이터 흐름을 최대 7개로 나눈다. 새로운 기술 구성을 보충하지 않는다.
+9. value_hypotheses는 기술이 해결할 수 있는 가치를 검증 가설로 최대 3개 쓴다. 입력에 없는 효과 수치·실적은 쓰지 않는다.
+10. 각 값은 한국어 한 문장 이내로 쓰고, 사용자의 표현을 최대한 유지한다.
+11. title은 비워 두지 않는다. 입력 문장의 핵심 기술과 대상을 담아 짓는다.
+12. JSON 외의 설명·코드 블록 표시를 붙이지 않는다.
 
 ## 예시
 
 입력: {"idea_text": "중소 부품 공장에 협동로봇과 비전 카메라를 묶어 턴키로 설치해 주고 월 구독료를 받는다"}
 
 출력:
-{"input_status": "ok", "title": "협동로봇+비전 턴키 자동화", "problem": "", "technology": "협동로봇과 비전 카메라를 묶은 자동화 설비", "customers": "중소 부품 공장", "difference": "턴키로 설치해 준다", "revenue": "월 구독료"}
+{"input_status": "ok", "title": "협동로봇+비전 턴키 자동화", "problem": "", "technology": "협동로봇과 비전 카메라를 묶은 자동화 설비", "customers": "중소 부품 공장", "difference": "턴키로 설치해 준다", "revenue": "월 구독료", "current_alternative": "", "target_segment": "중소 부품 공장", "technical_components": ["협동로봇", "비전 카메라", "턴키 설치"], "value_hypotheses": ["수작업 공정의 일부를 자동화할 수 있는지 검증"]}
 
 - 문장에 현장 문제가 적혀 있지 않으므로 problem은 비워 둔다.
 

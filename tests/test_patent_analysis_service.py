@@ -207,6 +207,7 @@ def test_local_indexed_claim_metadata_is_preserved(monkeypatch):
     assert report.evidence[0].claim_type == "dependent"
     assert report.evidence[0].depends_on == [2]
     assert report.evidence[0].version_id == "KR12345B1"
+    assert any("상위항 2 원문 미확보" in item for item in report.unknowns)
 
 
 def test_supplement_without_abstract_is_not_used_as_abstract_citation():

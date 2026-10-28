@@ -204,13 +204,14 @@ def test_report_escapes_untrusted_text_and_shows_claim_location():
         market_collected_at=20261025,
     )
     assert md.startswith("# &lt;b&gt;x\\|y&lt;/b&gt;")
-    assert "실제 분석 결과 · 분석일 2026-10-28 · 시장 자료 수집 기준 2026-10-25" in md
-    assert "근거 발행 범위 2025-01-02 ~ 2026-10-01" in md
+    assert "분석일 2026-10-28 · 시장 자료 기준 2026-10-25" in md
     assert "<script>" not in md and "javascript:" not in md
-    assert "| 수익모델 | 모름 | 모름 |" in md
-    assert "청구항 3 (종속, 인용 1항)" in md
-    assert "[원문](https://example.com/p1)" in md
-    assert "시장 조사 및 분석 결과" in md
+    assert "청구항 3 (종속, 인용 1항)" not in md
+    assert "[원문](https://example.com/p1)" not in md
+    assert "## 시장성 핵심" in md
+    assert "M:1" in md and "P:1" in md
+    assert len(md.splitlines()) < 45
+    assert "상세 비교표·원문 인용·시장 분석은" in md
 
 
 def test_patent_location_variants():

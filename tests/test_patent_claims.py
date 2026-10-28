@@ -110,6 +110,18 @@ def test_structure_claims_recognizes_claim_wording_without_trailing_hangul():
     assert claims[1].depends_on == [1]
 
 
+def test_deleted_claims_are_excluded_from_searchable_claims():
+    claims = structure_claims(
+        [
+            {"claim_number": 1, "text": "비전 검사 장치."},
+            {"claim_number": 2, "text": "삭제"},
+            {"claim_number": 3, "text": "3. 삭제."},
+            {"claim_number": 4, "text": "제1항에 있어서, 제어부를 포함하는 장치."},
+        ]
+    )
+    assert [claim.claim_number for claim in claims] == [1, 4]
+
+
 def test_claims_become_individual_index_chunks_with_location_metadata():
     patent = to_patent_document(
         {
@@ -140,3 +152,50 @@ def test_claims_become_individual_index_chunks_with_location_metadata():
 
 def test_unparsed_claim_text_is_not_invented_as_a_numbered_claim():
     assert structure_claims("청구항 번호가 없는 임의 텍스트") == []
+
+
+def test_select_claims_includes_referenced_parent_claims():
+    from types import SimpleNamespace
+    from src.services.patent_service import _select_claims
+
+    claims = structure_claims(
+        [
+            {"claim_number": 1, "text": "일반 검사 장치."},
+            {"claim_number": 2, "text": "제1항에 있어서, 센서를 제어하는 제어부."},
+            {
+                "claim_number": 3,
+                "text": "제2항에 있어서, 카메라 데이터를 분류하는 장치.",
+            },
+        ]
+    )
+    selected = _select_claims(
+        SimpleNamespace(
+            technical_components=["카메라 데이터 분류"], technology="", problem=""
+        ),
+        claims,
+        limit=3,
+    )
+    assert [claim.claim_number for claim in selected] == [1, 2, 3]
+
+
+def test_select_claims_keeps_dependent_claim_for_explicit_parent_warning():
+    from types import SimpleNamespace
+    from src.services.patent_service import _select_claims
+
+    claims = structure_claims(
+        [
+            {"claim_number": 1, "text": "일반 검사 장치."},
+            {
+                "claim_number": 3,
+                "text": "제2항에 있어서, 카메라 데이터를 분류하는 장치.",
+            },
+        ]
+    )
+    selected = _select_claims(
+        SimpleNamespace(
+            technical_components=["카메라 데이터 분류"], technology="", problem=""
+        ),
+        claims,
+        limit=5,
+    )
+    assert [claim.claim_number for claim in selected] == [1, 3]
