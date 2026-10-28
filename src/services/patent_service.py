@@ -335,7 +335,7 @@ def analyze_patents(
             return PatentReport(
                 status="error",
                 evidence=evidence,
-                unknowns=unknowns + ["특허 비교 생성이 2회 시도 후 실패했습니다."],
+                unknowns=unknowns + ["특허 비교 생성이 재시도 후 실패했습니다."],
                 search_scope="아이디어 기술 요소별 Dense 검색 및 관련성 판정 후 비교",
                 error_message=str(comparison_error),
             )
