@@ -23,17 +23,16 @@ def _drawing(match):
 
 
 def hero():
-    markup = """<section class="paper-hero" aria-label="아이디어를 구체화하는 네 단계">
+    markup = """<section class="paper-hero" aria-label="아이디어를 구체화하는 조사 노트">
       <div class="hero-copy"><span class="eyebrow">IDEALENS · IDEA TO EVIDENCE</span>
       <h1>한 장의 생각에서,<br>근거 있는 아이디어로.</h1>
       <p>흩어진 생각을 정리하고, 특허와 시장을 나란히 살펴보세요.<br>한 장씩 넘길수록 다음 질문이 선명해집니다.</p>
-      <a class="hero-cta" href="#idea-input" target="_self">내 아이디어 펼치기 <span>↗</span></a>
-      <span class="hero-note">입력 → 구체화 → 근거 연결 → 보고서</span></div>
+      <span class="hero-note">구체화 → 특허·시장 검토 → 보고서</span></div>
       <div class="paper-scene">
         <div class="visual-paper back-paper" aria-hidden="true"></div>
         <div class="visual-paper middle-paper" aria-hidden="true"></div>
         <div class="visual-paper front-paper">
-          <div class="dossier-top"><span>IDEALENS / RESEARCH NOTE</span><span>01—04</span></div>
+          <div class="dossier-top"><span>IDEALENS / RESEARCH NOTE</span><span>01—03</span></div>
           <h2>아이디어의 가능성을,<br>근거로 연결합니다.</h2>
           <div class="document-subtitle">특허 기술 × 시장 맥락</div>
           <div class="research-panels" aria-label="특허 도면과 시장 흐름을 표현한 개념도">

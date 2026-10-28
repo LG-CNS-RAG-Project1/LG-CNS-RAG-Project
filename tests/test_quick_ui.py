@@ -15,6 +15,7 @@ def click(app, label):
 
 def begin():
     app = AppTest.from_file(str(APP), default_timeout=15).run()
+    click(app, "조사 시작하기 ↗")
     click(app, "예시 불러오기")
     return click(app, "핵심 구성 확인하기 →")
 
@@ -29,6 +30,7 @@ def investigate():
 
 def test_no_sidebar_and_input_guard():
     app = AppTest.from_file(str(APP)).run()
+    click(app, "조사 시작하기 ↗")
     assert not app.sidebar.children
     click(app, "핵심 구성 확인하기 →")
     assert app.error and app.session_state.stage == 1
@@ -66,13 +68,13 @@ def test_two_documents_gate_and_selected_only_report():
     assert app.session_state.stage == 4
     assert app.session_state.report_snapshot["ids"] == ["P1", "M1"]
     assert app.get("download_button")
-    app.text_area(key="memo").set_value("원문 검토 필요").run()
+    app.text_area(key="report_note").set_value("원문 검토 필요").run()
     text = report(
         DEMO_TEXT,
         "검토",
         DEMO_PARTS,
         app.session_state.report_snapshot["ids"],
-        app.session_state.memo,
+        app.session_state.saved_memo,
     )
     assert "[P1]" in text and "[M1]" in text
     assert "[P2]" not in text and "[M2]" not in text
@@ -92,6 +94,7 @@ def test_selection_changes_invalidate_report():
 
 def test_custom_input_has_no_sample_results():
     app = AppTest.from_file(str(APP)).run()
+    click(app, "조사 시작하기 ↗")
     app.text_area(key="raw_input").set_value(
         "실제 사용자가 직접 작성한 새로운 기술 아이디어"
     )
@@ -141,19 +144,22 @@ def test_home_and_numbered_navigation_keep_work():
     app.button(key="pick_M1").click().run()
     app.button(key="nav_4").click().run()
     assert app.session_state.stage == 4
-    app.text_area(key="memo").set_value("검토 메모").run()
+    app.text_area(key="report_note").set_value("검토 메모").run()
     app.button(key="home").click().run()
-    assert app.session_state.stage == 1
+    assert app.session_state.page == "home"
+    assert not app.text_area
+    click(app, "조사 시작하기 ↗")
     assert app.text_area(key="raw_input").value == DEMO_TEXT
     app.button(key="nav_3").click().run()
     assert app.session_state.selected == ["P1", "M1"]
     app.button(key="nav_4").click().run()
-    assert app.text_area(key="memo").value == "검토 메모"
+    assert app.text_area(key="report_note").value == "검토 메모"
 
 
 def test_future_stages_locked_until_confirmed():
     app = AppTest.from_file(str(APP)).run()
-    assert app.button(key="nav_2").disabled
+    click(app, "조사 시작하기 ↗")
+    assert not app.button(key="nav_1").disabled
     assert app.button(key="nav_3").disabled
     assert app.button(key="nav_4").disabled
     app = begin()
@@ -166,7 +172,7 @@ def test_future_stages_locked_until_confirmed():
 def test_question_revision_requires_reconfirmation():
     app = investigate()
     app.button(key="pick_P1").click().run()
-    app.button(key="nav_2").click().run()
+    app.button(key="nav_1").click().run()
     version = app.session_state.version
     app.text_area(key=f"question_{version}_Q1").set_value(
         "현장 사용 조건과 관련되는가?"

@@ -126,6 +126,7 @@ def click(app, label):
 
 def structured_app():
     app = AppTest.from_file(str(APP), default_timeout=30).run()
+    click(app, "조사 시작하기 ↗")
     app.text_area(key="raw_input").input(IDEA).run()
     click(app, "핵심 구성 확인하기 →")
     return app
@@ -140,7 +141,6 @@ def test_direct_input_runs_followup_and_reaches_report(live):
     assert draft.status == "complete" and draft.field_sources["revenue"] == "unknown"
     assert app.session_state.real_mode
 
-    click(app, "핵심 구성 확인하기 →")
     assert app.session_state.stage == 2
     click(app, "1개 구성으로 조사 시작하기 →")
     assert app.session_state.stage == 3
@@ -160,10 +160,9 @@ def test_question_change_reuses_sources_without_new_analysis(live):
     app = structured_app()
     app.text_input(key="ai_answer_revenue_0").input("모름")  # 폼 값은 제출 때 반영
     click(app, "답변 반영")
-    click(app, "핵심 구성 확인하기 →")
     click(app, "1개 구성으로 조사 시작하기 →")
     click(app, "특허·시장 조사 실행")
-    click(app, "← 구성·질문 수정")
+    click(app, "← 아이디어·질문 수정")
     version = app.session_state.version
     app.text_area(key=f"question_{version}_Q1").input(
         "현장 설치 비용을 줄일 수 있는가?"
@@ -205,7 +204,6 @@ def test_pipeline_error_message_hides_keys(live, monkeypatch):
     app = structured_app()
     app.text_input(key="ai_answer_revenue_0").input("모름")  # 폼 값은 제출 때 반영
     click(app, "답변 반영")
-    click(app, "핵심 구성 확인하기 →")
     click(app, "1개 구성으로 조사 시작하기 →")
     click(app, "특허·시장 조사 실행")
     errors = " ".join(e.value for e in app.error)
@@ -215,6 +213,7 @@ def test_pipeline_error_message_hides_keys(live, monkeypatch):
 
 def test_example_path_keeps_demo_flow_with_key(live):
     app = AppTest.from_file(str(APP), default_timeout=30).run()
+    click(app, "조사 시작하기 ↗")
     click(app, "예시 불러오기")
     click(app, "핵심 구성 확인하기 →")
     assert app.session_state.stage == 2 and live["parse"] == 0

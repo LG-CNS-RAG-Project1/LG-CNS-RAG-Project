@@ -99,4 +99,37 @@ html{scroll-behavior:smooth;}
 .lens-detail b{position:absolute;left:5px;right:0;top:10px;height:17px;border-top:2px solid #3b7a65;transform:rotate(-15deg);}
 .lens-reflection{position:absolute;left:7px;top:6px;width:33px;height:60px;border-radius:50%;border-left:5px solid #ffffffb0;transform:rotate(25deg);}
 @media(max-width:900px){.research-magnifier{transform:rotate(-26deg) scale(.8);transform-origin:bottom right;right:3px;bottom:5px;}}
+
+
+/* 홈과 조사 작업을 분리한 세 단계 조사 노트. */
+[data-testid="stMainBlockContainer"]{max-width:1220px;padding:2.2rem 2rem 2rem;}
+[data-testid="stHeader"]{height:2rem;background:transparent;}
+.st-key-brandbar{margin-bottom:18px;}
+.st-key-brandbar button{font-size:13px;white-space:nowrap;}
+.st-key-brandbar [data-testid="stColumn"]:not(:first-child) button{font-size:13px;color:#42665b;min-height:42px;}
+.paper-hero{min-height:520px;margin:0;grid-template-columns:1.1fr 1fr;}
+.hero-copy{padding:18px 0 120px;}
+.hero-copy h1{font-size:clamp(32px,3.6vw,48px)!important;}
+.hero-note{margin-top:24px;}
+.st-key-landing{position:relative;}
+.st-key-start_research{position:absolute;left:12px;top:365px;z-index:8;}
+.st-key-start_research button{padding:14px 28px;min-height:54px;}
+.visual-paper{animation:none!important;}
+.research-magnifier{animation:lensSearch 6s ease-in-out infinite;}
+@keyframes lensSearch{0%,100%{transform:translate(0,0) rotate(-26deg)}50%{transform:translate(-18px,-20px) rotate(-18deg)}}
+[class*="st-key-workspace_"]{max-width:1120px;margin:0 auto 20px;padding:24px 28px 26px;background:#fffdf6;border:1px solid #d8dfd0;border-radius:3px;box-shadow:5px 6px 0 #d9e6da,0 18px 45px #294e3610;}
+.st-key-workspace_2{background:#f7f8ef;}
+.st-key-workspace_3{max-width:920px;background:#fffef9;}
+[class*="st-key-workspace_"] textarea{font-size:14px!important;}
+[class*="st-key-workspace_"] h1{font-size:27px!important;}
+[class*="st-key-workspace_"] .stText{white-space:normal;}
+[data-testid="stVerticalBlockBorderWrapper"]{background:transparent!important;}
+[data-testid="stVerticalBlockBorderWrapper"]>div{overscroll-behavior-y:contain;}
+[data-testid="stVerticalBlock"]:has(>.st-key-report_actions){gap:1rem;}
+.st-key-report_actions{border-top:1px solid #d8dfd0;padding-top:14px;}
+html{scroll-behavior:auto;}
+@media(max-width:900px){.paper-hero{min-height:0;grid-template-columns:1fr}.hero-copy{padding:10px 0 85px}.hero-copy h1{font-size:34px!important}.st-key-start_research{top:275px;left:0}.paper-scene{height:360px;margin-top:0}[class*="st-key-workspace_"]{padding:18px 16px;}[data-testid="stMainBlockContainer"]{padding:2rem 1rem;}}
+@media(prefers-reduced-motion:reduce){.research-magnifier{animation:none!important;}}
+
+@media(max-width:600px){.st-key-start_research{top:335px}.hero-copy{padding-bottom:130px}.paper-scene{height:330px}.hero-copy h1{font-size:31px!important;}.hero-copy p{font-size:14px;}.hero-note{max-width:90%;}}
 </style>
