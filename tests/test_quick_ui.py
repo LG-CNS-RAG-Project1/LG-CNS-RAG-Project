@@ -15,7 +15,7 @@ def click(app, label):
 
 def begin():
     app = AppTest.from_file(str(APP), default_timeout=15).run()
-    click(app, "조사 시작하기 ↗")
+    click(app, "돋보기로 조사 시작")
     click(app, "예시 불러오기")
     return click(app, "핵심 구성 확인하기 →")
 
@@ -30,7 +30,7 @@ def investigate():
 
 def test_no_sidebar_and_input_guard():
     app = AppTest.from_file(str(APP)).run()
-    click(app, "조사 시작하기 ↗")
+    click(app, "돋보기로 조사 시작")
     assert not app.sidebar.children
     click(app, "핵심 구성 확인하기 →")
     assert app.error and app.session_state.stage == 1
@@ -94,7 +94,7 @@ def test_selection_changes_invalidate_report():
 
 def test_custom_input_has_no_sample_results():
     app = AppTest.from_file(str(APP)).run()
-    click(app, "조사 시작하기 ↗")
+    click(app, "돋보기로 조사 시작")
     app.text_area(key="raw_input").set_value(
         "실제 사용자가 직접 작성한 새로운 기술 아이디어"
     )
@@ -148,7 +148,7 @@ def test_home_and_numbered_navigation_keep_work():
     app.button(key="home").click().run()
     assert app.session_state.page == "home"
     assert not app.text_area
-    click(app, "조사 시작하기 ↗")
+    click(app, "돋보기로 조사 시작")
     assert app.text_area(key="raw_input").value == DEMO_TEXT
     app.button(key="nav_3").click().run()
     assert app.session_state.selected == ["P1", "M1"]
@@ -158,7 +158,7 @@ def test_home_and_numbered_navigation_keep_work():
 
 def test_future_stages_locked_until_confirmed():
     app = AppTest.from_file(str(APP)).run()
-    click(app, "조사 시작하기 ↗")
+    click(app, "돋보기로 조사 시작")
     assert not app.button(key="nav_1").disabled
     assert app.button(key="nav_3").disabled
     assert app.button(key="nav_4").disabled

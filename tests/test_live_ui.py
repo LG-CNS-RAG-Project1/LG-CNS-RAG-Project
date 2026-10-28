@@ -126,7 +126,7 @@ def click(app, label):
 
 def structured_app():
     app = AppTest.from_file(str(APP), default_timeout=30).run()
-    click(app, "조사 시작하기 ↗")
+    click(app, "돋보기로 조사 시작")
     app.text_area(key="raw_input").input(IDEA).run()
     click(app, "핵심 구성 확인하기 →")
     return app
@@ -213,7 +213,7 @@ def test_pipeline_error_message_hides_keys(live, monkeypatch):
 
 def test_example_path_keeps_demo_flow_with_key(live):
     app = AppTest.from_file(str(APP), default_timeout=30).run()
-    click(app, "조사 시작하기 ↗")
+    click(app, "돋보기로 조사 시작")
     click(app, "예시 불러오기")
     click(app, "핵심 구성 확인하기 →")
     assert app.session_state.stage == 2 and live["parse"] == 0

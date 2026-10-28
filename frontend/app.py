@@ -44,7 +44,7 @@ from frontend.quick import (
 )
 from frontend.workspace import EXAMPLE, empty_costs, cost_summary
 from frontend.automatic import automatic_links
-from frontend.presentation import hero, brand_style
+from frontend.presentation import hero_parts, brand_style
 
 st.set_page_config(page_title="IdeaLens · 빠른 조사", page_icon="▤", layout="wide")
 st.html(Path(__file__).with_name("styles.css").read_text(encoding="utf-8"))
@@ -962,49 +962,33 @@ with st.container(key="brandbar"):
         "IdeaLens", key="home", on_click=open_page, args=("home",), help="홈으로"
     )
     intro.button("서비스 소개", on_click=open_page, args=("about",))
-    guide.button("이용 안내", on_click=open_page, args=("guide",))
+    guide.button("왜 IdeaLens인가", on_click=open_page, args=("difference",))
     records.button("내 기록", on_click=open_page, args=("history",))
 
 if s.page == "home":
     with st.container(key="landing"):
-        st.html(hero())
-        st.button(
-            "조사 시작하기 ↗",
-            key="start_research",
-            type="primary",
-            on_click=start_research,
+        copy_markup, art_markup = hero_parts()
+        copy_column, art_column = st.columns(
+            [1, 1.08], gap="large", vertical_alignment="center"
         )
+        with copy_column:
+            st.html(copy_markup)
+        with art_column:
+            with st.container(key="hero_art"):
+                st.html(art_markup)
+                st.button(
+                    "돋보기로 조사 시작",
+                    key="lens_start",
+                    type="primary",
+                    help="돋보기를 클릭하거나 Enter 키를 눌러 아이디어 조사를 시작하세요.",
+                    on_click=start_research,
+                )
     st.stop()
-if s.page in ("about", "guide"):
-    st.title(
-        "생각을 정리하고, 근거를 함께 살펴보세요."
-        if s.page == "about"
-        else "세 단계로 진행하는 아이디어 조사"
-    )
-    st.write(
-        "IdeaLens는 아이디어의 기술 구성과 시장 맥락을 특허·뉴스 근거에 연결하는 조사 도구입니다. 최종 사업성·특허권 판단을 대신하지 않습니다."
-    )
-    for label, body in [
-        (
-            "01 · 아이디어 구체화",
-            "아이디어를 적고 AI 초안·재질문을 거쳐 구성과 검토 질문을 한 화면에서 확정합니다.",
-        ),
-        (
-            "02 · 특허·시장 검토",
-            "두 조사의 근거를 나란히 보고, 질문별 연결 이유와 미확인 조건을 확인합니다.",
-        ),
-        (
-            "03 · 종합 보고서",
-            "핵심 요약과 근거 현황을 확인하고 PDF·Markdown으로 내려받습니다.",
-        ),
-    ]:
-        with st.container(border=True):
-            st.subheader(label)
-            st.write(body)
-    st.info(
-        "실제 분석은 외부 API 사용료가 발생합니다. 예시는 가상 자료로 표시됩니다. 내 기록은 현재 브라우저 세션에 보관되며, 계속 보관하려면 기록 파일을 내려받으세요."
-    )
-    st.button("조사 시작하기 ↗", type="primary", on_click=start_research)
+if s.page in ("about", "difference"):
+    from frontend.introduction import render_introduction
+
+    render_introduction(s.page)
+    st.button("홈에서 살펴보기 ↗", on_click=open_page, args=("home",))
     st.stop()
 if s.page == "history":
     render_history(s)

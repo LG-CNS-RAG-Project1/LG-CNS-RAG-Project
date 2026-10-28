@@ -142,13 +142,13 @@ make patent-collect ARGS="--field-id SF-02 --limit 20 --include-claims"
 make patent-index ARGS="--field-id SF-02"
 ```
 
-홈은 서비스 소개·이용 안내·내 기록과 하나의 ‘조사 시작하기’ 버튼으로 구성한다. 시작 전에는 입력 폼과 단계 탐색을 표시하지 않는다. 조사 작업은 **아이디어 구체화 → 특허·시장 검토 → 종합 보고서**의 세 단계다. 첫 단계 안에서 아이디어 작성·AI 재질문과 구성·질문 확인을 전환한다. 기존 파이프라인·AI 구조화·입력 검증을 유지한다.
+홈은 서비스 소개·왜 IdeaLens인가·내 기록과 문서 그림 위의 돋보기 시작 버튼으로 구성한다. 설명과 문서는 독립된 반응형 열에 놓고 문서 종횡비를 유지한다. 소개·차별점은 `frontend/introduction.py`의 흐름도와 짧은 설명으로 제공한다. 시작 전에는 입력 폼과 단계 탐색을 표시하지 않는다. 조사 작업은 **아이디어 구체화 → 특허·시장 검토 → 종합 보고서**의 세 단계다. 첫 단계 안에서 아이디어 작성·AI 재질문과 구성·질문 확인을 전환한다. 기존 파이프라인·AI 구조화·입력 검증을 유지한다.
 
 실제 조사 결과는 특허·시장 근거를 나란히 보여주고 문헌 선택으로 한 건씩 읽는다. 질문별 연결 기준은 별도 탭에서 확인한다. 보고서는 ‘한눈에 보기 / 보고서 원문 / 비용·메모’로 나누고 PDF·Markdown 다운로드를 제공한다. PDF는 `reportlab`과 OFL 글꼴 Nanum Gothic(`frontend/assets/fonts/`)을 사용한다. 데이터 재가공·추가 요약·분석 시각화는 후속 범위이며 기존 결과를 그대로 표시한다. 근거 건수는 품질·사업성 점수가 아니다.
 
 내 기록은 현재 브라우저 세션에 최대 20개를 보관하고 JSON 내보내기·불러오기를 지원한다. 새로고침·연결 종료로 세션을 잃을 수 있으므로 영구 보관은 기록 파일로 한다. 계정별 DB 저장·공유 기록은 연결하지 않는다. 기록 파일에는 아이디어·보고서 내용이 있으므로 개인적으로 보관한다. 실제 키는 기록에 포함하지 않는다.
 
-화면은 `frontend/app.py`, 조사·보고서·기록 표시는 `frontend/workspace_view.py`, PDF 생성은 `frontend/report_export.py`에서 관리한다. 표지 종이와 로고는 기존 벡터·CSS 자산을 사용하고 돋보기만 움직이며 동작 줄이기 설정을 따른다. 실행은 `python scripts/idealens.py setup` 후 `python scripts/idealens.py ui`다. `.env` 변경은 `ui --recreate`로 반영한다. 실제 분석에는 OpenAI·필요한 KIPRIS 키와 색인이 필요하다. 예시 자료는 실제 분석으로 표시하지 않는다.
+화면은 `frontend/app.py`, 조사·보고서·기록 표시는 `frontend/workspace_view.py`, PDF 생성은 `frontend/report_export.py`에서 관리한다. 표지 종이와 로고는 기존 벡터·CSS 자산을 사용하고 돋보기는 실제 버튼으로 마우스·키보드 시작을 제공하며 클릭 안내와 포커스를 표시한다. 상단 상태 표시 영역은 서비스 메뉴 클릭을 가로채지 않는다. 실행은 `python scripts/idealens.py setup` 후 `python scripts/idealens.py ui`다. `.env` 변경은 `ui --recreate`로 반영한다. 실제 분석에는 OpenAI·필요한 KIPRIS 키와 색인이 필요하다. 예시 자료는 실제 분석으로 표시하지 않는다.
 
 ### 시장 뉴스 수집·정제
 

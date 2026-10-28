@@ -21,11 +21,17 @@ def test_landing_has_single_start_and_no_research_form():
     app = AppTest.from_file(str(APP)).run()
     assert not app.text_area
     assert not any(b.key and b.key.startswith("nav_") for b in app.button)
-    assert sum(b.label == "조사 시작하기 ↗" for b in app.button) == 1
+    assert sum(b.label == "돋보기로 조사 시작" for b in app.button) == 1
     press(app, "서비스 소개")
     assert not app.text_area
+    intro = " ".join(x.value for x in app.markdown)
+    press(app, "왜 IdeaLens인가")
+    assert not app.text_area
+    difference = " ".join(x.value for x in app.markdown)
+    assert "특허 근거에 시장·기업 자료를 함께 놓고" in difference
+    assert intro != difference
     press(app, "IdeaLens")
-    press(app, "조사 시작하기 ↗")
+    press(app, "돋보기로 조사 시작")
     assert app.text_area(key="raw_input")
     assert [b.key for b in app.button if b.key and b.key.startswith("nav_")] == [
         "nav_1",
@@ -37,7 +43,7 @@ def test_landing_has_single_start_and_no_research_form():
 def test_demo_report_can_be_saved_and_reopened_without_analysis():
     app = AppTest.from_file(str(APP)).run()
     for label in [
-        "조사 시작하기 ↗",
+        "돋보기로 조사 시작",
         "예시 불러오기",
         "핵심 구성 확인하기 →",
         "3개 구성으로 조사 시작하기 →",
