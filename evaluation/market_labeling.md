@@ -55,12 +55,13 @@
 
 | 파일 | 내용 |
 |---|---|
-| `labels/market_candidates.csv` | 최종 라벨 300행 (25문항 × 12후보) |
+| `labels/market_candidates.csv` | 최종 라벨 423행 (25문항 × 벡터·차원 표현 후보 12건 = 300행, 검색 방식 비교용 추가 후보 123행) |
 | `labels/market_llm_labels_v1.csv` · `_v2.csv` | 판정 기준 보완 전 LLM 판정 (표본 문항) |
-| `labels/market_llm_labels.csv` | 현재 프롬프트(v3) LLM 판정 300행 |
+| `labels/market_llm_labels.csv` | 현재 프롬프트(v3) LLM 판정 423행 |
 | `labels/market_adjudication.csv` | 사람·LLM 불일치 24행과 최종 판정 |
 
 - 사람 라벨 72행(6문항): 블라인드 라벨 후 불일치 행 최종 판정. 최종 판정에서 LLM 판정이 채택된 비율 21/24.
 - LLM 라벨 228행: 확신이 낮은 60행을 사람이 검토해 19행 수정(`label_source=human`).
+- 검색 방식 비교용 추가 후보 123행(`pool`=`bm25`·`hybrid`·`bm25+hybrid`, `market_labeling extend`): LLM 라벨, 확신이 낮은 9행을 사람이 검토해 수정 0행.
 - 블라인드 일치도(사람 vs LLM): 프롬프트 조정에 쓴 3문항 72%(v1) → 78%(v2), 조정에 쓰지 않은 3문항 56%(v2, kappa 0.04).
   문항별 관련성 판단 자체가 모호한 경우가 많아, 최종 라벨은 사람 판정·검토를 거친 값으로 본다.
