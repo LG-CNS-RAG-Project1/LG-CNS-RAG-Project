@@ -6,7 +6,7 @@
       "verdict": "signal_only",
       "claims": [
         {
-          "statement": "삼성전자가 엔비디아와 협력하여 디지털 트윈과 예지보전 기반의 AI 자율 공장 구축에 나섰다.",
+          "statement": "삼성전자가 엔비디아와 손잡고 디지털 트윈·예지보전 기반 ‘AI 자율 공장’ 구축에 나섰다.",
           "claim_type": "fact",
           "citation_ids": [
             1
@@ -27,7 +27,7 @@
       "verdict": "signal_only",
       "claims": [
         {
-          "statement": "지멘스가 독일의 유제품 가공 공장에 AI 기반 예지보전 솔루션 '센서아이'를 성공적으로 구축했다.",
+          "statement": "지멘스가 독일의 유제품 가공 공장에 AI 기반 예지보전 솔루션을 성공적으로 구축했다.",
           "claim_type": "fact",
           "citation_ids": [
             5
@@ -48,7 +48,7 @@
       "verdict": "signal_only",
       "claims": [
         {
-          "statement": "지멘스의 예지보전 솔루션 '센서아이'는 대규모 생산 환경에서 상당한 비용 절감을 이루었다.",
+          "statement": "지멘스의 예지보전 솔루션이 대규모 생산 환경에서 상당한 비용 절감을 이루었다.",
           "claim_type": "fact",
           "citation_ids": [
             9
@@ -62,10 +62,10 @@
       "verdict": "signal_only",
       "claims": [
         {
-          "statement": "LG전자가 시화조력발전소에 AI 에이전트를 도입하여 설비 이상 징후 탐지와 예지보전을 지원한다.",
+          "statement": "삼성전자가 반도체 협력사에 예지보전 기능을 요구했다.",
           "claim_type": "fact",
           "citation_ids": [
-            11
+            3
           ]
         }
       ],
@@ -76,10 +76,10 @@
       "verdict": "signal_only",
       "claims": [
         {
-          "statement": "중소기업은 설비 투자, 시스템 구축, 유지보수, 인력 교육 등으로 초기 진입에 어려움을 겪고 있다.",
+          "statement": "중소기업은 설비 투자, 시스템 구축, 유지보수, 인력 교육까지 추가 비용이 발생하면서 초기 진입이 쉽지 않다.",
           "claim_type": "fact",
           "citation_ids": [
-            12
+            10
           ]
         }
       ],
@@ -191,20 +191,20 @@
     },
     {
       "citation_id": 7,
-      "source_id": "news-20d13c5ea510",
+      "source_id": "news-50ff73bdce47",
       "source_type": "news",
-      "title": "LG전자·K-water, 시화조력발전소 AI 전환 업무협약",
-      "publisher": "tournews21.com",
-      "quote": "AI 에이전트는 발전량 손실 원인을 분석하고 설비 이상 징후를 찾아내며, 고장을 미리 예측하는 예지보전과 위험성 평가, 점검 일정 조정 등을 돕는다. 기상과 해수면 변화, 설비 상태, 발전 데이터를 종합해 운영 방안을...",
+      "title": "발전량 예측부터 설비 점검까지…LG전자, AI 조력발전소 만든다",
+      "publisher": "dizzotv.com",
+      "quote": "스마트팩토리솔루션센터장 등이 참석했다. 양사는 시화조력발전소의 운영 고도화와 디지털 전환을 위해 AI... 발전량 손실 원인을 분석하고 설비 이상 징후를 찾아내는 한편 예지보전과 위험성 평가, 점검 일정 최적화...",
       "section": "title+description",
-      "url": "https://www.tournews21.com/news/articleView.html?idxno=146410",
+      "url": "https://www.dizzotv.com/site/data/html_dir/2026/10/22/2026102280064.html",
       "published_at": 20261022,
       "period": null,
       "reliability": "medium",
       "recency": "high",
       "directness": "medium",
       "evidence_nature": "business_signal",
-      "similarity": 0.5129
+      "similarity": 0.5087999999999999
     },
     {
       "citation_id": 8,
@@ -242,40 +242,6 @@
     },
     {
       "citation_id": 10,
-      "source_id": "news-ef8c992e9be3",
-      "source_type": "news",
-      "title": "\"아이티공간 AI 전류 예지보전 기술 다시 한번 빛났다\"",
-      "publisher": "energydaily.co.kr",
-      "quote": "최소한의 비용과 시간으로 파악해 방지함은 물론 엄청난 양의 에너지까지 절감시키고 있다. 특히 Smart-EOCR... 고장의 예지보전에 기여하고 있다. 그 결과 재난망 및 인터넷 특화망 구축을 위한 제품과 솔루션을...",
-      "section": "title+description",
-      "url": "http://www.energydaily.co.kr/news/articleView.html?idxno=149841",
-      "published_at": 20240925,
-      "period": null,
-      "reliability": "medium",
-      "recency": "medium",
-      "directness": "medium",
-      "evidence_nature": "business_signal",
-      "similarity": 0.48350000000000004
-    },
-    {
-      "citation_id": 11,
-      "source_id": "news-4de1774372f2",
-      "source_type": "news",
-      "title": "LG전자-수자원공사 '맞손'…시화조력발전소에 'AI·로봇' 이식",
-      "publisher": "newsworks.co.kr",
-      "quote": "AI 에이전트는 발전소 운영 현황 대시보드를 기반으로 발전량 손실 원인 분석, 설비 이상 징후 탐지, 예지보전, 위험성 평가, 점검 일정 최적화 등을 지원한다. 기상·해수면 변화와 설비 상태, 발전 데이터를 종합...",
-      "section": "title+description",
-      "url": "https://www.newsworks.co.kr/news/articleView.html?idxno=900303",
-      "published_at": 20261022,
-      "period": null,
-      "reliability": "medium",
-      "recency": "high",
-      "directness": "medium",
-      "evidence_nature": "business_signal",
-      "similarity": 0.527
-    },
-    {
-      "citation_id": 12,
       "source_id": "news-c7da5c7cd4ba",
       "source_type": "news",
       "title": "[기획] 자동화·AI 도입하는 中企…비용 부담은 '가중'",
@@ -294,6 +260,6 @@
   ],
   "unknowns": [],
   "search_scope": "네이버 뉴스 검색 API로 사전 수집한 스마트팩토리 기사 1895건(제목·요약, 발행일 20240102~20261023), 아이디어 SF-03 수집 키워드 범위",
-  "data_as_of": 20261027,
+  "data_as_of": 20261028,
   "error_message": null
 }

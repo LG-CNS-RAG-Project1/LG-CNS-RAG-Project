@@ -3,7 +3,7 @@
 ## 서비스 연결 구조
 
 - 계획 기준의 모듈·외부 서비스 연결 구조. 실제 구현이 바뀌면 함께 갱신한다.
-- 로컬 개발은 Docker `app` 컨테이너 하나에서 실행하며, 벡터 저장소는 로컬 Chroma(특허 `data/patents/chroma/`, 시장 `data/market/chroma/`)를 사용한다.
+- 로컬 개발은 같은 이미지의 Docker `app`(개발)·`ui`(Streamlit) 컨테이너에서 실행한다. 벡터 저장소는 `CHROMA_HOST`가 비어 있으면 로컬 Chroma(특허 `data/patents/chroma/`, 시장 `data/market/chroma/`), 설정되어 있으면 팀 공용 Chroma 서버를 사용한다.
 - 아래 그림 안의 규칙 주석은 자동화가 읽는다. 새 모듈이나 외부 서비스를 추가하면 노드와 규칙을 함께 추가한다.
   - `%% map <경로> <노드ID>`: 파일이 속한 계층. PR 분석의 태그와 PR 페이지 서비스 아키텍처 그림의 계층 노드에 쓴다.
   - `%% ext import:<모듈> <노드ID> <라벨>`·`%% ext host:<호스트> <노드ID> <라벨>`: 코드의 import나 호출 주소로 찾는 외부 서비스. PR 페이지 그림의 외부 노드에 쓴다.
@@ -64,6 +64,7 @@ flowchart LR
   %% map configs/ runtime
   %% map Dockerfile runtime
   %% map compose.yaml runtime
+  %% map scripts/idealens.py runtime
   %% map requirements.txt runtime
   %% map requirements-dev.txt runtime
   %% map requirements-ui.txt runtime

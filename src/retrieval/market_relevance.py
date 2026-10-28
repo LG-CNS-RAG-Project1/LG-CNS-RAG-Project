@@ -2,8 +2,9 @@
 
 검색 거리는 관련성을 구분하지 못하므로(평가 라벨 300건 기준 관련/비관련 AUC 0.52) 충분성은
 거리 임계값이 아니라 관련성 판정 결과로 정한다. 판정 기준은 평가셋 라벨과 같은
-prompts/market_label_judge.md를 쓴다. 판정 모델은 사람 라벨 91건 기준 정밀도가 높은
-gpt-4o를 쓴다(gpt-4o 0.89, gpt-4o-mini 0.69, evaluation/results/market_relevance_*.csv).
+prompts/market_label_judge.md를 쓴다. 판정 모델은 비용 때문에 gpt-4o-mini를 쓴다.
+사람 라벨 91건 기준 정밀도는 gpt-4o 0.89, gpt-4o-mini 0.69로 mini가 비관련 기사를 더 많이
+관련으로 판정한다(evaluation/results/market_relevance_*.csv).
 
 충분성 상태:
     sufficient    관련 근거 MIN_SUFFICIENT건 이상
@@ -31,7 +32,7 @@ from src.schemas import IDEA_FIELDS, MarketSearchRequest, StructuredIdea
 ROOT_DIR = Path(__file__).resolve().parents[2]
 PROMPT_PATH = ROOT_DIR / "prompts" / "market_label_judge.md"
 IDEAS_PATH = ROOT_DIR / "data" / "samples" / "ideas.json"
-RELEVANCE_MODEL = "gpt-4o"
+RELEVANCE_MODEL = "gpt-4o-mini"
 MIN_SUFFICIENT = 2
 MAX_WORKERS = 8
 

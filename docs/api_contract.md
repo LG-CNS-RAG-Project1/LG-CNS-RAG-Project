@@ -32,7 +32,7 @@
 | `src.generation.market_markdown.market_report_to_markdown(report, heading_level=2)` | `MarketReport` | 종합 보고서용 마크다운 섹션 (str) |
 
 - `idea_id`는 평가·시연용 샘플 아이디어(`data/samples/ideas.json`)의 수집 범위로 검색을 좁힐 때만 준다. 사용자가 새로 입력한 아이디어는 `None`.
-- 소요 시간: 아이디어 1건당 약 13~20초 (관련성 판정 gpt-4o 25회 + 분석 gpt-4o 1~3회). 특허 조사와 입력·저장소가 독립적이라 병렬로 부를 수 있다(스레드 병렬 실행은 아직 검증하지 않음).
+- 소요 시간: 아이디어 1건당 약 13~20초 (관련성 판정 gpt-4o-mini 25회 + 분석 gpt-4o 1~3회). 특허 조사와 입력·저장소가 독립적이라 병렬로 부를 수 있다(스레드 병렬 실행은 아직 검증하지 않음).
 - 로컬 색인 `data/market/chroma/`와 `OPENAI_API_KEY`가 필요하다.
 - 결과 예시: `data/samples/market_reports/SF-0{1..5}.json`
 
@@ -69,6 +69,24 @@
 - API 키, KIPRIS 권한, 특허·시장 로컬 색인과 네트워크가 필요하다. Streamlit에서 `AI로 항목 초안 만들기 · 재질문`으로 시작하고 SF-02 또는 SF-05 색인을 선택한다. 실제 색인이 없는 분야는 해당 로컬 색인의 범위가 비어 있으므로 후보가 없을 수 있다.
 - 비용 입력은 `frontend.workspace.cost_summary` 규칙으로 계산한다. 비어 있는 금액은 0원 처리하지 않고 미입력 항목으로 남긴다.
 - JSON Schema: `PipelineReport.model_json_schema()` (`src.pipeline`)
+
+### 통합 흐름의 실행·오류 처리
+
+| 함수 | 입력 | 출력 |
+|---|---|---|
+| `src.pipeline.check_readiness(technology_area_id=None)` | 선택 특허 분야 ID | `Readiness`: 키 이름별 설정 여부(값 없음), 로컬·공용 Chroma 구분, 시장·특허 색인 건수와 분야별 건수, 실행 가능 여부·사유 |
+| `src.pipeline.analyze_sources(draft, ...)` | complete `IdeaDraft`, 구성, 분야 | `SourceAnalysis`: 두 보고서, 영역별 실행 상태(`PartRun`), 분석일 |
+| `src.pipeline.run_pipeline(draft, questions, ..., sources=None)` | 위와 같음. `sources`를 넘기면 조사를 다시 하지 않음 | `PipelineReport`(기존 필드 + `patent_run`·`market_run`·`readiness`·`analyzed_on`) |
+
+- **색인 점검**은 컬렉션을 새로 만들지 않는다. 로컬은 `chroma.sqlite3` 존재, 공용 Chroma는 5초 제한 heartbeat로 확인한다. 시장 색인이 비었거나 `OPENAI_API_KEY`가 없으면 시장 조사를 호출하지 않고 `PartRun.state="skipped"`로 둔다.
+- 특허는 로컬 색인(선택 분야 건수)과 `KIPRIS_API_KEY` 유무로 `patent_mode`(`local+kipris`·`kipris_only`·`local_only`·`none`)를 정한다. 로컬 색인이 없으면 빈 컬렉션을 넘겨 KIPRIS 보충 검색만 쓴다.
+- **병렬 실행**: 시장·특허를 동시에 실행하고, 영역별 제한 시간(기본 시장 120초·특허 180초, `IDEALENS_MARKET_TIMEOUT`·`IDEALENS_PATENT_TIMEOUT`)을 넘기면 `timeout`으로 기록한다. 제한 시간 뒤에는 새 외부 호출을 막지만 이미 보낸 호출은 끝날 때까지 남는다. `IDEALENS_SERIAL=1`이면 순차 실행한다.
+- 한 영역의 예외는 그 영역의 `error`로만 남고 다른 영역 결과는 유지한다. `PipelineReport.status`는 두 영역이 모두 `completed`이고 경고가 없을 때만 `completed`다.
+- **입력 검사**: 핵심 구성·검토 질문·조건은 `input_guard.screen_text(..., min_chars=1)`로 검사하며 거절되면 `ValueError`(사용자 안내 문구)다. 빈 질문은 뺀다.
+- **질문 연결**: 검증에 실패하면 오류를 덧붙여 1회 다시 생성한다. 그래도 실패하면 6개 기준을 갖춘 질문만 허용된 인용 ID로 남기고 나머지 질문만 보류한다. 연결 호출 자체가 실패하면 모든 질문을 보류한다. 경고는 `errors`와 보고서 '분석 경고'에 남는다.
+- **키 마스킹**: 오류 문구·`unknowns`는 `redact`로 `.env` 키 값, `accessKey=`·`ServiceKey=` 인자, `sk-…`, `Bearer …`를 가린 뒤 보고서·화면·CLI에 내보낸다.
+- **보고서**: 머리말에 분석일·시장 자료 수집 기준일(색인의 최대 `collected_at`)·근거 발행 범위를 따로 적고, 확정 브리프(5개 항목과 출처)·분석 실행 상태·질문별 연결·특허 근거(청구항 번호·독립/종속·출원/공개일·링크)·시장 절(`market_report_to_markdown`)을 싣는다. 외부·사용자 텍스트는 이스케이프하고 http(s)가 아닌 링크는 뺀다.
+- CLI: `python -m src.pipeline status --json`(표준 출력은 JSON만), `python -m src.pipeline run --idea-id SF-02 [--questions 파일] [--out 결과.json]`(API 비용 발생).
 
 
 ## 4. 평가 실행·재현 정보
