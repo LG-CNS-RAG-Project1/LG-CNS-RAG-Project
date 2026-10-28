@@ -47,16 +47,63 @@ def compare_patent_evidence(
     """검증 가능한 근거를 입력해 citation_id별 비교를 생성하고 스키마를 검증한다."""
     if not evidence:
         return []
+    evidence_ids = [item.citation_id for item in evidence]
+    if len(evidence_ids) != len(set(evidence_ids)):
+        raise ValueError("Supplied patent evidence must have unique citation IDs")
+
     payload = {
         "idea": idea.model_dump(),
         "evidence": [item.model_dump() for item in evidence],
+        "required_citation_ids": evidence_ids,
     }
-    raw = llm_fn(load_prompt(), json.dumps(payload, ensure_ascii=False))
-    comparisons = [
-        PatentComparison.model_validate(item) for item in raw.get("comparisons", [])
-    ]
-    allowed_ids = {item.citation_id for item in evidence}
-    comparison_ids = [item.citation_id for item in comparisons]
-    if set(comparison_ids) != allowed_ids or len(comparison_ids) != len(allowed_ids):
-        raise ValueError("Patent comparisons must map one-to-one to supplied evidence")
-    return comparisons
+    system_prompt = load_prompt()
+    user_text = json.dumps(payload, ensure_ascii=False)
+    expected_ids = set(evidence_ids)
+    last_error = None
+
+    # 모델이 일부 인용을 빠뜨리거나 citation_id를 중복 생성하면, 누락 목록을
+    # 명시해 한 번 교정 요청한다. 같은 입력을 그대로 재시도하면 같은 오류가
+    # 반복될 가능성이 높다.
+    for attempt in range(2):
+        raw = llm_fn(system_prompt, user_text)
+        comparison_ids = []
+        try:
+            if not isinstance(raw, dict) or not isinstance(
+                raw.get("comparisons"), list
+            ):
+                raise ValueError("Response must contain a comparisons list")
+            comparisons = [
+                PatentComparison.model_validate(item) for item in raw["comparisons"]
+            ]
+            comparison_ids = [item.citation_id for item in comparisons]
+            if set(comparison_ids) != expected_ids or len(comparison_ids) != len(
+                expected_ids
+            ):
+                raise ValueError(
+                    "Patent comparisons must map one-to-one to supplied evidence"
+                )
+            by_id = {item.citation_id: item for item in comparisons}
+            return [by_id[citation_id] for citation_id in evidence_ids]
+        except Exception as exc:
+            last_error = exc
+            if attempt == 0:
+                missing = sorted(expected_ids - set(comparison_ids))
+                duplicated = sorted(
+                    citation_id
+                    for citation_id in set(comparison_ids)
+                    if comparison_ids.count(citation_id) > 1
+                )
+                correction = {
+                    "required_citation_ids": evidence_ids,
+                    "previous_response": raw,
+                    "validation_error": str(exc),
+                    "missing_citation_ids": missing,
+                    "duplicated_citation_ids": duplicated,
+                }
+                user_text = (
+                    json.dumps(payload, ensure_ascii=False)
+                    + "\n\n이전 응답을 수정하세요. 원문 근거를 유지하고 required_citation_ids의 각 ID에 대해 정확히 하나씩 비교를 반환하세요.\n"
+                    + json.dumps(correction, ensure_ascii=False)
+                )
+
+    raise ValueError(str(last_error)) from last_error
