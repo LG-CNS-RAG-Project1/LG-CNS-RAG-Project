@@ -21,7 +21,7 @@
 사용 예:
     python -m evaluation.market_answer_eval run --idea-ids SF-01,SF-02,SF-03,SF-04
     python -m evaluation.market_answer_eval sample      # 사람 검토용 표본 CSV (판정기 결과 숨김)
-    python -m evaluation.market_answer_eval agreement   # 판정기 vs 사람 일치율·kappa
+    python -m evaluation.market_answer_eval agreement   # 판정기 vs 사람 일치율·kappa, 사람 보정 Citation Accuracy
 """
 
 import argparse
@@ -417,6 +417,7 @@ def result_paths(label: str) -> dict[str, Path]:
         "summary": RESULTS_DIR / f"market_answer_summary_{label}.csv",
         "reports": RESULTS_DIR / f"market_answer_reports_{label}.json",
         "review": LABELS_DIR / f"market_answer_review_{label}.csv",
+        "agreement": RESULTS_DIR / f"market_answer_agreement_{label}.json",
     }
 
 
@@ -501,7 +502,49 @@ def agreement(review_rows: list[dict], claims: list[dict]) -> dict:
         "agreement": round(observed, 3),
         "kappa": round(kappa, 3),
         "confusion": dict(Counter(f"{h}->{m}" for h, m in pairs)),
+        "by_arm": corrected_accuracy(review_rows, claims),
     }
+
+
+def corrected_accuracy(review_rows: list[dict], claims: list[dict]) -> dict:
+    """사람 검토로 보정한 방식별 Citation Accuracy 추정값을 계산한다.
+
+    표본은 판정기 라벨별로 다르게 뽑히므로(supported가 아닌 문장은 모두 포함), 판정기 라벨마다
+    사람이 supported로 본 비율을 구해 그 라벨의 전체 문장 수에 곱해 더한다. 사람 검토가 없는
+    판정기 라벨은 판정기 값을 그대로 쓴다(supported면 1, 아니면 0).
+    """
+    key = lambda r: (r["case_id"], r["arm"], str(r["claim_index"]))
+    human = {
+        key(r): r["human_label"].strip()
+        for r in review_rows
+        if r["human_label"].strip() in JUDGE_LABELS
+    }
+    result = {}
+    for arm in ARMS:
+        judged = [c for c in claims if c["arm"] == arm and c["judge_label"]]
+        if not judged:
+            continue
+        estimate = 0.0
+        for label in JUDGE_LABELS:
+            stratum = [c for c in judged if c["judge_label"] == label]
+            reviewed = [human[key(c)] for c in stratum if key(c) in human]
+            rate = (
+                sum(h == "supported" for h in reviewed) / len(reviewed)
+                if reviewed
+                else float(label == "supported")
+            )
+            estimate += rate * len(stratum)
+        reviewed_arm = [human[key(c)] for c in judged if key(c) in human]
+        result[arm] = {
+            "judged": len(judged),
+            "reviewed": len(reviewed_arm),
+            "human_labels": dict(Counter(reviewed_arm)),
+            "judge_citation_accuracy": ratio(
+                sum(c["judge_label"] == "supported" for c in judged), len(judged)
+            ),
+            "corrected_citation_accuracy": round(estimate / len(judged), 3),
+        }
+    return result
 
 
 def print_summary(summary: list[dict]) -> None:
@@ -534,7 +577,10 @@ def main() -> None:
         print(f"{len(rows)} rows -> {paths['review']} (human_label: {JUDGE_LABELS})")
     else:
         result = agreement(read_csv(paths["review"]), read_csv(paths["claims"]))
-        print(json.dumps(result, ensure_ascii=False, indent=2))
+        text = json.dumps(result, ensure_ascii=False, indent=2)
+        paths["agreement"].write_text(text, encoding="utf-8")
+        print(text)
+        print(f"-> {paths['agreement']}")
 
 
 if __name__ == "__main__":

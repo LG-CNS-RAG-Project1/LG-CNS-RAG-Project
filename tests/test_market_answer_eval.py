@@ -7,6 +7,7 @@ from evaluation.market_answer_eval import (
     baseline_answer,
     claim_rows,
     collect_answers,
+    corrected_accuracy,
     hits_to_sources,
     judge_claims,
     review_sample,
@@ -234,3 +235,46 @@ def test_review_sample_hides_judge_and_agreement():
     assert result["n"] == 3
     assert result["agreement"] == round(1 / 3, 3)
     assert result["confusion"]["supported->supported"] == 1
+    assert result["by_arm"]["idealens"]["corrected_citation_accuracy"] == 1.0
+
+
+def test_corrected_accuracy_weights_reviewed_rate_by_judge_label():
+    claims = [
+        {
+            "case_id": f"c{i}",
+            "arm": "naive_rag",
+            "claim_index": "1",
+            "judge_label": label,
+        }
+        for i, label in enumerate(["supported"] * 4 + ["partial"] * 2)
+    ]
+    review = [
+        {
+            "case_id": "c0",
+            "arm": "naive_rag",
+            "claim_index": "1",
+            "human_label": "supported",
+        },
+        {
+            "case_id": "c1",
+            "arm": "naive_rag",
+            "claim_index": "1",
+            "human_label": "partial",
+        },
+        {
+            "case_id": "c4",
+            "arm": "naive_rag",
+            "claim_index": "1",
+            "human_label": "supported",
+        },
+        {
+            "case_id": "c5",
+            "arm": "naive_rag",
+            "claim_index": "1",
+            "human_label": "unsupported",
+        },
+    ]
+    arm = corrected_accuracy(review, claims)["naive_rag"]
+    assert arm["judge_citation_accuracy"] == round(4 / 6, 3)
+    assert arm["corrected_citation_accuracy"] == 0.5
+    assert arm["reviewed"] == 4
