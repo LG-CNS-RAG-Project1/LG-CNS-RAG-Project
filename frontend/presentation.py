@@ -34,8 +34,6 @@ def hero():
         <div class="visual-paper middle-paper" aria-hidden="true"></div>
         <div class="visual-paper front-paper">
           <div class="dossier-top"><span>IDEALENS / RESEARCH NOTE</span><span>01—03</span></div>
-          <h2>아이디어의 가능성을,<br>근거로 연결합니다.</h2>
-          <div class="document-subtitle">특허 기술 × 시장 맥락</div>
           <div class="research-panels" aria-label="특허 도면과 시장 흐름을 표현한 개념도">
             <div class="research-panel"><span class="figure-label">FIG. 01 · 특허·기술</span>
               <svg viewBox="0 0 140 95" fill="none" aria-hidden="true">
@@ -56,8 +54,6 @@ def hero():
               </svg>
             </div>
           </div>
-          <div class="evidence-bridge"><span>기술 근거</span><i></i><b>연결 검토</b><i></i><span>시장 근거</span></div>
-          <div class="dossier-notes"><span>검토 질문</span><div></div><div></div></div>
           <div class="dossier-footer"><span>IDEA → EVIDENCE → INSIGHT</span><span>개념도 · 실제 분석 아님</span></div>
         </div>
         </div></section>"""

@@ -28,7 +28,7 @@ def test_landing_has_single_start_and_no_research_form():
     press(app, "왜 IdeaLens인가")
     assert not app.text_area
     difference = " ".join(x.value for x in app.markdown)
-    assert "특허 근거에 시장·기업 자료를 함께 놓고" in difference
+    assert "어떤 고객에게 어떻게 쓰일 아이디어인지" in difference
     assert intro != difference
     press(app, "IdeaLens")
     press(app, "돋보기로 조사 시작")

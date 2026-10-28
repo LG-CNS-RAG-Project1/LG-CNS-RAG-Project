@@ -44,8 +44,17 @@ def render_introduction(page):
             )
         else:
             st.html('<span class="intro-eyebrow">WHY IDEALENS</span>')
-            st.title("‘어떤 기술인가’에서 한 걸음 더.")
-            st.write("‘누구의 어떤 문제에 쓸 수 있을까?’까지 함께 살펴봅니다.")
+            st.title("특허 분석에, 시장 조사를 더하다.")
+            st.write(
+                "관련 기술을 찾는 데서 더 나아가, 어떤 고객에게 어떻게 쓰일 아이디어인지 구체화합니다."
+            )
+            st.html(
+                """<section class="difference-comparison" aria-label="특허 중심 검토와 IdeaLens의 조사 범위 비교">
+                <article class="comparison-base"><span class="intro-number">특허 중심의 검토 흐름</span><h2>어떤 기술이 있나요?</h2><div class="scope-chips"><span>특허 검색</span><span>문헌·청구항 분석</span></div><p>관련 기술과 구성의 차이를 살펴봅니다.</p></article>
+                <div class="comparison-plus" aria-hidden="true">＋</div>
+                <article class="comparison-expanded"><span class="intro-number">IDEALENS가 더하는 검토</span><h2>시장에서는 어떻게 쓰일까요?</h2><div class="scope-chips"><span>아이디어 구체화</span><span>시장·기업 조사</span><span>양쪽 근거 연결</span></div><p>기술의 관련성과 고객·도입 맥락을<br>같은 질문으로 연결해 검토 노트를 만듭니다.</p></article>
+                </section>"""
+            )
             st.html(
                 """<section class="connection-board" aria-label="특허 근거와 시장 맥락을 하나의 질문으로 연결">
                 <article class="evidence-node patent-node"><span class="intro-number">PATENT</span><span class="node-symbol" aria-hidden="true">▧</span><h2>기술의 근거</h2><p>관련 특허는?<br>구성과 차이는?</p></article>
@@ -53,20 +62,7 @@ def render_introduction(page):
                 <article class="evidence-node market-node"><span class="intro-number">MARKET</span><div class="mini-chart" aria-hidden="true"><i></i><i></i><i></i><i></i></div><h2>시장의 맥락</h2><p>어떤 고객에게?<br>어떤 도입 조건에서?</p></article>
                 </section>"""
             )
-            st.subheader("특허·시장 자료를 같은 검토 질문에 연결합니다.")
-            left, right = st.columns(2, gap="large")
-            with left:
-                with st.container(border=True):
-                    st.caption("특허 중심의 질문")
-                    st.subheader("관련된 기술이 있나요?")
-                    st.write("문헌·청구항을 찾아 구성의 유사점과 차이를 검토합니다.")
-            with right:
-                with st.container(border=True):
-                    st.caption("IDEALENS에서 더 살펴보는 질문")
-                    st.subheader("이 아이디어는 어디에 쓰일까요?")
-                    st.write(
-                        "특허 근거에 시장·기업 자료를 함께 놓고 고객·사용 환경·도입 조건을 검토합니다."
-                    )
+            st.subheader("특허와 시장, 따로 찾고 함께 연결합니다.")
             st.html(
                 """<div class="intro-takeaway"><b>근거가 부족하면, 부족한 상태 그대로.</b><span>관련 특허가 있다는 이유만으로 수요가 있다고 판단하지 않습니다.<br>연결이 확인되지 않은 부분과 다음에 확인할 조건도 노트에 남깁니다.</span></div>"""
             )
