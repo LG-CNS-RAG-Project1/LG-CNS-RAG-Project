@@ -1,0 +1,408 @@
+from typing import Literal
+from pydantic import BaseModel, Field, model_validator
+
+
+# 1. 사용자 아이디어
+class StructuredIdea(BaseModel):
+    title: str
+    problem: str
+    technology: str
+    customers: str = ""
+    difference: str = ""
+    revenue: str = ""
+    technical_components: list[str] = Field(default_factory=list)
+
+
+IdeaField = Literal["problem", "technology", "customers", "difference", "revenue"]
+FieldSource = Literal[
+    "extracted",  # 입력 문장에서 LLM이 추출
+    "user_answer",  # 재질문에 사용자가 직접 답변
+    "unknown",  # 사용자가 모름으로 답했거나 재질문 상한까지 비어 있음
+]
+
+IDEA_FIELDS: list[IdeaField] = [
+    "problem",
+    "technology",
+    "customers",
+    "difference",
+    "revenue",
+]
+
+
+# 1-1. 구조화 중인 아이디어 (빈 항목 재질문 단계)
+class IdeaDraft(BaseModel):
+    original_text: str = Field(min_length=1)
+    title: str = ""
+    problem: str = ""
+    technology: str = ""
+    customers: str = ""
+    difference: str = ""
+    revenue: str = ""
+
+    field_sources: dict[IdeaField, FieldSource] = Field(default_factory=dict)
+    status: Literal["needs_input", "complete", "rejected"] = "needs_input"
+    missing_fields: list[IdeaField] = Field(default_factory=list)
+    questions: dict[IdeaField, str] = Field(default_factory=dict)
+    rounds: int = Field(default=0, ge=0)  # 재질문에 답한 횟수
+
+    # 입력 검사 결과: off_topic(주제 이탈), unsafe(프롬프트 조작·유해 목적)이면 rejected
+    input_status: Literal["ok", "off_topic", "unsafe"] = "ok"
+    rejection_reason: str | None = None  # 사용자에게 보여 줄 거절 안내
+
+    @model_validator(mode="after")
+    def validate_draft(self):
+        if self.status == "complete" and self.missing_fields:
+            raise ValueError("complete draft must not have missing fields")
+        if self.status == "needs_input" and not self.missing_fields:
+            raise ValueError("needs_input draft requires missing fields")
+        if (self.status == "rejected") != (self.input_status != "ok"):
+            raise ValueError("rejected status must match a non-ok input_status")
+        if self.status == "rejected" and not self.rejection_reason:
+            raise ValueError("rejected draft requires rejection_reason")
+        return self
+
+    @property
+    def unknown_fields(self) -> list[IdeaField]:
+        """모름으로 확정된 항목. 해당 항목에 기대는 시장 차원은 미확인으로 판정한다."""
+        return [f for f in IDEA_FIELDS if self.field_sources.get(f) == "unknown"]
+
+    def to_structured_idea(self) -> StructuredIdea:
+        """완성된 초안을 특허·시장 공통 입력으로 변환한다. 모름 항목은 빈 문자열로 남는다."""
+        if self.status != "complete":
+            raise ValueError(f"idea draft is incomplete: {self.missing_fields}")
+        return StructuredIdea(
+            title=self.title,
+            **{field: getattr(self, field) for field in IDEA_FIELDS},
+        )
+
+
+# 2. 특허 검색 요청
+class PatentSearchRequest(BaseModel):
+    idea: StructuredIdea
+    top_k: int = Field(default=5, ge=1, le=5)
+    technology_area_id: str | None = None
+
+
+# 3. 특허 청구항
+class PatentClaim(BaseModel):
+    claim_number: int = Field(ge=1)
+    text: str = Field(min_length=1)
+    claim_type: Literal["independent", "dependent", "unclassified"] = "unclassified"
+    depends_on: list[int] = Field(default_factory=list)
+    version_id: str | None = None
+
+
+# 4. 정제된 특허 문서
+class PatentDocument(BaseModel):
+    patent_id: str
+    title: str
+    abstract: str
+    claims: str = ""
+    claim_items: list[PatentClaim] = Field(default_factory=list)
+    claim_version_id: str | None = None
+
+    application_number: str | None = None
+    publication_number: str | None = None
+    registration_number: str | None = None
+
+    applicant: str | None = None
+    application_date: str | None = None
+    publication_date: str | None = None
+    public_date: str | None = None
+
+    source: str = "KIPRIS Plus"
+    source_url: str | None = None
+    technology_area_ids: list[str] = Field(default_factory=list)
+
+
+# 5. 임베딩 대상 청크
+class PatentChunk(BaseModel):
+    chunk_id: str
+    patent_id: str
+    section: Literal["abstract", "claims"]
+    text: str = Field(min_length=1)
+    chunk_index: int = Field(ge=0)
+    claim_number: int | None = Field(default=None, ge=1)
+    claim_type: Literal["independent", "dependent", "unclassified"] | None = None
+    depends_on: list[int] = Field(default_factory=list)
+    version_id: str | None = None
+    char_start: int | None = Field(default=None, ge=0)
+    char_end: int | None = Field(default=None, ge=0)
+
+
+# 6. 검색 근거
+class PatentEvidence(BaseModel):
+    citation_id: int = Field(ge=1)
+    patent_id: str
+    title: str
+
+    section: Literal["abstract", "claims"]
+    quote: str = Field(min_length=1)
+
+    similarity: float | None = Field(default=None, ge=0, le=1)
+    source_url: str | None = None
+    application_number: str | None = None
+    publication_number: str | None = None
+    application_date: str | None = None
+    publication_date: str | None = None
+    registration_number: str | None = None
+    claim_number: int | None = Field(default=None, ge=1)
+    claim_type: Literal["independent", "dependent", "unclassified"] | None = None
+    depends_on: list[int] = Field(default_factory=list)
+    version_id: str | None = None
+
+
+# 7. 기술 비교 결과
+class PatentComparison(BaseModel):
+    citation_id: int = Field(ge=1)
+    similarity: str
+    difference: str
+    uncertainty: str
+    technical_element: str | None = None
+
+
+# 8. 최종 특허 RAG 결과
+class PatentReport(BaseModel):
+    status: Literal["completed", "no_results", "error"]
+
+    evidence: list[PatentEvidence] = Field(default_factory=list)
+    comparisons: list[PatentComparison] = Field(default_factory=list)
+    unknowns: list[str] = Field(default_factory=list)
+
+    search_scope: str
+    error_message: str | None = None
+
+    @model_validator(mode="after")
+    def validate_citations(self):
+        ids = [e.citation_id for e in self.evidence]
+
+        if len(ids) != len(set(ids)):
+            raise ValueError("Duplicate citation IDs")
+
+        for comparison in self.comparisons:
+            if comparison.citation_id not in ids:
+                raise ValueError("Comparison references unknown citation")
+
+        if len({e.patent_id for e in self.evidence}) > 5:
+            raise ValueError("Maximum 5 unique patents")
+
+        return self
+
+
+# ──────────────────────────────────────────────
+# 시장 근거 스키마
+# ──────────────────────────────────────────────
+
+MarketSourceType = Literal[
+    "dart",  # DART 공시
+    "news",  # 언론 기사
+    "press_release",  # 기업 보도자료·IR
+    "public_stats",  # 공공 통계·정부 자료
+    "procurement",  # 조달·지원사업 공고
+    "research_report",  # 산업·연구기관 보고서
+    "customer_validation",  # 고객 검증 자료(인터뷰·설문·파일럿·LOI)
+]
+MarketDimension = Literal["demand", "competition", "price", "buyer", "adoption_barrier"]
+EvidenceNature = Literal[
+    "direct_demand",  # 고객의 구매·지불 의사를 직접 보여줌
+    "purchase_signal",  # 조달·구매 요건 등 구매 신호
+    "indirect_demand",  # 보급 현황 등 간접 수요 신호
+    "business_signal",  # 기업 투자·출시·제휴·정책 등 사업 신호
+    "estimate",  # 시장 규모 등 추정치
+    "company_claim",  # 기업 자체 주장
+]
+Grade = Literal["high", "medium", "low"]
+MarketVerdict = Literal["confirmed", "signal_only", "unverified"]
+ClaimType = Literal["fact", "user_claim", "ai_hypothesis"]
+
+ALL_DIMENSIONS: list[MarketDimension] = [
+    "demand",
+    "competition",
+    "price",
+    "buyer",
+    "adoption_barrier",
+]
+
+
+def _check_yyyymmdd(value: int | None, field_name: str) -> None:
+    """YYYYMMDD 정수 형식의 날짜인지 확인한다."""
+    if value is None:
+        return
+    from datetime import datetime
+
+    try:
+        datetime.strptime(str(value), "%Y%m%d")
+    except ValueError:
+        raise ValueError(f"{field_name} must be YYYYMMDD integer")
+
+
+# 8. 시장 근거 검색 요청
+class MarketSearchRequest(BaseModel):
+    idea: StructuredIdea
+    dimensions: list[MarketDimension] = Field(
+        default_factory=lambda: list(ALL_DIMENSIONS)
+    )
+    source_types: list[MarketSourceType] | None = None
+    date_from: int | None = None
+    top_k: int = Field(default=5, ge=1, le=5)
+
+    @model_validator(mode="after")
+    def validate_date(self):
+        _check_yyyymmdd(self.date_from, "date_from")
+        return self
+
+
+# 9. 정제된 시장 자료 (출처 원장 1행)
+class MarketDocument(BaseModel):
+    source_id: str = Field(min_length=1)
+    source_type: MarketSourceType
+    title: str
+    publisher: str
+    text: str = Field(min_length=1)
+
+    url: str | None = None
+    published_at: int  # 발행일 YYYYMMDD
+    period: str | None = None  # 회계기간·조사 기준연도 (예: FY2025)
+    collected_at: int  # 수집일 YYYYMMDD
+    region: Literal["domestic", "overseas", "global"] = "domestic"
+    lang: str = "ko"
+    section: str | None = None  # 원문 위치 (페이지·섹션·문단)
+
+    reliability: Grade
+    evidence_nature: EvidenceNature
+    dup_group: str | None = None  # 같은 사건을 다룬 기사 묶음
+    license: str | None = None  # 저장·가공·공유 조건
+    idea_ids: list[str] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def validate_document(self):
+        _check_yyyymmdd(self.published_at, "published_at")
+        _check_yyyymmdd(self.collected_at, "collected_at")
+        if self.collected_at < self.published_at:
+            raise ValueError("collected_at is earlier than published_at")
+        if (
+            self.evidence_nature == "direct_demand"
+            and self.source_type != "customer_validation"
+        ):
+            raise ValueError(
+                "direct_demand is only allowed for customer_validation sources"
+            )
+        return self
+
+    def to_chroma_metadata(self) -> dict:
+        """Chroma 메타데이터 형식(str·int·float·bool)으로 변환한다. text와 None 값은 제외한다."""
+        data = self.model_dump(exclude={"text"})
+        data["idea_ids"] = ",".join(self.idea_ids)
+        return {k: v for k, v in data.items() if v is not None and v != ""}
+
+
+# 10. 임베딩 대상 시장 청크
+class MarketChunk(BaseModel):
+    chunk_id: str  # "{source_id}#{chunk_index}"
+    source_id: str
+    text: str = Field(min_length=1)
+    chunk_index: int = Field(ge=0)
+    section: str | None = None
+
+
+# 11. 시장 검색 근거
+class MarketEvidence(BaseModel):
+    citation_id: int = Field(ge=1)
+    source_id: str
+    source_type: MarketSourceType
+    title: str
+    publisher: str
+
+    quote: str = Field(min_length=1)
+    section: str | None = None
+    url: str | None = None
+    published_at: int
+    period: str | None = None
+
+    reliability: Grade
+    recency: Grade
+    directness: Grade
+    evidence_nature: EvidenceNature
+
+    similarity: float | None = Field(default=None, ge=0, le=1)
+
+
+# 12. 차원별 시장 주장
+class MarketClaim(BaseModel):
+    statement: str = Field(min_length=1)
+    claim_type: ClaimType
+    citation_ids: list[int] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def validate_claim(self):
+        if self.claim_type == "fact" and not self.citation_ids:
+            raise ValueError("fact claims require at least one citation")
+        return self
+
+
+# 13. 차원별 판정 결과
+class MarketDimensionResult(BaseModel):
+    dimension: MarketDimension
+    verdict: MarketVerdict
+    claims: list[MarketClaim] = Field(default_factory=list, max_length=3)
+    next_check: str | None = None  # 미확인일 때 다음 검증 과제
+
+    @model_validator(mode="after")
+    def validate_verdict(self):
+        cited = [c for c in self.claims if c.citation_ids]
+        if self.verdict in ("confirmed", "signal_only") and not cited:
+            raise ValueError(
+                f"{self.dimension}: verdict '{self.verdict}' requires cited claims"
+            )
+        if self.verdict == "unverified" and not self.next_check:
+            raise ValueError(f"{self.dimension}: unverified result requires next_check")
+        return self
+
+
+# 14. 최종 시장 근거 결과
+class MarketReport(BaseModel):
+    status: Literal["completed", "no_results", "error"]
+
+    dimensions: list[MarketDimensionResult] = Field(default_factory=list)
+    evidence: list[MarketEvidence] = Field(default_factory=list)
+    unknowns: list[str] = Field(default_factory=list)
+
+    search_scope: str
+    data_as_of: int | None = None  # 분석 기준일 YYYYMMDD
+    error_message: str | None = None
+
+    @model_validator(mode="after")
+    def validate_report(self):
+        _check_yyyymmdd(self.data_as_of, "data_as_of")
+
+        ids = [e.citation_id for e in self.evidence]
+        if len(ids) != len(set(ids)):
+            raise ValueError("Duplicate citation IDs")
+
+        dims = [d.dimension for d in self.dimensions]
+        if len(dims) != len(set(dims)):
+            raise ValueError("Duplicate market dimensions")
+
+        by_id = {e.citation_id: e for e in self.evidence}
+        for d in self.dimensions:
+            for claim in d.claims:
+                for cid in claim.citation_ids:
+                    if cid not in by_id:
+                        raise ValueError("Claim references unknown citation")
+
+            # 수요 '확인'은 직접 수요 근거(고객 검증 자료)가 있어야 한다
+            if d.dimension == "demand" and d.verdict == "confirmed":
+                cited = {cid for c in d.claims for cid in c.citation_ids}
+                if not any(
+                    by_id[cid].evidence_nature == "direct_demand" for cid in cited
+                ):
+                    raise ValueError(
+                        "demand 'confirmed' requires direct_demand evidence"
+                    )
+
+        if self.status == "no_results" and self.evidence:
+            raise ValueError("no_results report must not contain evidence")
+        if self.status == "error" and not self.error_message:
+            raise ValueError("error report requires error_message")
+
+        return self

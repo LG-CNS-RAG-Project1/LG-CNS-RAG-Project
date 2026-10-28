@@ -1,0 +1,36 @@
+name: 버그 보고
+description: 예상과 다르게 동작하는 문제를 보고한다.
+labels: [bug]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: 문제 요약
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 재현 방법
+      placeholder: |
+        1. make up
+        2. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 기대 결과와 실제 결과
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: 로그·오류 메시지
+      description: API 키, 토큰 등 민감정보는 지우고 붙여 넣는다.
+      render: shell
+  - type: input
+    id: environment
+    attributes:
+      label: 실행 환경
+      placeholder: Docker app 컨테이너 / 로컬 Python 3.12, macOS

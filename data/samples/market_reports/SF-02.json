@@ -1,0 +1,293 @@
+{
+  "status": "completed",
+  "dimensions": [
+    {
+      "dimension": "demand",
+      "verdict": "signal_only",
+      "claims": [
+        {
+          "statement": "2차전지 외관검사 장비는 2차전지 셀의 겉모습을 꼼꼼히 살펴보고 불량 여부를 확인하는 주요 사업으로 다루어지고 있다.",
+          "claim_type": "fact",
+          "citation_ids": [
+            2
+          ]
+        },
+        {
+          "statement": "AI 열풍에 따른 유리기판 시장 확대가 지속되고 있다.",
+          "claim_type": "fact",
+          "citation_ids": [
+            1
+          ]
+        }
+      ],
+      "next_check": null
+    },
+    {
+      "dimension": "competition",
+      "verdict": "signal_only",
+      "claims": [
+        {
+          "statement": "AI 비전 검사장비와 3D 형상측정 장비, 로봇 기반 자동검사 시스템으로 사업을 넓히고 있는 기업들이 있다.",
+          "claim_type": "fact",
+          "citation_ids": [
+            5
+          ]
+        },
+        {
+          "statement": "AI 비전 검사 기반 차세대 지능형 제조 플랫폼이 구축되고 있다.",
+          "claim_type": "fact",
+          "citation_ids": [
+            7
+          ]
+        }
+      ],
+      "next_check": null
+    },
+    {
+      "dimension": "price",
+      "verdict": "unverified",
+      "claims": [],
+      "next_check": "공급사 견적이나 공공 지원사업 단가로 도입 가격대 확인"
+    },
+    {
+      "dimension": "buyer",
+      "verdict": "signal_only",
+      "claims": [
+        {
+          "statement": "HB테크놀러지는 2차전지 통합 외관 검사기 장비를 생산하고 있다.",
+          "claim_type": "fact",
+          "citation_ids": [
+            10
+          ]
+        },
+        {
+          "statement": "현대차와 기아는 AI 기반 자동화 기술을 도입하여 품질을 높이고 있다.",
+          "claim_type": "fact",
+          "citation_ids": [
+            11
+          ]
+        }
+      ],
+      "next_check": null
+    },
+    {
+      "dimension": "adoption_barrier",
+      "verdict": "unverified",
+      "claims": [],
+      "next_check": "AI 비전 검사 장비 도입 시 예상되는 기술적 문제나 비용 문제를 조사해야 한다."
+    }
+  ],
+  "evidence": [
+    {
+      "citation_id": 1,
+      "source_id": "news-69c2c11f65dc",
+      "source_type": "news",
+      "title": "[수익 내비게이터] 2차전지 통합 외관 검사 'HB테크놀러지' vs 컨테이너...",
+      "publisher": "news.mtn.co.kr",
+      "quote": "OLED 검사장비 최첨단 제품 생산- 2차전지 통합 외관 검사 등 사업 영위 - 실적 바닥 확인… 흑자전환 및 적자폭 축소 - AI 열풍 따른 유리기판 시장 확대 지속 - SKC 자회사 '앱솔릭스'에 글라스기판 검사장비...",
+      "section": "title+description",
+      "url": "https://news.mtn.co.kr/news-detail/2024052716325399910",
+      "published_at": 20240527,
+      "period": null,
+      "reliability": "medium",
+      "recency": "medium",
+      "directness": "medium",
+      "evidence_nature": "business_signal",
+      "similarity": 0.5841000000000001
+    },
+    {
+      "citation_id": 2,
+      "source_id": "news-766eb27ce448",
+      "source_type": "news",
+      "title": "인텍플러스, 외관 검사 장비 분야에서 두각",
+      "publisher": "pinpointnews.co.kr",
+      "quote": "반도체 외관검사분야, 반도체 Mid-End 분야, 디스플레이 분야, 2차전지 외관검사 장비의 제조를 주요 사업으로 하고 있다. 2차전지 외관검사 장비는 2차전지 셀의 겉모습, 즉 외관을 꼼꼼히 살펴보고 불량 여부를...",
+      "section": "title+description",
+      "url": "https://www.pinpointnews.co.kr/news/articleView.html?idxno=280296",
+      "published_at": 20240803,
+      "period": null,
+      "reliability": "medium",
+      "recency": "medium",
+      "directness": "medium",
+      "evidence_nature": "business_signal",
+      "similarity": 0.5809
+    },
+    {
+      "citation_id": 3,
+      "source_id": "news-11f85ea25510",
+      "source_type": "news",
+      "title": "AI 검사부터 3D 로봇 가이던스까지...우리 제조 현장에 필요한 AI 머신비...",
+      "publisher": "hellot.net",
+      "quote": "머신비전 기술의 흐름을 한자리에서 살펴볼 수 있도록 구성됐다. AI 검사 도입을 검토하는 제조기업은 물론 생산·품질·자동화·로봇·스마트팩토리 분야 실무자들이 현장 적용에 필요한 기술과 사례를 확인할 수...",
+      "section": "title+description",
+      "url": "https://www.hellot.net/news/article.html?no=114372",
+      "published_at": 20260814,
+      "period": null,
+      "reliability": "medium",
+      "recency": "high",
+      "directness": "medium",
+      "evidence_nature": "business_signal",
+      "similarity": 0.5716
+    },
+    {
+      "citation_id": 4,
+      "source_id": "news-20fb66b19106",
+      "source_type": "news",
+      "title": "독자 개발 AI 딥러닝 소프트웨어로 외산 장비 뛰어넘다",
+      "publisher": "daejonilbo.com",
+      "quote": "제조 공정에서 발생하는 불량을 영상 기반으로 검출하는 머신비전 검사장비와 이미지 딥러닝 소프트웨어를... 자체 소프트웨어는 기술유출 위험을 낮추고 문제 발생 시 즉시 대응할 수 있는 유연성을 확보해주며, 가격...",
+      "section": "title+description",
+      "url": "https://www.daejonilbo.com/news/articleView.html?idxno=2243882",
+      "published_at": 20251208,
+      "period": null,
+      "reliability": "medium",
+      "recency": "high",
+      "directness": "medium",
+      "evidence_nature": "business_signal",
+      "similarity": 0.5701
+    },
+    {
+      "citation_id": 5,
+      "source_id": "news-f677a72152db",
+      "source_type": "news",
+      "title": "시험장비에 AI 입힌다…㈜테스트원, 스마트 검사 솔루션으로 도약 [경기...",
+      "publisher": "kyeonggi.com",
+      "quote": "이에 더해 기존 계측·시험기기 제조 역량을 바탕으로 AI 비전 검사장비와 3차원(3D) 형상측정 장비, 로봇 기반 자동검사 시스템으로 사업을 넓히고 있다. 카메라와 3D 센서, 조명, 검사 소프트웨어와 AI 알고리즘을 활용해...",
+      "section": "title+description",
+      "url": "https://www.kyeonggi.com/article/20261021580086",
+      "published_at": 20261021,
+      "period": null,
+      "reliability": "medium",
+      "recency": "high",
+      "directness": "medium",
+      "evidence_nature": "business_signal",
+      "similarity": 0.53
+    },
+    {
+      "citation_id": 6,
+      "source_id": "news-17e2b6cbbd51",
+      "source_type": "news",
+      "title": "뉴로클, Intel Edge Solution Summit서 오토딥러닝 비전검사 기술 공개",
+      "publisher": "hellot.net",
+      "quote": "성공적으로 도입하고 확산하기 위해서는 AI 모델의 정확도뿐만 아니라 배포 용이성, 하드웨어... AI 비전검사를 구축할 수 있음을 보여주는 사례로 평가받았다. 이홍석 뉴로클 대표는 \"제조 현장에서...",
+      "section": "title+description",
+      "url": "https://www.hellot.net/news/article.html?no=113254",
+      "published_at": 20260617,
+      "period": null,
+      "reliability": "medium",
+      "recency": "high",
+      "directness": "medium",
+      "evidence_nature": "business_signal",
+      "similarity": 0.5123
+    },
+    {
+      "citation_id": 7,
+      "source_id": "news-5ef05c86c089",
+      "source_type": "news",
+      "title": "미소정보기술, CMTX 제조공정에 AI 비전 검사 플랫폼 구축",
+      "publisher": "datanet.co.kr",
+      "quote": "AI 비전 검사 기반 차세대 지능형 제조 플랫폼 '닥시(DAXI)' 구축을 완료했다고 15일 밝혔다. 이번 프로젝트는 기존 수작업 중심의 육안검사 체계를 AI 기반 자동 판정 시스템으로 전환한 제조 AI 적용 사례다....",
+      "section": "title+description",
+      "url": "https://www.datanet.co.kr/news/articleView.html?idxno=212355",
+      "published_at": 20260615,
+      "period": null,
+      "reliability": "medium",
+      "recency": "high",
+      "directness": "medium",
+      "evidence_nature": "business_signal",
+      "similarity": 0.4939
+    },
+    {
+      "citation_id": 8,
+      "source_id": "news-cafe1a2c4f32",
+      "source_type": "news",
+      "title": "트윔, 방산 분야 AI 비전 검사기 수주...검사 솔루션 적용 확대",
+      "publisher": "etnews.com",
+      "quote": "트윔의 AI 비전 검사기는 고속 카메라와 정밀 광학계를 활용한 전면 외관 검사는 물론, AI 및 룰(Rule) 기반의... AI 검사 설비를 주력으로 반도체, 디스플레이, 2차전지, 태양광, 바이오 등 다양한 분야의 AX/DX화를 선도하고...",
+      "section": "title+description",
+      "url": "https://www.etnews.com/20261008000106",
+      "published_at": 20261008,
+      "period": null,
+      "reliability": "medium",
+      "recency": "high",
+      "directness": "medium",
+      "evidence_nature": "business_signal",
+      "similarity": 0.49329999999999996
+    },
+    {
+      "citation_id": 9,
+      "source_id": "news-7abbb821d4aa",
+      "source_type": "news",
+      "title": "고성능·범용성 잡은 표준형 비전검사장비, 세계시장 두드린다",
+      "publisher": "daejonilbo.com",
+      "quote": "충남의 산업용 비전검사장비 전문기업 머신앤비전(대표 하응주)이 \"쉽고 빠른 올인원 비전검사 시스템\"을... 품질검사를 자동화할 수 있도록 설계됐다. 무엇보다도 1000만원 초반대의 가격으로 중소·중견 제조기업의 도입...",
+      "section": "title+description",
+      "url": "https://www.daejonilbo.com/news/articleView.html?idxno=2244146",
+      "published_at": 20251211,
+      "period": null,
+      "reliability": "medium",
+      "recency": "high",
+      "directness": "medium",
+      "evidence_nature": "business_signal",
+      "similarity": 0.569
+    },
+    {
+      "citation_id": 10,
+      "source_id": "news-60a4b11433f3",
+      "source_type": "news",
+      "title": "[수익 내비게이터] 2차전지 통합외관검사기 장비 생산 'HB테크놀러지'",
+      "publisher": "news.mtn.co.kr",
+      "quote": "HB테크놀러지(078150)- DP 검사장비· 2차전지 통합외관검사기 등 장비 생산- DP 도광판· 확산판 제조 및 도광판 패턴 가공·판매- 주요 매출, 디스플레이· 2차전지· 부품 소재 사업 - 삼성 유리기판 개발 착수 속...",
+      "section": "title+description",
+      "url": "https://news.mtn.co.kr/news-detail/2024040317150136152",
+      "published_at": 20240403,
+      "period": null,
+      "reliability": "medium",
+      "recency": "medium",
+      "directness": "medium",
+      "evidence_nature": "business_signal",
+      "similarity": 0.5783
+    },
+    {
+      "citation_id": 11,
+      "source_id": "news-c095dd5c5241",
+      "source_type": "news",
+      "title": "가상공장서 품질 검증·AI가 현장 지원…현대차·기아, 제조혁신 속도",
+      "publisher": "fnnews.com",
+      "quote": "숙련된 작업자의 경험에 의존하던 업무를 데이터와 AI 기반으로 전환하는 데 초점을 맞췄다. 완성차 품질을 높이기 위한 자동화 기술도 선보인다. 대표적인 사례는 현대차·기아가 자체 개발한 '터널형 외관검사 비전...",
+      "section": "title+description",
+      "url": "https://www.fnnews.com/news/202610180907245274",
+      "published_at": 20261018,
+      "period": null,
+      "reliability": "medium",
+      "recency": "high",
+      "directness": "medium",
+      "evidence_nature": "business_signal",
+      "similarity": 0.5776
+    },
+    {
+      "citation_id": 12,
+      "source_id": "news-2ac953691611",
+      "source_type": "news",
+      "title": "충북 제조현장에 스며든 'AI'…설비 점검시간 90% 단축",
+      "publisher": "bzeronews.com",
+      "quote": "식품 제조기업 에쓰푸드는 베이컨 포장공정에 AI 비전검사 솔루션을 도입했다. 작업자가 육안으로 확인하던 소비기한과 바코드 등을 자동 판독해 제품별 표시사항의 적합 여부를 확인하는 방식이다. 검사 정확도는 99....",
+      "section": "title+description",
+      "url": "https://www.bzeronews.com/news/articleView.html?idxno=824155",
+      "published_at": 20261021,
+      "period": null,
+      "reliability": "medium",
+      "recency": "high",
+      "directness": "medium",
+      "evidence_nature": "business_signal",
+      "similarity": 0.5690999999999999
+    }
+  ],
+  "unknowns": [
+    "가격 근거 미확인",
+    "도입장벽 근거 미확인"
+  ],
+  "search_scope": "네이버 뉴스 검색 API로 사전 수집한 스마트팩토리 기사 1895건(제목·요약, 발행일 20240102~20261023), 아이디어 SF-02 수집 키워드 범위",
+  "data_as_of": 20261028,
+  "error_message": null
+}

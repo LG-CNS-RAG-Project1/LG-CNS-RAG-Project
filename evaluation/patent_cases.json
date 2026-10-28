@@ -1,0 +1,52 @@
+[
+  {
+    "case_id": "SF-02-defect-detection",
+    "idea_id": "SF-02",
+    "technology_area_id": "SF-02",
+    "technical_element": "딥러닝 기반 외관 불량 검출",
+    "query": "딥러닝 머신비전 제품 표면 외관 결함 검출 장치",
+    "relevant_source_ids": [],
+    "judged_source_ids": [],
+    "labeled": false
+  },
+  {
+    "case_id": "SF-02-camera-lighting",
+    "idea_id": "SF-02",
+    "technology_area_id": "SF-02",
+    "technical_element": "카메라·조명 조건을 이용한 검사",
+    "query": "산업용 카메라 조명 제어 영상 취득 표면 검사",
+    "relevant_source_ids": [],
+    "judged_source_ids": [],
+    "labeled": false
+  },
+  {
+    "case_id": "SF-02-anomaly-classification",
+    "idea_id": "SF-02",
+    "technology_area_id": "SF-02",
+    "technical_element": "학습 기반 이상 분류",
+    "query": "학습 데이터 특징 추출 불량 유형 분류 비전 검사",
+    "relevant_source_ids": [],
+    "judged_source_ids": [],
+    "labeled": false
+  },
+  {
+    "case_id": "SF-05-process-control",
+    "idea_id": "SF-05",
+    "technology_area_id": "SF-05",
+    "technical_element": "공정 데이터 기반 제어 조건 최적화",
+    "query": "제조 공정 데이터 기반 공정 조건 최적화 자동 제어 방법",
+    "relevant_source_ids": [],
+    "judged_source_ids": [],
+    "labeled": false
+  },
+  {
+    "case_id": "SF-05-multivariable-control",
+    "idea_id": "SF-05",
+    "technology_area_id": "SF-05",
+    "technical_element": "복수 공정 변수 연동 제어",
+    "query": "복수 센서 공정 변수 상관관계 분석 공정 제어 설정값 조정",
+    "relevant_source_ids": [],
+    "judged_source_ids": [],
+    "labeled": false
+  }
+]
