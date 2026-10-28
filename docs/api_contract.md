@@ -10,6 +10,7 @@
 |---|---|---|
 | `src.generation.idea_parser.parse_idea(text)` | 아이디어 문장 (str) | `IdeaDraft` |
 | `src.generation.idea_parser.apply_answers(draft, answers)` | `IdeaDraft`, `{항목: 답변}` (항목: `problem`·`technology`·`customers`·`difference`·`revenue`) | `IdeaDraft` |
+| `src.generation.idea_parser.confirm_unknowns(draft)` | 거절되지 않은 `IdeaDraft` | 빈 재질문 항목을 `unknown`으로 확정한 `IdeaDraft` |
 | `src.generation.idea_parser.build_requests(draft)` | `status="complete"`인 `IdeaDraft` | `(PatentSearchRequest, MarketSearchRequest)` |
 
 `IdeaDraft.status`로 다음 단계를 정한다.
@@ -20,7 +21,8 @@
 | `needs_input` | 빈 항목이 있음 (재질문 최대 2회) | `questions`(`{항목: 질문}`)를 보여 주고 답변으로 `apply_answers` |
 | `complete` | 5개 항목 확정 (끝까지 비어 있으면 `field_sources`가 `unknown`) | `build_requests`로 특허·시장 검색 요청 생성 |
 
-- LLM 호출은 `parse_idea`의 1회뿐이다. `apply_answers`는 LLM을 부르지 않는다.
+- 초안은 기술 구성요소·현재 대안·목표 세그먼트·가치 가설을 포함한다. 가치는 `ai_hypothesis`로 표시해 입력 사실과 분리한다.
+- LLM 호출은 `parse_idea`의 1회뿐이다. `apply_answers`와 `confirm_unknowns`는 LLM을 부르지 않는다. 사용자는 미확인 항목을 확정하고 진행할 수 있다.
 - 예외: 빈 문장은 `parse_idea`가 `ValueError`, `OPENAI_API_KEY`가 없으면 `RuntimeError`, OpenAI API 오류는 그대로 올라온다. `rejected` 초안에 `apply_answers`를 부르거나 미완성 초안에 `build_requests`를 부르면 `ValueError`다.
 - JSON Schema: `IdeaDraft.model_json_schema()`
 
@@ -32,7 +34,7 @@
 | `src.generation.market_markdown.market_report_to_markdown(report, heading_level=2)` | `MarketReport` | 종합 보고서용 마크다운 섹션 (str) |
 
 - `idea_id`는 평가·시연용 샘플 아이디어(`data/samples/ideas.json`)의 수집 범위로 검색을 좁힐 때만 준다. 사용자가 새로 입력한 아이디어는 `None`.
-- 소요 시간: 아이디어 1건당 약 13~20초 (관련성 판정 gpt-4o-mini 25회 + 분석 gpt-4o 1~3회). 특허 조사와 입력·저장소가 독립적이라 병렬로 부를 수 있다(스레드 병렬 실행은 아직 검증하지 않음).
+- 소요 시간: 아이디어 1건당 약 13~20초 (관련성 판정 gpt-4o-mini 25회 + 분석 gpt-4o-mini 1~3회). 특허 조사와 입력·저장소가 독립적이라 병렬로 부를 수 있다(스레드 병렬 실행은 아직 검증하지 않음).
 - 로컬 색인 `data/market/chroma/`와 `OPENAI_API_KEY`가 필요하다.
 - 결과 예시: `data/samples/market_reports/SF-0{1..5}.json`
 
@@ -47,11 +49,12 @@
 | `dimensions[].next_check` | 다음 검증 과제 (`unverified`이면 항상 있음) |
 | `evidence` | 인용 근거. `citation_id`·제목·출처·`quote`(기사 요약)·`url`·`published_at`(YYYYMMDD)·`evidence_nature`·신뢰도·최신성·직접성 |
 | `unknowns` | 미확인 사항 (비어 있는 아이디어 항목, 미확인 차원) |
+| `opportunity_review` | 목표 세그먼트·가치 가설·직접 수요 상태·시장 근거와 인용·미확인 사항·다음 고객 검증 행동 |
 | `search_scope` · `data_as_of` | 검색 범위 설명, 분석 기준일(YYYYMMDD) |
 
 - 오류는 예외 대신 `status="error"` 보고서로 돌려준다(검색·판정·분석 생성 실패 모두).
 - 인용 표기: UI와 마크다운 모두 시장 근거를 `M:{citation_id}`로 쓴다(특허는 `P:`). 같은 기사는 여러 차원에서 같은 `citation_id`를 쓴다.
-- 해석 규칙: 수집 뉴스는 모두 `business_signal`(사업 신호)이므로 수요 `confirmed`는 고객 검증 자료(`direct_demand`)가 있을 때만 나온다. 종합 보고서에서도 '신호만 확인'을 수요 확인으로 바꿔 쓰지 않는다.
+- 해석 규칙: 수집 뉴스는 모두 `business_signal`(사업 신호)이므로 뉴스 근거만으로는 어느 차원도 `confirmed`가 되지 않는다(최대 `signal_only`). 수요 `confirmed`는 고객 검증 자료(`direct_demand`)가 있을 때만 나온다. 종합 보고서에서도 '신호만 확인'을 수요 확인으로 바꿔 쓰지 않는다.
 - JSON Schema: `MarketReport.model_json_schema()`
 
 
@@ -60,11 +63,11 @@
 | 함수 | 입력 | 출력 |
 |---|---|---|
 | `src.services.patent_service.analyze_patents(request, ...)` | `PatentSearchRequest` | `PatentReport` |
-| `src.pipeline.run_pipeline(draft, questions, ...)` | complete `IdeaDraft`, `{id, question, condition}` 목록, 선택 `technology_area_id` | `PipelineReport` (특허·시장 보고서, 질문별 연결, Markdown) |
+| `src.pipeline.run_pipeline(draft, questions, ...)` | complete `IdeaDraft`, `{id, question, condition}` 목록, 선택 `technology_area_id` | `PipelineReport` (특허·시장 보고서, 질문별 연결, 사업 실행 검토, Markdown) |
 | `src.generation.report_builder.build_question_links(questions, market, patent)` | 질문 목록, `MarketReport`, `PatentReport` | 질문별 6개 기준 연결 (`QuestionLink`) |
 
 - 특허 검색은 요청별 기술요소 검색 결과를 문헌 단위로 합친 뒤 최대 20개 후보를 관련성 판정하고, 관련 후보에서 최대 5개 문헌을 분석한다. 후보가 부족하면 KIPRIS 검색 결과도 같은 판정을 통과해야 사용한다.
-- `PatentReport.status`는 `completed`·`no_results`·`error`다. 근거는 초록 또는 청구항 원문 인용과 출처 URL·문헌 번호·출원/공개일을 보존한다. 인용은 제공 원문에 포함되는지 검사하고 비교 생성은 1회 재시도한다.
+- `PatentReport.status`는 `completed`·`no_results`·`error`다. 근거는 초록 또는 청구항 원문 인용과 출처 URL·문헌 번호·출원/공개일을 보존한다. 인용은 제공 원문에 포함되는지 검사한다. 기본 분석은 문헌별 `patent_reviews`에 구성요소 대응과 인용 ID를 묶고, `patentability_precheck`에 `overlap_concern`·`potentially_distinct`·`insufficient_evidence` 예비 신호를 기록한다. 레거시 호출자가 `comparison_fn`을 주입하면 citation별 `comparisons` 계약을 유지한다. 어느 상태도 등록 가능성이나 침해 여부를 법적으로 확정하지 않는다.
 - 통합 연결은 사용 맥락·해결 과제·기술 구성·요구 성능·도입 제약·근거 범위 여섯 기준을 포함한다. 각 질문에서 시장(M:)과 특허(P:) 근거 중 하나라도 연결되지 않으면 `status="hold"`다.
 - API 키, KIPRIS 권한, 특허·시장 로컬 색인과 네트워크가 필요하다. Streamlit에서 `AI로 항목 초안 만들기 · 재질문`으로 시작하고 SF-02 또는 SF-05 색인을 선택한다. 실제 색인이 없는 분야는 해당 로컬 색인의 범위가 비어 있으므로 후보가 없을 수 있다.
 - 비용 입력은 `frontend.workspace.cost_summary` 규칙으로 계산한다. 비어 있는 금액은 0원 처리하지 않고 미입력 항목으로 남긴다.
@@ -85,7 +88,7 @@
 - **입력 검사**: 핵심 구성·검토 질문·조건은 `input_guard.screen_text(..., min_chars=1)`로 검사하며 거절되면 `ValueError`(사용자 안내 문구)다. 빈 질문은 뺀다.
 - **질문 연결**: 검증에 실패하면 오류를 덧붙여 1회 다시 생성한다. 그래도 실패하면 6개 기준을 갖춘 질문만 허용된 인용 ID로 남기고 나머지 질문만 보류한다. 연결 호출 자체가 실패하면 모든 질문을 보류한다. 경고는 `errors`와 보고서 '분석 경고'에 남는다.
 - **키 마스킹**: 오류 문구·`unknowns`는 `redact`로 `.env` 키 값, `accessKey=`·`ServiceKey=` 인자, `sk-…`, `Bearer …`를 가린 뒤 보고서·화면·CLI에 내보낸다.
-- **보고서**: 머리말에 분석일·시장 자료 수집 기준일(색인의 최대 `collected_at`)·근거 발행 범위를 따로 적고, 확정 브리프(5개 항목과 출처)·분석 실행 상태·질문별 연결·특허 근거(청구항 번호·독립/종속·출원/공개일·링크)·시장 절(`market_report_to_markdown`)을 싣는다. 외부·사용자 텍스트는 이스케이프하고 http(s)가 아닌 링크는 뺀다.
+- **보고서**: 머리말에 분석일·시장 자료 수집 기준일(색인의 최대 `collected_at`)·근거 발행 범위를 따로 적고, 다음 행동 권고와 이유·기회·위험·미확인·검증 행동, 확정 브리프와 출처, 분석 실행 상태, 특허별 구성 비교·청구항 인용·예비 신호, 시장 절(`market_report_to_markdown`)을 싣는다. 외부·사용자 텍스트는 이스케이프하고 http(s)가 아닌 링크는 뺀다.
 - CLI: `python -m src.pipeline status --json`(표준 출력은 JSON만), `python -m src.pipeline run --idea-id SF-02 [--questions 파일] [--out 결과.json]`(API 비용 발생).
 
 

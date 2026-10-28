@@ -9,6 +9,7 @@ from hashlib import sha256
 import json
 
 import streamlit as st
+from frontend.report_overview import dashboard_data
 
 from frontend.live import (
     COST_NOTE,
@@ -152,6 +153,7 @@ def report_payload(s):
             "patent_count": len(r.patent.evidence),
             "market_count": len(r.market.evidence),
             "demo": False,
+            "dashboard": dashboard_data(r),
         }
     snap = s.report_snapshot
     if not snap:
@@ -217,6 +219,11 @@ def render_report(s, payload, archived=False):
             st.text_area("검토 메모", key="report_note", value=s.saved_memo)
             s.saved_memo = s.get("report_note", "")
     with overview:
+        if payload.get("dashboard"):
+            from frontend.report_overview import render_dashboard
+
+            render_dashboard(payload["dashboard"])
+            st.divider()
         a, b, c = st.columns(3)
         a.metric("특허 근거", f"{payload['patent_count']}건")
         b.metric("시장 근거", f"{payload['market_count']}건")
@@ -304,6 +311,10 @@ def validate_records(raw):
     for item in records:
         if not isinstance(item, dict):
             raise ValueError("기록 형식을 확인해 주세요.")
+        if "dashboard" in item:
+            from frontend.report_overview import Dashboard
+
+            item["dashboard"] = Dashboard.model_validate(item["dashboard"]).model_dump()
         for name in ["title", "raw", "markdown", "appendix", "saved_at", "id"]:
             if not isinstance(item.get(name), str):
                 raise ValueError("기록의 필수 항목이 없습니다.")

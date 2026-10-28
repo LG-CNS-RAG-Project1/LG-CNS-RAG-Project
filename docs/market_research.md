@@ -42,7 +42,7 @@ flowchart TD
   verdict["차원별 판정<br/>확인됨 · 신호만 확인 · 미확인"]
   task["미확인 차원의<br/>검증 과제 1개 제안"]
 
-  gen["시장 분석 생성<br/>gpt-4o · 차원별 최대 3문장"]
+  gen["시장 분석 생성<br/>gpt-4o-mini · 차원별 최대 3문장"]
   cite["사실 문장마다 citation_id 인용<br/>출처에 없는 수치 생성 금지"]
   check["인용 존재·숫자 출처·<br/>판정 범위 검증"]
   pass{"검증 통과?"}
@@ -155,7 +155,8 @@ flowchart TD
 | `gpt-4o-mini` (기본) | 0.68 | 0.69 | 0.73 | 0.36 |
 
 - 비용 때문에 관련성 판정은 `gpt-4o-mini`를 쓴다. 아이디어 1건 실행에서 판정 25회가 전체 토큰의 약 90%를 차지해(입력 약 4.8만 토큰), `gpt-4o` 대비 비용이 약 1/16이다.
-- `gpt-4o-mini`는 정밀도가 낮아 비관련 기사가 근거로 더 많이 들어온다. 판정을 제한하는 분석 단계는 `gpt-4o`를 유지한다(아이디어당 1~3회). 분석까지 `gpt-4o-mini`로 바꾸면 샘플 5건 모두 경쟁 차원이 근거가 약한 기사로 `confirmed`가 되었다(SF-05 포함).
+- 프로젝트 LLM은 비용 때문에 관련성 판정·분석 생성 모두 `gpt-4o-mini`를 쓴다. `gpt-4o-mini`는 정밀도가 낮아 비관련 기사가 근거로 더 많이 들어온다.
+- 분석을 `gpt-4o-mini`로 생성하면 허용 범위 안에서 가장 강한 판정을 고르는 경향이 있다. 샘플 5건 모두 경쟁 차원이 근거가 약한 기사로 `confirmed`가 되어(SF-05 포함), 판정 제한을 코드 규칙으로 강화했다: 근거가 모두 사업 신호·기업 주장·추정치이면 어느 차원도 `confirmed`를 허용하지 않는다(뉴스만 있으면 최대 `signal_only`).
 - 사람 라벨 중 사람·LLM 판정이 달랐던 행은 LLM 판정을 보고 확정했으므로, 두 모델 차이는 실제보다 크게 나타났을 수 있다.
 - 사람 라벨만 있는 6문항에서 충분성 상태 일치는 `gpt-4o` 5/6, `gpt-4o-mini` 4/6이다. 문항 수가 적어 상태 정확도의 근거로는 부족하다.
 
@@ -179,7 +180,7 @@ flowchart TD
 
 ## 시장 분석 생성
 
-관련 판정된 기사만 인용 근거(`MarketEvidence`)로 만들고, 차원별 판정과 문장을 LLM(`gpt-4o`, `prompts/market_analysis.md`)으로 생성한 뒤 코드로 검증한다. 결과는 `MarketReport` JSON이다.
+관련 판정된 기사만 인용 근거(`MarketEvidence`)로 만들고, 차원별 판정과 문장을 LLM(`gpt-4o-mini`, `prompts/market_analysis.md`)으로 생성한 뒤 코드로 검증한다. 결과는 `MarketReport` JSON이다.
 
 - 같은 기사가 여러 차원에 나오면 `citation_id` 하나를 공유한다. 인용문(`quote`)은 기사 요약이다.
 - 최신성(`recency`)은 기준일까지 1년 이내 high, 3년 이내 medium, 그 밖 low이다. 직접성(`directness`)은 구매·지불 근거면 high, 관련성 판정 확신이 높으면 medium, 그 밖 low이다.
@@ -187,7 +188,7 @@ flowchart TD
 
 | 충분성 상태 | 허용 판정 |
 |---|---|
-| `sufficient` | 확인됨 · 신호만 확인 · 미확인 (수요 '확인됨'은 고객 검증 자료(`direct_demand`)가 있을 때만) |
+| `sufficient` | 확인됨 · 신호만 확인 · 미확인 ('확인됨'은 사업 신호·기업 주장·추정치가 아닌 근거가 있을 때만, 수요는 고객 검증 자료(`direct_demand`)가 있을 때만) |
 | `limited` | 신호만 확인 · 미확인 |
 | `insufficient` · `no_results` · `error` | 미확인 |
 | 기대는 아이디어 항목이 모름 (가격 ← 수익모델, 구매자 ← 고객) | 미확인 (근거 문장은 쓸 수 있음, 검증 과제는 그 항목을 정하는 일부터) |
@@ -195,7 +196,7 @@ flowchart TD
 - 검증 항목: 허용 판정인지, 차원당 문장 3개 이하인지, 사실 문장(`fact`)에 이 차원 근거의 인용이 있는지, 문장의 숫자가 인용 기사(제목·요약·발행일)나 아이디어 입력에 있는지, 사실 문장의 단위 붙은 수치(%·원·억·건·대 등)에 4자리 기준 연도가 있는지, 확인됨·신호만 확인에 인용된 사실 문장이 있는지, 미확인에 검증 과제가 있는지.
 - 검증에 실패하면 오류 내용을 넘겨 최대 2회 재생성한다. 그래도 실패한 문장은 제거하고, 판정을 유지할 수 없으면 미확인과 기본 검증 과제로 바꾼다.
 - 문장이 기사 내용을 정확히 옮겼는지(원문 일치)는 코드로 검증하지 않으며, 평가 단계(Citation Accuracy)에서 확인한다.
-- 수집 뉴스는 모두 사업 신호(`business_signal`)이므로, 뉴스만으로는 수요가 '확인됨'이 되지 않는다.
+- 수집 뉴스는 모두 사업 신호(`business_signal`)이므로, 뉴스만으로는 어느 차원도 '확인됨'이 되지 않는다.
 
 ## 단계별 코드 위치
 
@@ -216,6 +217,7 @@ flowchart TD
 | 데이터 형식·결과 계약 | `src/schemas.py` (`MarketDocument`, `MarketSearchRequest`, `MarketReport`) |
 | 평가 문항·정답 라벨 | `evaluation/market_cases.json`, `evaluation/labels/`, `evaluation/market_labeling.py`, `evaluation/market_judge.py` |
 | 검색·관련성 판정 평가 실행·결과 | `evaluation/evaluate.py`, `evaluation/market_relevance_eval.py` → `evaluation/results/` |
+| 답변 평가 (LLM 단독·단순 RAG·IdeaLens) | `evaluation/market_answer_eval.py`, `prompts/market_answer_baseline.md`, `prompts/market_claim_judge.md` → `evaluation/results/` |
 
 ## 공통 검색 엔진
 
@@ -255,3 +257,31 @@ SF-05 라벨은 이전 아이디어(현장 작업자용 LLM 음성 어시스턴�
 
 - hybrid는 수요(MRR 0.71 → 0.88)에서만 뚜렷하게 높고, 가격(0.69 → 0.38)·도입장벽(Hit@5 0.75 → 0.50)에서 낮다. 검색 기본값은 dense를 유지한다.
 - 결과: `evaluation/results/market_retrieval_{dense,bm25,hybrid}_extended20.csv`
+
+### 시장 답변 평가
+
+같은 20문항(SF-01~SF-04 × 5개 차원)에서 세 방식의 차원 결과를 비교했다 (`evaluation/market_answer_eval.py`). 답변 모델은 세 방식 모두 `gpt-4o`다.
+
+- LLM 단독: 자료 없이 기본 답변 규칙(`prompts/market_answer_baseline.md`)으로 답변
+- 단순 RAG: 차원 질의 dense 상위 5건을 그대로 주고 같은 규칙으로 답변 (관련성 필터·판정 제한·문장 검증 없음)
+- IdeaLens: `run_market_research` 결과(`MarketReport`)
+
+인용된 fact 문장마다 판정기(`prompts/market_claim_judge.md`, `gpt-4o-mini`)가 인용 기사 제목·요약과 대조해 supported·partial·unsupported로 판정하고, 사람이 30문장(단순 RAG 15·IdeaLens 15)을 판정기 결과를 보지 않고 검토했다. 인용 기사의 관련성은 기존 사람 정답 라벨로 센다.
+
+| 지표 (20문항) | LLM 단독 | 단순 RAG | IdeaLens |
+|---|---|---|---|
+| 판정 (확인됨 / 신호만 / 미확인) | 0 / 0 / 20 | 4 / 14 / 2 | 3 / 16 / 1 |
+| 수요 `confirmed` (뉴스만으로 수요 확인, 과대 판정) | 0 | 1 | 0 |
+| fact 문장 | 0 | 37 | 30 |
+| 인용 없는 fact 문장 | - | 2.7% | 0% |
+| Citation Accuracy (판정기) | - | 0.83 | 1.00 |
+| **Citation Accuracy (사람 검토 보정)** | - | **0.43** | **0.87** |
+| 인용 기사 관련 비율 (사람 정답 라벨) | - | 0.73 | 0.83 |
+| 근거에 없는 수치가 있는 fact 문장 | 0 | 0 | 0 |
+
+- LLM 단독은 자료가 없다고 밝히고 20문항 모두 추정 문장만 냈다. 근거로 확인할 수 있는 사실 문장이 없다.
+- 단순 RAG는 기사를 인용하지만 사람 검토에서 15문장 중 partial 6·unsupported 3이었다. 주로 한 기업 사례를 시장 수요로 넓히거나(예: 삼성전자의 협력사 요구 → "대기업 수요 증가"), 기사에 없는 판단(가격·위험 요인)을 덧붙였다.
+- IdeaLens는 사람 검토 15문장 중 supported 13·partial 2이다. partial 2건은 같은 기사(LS일렉트릭 FEMS 리스)를 가격·도입장벽 근거로 쓴 문장이다.
+- 판정기와 사람의 일치율은 0.67(kappa 0.24)로 낮다. 판정기는 사람이 partial·unsupported로 본 11건 중 7건을 supported로 판정해 실제보다 관대하다. 그래서 Citation Accuracy는 판정기 라벨별 사람 supported 비율로 보정한 값을 쓴다 (`agreement` 하위 명령, 표본: 판정기가 supported가 아니라고 본 문장 전부 + supported 문장 무작위).
+- 한계: 1회 실행 결과이며 사람 검토 표본이 방식당 15문장이다. 문장 판정은 기사 제목·요약 기준이라 기사 본문 내용은 확인하지 않았다. 관련성 판정·분석은 실행마다 조금씩 달라진다.
+- 결과: `evaluation/results/market_answer_{,claims_,summary_}baseline.csv`, `market_answer_agreement_baseline.json`, `market_answer_reports_baseline.json`, 사람 검토 `evaluation/labels/market_answer_review_baseline.csv`

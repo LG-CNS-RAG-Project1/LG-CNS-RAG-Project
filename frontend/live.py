@@ -22,8 +22,9 @@ FIELD_LABELS = {
 }
 SOURCE_LABELS = {
     "extracted": "입력에서 추출",
-    "user_answer": "재질문 답변",
-    "unknown": "모름",
+    "user_answer": "사용자 확인",
+    "ai_hypothesis": "AI 가설",
+    "unknown": "미확인",
 }
 
 STATE_LABELS = {
@@ -41,7 +42,7 @@ PATENT_MODE_LABELS = {
     "none": "실행 불가",
 }
 COST_NOTE = (
-    "외부 API 호출과 비용이 발생합니다(시장 관련성 판정·분석 gpt-4o 최대 약 28회, "
+    "외부 API 호출과 비용이 발생합니다(시장 관련성 판정·분석 gpt-4o-mini 최대 약 28회,"
     "특허 검색어·판정·비교 gpt-4o-mini 수 회, KIPRIS 조회). 보통 20~60초 걸립니다."
 )
 

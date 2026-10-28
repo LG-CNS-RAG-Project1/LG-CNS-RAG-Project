@@ -9,6 +9,7 @@
 JSON으로 다음 값이 주어진다.
 
 - `idea`: 아이디어 5개 항목 (`title`, `problem`, `technology`, `customers`, `difference`, `revenue`). 빈 값은 사용자가 모른다고 답한 항목이다.
+- 아이디어에는 입력된 `current_alternative`(현재 해결 방식), `target_segment`(목표 세그먼트), `value_hypotheses`(검증 전 가설), `field_sources`(항목 출처)가 추가될 수 있다.
 - `dimensions`: 시장 차원 목록. 각 항목은 다음 값을 가진다.
   - `dimension`: `demand`(수요), `competition`(경쟁·대체재), `price`(가격), `buyer`(구매자), `adoption_barrier`(도입장벽)
   - `label`: 차원의 한국어 이름
@@ -49,8 +50,18 @@ JSON으로 다음 값이 주어진다.
 
 ## 판정 기준
 
+## 아이디어 사업성 중심 해석
+
+- 모든 차원은 `idea`의 문제·기술·고객·현재 대안·목표 세그먼트에 직접 연결해 해석한다. 연결이 약하면 관련 없는 일반 산업 정보로 분리하거나 `unverified`로 둔다.
+- 차원별 판정은 산업 기사에서 보이는 신호를 정리한다. 실제 지불 의사·구매 가능성을 주장하려면 입력에 명시적으로 제공된 `customer_validation` 근거가 있어야 한다.
+- 사용자 `value_hypotheses`는 검증 전 가설이다. 이를 기사에서 확인된 사실이나 ROI 결과로 바꾸지 않는다.
+- 시장 규모(TAM/SAM/SOM), 제품 가격, 투자 회수 기간, 매출·도입률은 기사·공식 자료에 수치와 범위가 있을 때만 사실로 쓴다. 입력 변수로 계산한 값은 별도 산식·가정이 주어진 경우에만 시나리오로 쓴다.
+- 각 차원에서 아이디어와 근거의 연결이 왜 직접적이거나 약한지 설명한다. 경쟁은 같은 고객 문제를 푸는 제품뿐 아니라 현재 수작업·기존 설비 같은 대안도 구분한다.
+- 미확인 결과에는 목표 고객 인터뷰, 구매 절차 확인, 공급사 견적, 제한된 파일럿 중 적절한 다음 검증을 구체적으로 제안한다. 확인되지 않은 표본 수나 성과 기준을 사실로 제시하지 않는다.
+
 - `confirmed`: 근거 기사들이 이 차원의 질문에 직접 답한다 (예: 가격 차원에서 같은 범주 솔루션의 가격·도입 비용이 금액으로 나옴, 구매자 차원에서 실제 도입 기업과 도입 내용이 나옴, 도입장벽 차원에서 도입을 막는 요인이 구체적으로 나옴).
 - `signal_only`: 기업 투자·제품 출시·제휴·정부 정책·주가·도입 확대 전망처럼 방향을 보여 주지만 질문에 직접 답하지는 않는다.
+- 근거가 모두 사업 신호(`business_signal`)·기업 주장(`company_claim`)·추정치(`estimate`)이면 `allowed_verdicts`에 `confirmed`가 없다. 뉴스 기사는 모두 사업 신호다.
 - `unverified`: 근거 기사가 없거나, 있어도 이 아이디어의 이 차원과 직접 관련이 없다.
 - **기술 범주를 먼저 확인한다.** `confirmed`는 아이디어의 기술(`technology`)과 같은 범주의 제품·서비스를 다룬 근거가 있을 때만 쓴다. 스마트공장·제조 AI·자동화 전반처럼 더 넓은 범주의 근거만 있으면 최대 `signal_only`이고, 문장에 "스마트공장 전반" 등 범주를 밝힌다. 다른 기술을 다룬 근거만 있으면 `unverified`다.
 - 판단이 갈리면 더 낮은 판정(`confirmed` → `signal_only` → `unverified`)을 쓴다.
@@ -76,7 +87,7 @@ JSON으로 다음 값이 주어진다.
 {
   "dimension": "price",
   "label": "가격",
-  "allowed_verdicts": ["confirmed", "signal_only", "unverified"],
+  "allowed_verdicts": ["signal_only", "unverified"],
   "evidence": [
     {"citation_id": 4, "title": "가상전자, 비전 검사 장비 월 구독형 출시", "quote": "가상전자는 초기 구매 없이 월 구독료로 쓰는 검사 장비를 내놨다.", "publisher": "가상일보", "published_at": 20260310, "evidence_nature": "business_signal"}
   ]
@@ -97,5 +108,5 @@ JSON으로 다음 값이 주어진다.
 }
 ```
 
-- 과금 방식은 있지만 금액이 없으므로 `confirmed`가 아니라 `signal_only`다.
+- 근거가 사업 신호 기사뿐이라 `confirmed`는 허용되지 않는다. 과금 방식이 나오므로 `unverified`가 아니라 `signal_only`다.
 - 기사에 없는 구독료 금액이나 시장 규모를 만들지 않았다.

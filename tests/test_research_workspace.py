@@ -36,7 +36,7 @@ def test_landing_has_single_start_and_no_research_form():
     assert app.text_area(key="raw_input")
     assert [b.key for b in app.button if b.key and b.key.startswith("nav_")] == [
         "nav_1",
-        "nav_3",
+        "nav_2",
         "nav_4",
     ]
 
@@ -46,9 +46,9 @@ def test_demo_report_can_be_saved_and_reopened_without_analysis():
     for label in [
         "돋보기로 조사 시작",
         "예시 불러오기",
-        "핵심 구성 확인하기 →",
-        "3개 구성으로 조사 시작하기 →",
-        "종합 보고서 생성 →",
+        "구성 확정하고 특허 비교로 →",
+        "시장성 보고서 →",
+        "최종 실행 검토 →",
     ]:
         press(app, label)
     app.text_area(key="report_note").input("현장 설치 조건 확인").run()
