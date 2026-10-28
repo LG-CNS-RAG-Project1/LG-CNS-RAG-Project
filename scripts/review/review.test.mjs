@@ -13,6 +13,9 @@ import { buildReviewSchema } from "./review_schema.mjs";
 
 // 비밀값 스캐너가 테스트용 가짜 값을 실제 키로 오인하지 않도록 실행 시 문자열을 합친다.
 const FAKE_OPENAI = ["sk", "proj-abcdEFGH1234567890xyz"].join("-");
+const FAKE_API_KEY = ["FAKE", "API", "KEY", "000"].join("_"); // 16자
+const FAKE_DART = ["FAKE", "DART", "KEY", "0".repeat(26)].join("_");
+const FAKE_NCP = ["FAKE", "NCP", "KEY"].join("_");
 
 const PATCH = "@@ -1,2 +1,3 @@\n context\n-old line here\n+new line number one here\n+second added line\n";
 
@@ -30,9 +33,9 @@ test("fileSignature는 hunk 위치가 바뀌어도 같다", () => {
 test("findSecrets는 실제 키를 잡고 위젯 key·테스트 값·자리표시자는 무시한다", () => {
   const cases = [
     ["src/a.py", `OPENAI_API_KEY = "${FAKE_OPENAI}"`, true],
-    ["src/a.py", 'api_key = "A1b2C3d4E5f6G7h8"', true],
-    [".env.example", "DART_API_KEY=3f9c2a7b1e4d8f60a5c2b9e7d1f3a4c6b8e0d2f4", true],
-    ["src/n.py", 'headers = {"X-NCP-APIGW-API-KEY": "aB3dE5gH7jK9"}', true],
+    ["src/a.py", `api_key = "${FAKE_API_KEY}"`, true],
+    [".env.example", `DART_API_KEY=${FAKE_DART}`, true],
+    ["src/n.py", `headers = {"X-NCP-APIGW-API-KEY": "${FAKE_NCP}"}`, true],
     ["frontend/app.py", 'st.text_input("기업", key="company_a", max_chars=80)', false],
     ["src/a.py", 'password = os.getenv("DB_PASSWORD")', false],
     ["tests/test_x.py", '{"KIPRIS_API_KEY": "test-key"}', false],
@@ -42,9 +45,9 @@ test("findSecrets는 실제 키를 잡고 위젯 key·테스트 값·자리표�
   for (const [path, line, expected] of cases) {
     assert.equal(findSecrets(path, [{ line: 1, text: line }]).length > 0, expected, `${path}: ${line}`);
   }
-  const [hit] = findSecrets("src/a.py", [{ line: 3, text: 'api_key = "A1b2C3d4E5f6G7h8"' }]);
+  const [hit] = findSecrets("src/a.py", [{ line: 3, text: `api_key = "${FAKE_API_KEY}"` }]);
   assert.match(hit.masked, /^\*\*\*\*\(16자, [0-9a-f]{8}\)$/);
-  assert.ok(!JSON.stringify(hit).includes("A1b2C3d4E5f6G7h8"));
+  assert.ok(!JSON.stringify(hit).includes(FAKE_API_KEY));
 });
 
 test("maskPatch는 patch 속 비밀값을 가린다", () => {

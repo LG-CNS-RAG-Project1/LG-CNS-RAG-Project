@@ -21,19 +21,19 @@ def submit(app, value):
 
 
 def test_password_gate_blocks_until_correct(monkeypatch):
-    monkeypatch.setenv("IDEALENS_APP_PASSWORD", "pw-123")
+    monkeypatch.setenv("IDEALENS_APP_PASSWORD", "FAKE_APP_PASSWORD")
     app = AppTest.from_file(str(APP), default_timeout=30).run()
     assert "예시 불러오기" not in labels(app)
     submit(app, "wrong")
     assert any("맞지 않습니다" in e.value for e in app.error)
     assert "예시 불러오기" not in labels(app)
-    submit(app, "pw-123")
+    submit(app, "FAKE_APP_PASSWORD")
     assert app.session_state.authenticated
     assert "예시 불러오기" in labels(app)
 
 
 def test_password_gate_locks_after_repeated_failures(monkeypatch):
-    monkeypatch.setenv("IDEALENS_APP_PASSWORD", "pw-123")
+    monkeypatch.setenv("IDEALENS_APP_PASSWORD", "FAKE_APP_PASSWORD")
     app = AppTest.from_file(str(APP), default_timeout=30).run()
     for _ in range(MAX_PASSWORD_FAILURES):
         submit(app, "wrong")
@@ -48,5 +48,5 @@ def test_no_password_means_no_gate():
 
 
 def test_password_matches_trims_input_only():
-    assert password_matches(" pw-123 ", "pw-123")
-    assert not password_matches("pw-12", "pw-123")
+    assert password_matches(" FAKE_APP_PASSWORD ", "FAKE_APP_PASSWORD")
+    assert not password_matches("FAKE_APP_PASSWOR", "FAKE_APP_PASSWORD")
