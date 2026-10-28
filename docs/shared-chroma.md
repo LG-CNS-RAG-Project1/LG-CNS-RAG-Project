@@ -8,14 +8,14 @@ GitHub는 코드와 설정을 관리한다. 수집한 벡터·문서·메타데�
 팀원 PC의 수집·검색 코드 → HTTPS + 개인 API 키 → 인증 서비스 → 공용 Chroma → 서버 영구 디스크
 ```
 
-웹에서 이 흐름을 호출하는 API 연결은 별도 작업이다. 현재 Streamlit 화면은 시연이며 서버를 만들었다고 실제 검색 결과로 바뀌지 않는다. Chroma에는 색인할 문서와 벡터가 저장되며 원본 PDF·이미지 전체가 자동 업로드되는 것은 아니다.
+Streamlit 화면의 실제 분석(`src.pipeline`)은 `CHROMA_HOST`가 설정되면 이 서버의 색인을 검색한다. 호스팅 배포는 [Streamlit Community Cloud 배포 안내](deploy-streamlit-cloud.md)를 따른다. Chroma에는 색인할 문서와 벡터가 저장되며 원본 PDF·이미지 전체가 자동 업로드되는 것은 아니다.
 
 ## 서버
 
-- Google Compute Engine의 Debian VM에서 `deploy/chroma-startup.sh`를 시작 스크립트로 실행한다. 팀 서버 이름은 `idealens-chroma`, 영역은 `us-central1-c`이다.
+- Google Compute Engine의 Debian VM에서 `deploy/chroma-startup.sh`를 시작 스크립트로 실행한다. 서버 이름(`CHROMA_VM_NAME`)과 영역(`CHROMA_VM_ZONE`)은 공개 문서에 적지 않고 관리자가 팀원에게 1:1로 알린다.
 - Chroma 이미지 버전은 `1.5.9`, 데이터 경로는 호스트 `/srv/idealens/chroma` → 컨테이너 `/data`이다.
 - 컨테이너가 재시작되어도 같은 디스크를 사용한다. VM 정지 중에는 접속할 수 없지만 디스크는 남는다. 디스크 삭제와 무료체험 종료에 대비해 별도 백업이 필요하다.
-- 기본 시작 스크립트는 `8000` 포트를 `127.0.0.1`에만 바인딩한다. IAP 구성 시 `CHROMA_INTERNAL_IP=10.128.0.2`를 추가해 서버 내부 IP에도 바인딩한다. 서버에 할당된 IP인지 검증하며 공개 IP에는 바인딩하지 않는다.
+- 기본 시작 스크립트는 `8000` 포트를 `127.0.0.1`에만 바인딩한다. IAP 구성 시 `CHROMA_INTERNAL_IP=VM_INTERNAL_IP`를 추가해 서버 내부 IP에도 바인딩한다. 서버에 할당된 IP인지 검증하며 공개 IP에는 바인딩하지 않는다.
 - IAP DB 경로는 방화벽에서 `35.235.240.0/20` → `8000`만 허용한다. 다른 출발지의 DB 접속은 더 높은 우선순위의 차단 규칙으로 막아 기본 내부 통신 허용 규칙을 우회하지 못하게 한다.
 - 본인 관리 SSH는 별도 전용 키와 현재 PC의 출발지 IP만 허용한다. PC의 공인 IP가 바뀌면 관리자가 콘솔에서 이 규칙을 갱신한다. 팀원은 SSH 로그인 없이 DB만 이용한다.
 - 무료체험 크레딧을 쓰는 구성이며 영구 무료 서비스가 아니다. VM·디스크·외부 IPv4·스냅샷·트래픽은 크레딧을 소비한다. 유료 계정 전환은 별도 결정 사항이다. 예산 알림은 자동 지출 차단이 아니다.
@@ -24,10 +24,10 @@ Docker를 이미 설치한 서버라면 `docker compose -f deploy/compose.chroma
 
 ## 팀원 접속: HTTPS + API 키
 
-외부 API처럼 접속하려면 공용 연결 코드가 반영된 프로젝트와 Python 실행 환경을 준비하고, 개인 `.env`에 아래 설정을 추가한다. Google Cloud CLI·Google 로그인·터널 실행은 필요 없다. `CHROMA_API_KEY`는 관리자가 개인별로 발급한 값으로 교체한다.
+외부 API처럼 접속하려면 공용 연결 코드가 반영된 프로젝트와 Python 실행 환경을 준비하고, 개인 `.env`에 아래 설정을 추가한다. Google Cloud CLI·Google 로그인·터널 실행은 필요 없다. `CHROMA_PUBLIC_HOST`는 관리자가 1:1로 알려 주는 접속 주소로, `CHROMA_API_KEY`는 관리자가 개인별로 발급한 값으로 교체한다.
 
 ```dotenv
-CHROMA_HOST=idealens-db.34-132-51-20.sslip.io
+CHROMA_HOST=CHROMA_PUBLIC_HOST
 CHROMA_PORT=443
 CHROMA_SSL=true
 CHROMA_API_KEY=발급받은_개인_접속키
@@ -47,13 +47,13 @@ Debian 서버에서 `deploy/chroma-api-setup.sh`를 실행할 때 `CHROMA_PUBLIC
 
 ## 보조 접속: Google IAP 터널
 
-GitHub 권한과 Google Cloud 권한은 별개다. 팀원은 `Compute 뷰어`와 `IAP 보안 터널 사용자` 역할을 사용한다. IAP 역할 조건은 `destination.port == 8000 && destination.ip == "10.128.0.2"`로 DB만 허용한다. 서버 관리자·SSH 로그인·결제 역할은 필요 없다. DB 접속자는 같은 컬렉션을 읽고 수정·삭제할 수 있으므로 신뢰하는 팀원만 등록한다.
+GitHub 권한과 Google Cloud 권한은 별개다. 팀원은 `Compute 뷰어`와 `IAP 보안 터널 사용자` 역할을 사용한다. IAP 역할 조건은 `destination.port == 8000 && destination.ip == "VM_INTERNAL_IP"`로 DB만 허용한다. 서버 관리자·SSH 로그인·결제 역할은 필요 없다. DB 접속자는 같은 컬렉션을 읽고 수정·삭제할 수 있으므로 신뢰하는 팀원만 등록한다.
 
-각 PC에 [Google Cloud CLI](https://cloud.google.com/sdk/docs/install)를 설치한다. 아래 로그인에서는 권한을 받은 본인 Google 계정을 선택한다. 접속 터미널은 사용하는 동안 유지한다. 다른 터미널에서 Python 코드를 실행한다.
+각 PC에 [Google Cloud CLI](https://cloud.google.com/sdk/docs/install)를 설치한다. 아래 로그인에서는 권한을 받은 본인 Google 계정을 선택한다. 접속 터미널은 사용하는 동안 유지한다. 아래 대문자 자리표시자(`CHROMA_VM_NAME`, `GCP_PROJECT_ID`, `CHROMA_VM_ZONE`)는 관리자에게 받은 실제 값으로 바꾼다. 다른 터미널에서 Python 코드를 실행한다.
 
 ```powershell
 gcloud auth login
-gcloud compute start-iap-tunnel idealens-chroma 8000 --local-host-port=127.0.0.1:18000 --project=project-94e6b659-e0d2-4591-a46 --zone=us-central1-c
+gcloud compute start-iap-tunnel CHROMA_VM_NAME 8000 --local-host-port=127.0.0.1:18000 --project=GCP_PROJECT_ID --zone=CHROMA_VM_ZONE
 ```
 
 PC에서 Python을 실행하는 경우 저장소 `.env`에 다음을 입력한다.

@@ -1,11 +1,33 @@
 """큰 입력란 → 구성 확인 → 특허·시장 자료 선정 → 보고서의 단계형 UI."""
 
 import sys
+import time
 from copy import deepcopy
 from pathlib import Path
 import streamlit as st
+from dotenv import load_dotenv
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+load_dotenv(Path(__file__).resolve().parents[1] / ".env")
+from frontend.live import (
+    COST_NOTE,
+    FIELD_LABELS,
+    LINK_LABELS,
+    MAX_PASSWORD_FAILURES,
+    PASSWORD_LOCK_SECONDS,
+    PATENT_MODE_LABELS,
+    RUN_LOCK,
+    SOURCE_LABELS,
+    analysis_key,
+    app_password,
+    cost_markdown,
+    cost_rows_list,
+    friendly_error,
+    live_available,
+    password_matches,
+    run_line,
+)
+from src.generation.input_guard import MAX_IDEA_CHARS
 from frontend.quick import (
     ORIGIN_LABELS,
     DEMO_TEXT,
@@ -46,12 +68,46 @@ for key, value in {
     "idea_draft": None,
     "real_mode": False,
     "pipeline_result": None,
+    "analysis_sources": None,
+    "analysis_key": "",
     "technology_area_id": "SF-02",
     "cost_rows": empty_costs(),
 }.items():
     if key not in st.session_state:
         st.session_state[key] = value
 s = st.session_state
+
+
+def password_gate():
+    """IDEALENS_APP_PASSWORD가 설정된 배포에서는 비밀번호를 확인하기 전까지 화면을 그리지 않는다."""
+    expected = app_password()
+    if not expected or s.get("authenticated"):
+        return
+    st.title("IdeaLens")
+    st.caption("접속 비밀번호를 입력해 주세요.")
+    locked_until = s.get("auth_locked_until", 0)
+    if time.time() < locked_until:
+        st.error(
+            f"비밀번호를 {MAX_PASSWORD_FAILURES}회 틀렸습니다. 잠시 후 다시 시도해 주세요."
+        )
+        st.stop()
+    with st.form("password_form"):
+        entered = st.text_input("비밀번호", type="password", key="app_password")
+        submitted = st.form_submit_button("들어가기")
+    if submitted:
+        if password_matches(entered, expected):
+            s.authenticated = True
+            s.auth_failures = 0
+            st.rerun()
+        s.auth_failures = s.get("auth_failures", 0) + 1
+        if s.auth_failures >= MAX_PASSWORD_FAILURES:
+            s.auth_locked_until = time.time() + PASSWORD_LOCK_SECONDS
+            s.auth_failures = 0
+        st.error("비밀번호가 맞지 않습니다.")
+    st.stop()
+
+
+password_gate()
 
 
 def invalidate_context():
@@ -103,10 +159,23 @@ def prepare_input():
         s.idea_draft = None
         s.real_mode = False
         s.pipeline_result = None
+        s.analysis_sources = None
+        s.analysis_key = ""
         s.saved_memo = ""
         item = {"text": text, "title": title}
         s.recent = [item] + [x for x in s.recent if x != item][:4]
     return True
+
+
+def apply_complete_draft(draft):
+    """완성된 초안으로 핵심 구성·기본 질문을 채우고 실제 분석 모드로 바꾼다."""
+    from src.pipeline import default_questions
+
+    s.real_mode = True
+    s.parts = [draft.technology] if draft.technology else [draft.problem]
+    s.questions = default_questions(draft)
+    s.version += 1
+    invalidate_context()
 
 
 def make_ai_draft():
@@ -115,66 +184,73 @@ def make_ai_draft():
     try:
         draft = parse_idea(s.get("raw_input", s.raw).strip())
         s.idea_draft = draft
-        s.real_mode = draft.status != "rejected"
+        s.real_mode = False
         s.pipeline_result = None
         if draft.status == "complete":
-            s.parts = [draft.technology] if draft.technology else [draft.problem]
-            s.questions = [
-                {
-                    "id": "Q1",
-                    "question": f"{draft.problem}을 {draft.technology}로 해결할 수 있는가?",
-                    "condition": "",
-                }
-            ]
-            s.version += 1
-            invalidate_context()
+            apply_complete_draft(draft)
         st.session_state.ai_draft_error = None
     except Exception as exc:
-        st.session_state.ai_draft_error = str(exc)
+        st.session_state.ai_draft_error = friendly_error(exc)
 
 
 def apply_ai_answers():
     from src.generation.idea_parser import apply_answers
 
+    rounds = s.idea_draft.rounds
     answers = {
-        field: st.session_state.get(f"ai_answer_{field}", "")
+        field: st.session_state.get(f"ai_answer_{field}_{rounds}", "")
         for field in s.idea_draft.questions
     }
     try:
         s.idea_draft = apply_answers(s.idea_draft, answers)
-        s.real_mode = s.idea_draft.status != "rejected"
+        s.real_mode = False
         if s.idea_draft.status == "complete":
-            s.parts = (
-                [s.idea_draft.technology]
-                if s.idea_draft.technology
-                else [s.idea_draft.problem]
-            )
-            s.questions = [
-                {
-                    "id": "Q1",
-                    "question": f"{s.idea_draft.problem}을 {s.idea_draft.technology}로 해결할 수 있는가?",
-                    "condition": "",
-                }
-            ]
-            s.version += 1
+            apply_complete_draft(s.idea_draft)
         st.session_state.ai_draft_error = None
     except Exception as exc:
-        st.session_state.ai_draft_error = str(exc)
+        st.session_state.ai_draft_error = friendly_error(exc)
+
+
+def current_analysis_key():
+    return analysis_key(s.idea_draft, s.parts, s.technology_area_id)
 
 
 def run_real_pipeline():
-    from src.pipeline import run_pipeline
+    """조사(구성·분야가 같으면 재사용)와 질문 연결을 실행한다. 결과는 화면 호출 전에 세션에 저장한다."""
+    from src.pipeline import analyze_sources, run_pipeline, screen_inputs
 
+    if not RUN_LOCK.acquire(blocking=False):
+        st.session_state.pipeline_error = (
+            "다른 화면에서 분석이 진행 중입니다. 끝난 뒤 다시 실행해 주세요."
+        )
+        return
+    s.running_since = time.time()
     try:
+        questions = screen_inputs(s.parts, s.questions)
+        key = current_analysis_key()
+        if s.analysis_sources is None or s.analysis_key != key:
+            s.analysis_sources = analyze_sources(
+                s.idea_draft,
+                technical_components=s.parts,
+                technology_area_id=s.technology_area_id,
+            )
+            s.analysis_key = key
         s.pipeline_result = run_pipeline(
             s.idea_draft,
-            s.questions,
+            questions,
             technical_components=s.parts,
             technology_area_id=s.technology_area_id,
+            sources=s.analysis_sources,
         )
         st.session_state.pipeline_error = None
     except Exception as exc:
-        st.session_state.pipeline_error = str(exc)
+        from src.pipeline import LOG, redact
+
+        LOG.warning("실제 분석 실패: %s", redact(f"{type(exc).__name__}: {exc}"))
+        st.session_state.pipeline_error = friendly_error(exc)
+    finally:
+        s.running_since = None
+        RUN_LOCK.release()
 
 
 def effective_links():
@@ -211,6 +287,8 @@ def can_visit(number):
         return len(s.get("raw_input", s.raw).strip()) >= 10
     if not s.confirmed_context:
         return False
+    if number == 4 and s.real_mode:
+        return s.pipeline_result is not None
     return number == 3 or len(selected_sources(s.raw, s.selected)) >= 2
 
 
@@ -305,7 +383,19 @@ with st.container(key="brandbar"):
         "IdeaLens", key="home", on_click=navigate, args=(1,), help="홈페이지로 이동"
     )
     section.caption("시장·특허 조사")
-    status.caption("실제 분석 실행 · 가상 시연")
+    status.caption(
+        "실제 분석 모드"
+        if s.real_mode
+        else (
+            "가상 시연 · 예시 자료"
+            if s.raw == DEMO_TEXT
+            else (
+                "AI 구조화 후 실제 분석"
+                if live_available()
+                else "시연 모드 · 실제 분석 미연결(키 없음)"
+            )
+        )
+    )
 steps = ["아이디어 입력", "구성·검토 질문", "근거·연결 검토", "종합 보고서"]
 with st.container(key="stepnav"):
     for i, column in enumerate(st.columns(4), 1):
@@ -352,12 +442,12 @@ with st.container(key=f"sheet_{s.stage}_{direction}"):
                 raw = st.text_area(
                     "아이디어 내용",
                     height=300,
-                    max_chars=20000,
+                    max_chars=MAX_IDEA_CHARS,
                     key="raw_input",
                     on_change=input_changed,
                     placeholder="해결하려는 문제, 핵심 기술과 동작 방식, 예상 효과를 자유롭게 적어 주세요.",
                 )
-                st.caption(f"{len(raw):,} / 20,000자 · 최소 10자")
+                st.caption(f"{len(raw):,} / {MAX_IDEA_CHARS:,}자 · 최소 10자")
                 a, b = st.columns(2)
                 a.button(
                     "입력 템플릿",
@@ -384,7 +474,8 @@ with st.container(key=f"sheet_{s.stage}_{direction}"):
                         st.error("아이디어 내용을 10자 이상 입력해 주세요.")
                     else:
                         prepare_input()
-                        make_ai_draft()
+                        with st.spinner("AI가 아이디어를 구조화하는 중…"):
+                            make_ai_draft()
                 if st.session_state.get("ai_draft_error"):
                     st.error(st.session_state.ai_draft_error)
                 if s.idea_draft is not None:
@@ -412,10 +503,20 @@ with st.container(key=f"sheet_{s.stage}_{direction}"):
                         st.error("아이디어 내용을 10자 이상 입력해 주세요.")
                     else:
                         prepare_input()
-                        s.stage = 2
+                        needs_ai = (
+                            live_available()
+                            and s.raw != DEMO_TEXT
+                            and not (s.idea_draft and s.idea_draft.status == "complete")
+                        )
+                        if needs_ai:
+                            with st.spinner("AI가 아이디어를 구조화하는 중…"):
+                                make_ai_draft()
+                        if not needs_ai or s.real_mode:
+                            s.stage = 2
                         st.rerun()
             st.caption(
-                "AI 초안 생성은 선택 기능입니다. 직접 입력한 뒤 구성만 작성해도 시연을 진행할 수 있습니다."
+                "OpenAI 키가 있으면 직접 입력한 아이디어를 AI로 구조화한 뒤 실제 조사로 이어집니다."
+                " 키가 없으면 구성만 작성하는 시연 경로로 진행합니다."
             )
         with recent:
             st.subheader("최근 입력 내용")
@@ -552,6 +653,15 @@ with st.container(key=f"sheet_{s.stage}_{direction}"):
                 st.subheader("입력한 아이디어")
                 st.write(s.research_title)
                 st.text(s.raw)
+            if s.real_mode and s.idea_draft and s.idea_draft.status == "complete":
+                with st.container(border=True):
+                    st.subheader("AI 구조화 결과")
+                    for field, label in FIELD_LABELS.items():
+                        source = SOURCE_LABELS.get(
+                            s.idea_draft.field_sources.get(field, ""), "입력에서 추출"
+                        )
+                        st.text(f"{label}: {getattr(s.idea_draft, field) or '모름'}")
+                        st.caption(source)
             st.warning(
                 "구성은 검색 기준입니다. 시장 수요나 특허성을 확인한 결과가 아닙니다."
             )
@@ -560,55 +670,89 @@ with st.container(key=f"sheet_{s.stage}_{direction}"):
         if s.real_mode:
             st.title("실제 특허·시장 조사")
             st.caption(
-                "선택 분야의 로컬 특허 색인과 시장 색인을 사용합니다. API 키와 데이터가 필요합니다."
+                "특허는 선택한 분야의 색인과 KIPRIS 실시간 검색을, 시장은 뉴스 색인을 사용합니다."
+                " 색인은 CHROMA_HOST가 설정되면 팀 공용 Chroma, 아니면 로컬 Chroma입니다."
             )
             if s.pipeline_result is None:
+                cached = (
+                    s.analysis_sources is not None
+                    and s.analysis_key == current_analysis_key()
+                )
                 st.info(
-                    "검색·관련성 판정·분석을 순서대로 실행합니다. 외부 API 호출이 발생할 수 있습니다."
+                    "구성·분야가 같아 조사 결과를 재사용하고 질문 연결만 다시 만듭니다."
+                    if cached
+                    else COST_NOTE
                 )
                 if st.button(
-                    "특허·시장 조사 실행", type="primary", on_click=run_real_pipeline
+                    "질문 연결 다시 실행" if cached else "특허·시장 조사 실행",
+                    type="primary",
+                    disabled=RUN_LOCK.locked(),
                 ):
-                    pass
+                    with st.spinner(
+                        "조사 중입니다. 끝날 때까지 화면을 닫지 말고 기다려 주세요."
+                    ):
+                        run_real_pipeline()
+                    st.rerun()
                 if st.session_state.get("pipeline_error"):
                     st.error(st.session_state.pipeline_error)
             else:
+                from src.generation.report_builder import (
+                    escape_md,
+                    patent_location,
+                    safe_url,
+                )
+
                 result = s.pipeline_result
-                st.write(
-                    f"특허: {result.patent.status} · 근거 {len(result.patent.evidence)}건"
-                )
-                st.write(
-                    f"시장: {result.market.status} · 근거 {len(result.market.evidence)}건"
-                )
-                if result.errors:
-                    for error in result.errors:
-                        st.warning(error)
+                if result.readiness:
+                    st.caption(
+                        f"색인: {'팀 공용 Chroma' if result.readiness.chroma == 'remote' else '로컬 Chroma'}"
+                        f" · 특허 검색 방식: {PATENT_MODE_LABELS.get(result.readiness.patent_mode, result.readiness.patent_mode)}"
+                    )
+                for label, run, report_ in (
+                    ("특허", result.patent_run, result.patent),
+                    ("시장", result.market_run, result.market),
+                ):
+                    st.write(f"{run_line(label, run)} · 근거 {len(report_.evidence)}건")
+                    if run and run.message:
+                        st.caption(run.message)
+                for error in result.errors:
+                    st.warning(error)
                 st.subheader("질문별 통합 연결")
                 for link in result.links:
                     with st.expander(
-                        f"{link.question_id} · {link.status}", expanded=True
+                        f"{link.question_id} · {LINK_LABELS.get(link.status, link.status)}",
+                        expanded=True,
                     ):
-                        st.write(link.summary)
+                        st.text(link.summary)
                         for criterion in link.criteria:
-                            st.write(f"{criterion.criterion}: {criterion.assessment}")
+                            st.text(f"{criterion.criterion}: {criterion.assessment}")
                             st.caption(", ".join(criterion.citation_ids) or "근거 없음")
                 st.subheader("원문 근거")
                 for item in result.patent.evidence:
-                    st.markdown(
-                        f"**P:{item.citation_id} · {item.title} · {item.section}**"
-                    )
-                    st.write(item.quote)
+                    st.markdown(f"**P:{item.citation_id} · {escape_md(item.title)}**")
                     st.caption(
-                        f"출원 {item.application_date or '미확인'} · 공개 {item.publication_date or '미확인'} · {item.source_url or ''}"
+                        f"{patent_location(item)} · 출원 {item.application_date or '미확인'}"
+                        f" · 공개 {item.publication_date or '미확인'}"
                     )
+                    st.text(item.quote)
+                    if safe_url(item.source_url):
+                        st.markdown(f"[원문 보기]({safe_url(item.source_url)})")
                 for item in result.market.evidence:
-                    st.markdown(f"**M:{item.citation_id} · {item.title}**")
-                    st.write(item.quote)
+                    st.markdown(f"**M:{item.citation_id} · {escape_md(item.title)}**")
                     st.caption(
-                        f"{item.publisher} · {item.published_at or '발행일 미확인'} · {item.url}"
+                        f"{escape_md(item.publisher)} · {item.published_at or '발행일 미확인'}"
                     )
-                if st.button("종합 보고서 확인 →", type="primary"):
+                    st.text(item.quote)
+                    if safe_url(item.url):
+                        st.markdown(f"[기사 보기]({safe_url(item.url)})")
+                go, again = st.columns(2)
+                if go.button("종합 보고서 확인 →", type="primary"):
                     s.stage = 4
+                    st.rerun()
+                if again.button("다시 조사(비용 발생)", key="rerun_analysis"):
+                    s.analysis_sources = None
+                    s.analysis_key = ""
+                    s.pipeline_result = None
                     st.rerun()
             st.button("← 구성·질문 수정", on_click=navigate, args=(2,))
         else:
@@ -941,32 +1085,29 @@ with st.container(key=f"sheet_{s.stage}_{direction}"):
                                 st.caption(f"{row['location']} · {row['limit']}")
     elif s.stage == 4 and s.real_mode and s.pipeline_result:
         st.title("시장·특허 통합 보고서")
+        st.button("← 근거·연결 검토로", on_click=navigate, args=(3,))
         st.markdown(s.pipeline_result.markdown)
         st.subheader("구현 비용 입력")
-        edited_costs = st.data_editor(
-            s.cost_rows,
-            num_rows="dynamic",
-            use_container_width=True,
-            key="real_cost_rows",
+        st.caption("보고서의 보조 자료이며 사업성 점수나 판단이 아닙니다.")
+        # 입력값(s.cost_rows)은 고정하고 편집 결과만 쓴다. 결과를 다시 입력으로 넣으면 편집이 중복 적용된다.
+        cost_rows = cost_rows_list(
+            st.data_editor(
+                s.cost_rows,
+                num_rows="dynamic",
+                use_container_width=True,
+                key="real_cost_rows",
+            )
         )
-        s.cost_rows = edited_costs.to_dict("records")
-        costs = cost_summary(s.cost_rows)
+        costs = cost_summary(cost_rows)
         st.metric("입력 항목 소계 (만원)", f"{costs['total']:,.1f}")
         if costs["missing"]:
             st.caption("금액 미입력: " + ", ".join(costs["missing"]))
         if costs["errors"]:
             st.warning("유효하지 않은 비용 입력: " + ", ".join(costs["errors"]))
-        cost_markdown = (
-            "\n## 구현 비용표\n\n| 항목 | 수량 | 단가(만원) | 근거 / 가정 | 납기 |\n|---|---:|---:|---|---|\n"
-            + "\n".join(
-                f"| {r.get('항목','')} | {r.get('수량','')} | {r.get('단가(만원)','')} | {r.get('근거 / 가정','')} | {r.get('납기','')} |"
-                for r in s.cost_rows
-            )
-        )
         st.download_button(
             "보고서 다운로드 (.md)",
-            s.pipeline_result.markdown + cost_markdown,
-            file_name="idealens-research.md",
+            s.pipeline_result.markdown + cost_markdown(cost_rows),
+            file_name="idealens-report.md",
             mime="text/markdown",
         )
     elif s.stage == 4 and s.report_snapshot:

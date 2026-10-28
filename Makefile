@@ -1,10 +1,11 @@
 # 자주 쓰는 개발 명령 모음. `make help`로 목록을 확인한다.
 .DEFAULT_GOAL := help
 COMPOSE := docker compose
+PYTHON ?= python3
 RUN_APP := $(COMPOSE) run --rm app
 GITHUB_REPOSITORY ?= $(shell git remote get-url origin 2>/dev/null | sed -E 's#.*github\.com[:/]##; s#\.git$$##')
 
-.PHONY: help env up down build shell format format-check test precommit script-test review-preview review-model-check review-codex-login ui patent-collect patent-index market-collect market-index answer-eval
+.PHONY: help env up down build shell format format-check test precommit script-test review-preview review-model-check review-codex-login ui ui-logs ui-host doctor data-market data-patents patent-collect patent-index market-collect market-index answer-eval
 
 help: ## 명령 목록 출력
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-15s %s\n", $$1, $$2}'
@@ -12,7 +13,7 @@ help: ## 명령 목록 출력
 env: ## .env.example을 .env로 복사 (이미 있으면 유지)
 	@test -f .env && echo ".env가 이미 있습니다." || (cp .env.example .env && echo ".env를 생성했습니다.")
 
-up: ## 개발 컨테이너 실행
+up: ## 개발(app)·화면(ui) 컨테이너 실행
 	$(COMPOSE) up -d --build
 
 down: ## 개발 컨테이너 종료
@@ -51,8 +52,23 @@ review-model-check: ## 분석기(REVIEW_PROVIDER, 기본 codex: ~/.codex의 Chat
 review-codex-login: ## PR 분석 자동화 전용 ChatGPT 로그인을 만들어 Environment pr-analysis의 CODEX_AUTH_JSON에 저장(리더 PC에서 1회, 브라우저 로그인)
 	bash scripts/review/seed_codex_auth.sh
 
-ui: ## Streamlit 로컬 UI 실행 (8505)
-	streamlit run frontend/app.py --server.address 127.0.0.1 --server.port 8505
+ui: ## Streamlit 화면을 ui 컨테이너로 실행 (http://localhost:8505)
+	$(COMPOSE) up -d ui
+
+ui-logs: ## ui 컨테이너 로그 보기
+	$(COMPOSE) logs -f ui
+
+doctor: ## 실행 환경 점검(Docker·키 이름·공용 Chroma·색인·포트, 키 값 미출력)
+	$(PYTHON) scripts/idealens.py doctor
+
+data-market: ## 시장 뉴스 수집·정제·색인 (호출량 확인 후 실행, API 비용 발생)
+	$(PYTHON) scripts/idealens.py data market
+
+data-patents: ## 특허 분야별 수집·색인 (예: ARGS="--field-id SF-02", 확인 후 실행)
+	$(PYTHON) scripts/idealens.py data patents $(ARGS)
+
+ui-host: ## Streamlit을 호스트 가상환경에서 실행 (requirements 고정 버전 필요, 8505)
+	python -m streamlit run frontend/app.py --server.address 127.0.0.1 --server.port 8505
 
 patent-collect: ## 특허 수집·원본 저장 (ARGS로 옵션 전달)
 	$(RUN_APP) python -m scripts.collect_patents $(ARGS)

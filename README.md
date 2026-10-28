@@ -29,7 +29,7 @@
 │   ├── ISSUE_TEMPLATE/      # 작업·버그 이슈 양식
 │   └── pull_request_template.md
 ├── .vscode/                 # 저장 시 black 적용 등 공용 편집기 설정
-├── .streamlit/              # 아이디어 검토 화면의 테마 설정
+├── .streamlit/              # 화면 테마 설정, 호스팅 Secrets 형식 예시(secrets.toml.example)
 ├── AGENTS.md                # 팀 공용 Git·GitHub 및 코딩 에이전트 작업 규칙
 ├── configs/                 # 산업별 검색어·분류·검색 설정
 ├── data/
@@ -42,10 +42,11 @@
 ├── deploy/                  # 공용 Chroma·HTTPS 중계·개인 키 인증 배포 설정
 ├── docs/                    # 기획·설계·개발 환경 문서, 프로젝트 목표·PR 분석 안내서(review-baseline.md)
 ├── evaluation/              # 평가 질문·정답 근거·평가 실행
-├── frontend/                # 아이디어 검토 UI, 스타일, 비용 계산과 예시 보고서
+├── frontend/                # 아이디어 검토 UI, 실제 분석 화면 보조(live.py), 스타일, 비용 계산과 예시 보고서
 ├── prompts/                 # 아이디어 구조화·근거 검증·보고서 프롬프트
 ├── reports/                 # 생성한 경영진·R&D 보고서
 ├── scripts/
+│   ├── idealens.py          # 팀원용 통합 실행 도구(환경 점검·화면 실행·수집·색인·테스트, 표준 라이브러리만 사용)
 │   ├── *.py                 # 특허 수집·색인 생성 실행 스크립트
 │   ├── notion/              # Notion 블록 도우미, 코드 해석 기반 서비스 아키텍처 그림(mermaid) 생성
 │   ├── github/              # PR 리뷰어 무작위 지정
@@ -68,34 +69,75 @@
 - 원문·가공 데이터·검색 색인·생성 보고서는 Git 추적에서 제외. Chroma 색인은 로컬 또는 공용 서버에 보관.
 - 서비스 연결 구조는 [docs/architecture.md](docs/architecture.md)의 mermaid 다이어그램으로 관리.
 
+## 빠른 시작 (팀원용)
+
+필요: Docker Desktop 실행, Python 3.9 이상(통합 실행 도구용). macOS는 `python3`, Windows는 `py`(없으면 `python`)를 쓴다.
+
+```bash
+python3 scripts/idealens.py setup      # .env가 없을 때만 예시 복사 → 키 입력 후 이미지 빌드
+python3 scripts/idealens.py doctor     # Docker·키(이름만 표시)·공용 Chroma·색인·포트 점검
+python3 scripts/idealens.py ui         # 화면 실행 → http://localhost:8505 (make ui)
+python3 scripts/idealens.py logs | stop | test
+```
+
+| 명령 | 필요한 키 |
+|---|---|
+| `ui`(실제 분석) | `OPENAI_API_KEY`, `KIPRIS_API_KEY`(특허 실시간 검색), 공용 색인을 쓰면 `CHROMA_*` |
+| `data market` | `NAVER_CLIENT_ID`·`NAVER_CLIENT_SECRET`, `OPENAI_API_KEY` |
+| `data patents` | `KIPRIS_API_KEY`, `OPENAI_API_KEY` |
+
+- `data market`·`data patents [--field-id SF-02]`는 호출량을 보여 주고 확인을 받은 뒤 실행한다(API 비용 발생). 공용 Chroma에 적재할 때는 `--yes`로도 확인을 생략할 수 없으며, 색인은 한 사람만 실행한다. 시장 수집이 중간에 실패하면 같은 명령으로 오늘 미수집 키워드만 이어서 수집한다.
+- 공용 Chroma 키는 관리자에게 개인 메시지로 받아 개인 `.env`에만 둔다(Notion·GitHub 게시 금지). HTTPS 키 접속은 `CHROMA_PORT=443`·`CHROMA_SSL=true`다.
+- Python이 없으면 `docker compose up -d ui`로 화면만 실행할 수 있다.
+
+**문제 해결**
+
+| 증상 | 조치 |
+|---|---|
+| Docker 엔진에 연결할 수 없음 | Docker Desktop을 실행한다 |
+| 이미지가 없음·streamlit 버전 다름 | `setup`으로 다시 빌드한다(첫 빌드는 수 분) |
+| 공용 Chroma HTTP 401·403 | `CHROMA_API_KEY`를 확인하고, 폐기된 키면 재발급을 요청한다 |
+| `CHROMA_API_KEY requires HTTPS` | `CHROMA_SSL=true`, `CHROMA_PORT=443`으로 바꾼다 |
+| 공용 Chroma 연결 실패 | 네트워크·서버 상태를 확인한다. 시연은 예시 흐름(가상 시연)으로 전환할 수 있다 |
+| 포트 8505 사용 중 | 다른 프로그램을 끄거나 `IDEALENS_UI_PORT`(셸 환경변수)로 포트를 바꾼다 |
+| `.env` BOM·UTF-16 경고 | BOM 없는 UTF-8로 다시 저장한다(Windows 메모장 주의) |
+| `.env`를 바꿨는데 반영되지 않음 | `python3 scripts/idealens.py ui --recreate` |
+
 ## 실행 방법
 
 Docker Desktop(또는 Docker Engine + Compose v2.24 이상)을 기준으로 한다.
 
 ```bash
 cp .env.example .env              # API 키 입력 (make env와 동일)
-docker compose up -d --build      # 개발 컨테이너 실행 (make up)
+docker compose up -d --build      # 개발(app)·화면(ui) 컨테이너 실행 (make up)
+docker compose up -d ui           # Streamlit 화면만 실행 → http://localhost:8505 (make ui)
 docker compose exec app bash      # 컨테이너 셸 접속 (make shell)
 docker compose run --rm app python -m pytest   # 테스트 (make test)
 docker compose down               # 종료 (make down)
 ```
 
-- `app` 컨테이너는 저장소 전체를 `/app`에 마운트하므로 코드 수정이 바로 반영되고, Chroma 저장소(`data/patents/chroma/`, `data/market/chroma/`)와 수집 데이터는 호스트에 유지된다.
+- `app`·`ui` 컨테이너는 같은 이미지를 쓰고 저장소 전체를 `/app`에 마운트하므로 코드 수정이 바로 반영된다. 로컬 Chroma 저장소(`data/patents/chroma/`, `data/market/chroma/`)와 수집 데이터는 호스트에 유지된다.
+- `ui`는 호스트의 `127.0.0.1:8505`에만 열린다. 화면 오류에는 예외 종류만 표시하고 상세 내용은 `docker compose logs ui`(`make ui-logs`)로 본다. `.env`를 바꾸면 `docker compose up -d --force-recreate ui`로 다시 만든다.
 - 의존성을 바꾸면 `docker compose build app`(`make build`)으로 이미지를 다시 만든다.
-- Docker 없이 실행할 때는 Python 3.12 가상환경에서 `pip install -r requirements-dev.txt`를 실행한다.
+- Docker 없이 실행할 때는 Python 3.12 가상환경에 고정 버전을 설치한다. 다른 버전의 Streamlit에서는 화면이 정상 동작하지 않는다.
+
+```bash
+uv venv --python 3.12 .venv
+uv pip install --python .venv/bin/python -r requirements-ui.txt   # Windows: .venv\Scripts\python.exe
+.venv/bin/python -m streamlit run frontend/app.py --server.address 127.0.0.1 --server.port 8505   # make ui-host
+```
 - `make help`로 공용 명령 목록을 확인한다. 상세 내용은 [docs/development.md](docs/development.md)를 참고한다.
 
 ## 공용 Chroma 연결
 
-기본값은 기존 로컬 Chroma다. 팀 공용 서버는 HTTPS 주소·포트 `443`·`CHROMA_SSL=true`·개인별 `CHROMA_API_KEY`로 접속한다. 이 방식은 Google 로그인이나 터널 실행이 필요 없다. API 키는 HTTPS에서만 전송하며 서버 앞의 인증 서비스가 해시를 검증한다. 기존 IAP 터널은 보조 접속 경로로 유지한다. 특허·시장 저장과 검색이 같은 원격 DB를 사용하며 연결 실패 시 로컬로 전환하지 않는다. 기존 로컬 자료는 자동 이관되지 않는다. 설정 예시·서버 배포·키 폐기·백업은 [공용 Chroma 안내](docs/shared-chroma.md)를 참고한다. 웹 화면과 실제 검색 API 연결은 별도 구현 범위다.
+기본값은 기존 로컬 Chroma다. 팀 공용 서버는 HTTPS 주소·포트 `443`·`CHROMA_SSL=true`·개인별 `CHROMA_API_KEY`로 접속한다. 이 방식은 Google 로그인이나 터널 실행이 필요 없다. API 키는 HTTPS에서만 전송하며 서버 앞의 인증 서비스가 해시를 검증한다. 기존 IAP 터널은 보조 접속 경로로 유지한다. 특허·시장 저장과 검색이 같은 원격 DB를 사용하며 연결 실패 시 로컬로 전환하지 않는다. 기존 로컬 자료는 자동 이관되지 않는다. 설정 예시·서버 배포·키 폐기·백업은 [공용 Chroma 안내](docs/shared-chroma.md)를 참고한다. 화면의 실제 분석은 `CHROMA_HOST`가 설정되면 이 공용 색인을 쓴다.
 
 `pytest`는 공용 DB 설정을 격리하고 로컬 테스트 저장소를 사용한다. 실제 서버 연결 검증은 별도로 수행한다.
 
 ## Streamlit 화면 시연
 
 ```bash
-pip install -r requirements-ui.txt
-make ui                         # Streamlit on port 8505
+make ui                         # ui 컨테이너로 Streamlit 실행 → http://localhost:8505
 make patent-collect ARGS="--field-id SF-02 --limit 20 --include-claims"
 make patent-index ARGS="--field-id SF-02"
 ```
@@ -104,9 +146,9 @@ make patent-index ARGS="--field-id SF-02"
 홈은 배경과 경계 없이 이어지는 조사 문서 비주얼과 입력 바로가기를 제공한다. 표지에는 특허 구성 도면·시장 흐름 그래프·근거 연결선과 유리 반사·그림자를 표현한 장식 돋보기를 배치하며 실제 특허·수요 데이터로 표시하지 않는다. 단계마다 아이보리·연녹색·크림·연청색으로 종이 색이 바뀌며 남은 장수가 3→2→1→0장으로 줄어든다. 앞뒤 이동 시 종이의 들림·회전·그림자를 표현하고 동작 줄이기 설정을 따른다. `frontend/assets/idealens-symbol.svg`와 `idealens-logo.svg`는 문서·돋보기·근거 연결을 결합한 심볼과 글자 로고다. 로고 버튼은 홈 이동 기능을 유지한다. `frontend/presentation.py`가 홈 비주얼을, `frontend/styles.css`가 종이 재질과 전환을 관리한다. 제공된 사진은 디자인 참고로만 사용하며 화면의 도해와 종이는 코드로 표현한다.
 입력 화면은 큰 본문과 우측 최근 입력, 조사 화면은 좌측 구성·중앙 특허/시장 후보·우측 선택 목록, 보고서는 좌측 선택 문헌·우측 본문으로 구성한다.
 핵심 구성은 최대 7개, 검토 질문은 최대 5개를 조건과 함께 확정한다. 3단계는 자동 연결 결과를 먼저 보여주며 사용 맥락·해결 과제·기술 구성·요구 성능·도입 제약·근거 범위의 판단 과정을 펼쳐 확인한다. 문헌 제외와 결과 수정은 선택 사항이다. 최소 2개 자료로 부분 보고서를 열 수 있으며, 질문별 근거 부족은 통합 판단 보류로 표시한다.
-정확한 기본 예시에만 가상 자료 4건과 사전 작성된 연결 초안을 자동 배치한다. `AI로 항목 초안 만들기 · 재질문`은 별도의 실제 분석 흐름으로, SF-02/SF-05 로컬 특허 색인과 시장 색인을 조회한다. 예시도 실제 수요·성능 검증으로 표시하지 않는다.
+정확한 기본 예시에만 가상 자료 4건과 사전 작성된 연결 초안을 자동 배치한다. `OPENAI_API_KEY`가 있으면 직접 입력한 아이디어는 `핵심 구성 확인하기 →`에서 AI 구조화(빈 항목은 최대 2회 재질문)를 거쳐 실제 분석 흐름으로 이어진다. 3단계에서 특허(선택 분야 색인·KIPRIS)와 시장 조사를 병렬로 실행하고 영역별 상태·소요 시간·근거를 보여 준다. 구성·분야가 그대로면 조사 결과를 재사용해 질문 연결만 다시 만들며, 한 번에 하나의 분석만 실행한다. 키가 없으면 구성만 작성하는 시연 경로로 진행한다. 예시도 실제 수요·성능 검증으로 표시하지 않는다.
 `frontend/automatic.py`는 시연 규칙과 팀 보고서 모델의 근거 변환을 담당한다. 실제 실행은 `src.pipeline.run_pipeline`에서 특허·시장 서비스를 호출하고 `src.generation.report_builder`가 질문별 6개 기준으로 연결한다. 인용 ID는 영역별로 구분하며 한쪽 근거가 없으면 연결 판단을 보류한다. `frontend/quick.py`는 보고서 규칙, `frontend/app.py`는 화면을 담당한다. 수정·제외는 보고서에도 반영하고 이전 스냅샷을 무효화한다.
-[실행·시연 가이드](docs/ui-guide.md)와 [참고 화면 구조 및 연결 계약](docs/quick-research-ui.md)을 참고한다. 실제 보고서에는 구현 비용 항목을 입력할 수 있고, 누락 금액을 0으로 간주하지 않는 소계를 함께 표시한다. Streamlit 포트는 8505이며 `make ui`로 실행한다.
+[실행·시연 가이드](docs/ui-guide.md)와 [참고 화면 구조 및 연결 계약](docs/quick-research-ui.md)을 참고한다. 실제 보고서에는 구현 비용 항목을 입력할 수 있고, 누락 금액을 0으로 간주하지 않는 소계를 함께 표시한다. Streamlit 포트는 8505이며 `make ui`(Docker) 또는 `make ui-host`(고정 버전 가상환경)로 실행한다.
 
 ### 시장 뉴스 수집·정제
 
@@ -185,8 +227,18 @@ python -m src.generation.idea_parser "중소 부품 공장에 협동로봇과 �
 - 아이디어 한 문장을 `gpt-4o-mini`로 문제(`problem`)·기술(`technology`)·고객(`customers`)·차별점(`difference`)·수익모델(`revenue`)로 나눈다. 규칙은 `prompts/idea_parser.md`에서 관리하며, 문장에 없는 항목은 추측하지 않고 비워 둔다. `OPENAI_API_KEY`가 필요하다.
 - 빈 항목은 사용자에게 최대 2회 재질문한다. '모름'으로 답했거나 끝까지 비어 있는 항목은 `unknown`으로 확정하고, 항목별 출처(`extracted`·`user_answer`·`unknown`)를 함께 남긴다.
 - 완성된 결과(`IdeaDraft`)는 `build_requests`로 특허·시장 공통 입력(`StructuredIdea`)과 검색 요청(`PatentSearchRequest`·`MarketSearchRequest`)으로 변환한다.
-- Streamlit에서 `AI로 항목 초안 만들기 · 재질문`으로 구조화·재질문을 실행하고 SF-02/SF-05 특허 색인을 선택할 수 있다. 확인한 질문으로 특허·시장 통합 조사를 실행하고 원문 근거와 출원·공개일을 확인한다.
+- Streamlit에서 `핵심 구성 확인하기 →`(키가 있을 때) 또는 `AI로 항목 초안 만들기 · 재질문`으로 구조화·재질문을 실행하고 SF-02/SF-05 특허 색인을 선택할 수 있다. 입력은 1,000자까지다. 확인한 질문으로 특허·시장 통합 조사를 실행하고 원문 근거(청구항 위치)와 출원·공개일을 확인한다.
 - `src.pipeline.run_pipeline`의 입력·출력 및 보류 규칙은 [docs/api_contract.md](docs/api_contract.md#3-특허-조사-및-통합-파이프라인)에 명시한다.
+
+### 통합 분석 실행·점검
+
+```bash
+docker compose run --rm -T app python -m src.pipeline status --json          # 키·색인 준비 상태(값 미출력, 생성 호출 없음)
+docker compose run --rm app python -m src.pipeline run --idea-id SF-02 --out report.json  # 샘플 아이디어 실분석(API 비용 발생)
+```
+
+- 시장·특허 조사는 병렬로 실행하며 영역별 제한 시간과 오류를 따로 기록한다. 색인이 없거나 키가 없는 영역은 호출하지 않고 '실행 안 함'으로 표시한다.
+- 색인 점검은 컬렉션을 새로 만들지 않는다. 오류 문구의 API 키는 가린 뒤 표시한다. 상세 규칙은 [연결 계약](docs/api_contract.md#통합-흐름의-실행오류-처리)을 참고한다.
 
 - 입력 가드레일: LLM 호출 전 규칙 검사(`src/generation/input_guard.py`: 길이, 지시 무시·시스템 프롬프트 공개 등 조작 표현)와 같은 LLM 호출의 `input_status` 판정(`ok`·`off_topic`·`unsafe`)으로 주제 이탈·프롬프트 조작·유해 목적 입력을 거절한다. 거절되면 `status="rejected"`와 안내 문구(`rejection_reason`)를 반환하고 검색 요청을 만들지 않는다. 재질문 답변도 규칙 검사를 거친다. 기준은 [docs/market_research.md](docs/market_research.md#입력-가드레일).
 
@@ -200,6 +252,10 @@ python -m src.generation.idea_parser "중소 부품 공장에 협동로봇과 �
 | `KIPRIS_API_KEY` | KIPRIS Plus 특허 API 키 |
 | `DART_API_KEY` | DART OpenAPI 공시 API 키 |
 | `NAVER_CLIENT_ID` · `NAVER_CLIENT_SECRET` | NAVER API HUB(네이버클라우드) Application의 Client ID·Secret. 해당 Application에서 뉴스 검색 API 활성화 필요 |
+| `IDEALENS_MARKET_TIMEOUT` · `IDEALENS_PATENT_TIMEOUT` | (선택) 통합 분석의 영역별 제한 시간(초). 기본 120·180 |
+| `IDEALENS_SERIAL` | (선택) `1`이면 시장·특허 조사를 순차 실행 |
+| `IDEALENS_APP_PASSWORD` | (호스팅 배포) 접속 비밀번호. 비어 있으면 비밀번호 화면을 띄우지 않는다(로컬 실행) |
+| `CHROMA_HOST`·`CHROMA_PORT`·`CHROMA_SSL`·`CHROMA_API_KEY` | (선택) 팀 공용 Chroma 접속. 비우면 로컬 Chroma. HTTPS 키 접속은 `443`·`true` |
 
 PR 분석 자동화용 `CODEX_AUTH_JSON`(ChatGPT 구독 로그인, `make review-codex-login`으로 등록)·`CODEX_AUTH_WRITE_TOKEN`·`NOTION_REVIEW_TOKEN`은 `.env`가 아니라 develop에서만 열리는 GitHub Environment `pr-analysis`에 저장한다([docs/development.md](docs/development.md#pr-자동-분석-githubworkflowspr-analysisyml)).
 
@@ -221,7 +277,7 @@ PR 분석 자동화용 `CODEX_AUTH_JSON`(ChatGPT 구독 로그인, `make review-
 - 데이터 출처: KIPRIS Plus, NAVER 뉴스 검색 API(교육 목적, 프로젝트 종료 시 폐기), DART, 공공기관·연구기관·기업의 공식 자료. 사내자료 연계는 향후 검토 범위.
 - 원문 구획과 청구항 구조를 보존하고, 각 주장에 출처·문헌 버전·원문 위치·링크를 연결.
 - 검색은 공통 엔진에서 의미 검색(dense)·단어 검색(BM25)·결합(hybrid) 중 선택하며, 임베딩은 `text-embedding-3-small`, 색인은 로컬 Chroma 또는 환경변수로 지정한 공용 Chroma를 사용.
-- 시연은 로컬 PC의 Streamlit UI로 한다. 기본 색인은 로컬 Chroma(`data/patents/chroma/`·`data/market/chroma/`)이며 공용 DB 접속은 선택 설정이다. UI 호스팅과 실제 분석 API 연결은 별도 구현한다.
+- 시연은 Streamlit UI로 하며 Streamlit Community Cloud(`main` 배포, 앱 비밀번호, [배포 안내](docs/deploy-streamlit-cloud.md)) 또는 로컬 Docker로 실행한다. 팀 색인은 공용 Chroma, 로컬 Chroma(`data/patents/chroma/`·`data/market/chroma/`)는 개인 실험·테스트용이다.
 - 사실·해석·가설·미확인을 구분하고, 근거가 부족하면 판단을 보류. 최종 판단은 사용자가 수행.
 
 ## 평가 계획
