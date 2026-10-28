@@ -182,7 +182,7 @@ def test_remote_heartbeat_failure_is_reported_without_creating_dirs(
     tmp_path, monkeypatch
 ):
     monkeypatch.setenv("CHROMA_HOST", "chroma.example.test")
-    monkeypatch.setenv("CHROMA_API_KEY", "secret-chroma-key")
+    monkeypatch.setenv("CHROMA_API_KEY", "FAKE_CHROMA_KEY")
 
     def refuse(*args, **kwargs):
         raise requests.ConnectionError("refused")
@@ -202,7 +202,7 @@ def test_remote_heartbeat_failure_is_reported_without_creating_dirs(
 
 def test_failure_in_one_area_does_not_block_the_other(monkeypatch):
     def broken_market(request, **kwargs):
-        raise RuntimeError("boom ServiceKey=SECRET123&x=1")
+        raise RuntimeError("boom ServiceKey=FAKE_KIPRIS_KEY&x=1")
 
     monkeypatch.setattr(pipeline, "run_market_research", broken_market)
     monkeypatch.setattr(
@@ -217,7 +217,7 @@ def test_failure_in_one_area_does_not_block_the_other(monkeypatch):
         patent_kwargs={"collection": object()},
     )
     assert result.market_run.state == "error"
-    assert "SECRET123" not in result.market_run.message
+    assert "FAKE_KIPRIS_KEY" not in result.market_run.message
     assert "ServiceKey=***" in result.market_run.message
     assert result.patent_run.state == "no_results"
 
@@ -284,15 +284,15 @@ def test_parallel_and_serial_give_same_reports(monkeypatch):
 
 
 def test_redact_masks_env_values_url_keys_and_bearer(monkeypatch):
-    monkeypatch.setenv("OPENAI_API_KEY", "sk-test-abcdefgh12345678")
-    monkeypatch.setenv("KIPRIS_API_KEY", "kipris-raw-value-777")
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-FAKEOPENAIKEY")
+    monkeypatch.setenv("KIPRIS_API_KEY", "FAKE_KIPRIS_KEY_777")
     text = (
-        "fail sk-test-abcdefgh12345678 http://x/api?accessKey=kipris-raw-value-777&q=1 "
-        "Authorization: Bearer tok.en-123"
+        "fail sk-FAKEOPENAIKEY http://x/api?accessKey=FAKE_KIPRIS_KEY_777&q=1 "
+        "Authorization: Bearer FAKE.BEARER-TOKEN"
     )
     masked = redact(text)
-    assert "abcdefgh" not in masked and "kipris-raw-value-777" not in masked
-    assert "tok.en-123" not in masked and "Bearer ***" in masked
+    assert "FAKEOPENAIKEY" not in masked and "FAKE_KIPRIS_KEY_777" not in masked
+    assert "FAKE.BEARER-TOKEN" not in masked and "Bearer ***" in masked
 
 
 def test_screen_inputs_allows_short_parts_and_rejects_injection():
@@ -474,11 +474,11 @@ def test_patent_relevance_is_not_called_after_cancel(monkeypatch):
 def test_part_errors_are_logged_without_keys(monkeypatch, caplog):
     import logging
 
-    monkeypatch.setenv("KIPRIS_API_KEY", "kipris-secret-value-1")
+    monkeypatch.setenv("KIPRIS_API_KEY", "FAKE_KIPRIS_KEY_1")
     monkeypatch.setattr(pipeline.LOG, "propagate", True)
 
     def broken(request, **kwargs):
-        raise RuntimeError("fail ServiceKey=kipris-secret-value-1&x=1")
+        raise RuntimeError("fail ServiceKey=FAKE_KIPRIS_KEY_1&x=1")
 
     monkeypatch.setattr(pipeline, "analyze_patents", broken)
     with caplog.at_level(logging.INFO, logger="idealens"):
@@ -488,4 +488,4 @@ def test_part_errors_are_logged_without_keys(monkeypatch, caplog):
             patent_kwargs={"collection": object()},
         )
     text = caplog.text
-    assert "특허 조사 error" in text and "kipris-secret-value-1" not in text
+    assert "특허 조사 error" in text and "FAKE_KIPRIS_KEY_1" not in text

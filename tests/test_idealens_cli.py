@@ -16,12 +16,12 @@ spec.loader.exec_module(idealens)
 def test_read_env_handles_bom_crlf_quotes_and_export(tmp_path):
     path = tmp_path / ".env"
     path.write_bytes(
-        b"\xef\xbb\xbfOPENAI_API_KEY=sk-test-SECRET123\r\n"
-        b"export KIPRIS_API_KEY='kipris-SECRET'\r\n# comment\r\nEMPTY=\r\n"
+        b"\xef\xbb\xbfOPENAI_API_KEY=FAKE_OPENAI_KEY\r\n"
+        b"export KIPRIS_API_KEY='FAKE_KIPRIS_KEY'\r\n# comment\r\nEMPTY=\r\n"
     )
     values, warnings = idealens.read_env(path)
-    assert values["OPENAI_API_KEY"] == "sk-test-SECRET123"
-    assert values["KIPRIS_API_KEY"] == "kipris-SECRET" and values["EMPTY"] == ""
+    assert values["OPENAI_API_KEY"] == "FAKE_OPENAI_KEY"
+    assert values["KIPRIS_API_KEY"] == "FAKE_KIPRIS_KEY" and values["EMPTY"] == ""
     assert any("BOM" in w for w in warnings) and any("CRLF" in w for w in warnings)
 
 
@@ -35,7 +35,7 @@ def test_read_env_rejects_utf16(tmp_path):
 def test_doctor_never_prints_key_values(tmp_path, monkeypatch, capsys):
     env = tmp_path / ".env"
     env.write_text(
-        "OPENAI_API_KEY=sk-test-SECRET123\nKIPRIS_API_KEY=kipris-SECRET\n",
+        "OPENAI_API_KEY=FAKE_OPENAI_KEY\nKIPRIS_API_KEY=FAKE_KIPRIS_KEY\n",
         encoding="utf-8",
     )
     monkeypatch.setattr(idealens, "ENV_PATH", env)
@@ -43,17 +43,17 @@ def test_doctor_never_prints_key_values(tmp_path, monkeypatch, capsys):
     monkeypatch.setattr(idealens, "port_in_use", lambda port: False)
     code = idealens.main(["doctor"])
     out = capsys.readouterr().out
-    assert "sk-test-SECRET123" not in out and "kipris-SECRET" not in out
+    assert "FAKE_OPENAI_KEY" not in out and "FAKE_KIPRIS_KEY" not in out
     assert "OPENAI_API_KEY: 설정됨" in out and "NAVER_CLIENT_ID: 비어 있음" in out
     assert code == 0
 
 
 def test_mask_hides_env_values_and_url_keys():
-    env = {"KIPRIS_API_KEY": "kipris-raw-7777"}
-    text = "GET http://x?ServiceKey=kipris-raw-7777&a=1 Bearer abc.def sk-abcdefghijkl"
+    env = {"KIPRIS_API_KEY": "FAKE_KIPRIS_KEY_7777"}
+    text = "GET http://x?ServiceKey=FAKE_KIPRIS_KEY_7777&a=1 Bearer FAKE.BEARER-TOKEN sk-FAKEOPENAIKEY"
     masked = idealens.mask(text, env)
-    assert "kipris-raw-7777" not in masked and "abc.def" not in masked
-    assert "abcdefghijkl" not in masked
+    assert "FAKE_KIPRIS_KEY_7777" not in masked and "FAKE.BEARER-TOKEN" not in masked
+    assert "FAKEOPENAIKEY" not in masked
 
 
 @pytest.mark.parametrize(

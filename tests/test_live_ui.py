@@ -194,11 +194,11 @@ def test_rejected_input_stays_on_first_step(live, monkeypatch):
 
 
 def test_pipeline_error_message_hides_keys(live, monkeypatch):
-    monkeypatch.setenv("KIPRIS_API_KEY", "kipris-secret-value-9")
+    monkeypatch.setenv("KIPRIS_API_KEY", "FAKE_KIPRIS_KEY_9")
 
     def broken(draft, **kwargs):
         raise ValueError(
-            "검색 실패 http://x?ServiceKey=kipris-secret-value-9&q=1 sk-abcdefghijk123"
+            "검색 실패 http://x?ServiceKey=FAKE_KIPRIS_KEY_9&q=1 sk-FAKEOPENAIKEY"
         )
 
     monkeypatch.setattr(pipeline, "analyze_sources", broken)
@@ -210,7 +210,7 @@ def test_pipeline_error_message_hides_keys(live, monkeypatch):
     click(app, "특허·시장 조사 실행")
     errors = " ".join(e.value for e in app.error)
     assert "검색 실패" in errors
-    assert "kipris-secret-value-9" not in errors and "abcdefghijk123" not in errors
+    assert "FAKE_KIPRIS_KEY_9" not in errors and "FAKEOPENAIKEY" not in errors
 
 
 def test_example_path_keeps_demo_flow_with_key(live):
