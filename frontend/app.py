@@ -1091,9 +1091,7 @@ def start_research():
 
 with st.container(key="brandbar"):
     brand, intro, guide, records = st.columns([2.6, 1, 1, 1.1])
-    brand.button(
-        "IdeaLens", key="home", on_click=open_page, args=("home",), help="홈으로"
-    )
+    brand.button("IdeaLens", key="home", on_click=open_page, args=("home",))
     intro.button("서비스 소개", on_click=open_page, args=("about",))
     guide.button("왜 IdeaLens인가", on_click=open_page, args=("difference",))
     records.button("내 기록", on_click=open_page, args=("history",))
