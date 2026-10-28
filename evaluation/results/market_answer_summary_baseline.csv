@@ -1,0 +1,4 @@
+﻿arm,cases,verdict_confirmed,verdict_signal_only,verdict_unverified,demand_confirmed,claims,fact_claims,uncited_fact_rate,cited_facts,supported,partial,unsupported,citation_accuracy,partial_rate,cited_relevant,cited_irrelevant,cited_unlabeled,cited_relevance_rate,unsourced_numbers,error_types
+llm_only,20,0,0,20,0,53,0,,0,0,0,0,,,0,0,0,,0,
+naive_rag,20,4,14,2,1,50,37,0.027,36,30,6,0,0.833,0.167,35,13,0,0.729,0,overgeneralization:5;added_detail:1
+idealens,20,3,16,1,0,30,30,0.0,30,30,0,0,1.0,0.0,25,5,0,0.833,0,
