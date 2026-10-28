@@ -216,6 +216,7 @@ flowchart TD
 | 데이터 형식·결과 계약 | `src/schemas.py` (`MarketDocument`, `MarketSearchRequest`, `MarketReport`) |
 | 평가 문항·정답 라벨 | `evaluation/market_cases.json`, `evaluation/labels/`, `evaluation/market_labeling.py`, `evaluation/market_judge.py` |
 | 검색·관련성 판정 평가 실행·결과 | `evaluation/evaluate.py`, `evaluation/market_relevance_eval.py` → `evaluation/results/` |
+| 답변 평가 (LLM 단독·단순 RAG·IdeaLens) | `evaluation/market_answer_eval.py`, `prompts/market_answer_baseline.md`, `prompts/market_claim_judge.md` → `evaluation/results/` |
 
 ## 공통 검색 엔진
 
@@ -255,3 +256,31 @@ SF-05 라벨은 이전 아이디어(현장 작업자용 LLM 음성 어시스턴�
 
 - hybrid는 수요(MRR 0.71 → 0.88)에서만 뚜렷하게 높고, 가격(0.69 → 0.38)·도입장벽(Hit@5 0.75 → 0.50)에서 낮다. 검색 기본값은 dense를 유지한다.
 - 결과: `evaluation/results/market_retrieval_{dense,bm25,hybrid}_extended20.csv`
+
+### 시장 답변 평가
+
+같은 20문항(SF-01~SF-04 × 5개 차원)에서 세 방식의 차원 결과를 비교했다 (`evaluation/market_answer_eval.py`). 답변 모델은 세 방식 모두 `gpt-4o`다.
+
+- LLM 단독: 자료 없이 기본 답변 규칙(`prompts/market_answer_baseline.md`)으로 답변
+- 단순 RAG: 차원 질의 dense 상위 5건을 그대로 주고 같은 규칙으로 답변 (관련성 필터·판정 제한·문장 검증 없음)
+- IdeaLens: `run_market_research` 결과(`MarketReport`)
+
+인용된 fact 문장마다 판정기(`prompts/market_claim_judge.md`, `gpt-4o-mini`)가 인용 기사 제목·요약과 대조해 supported·partial·unsupported로 판정하고, 사람이 30문장(단순 RAG 15·IdeaLens 15)을 판정기 결과를 보지 않고 검토했다. 인용 기사의 관련성은 기존 사람 정답 라벨로 센다.
+
+| 지표 (20문항) | LLM 단독 | 단순 RAG | IdeaLens |
+|---|---|---|---|
+| 판정 (확인됨 / 신호만 / 미확인) | 0 / 0 / 20 | 4 / 14 / 2 | 3 / 16 / 1 |
+| 수요 `confirmed` (뉴스만으로 수요 확인, 과대 판정) | 0 | 1 | 0 |
+| fact 문장 | 0 | 37 | 30 |
+| 인용 없는 fact 문장 | - | 2.7% | 0% |
+| Citation Accuracy (판정기) | - | 0.83 | 1.00 |
+| **Citation Accuracy (사람 검토 보정)** | - | **0.43** | **0.87** |
+| 인용 기사 관련 비율 (사람 정답 라벨) | - | 0.73 | 0.83 |
+| 근거에 없는 수치가 있는 fact 문장 | 0 | 0 | 0 |
+
+- LLM 단독은 자료가 없다고 밝히고 20문항 모두 추정 문장만 냈다. 근거로 확인할 수 있는 사실 문장이 없다.
+- 단순 RAG는 기사를 인용하지만 사람 검토에서 15문장 중 partial 6·unsupported 3이었다. 주로 한 기업 사례를 시장 수요로 넓히거나(예: 삼성전자의 협력사 요구 → "대기업 수요 증가"), 기사에 없는 판단(가격·위험 요인)을 덧붙였다.
+- IdeaLens는 사람 검토 15문장 중 supported 13·partial 2이다. partial 2건은 같은 기사(LS일렉트릭 FEMS 리스)를 가격·도입장벽 근거로 쓴 문장이다.
+- 판정기와 사람의 일치율은 0.67(kappa 0.24)로 낮다. 판정기는 사람이 partial·unsupported로 본 11건 중 7건을 supported로 판정해 실제보다 관대하다. 그래서 Citation Accuracy는 판정기 라벨별 사람 supported 비율로 보정한 값을 쓴다 (`agreement` 하위 명령, 표본: 판정기가 supported가 아니라고 본 문장 전부 + supported 문장 무작위).
+- 한계: 1회 실행 결과이며 사람 검토 표본이 방식당 15문장이다. 문장 판정은 기사 제목·요약 기준이라 기사 본문 내용은 확인하지 않았다. 관련성 판정·분석은 실행마다 조금씩 달라진다.
+- 결과: `evaluation/results/market_answer_{,claims_,summary_}baseline.csv`, `market_answer_agreement_baseline.json`, `market_answer_reports_baseline.json`, 사람 검토 `evaluation/labels/market_answer_review_baseline.csv`
