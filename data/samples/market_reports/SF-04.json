@@ -6,18 +6,23 @@
       "verdict": "signal_only",
       "claims": [
         {
-          "statement": "공장에너지관리시스템(FEMS)을 통해 설비별 전력 사용량을 실시간으로 모니터링하고, 에너지 효율화 설비를 적용하는 사례가 있다.",
+          "statement": "공장에너지관리시스템(FEMS)을 구축해 설비별 전력 사용량을 실시간으로 모니터링하는 것이 중요하다.",
           "claim_type": "fact",
           "citation_ids": [
             1
           ]
         },
         {
-          "statement": "산업용 전기요금 인하는 전력 사용량이 많은 제조업의 생산비 부담을 낮출 수 있다.",
+          "statement": "FEMS 구축을 통해 공장 내 에너지 흐름을 한눈에 확인할 수 있다.",
           "claim_type": "fact",
           "citation_ids": [
-            4
+            2
           ]
+        },
+        {
+          "statement": "전력 사용량이 많은 제조업체에서 FEMS의 필요성이 커지고 있다.",
+          "claim_type": "ai_hypothesis",
+          "citation_ids": []
         }
       ],
       "next_check": null
@@ -30,15 +35,20 @@
           "statement": "FEMS는 공장의 전력 사용을 실시간으로 모니터링하고 분석·제어해 에너지 효율을 높이는 시스템이다.",
           "claim_type": "fact",
           "citation_ids": [
-            5
+            3
           ]
         },
         {
-          "statement": "미라콤은 FEMS 구축으로 전기료를 20% 절감했다고 발표했다 (2024년 12월 보도).",
+          "statement": "FEMS 구축을 통해 에너지 효율화 설비를 적용하는 사례가 증가하고 있다.",
           "claim_type": "fact",
           "citation_ids": [
-            6
+            1
           ]
+        },
+        {
+          "statement": "FEMS 시장에서 경쟁이 치열할 가능성이 있다.",
+          "claim_type": "ai_hypothesis",
+          "citation_ids": []
         }
       ],
       "next_check": null
@@ -48,11 +58,16 @@
       "verdict": "signal_only",
       "claims": [
         {
-          "statement": "FEMS 리스는 고객사가 초기 설비 투자비를 한꺼번에 부담하지 않고 사용할 수 있는 방식이다.",
+          "statement": "FEMS 리스 사업은 고객사가 초기 설비 투자비를 부담 없이 이용할 수 있도록 한다.",
           "claim_type": "fact",
           "citation_ids": [
             3
           ]
+        },
+        {
+          "statement": "FEMS 구축 후 전기료 절감 효과가 나타나는 사례가 있다.",
+          "claim_type": "ai_hypothesis",
+          "citation_ids": []
         }
       ],
       "next_check": null
@@ -62,11 +77,16 @@
       "verdict": "signal_only",
       "claims": [
         {
-          "statement": "철강업계는 BESS+FEMS 시스템을 도입해 전력 피크 요금 절감 효과를 보고 있다.",
+          "statement": "FEMS는 공장에너지관리시스템으로, 고객사가 초기 설비 투자비를 부담 없이 사용할 수 있다.",
           "claim_type": "fact",
           "citation_ids": [
-            9
+            3
           ]
+        },
+        {
+          "statement": "전력 사용량이 많은 제조업체들이 FEMS를 도입하고 있다.",
+          "claim_type": "ai_hypothesis",
+          "citation_ids": []
         }
       ],
       "next_check": null
@@ -76,11 +96,16 @@
       "verdict": "signal_only",
       "claims": [
         {
-          "statement": "FEMS 리스 사업은 기업이 초기 투자비 부담 없이 시스템을 도입할 수 있는 방식이다.",
+          "statement": "FEMS 구축은 설비별 전력 사용량을 실시간으로 모니터링하는 데 필요한 시스템이다.",
           "claim_type": "fact",
           "citation_ids": [
-            5
+            1
           ]
+        },
+        {
+          "statement": "FEMS 도입에 따른 초기 투자비 부담이 도입장벽이 될 수 있다.",
+          "claim_type": "ai_hypothesis",
+          "citation_ids": []
         }
       ],
       "next_check": null
