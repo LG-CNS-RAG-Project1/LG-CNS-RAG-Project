@@ -24,6 +24,8 @@ def patent_to_search_document(
             "version_id": chunk.version_id or patent.claim_version_id,
             "application_number": patent.application_number,
             "publication_number": patent.publication_number,
+            "application_date": patent.application_date,
+            "publication_date": patent.publication_date,
             "source_url": patent.source_url,
         },
     )

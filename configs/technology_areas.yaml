@@ -1,0 +1,266 @@
+# 공통 기술 분야 taxonomy와 분야별 시장·특허 검색 설정
+# 시장 키워드는 news_client가 기존 MarketDocument 계약으로 변환한다.
+news:
+  sort: sim
+  display: 100
+  max_items_per_keyword: 100
+  date_from: 20240101
+  request_interval_sec: 0.2
+shared_market_keywords:
+- id: smart_factory
+  query: 스마트공장
+  dimensions:
+  - demand
+  - buyer
+  technology_area_ids:
+  - SF-01
+  - SF-02
+  - SF-03
+  - SF-04
+  - SF-05
+- id: smart_factory_support
+  query: 스마트공장 지원사업
+  dimensions:
+  - buyer
+  - adoption_barrier
+  technology_area_ids:
+  - SF-01
+  - SF-02
+  - SF-03
+  - SF-04
+  - SF-05
+- id: smart_factory_barrier
+  query: 스마트공장 도입 애로
+  dimensions:
+  - adoption_barrier
+  technology_area_ids:
+  - SF-01
+  - SF-02
+  - SF-03
+  - SF-04
+  - SF-05
+- id: sme_automation_cost
+  query: 중소기업 자동화 설비 투자 비용
+  dimensions:
+  - price
+  - adoption_barrier
+  technology_area_ids:
+  - SF-01
+  - SF-02
+  - SF-03
+  - SF-04
+  - SF-05
+technology_areas:
+- id: SF-01
+  name: 산업용 로봇
+  technologies:
+  - 협동로봇
+  - 경로계획
+  characteristics: 하드웨어·제어 기술이 혼재
+  patent_keywords:
+  - 협동로봇 경로계획
+  - 산업용 로봇 경로 제어
+  - 협동로봇 작업 경로 최적화
+  market_keywords:
+  - id: cobot_adoption
+    query: 협동로봇 도입
+    dimensions:
+    - demand
+    - buyer
+  - id: cobot_vision
+    query: 협동로봇 비전 자동화
+    dimensions:
+    - competition
+  - id: cobot_price
+    query: 협동로봇 가격
+    dimensions:
+    - price
+  - id: cobot_cost
+    query: 협동로봇 도입 비용
+    dimensions:
+    - price
+  - id: cobot_case
+    query: 협동로봇 도입 사례 중소기업
+    dimensions:
+    - buyer
+  - id: cobot_barrier
+    query: 협동로봇 도입 어려움
+    dimensions:
+    - adoption_barrier
+- id: SF-02
+  name: AI 비전 품질검사
+  technologies:
+  - 머신비전
+  - 딥러닝 결함 탐지
+  characteristics: 기술 구성요소 비교가 용이
+  patent_keywords:
+  - AI 비전 품질검사
+  - 머신비전 딥러닝 결함 탐지
+  - 영상 기반 제조 불량 검출
+  market_keywords:
+  - id: ai_vision_inspection
+    query: AI 비전검사
+    dimensions:
+    - demand
+    - competition
+  - id: battery_inspection
+    query: 2차전지 외관검사
+    dimensions:
+    - demand
+    - buyer
+  - id: vision_inspection_case
+    query: 비전검사 도입 사례
+    dimensions:
+    - buyer
+  - id: vision_inspection_cost
+    query: 비전검사 장비 가격
+    dimensions:
+    - price
+- id: SF-03
+  name: 설비 예지보전
+  technologies:
+  - 센서
+  - 이상 탐지
+  - 고장 예측
+  characteristics: 기술적 구성과 효과가 비교적 명확
+  patent_keywords:
+  - 설비 예지보전 센서 이상 탐지
+  - 설비 고장 예측
+  - 센서 데이터 기반 예지보전
+  market_keywords:
+  - id: predictive_maintenance
+    query: 예지보전
+    dimensions:
+    - demand
+    - competition
+  - id: predictive_maintenance_solution
+    query: 설비 예지보전 솔루션
+    dimensions:
+    - competition
+    - price
+  - id: predictive_maintenance_case
+    query: 예지보전 도입 사례
+    dimensions:
+    - buyer
+  - id: predictive_maintenance_cost
+    query: 예지보전 구축 비용
+    dimensions:
+    - price
+- id: SF-04
+  name: 에너지 관리
+  technologies:
+  - 전력 예측
+  - 에너지 최적화
+  characteristics: 설비·공정별 적용 방식 비교 가능
+  patent_keywords:
+  - 공장 전력 예측 에너지 최적화
+  - 제조 에너지 관리 시스템
+  market_keywords:
+  - id: fems
+    query: FEMS 공장에너지관리시스템
+    dimensions:
+    - demand
+    - competition
+  - id: factory_energy_cost
+    query: 제조업 전력비 절감
+    dimensions:
+    - buyer
+    - price
+  - id: fems_cost
+    query: FEMS 구축 비용
+    dimensions:
+    - price
+  - id: fems_effect
+    query: FEMS 도입 효과
+    dimensions:
+    - buyer
+- id: SF-05
+  name: 지능형 공정제어
+  technologies:
+  - 공정 최적화
+  - 자동제어
+  characteristics: 적용 공정에 따른 기술 차이가 큼
+  patent_keywords:
+  - 지능형 공정제어
+  - 제조 공정 최적화 자동제어
+  - 실시간 공정 조건 최적화
+  market_keywords:
+  - id: process_control_demand
+    query: 지능형 공정제어
+    dimensions:
+    - demand
+    - competition
+  - id: process_optimization
+    query: 제조 공정 최적화 자동제어
+    dimensions:
+    - demand
+    - competition
+  - id: adaptive_process_control
+    query: 실시간 공정 조건 최적화
+    dimensions:
+    - demand
+    - competition
+  - id: process_control_case
+    query: 제조 공정 자동제어 적용 사례
+    dimensions:
+    - buyer
+  - id: process_control_cost
+    query: 공정제어 시스템 도입 비용
+    dimensions:
+    - price
+  - id: process_control_barrier
+    query: 공정 최적화 자동화 도입 장벽
+    dimensions:
+    - adoption_barrier
+- id: SF-06
+  name: 디지털 트윈
+  technologies:
+  - 시뮬레이션
+  - 가상 공장
+  characteristics: 적용 범위가 넓고 추상적 개념 포함
+  patent_keywords:
+  - 제조 디지털 트윈 시뮬레이션
+  - 가상 공장 공정 시뮬레이션
+- id: SF-07
+  name: 생산계획 최적화
+  technologies:
+  - 생산 스케줄링
+  - APS
+  characteristics: 알고리즘·운영 방식 중심
+  patent_keywords:
+  - 생산 스케줄링 최적화 APS
+  - 제조 생산계획 최적화 알고리즘
+- id: SF-08
+  name: 물류 자동화
+  technologies:
+  - AGV
+  - AMR
+  - 자동창고
+  characteristics: 시스템 구성 및 제어 기술 중심 우선 검토 분야
+  patent_keywords:
+  - AGV AMR 물류 자동화 제어
+  - 자동창고 입출고 시스템
+# 과거 SF-05 음성 어시스턴트 샘플·라벨의 출처 추적용. 수집 로더는 사용하지 않는다.
+legacy_market_keywords:
+- id: manufacturing_genai
+  query: 제조 생성형 AI
+  dimensions:
+  - demand
+  - competition
+  previous_profile: 현장 작업자용 LLM 음성 어시스턴트
+- id: worker_ai_assistant
+  query: 현장 작업자 AI 어시스턴트
+  dimensions:
+  - competition
+  - adoption_barrier
+  previous_profile: 현장 작업자용 LLM 음성 어시스턴트
+- id: manufacturing_ai_barrier
+  query: 제조 AI 도입 장벽
+  dimensions:
+  - adoption_barrier
+  previous_profile: 현장 작업자용 LLM 음성 어시스턴트
+- id: factory_voice_ai
+  query: 생산현장 음성 AI
+  dimensions:
+  - competition
+  previous_profile: 현장 작업자용 LLM 음성 어시스턴트

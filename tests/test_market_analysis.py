@@ -1,4 +1,4 @@
-import json
+﻿import json
 
 import pytest
 
@@ -22,7 +22,9 @@ IDEA = StructuredIdea(
     problem="인력 부족",
     technology="협동로봇",
     customers="중소 제조사",
+    revenue="월 구독료",
 )
+METRIC_FACT = "2026년 10월 보도 기준 도입 30% 증가"
 
 
 def make_hit(source_id, relevant=True, summary="요약", published_at=20261001):
@@ -89,9 +91,13 @@ VALID = dims(
     {
         "dimension": "demand",
         "verdict": "signal_only",
-        "claims": [fact("도입 30% 증가", 2)],
+        "claims": [fact(METRIC_FACT, 2)],
     },
-    {"dimension": "price", "verdict": "signal_only", "claims": [fact("가격 신호", 2)]},
+    {
+        "dimension": "price",
+        "verdict": "signal_only",
+        "claims": [fact("2026년 도입 30% 증가", 2)],
+    },
     {
         "dimension": "buyer",
         "verdict": "unverified",
@@ -139,14 +145,50 @@ def test_allowed_verdicts():
         "unverified",
     ]
     assert allowed_verdicts("buyer", "insufficient", []) == ["unverified"]
+    assert allowed_verdicts("price", "sufficient", evidence, "수익모델") == [
+        "unverified"
+    ]
+
+
+def test_missing_dependent_field_forces_unverified():
+    idea = IDEA.model_copy(update={"revenue": ""})
+    evidence, ids = build_evidence(ASSESSED, AS_OF)
+
+    inputs = {
+        d["dimension"]: d for d in dimension_inputs(idea, ASSESSED, evidence, ids)
+    }
+
+    assert inputs["price"]["missing_idea_field"] == "수익모델"
+    assert inputs["price"]["allowed_verdicts"] == ["unverified"]
+    assert "missing_idea_field" not in inputs["demand"]
+
+    results, _ = generate_dimensions(
+        idea, list(inputs.values()), evidence, fake_llm([VALID])
+    )
+    price = next(r for r in results if r.dimension == "price")
+    assert price.verdict == "unverified"
+    assert price.next_check.startswith("아이디어 수익모델 항목을 정한 뒤")
 
 
 def test_claim_errors():
     evidence, _ = build_evidence(ASSESSED, AS_OF)
     by_id = {e.citation_id: e for e in evidence}
 
-    assert claim_errors(fact("도입 30% 증가", 2), {1, 2}, by_id, "") == []
-    assert "숫자" in claim_errors(fact("도입 45% 증가", 2), {1, 2}, by_id, "")[0]
+    assert claim_errors(fact(METRIC_FACT, 2), {1, 2}, by_id, "") == []
+    assert "기준 연도" in claim_errors(fact("도입 30% 증가", 2), {1, 2}, by_id, "")[0]
+    dated_quote = by_id[2].model_copy(update={"quote": "도입비용 2000만원"})
+    assert (
+        "기준 연도"
+        in claim_errors(fact("도입비용 2000만원", 2), {2}, {2: dated_quote}, "")[0]
+    )
+    assert (
+        claim_errors(fact("5G 기반 협동로봇 출시", 2), {2}, by_id, "5G 협동로봇") == []
+    )
+    assert "숫자" in claim_errors(fact("2026년 도입 45% 증가", 2), {1, 2}, by_id, "")[0]
+    assert (
+        "핵심 표현"
+        in claim_errors(fact("해외 수출량이 급증", 2), {2}, {2: by_id[2]}, "")[0]
+    )
     assert "인용" in claim_errors(fact("근거 없음"), {1, 2}, by_id, "")[0]
     assert "근거에 없는 인용" in claim_errors(fact("다른 차원", 1), {2}, by_id, "")[0]
     hypothesis = {"statement": "약 10% 절감 가능", "claim_type": "ai_hypothesis"}
@@ -155,12 +197,12 @@ def test_claim_errors():
 
 def test_generate_retries_with_errors_then_passes():
     evidence, ids = build_evidence(ASSESSED, AS_OF)
-    inputs = dimension_inputs(ASSESSED, evidence, ids)
+    inputs = dimension_inputs(IDEA, ASSESSED, evidence, ids)
     invalid = dims(
         {
             "dimension": "demand",
             "verdict": "confirmed",
-            "claims": [fact("도입 30% 증가", 2)],
+            "claims": [fact(METRIC_FACT, 2)],
         },
         *VALID["dimensions"][1:],
     )
@@ -181,7 +223,7 @@ def test_generate_retries_with_errors_then_passes():
 
 def test_generate_drops_failed_claims_after_retries():
     evidence, ids = build_evidence(ASSESSED, AS_OF)
-    inputs = dimension_inputs(ASSESSED, evidence, ids)
+    inputs = dimension_inputs(IDEA, ASSESSED, evidence, ids)
     fabricated = dims(
         {
             "dimension": "demand",

@@ -1,0 +1,20 @@
+[Unit]
+Description=IdeaLens Chroma API key verification
+After=network.target
+
+[Service]
+Type=simple
+User=idealens-auth
+Group=idealens-auth
+EnvironmentFile=/etc/idealens/chroma-auth.env
+ExecStart=/usr/bin/python3 /opt/idealens/chroma_auth.py
+Restart=on-failure
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadOnlyPaths=/etc/idealens
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

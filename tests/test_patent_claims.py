@@ -68,7 +68,7 @@ def test_fetch_patent_claims_uses_application_number_and_parses(mock_get):
     response.raise_for_status.return_value = None
     mock_get.return_value = response
 
-    claims = fetch_patent_claims("1020230030067")
+    claims = fetch_patent_claims("1020230030067", raw_dir=None)
 
     assert len(claims) == 2
     mock_get.assert_called_once_with(
@@ -96,6 +96,18 @@ def test_structure_claims_identifies_dependent_references():
     assert claims[1].depends_on == [1]
     assert claims[2].depends_on == [1, 2]
     assert all(claim.version_id == "KR102345678B1" for claim in claims)
+
+
+def test_structure_claims_recognizes_claim_wording_without_trailing_hangul():
+    claims = structure_claims(
+        [
+            {"claim_number": 1, "text": "기본 장치."},
+            {"claim_number": 2, "text": "청구항 1에 있어서, 센서를 포함하는 장치."},
+        ]
+    )
+
+    assert claims[1].claim_type == "dependent"
+    assert claims[1].depends_on == [1]
 
 
 def test_claims_become_individual_index_chunks_with_location_metadata():

@@ -37,4 +37,4 @@ class PatentSearchQuery(BaseModel):
 class PatentQueryPlan(BaseModel):
     """기술 요소별 특허 검색어 목록."""
 
-    queries: list[PatentSearchQuery] = Field(min_length=1)
+    queries: list[PatentSearchQuery] = Field(min_length=1, max_length=5)

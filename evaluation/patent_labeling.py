@@ -34,6 +34,7 @@ CSV_FIELDS = [
     "best_rank",
     "relevant",
     "note",
+    "mode",
 ]
 
 
@@ -60,11 +61,12 @@ def default_searchers(collection=None, top_k: int = TOP_K):
         )
     return {
         mode: (
-            lambda query, mode=mode: search_patents(
+            lambda query, technology_area_id=None, mode=mode: search_patents(
                 query,
                 collection=collection,
                 top_k=top_k,
                 retrieval_mode=mode,
+                technology_area_id=technology_area_id,
             )
         )
         for mode in MODES
@@ -77,12 +79,13 @@ def add_reranked_searcher(searchers: dict, collection=None, top_k: int = TOP_K):
 
     collection = collection or get_collection()
     reranker = bge_reranker()
-    searchers["hybrid_rerank"] = lambda query: search_patents(
+    searchers["hybrid_rerank"] = lambda query, technology_area_id=None: search_patents(
         query,
         collection=collection,
         top_k=top_k,
         retrieval_mode="hybrid",
         reranker=reranker,
+        technology_area_id=technology_area_id,
     )
     return searchers
 
@@ -94,7 +97,11 @@ def export_candidates(
     grouped = {}
     for case in cases:
         for mode, search_fn in searchers.items():
-            for rank, hit in enumerate(search_fn(case["query"]), start=1):
+            try:
+                hits = search_fn(case["query"], case.get("technology_area_id"))
+            except TypeError:
+                hits = search_fn(case["query"])
+            for rank, hit in enumerate(hits, start=1):
                 document = hit.document
                 key = (case["case_id"], document.source_id)
                 row = grouped.setdefault(
@@ -114,6 +121,7 @@ def export_candidates(
                         "best_rank": rank,
                         "relevant": "",
                         "note": "",
+                        "mode": "",
                     },
                 )
                 row["retrieved_by"].add(mode)
@@ -124,6 +132,7 @@ def export_candidates(
         row["retrieved_by"] = ";".join(
             mode for mode in (*MODES, "hybrid_rerank") if mode in row["retrieved_by"]
         )
+        row["mode"] = row["retrieved_by"]
         rows.append(row)
     write_label_rows(rows, CSV_FIELDS, path)
     return len(rows)

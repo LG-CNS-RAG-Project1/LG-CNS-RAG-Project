@@ -189,8 +189,9 @@ flowchart TD
 | `sufficient` | 확인됨 · 신호만 확인 · 미확인 (수요 '확인됨'은 고객 검증 자료(`direct_demand`)가 있을 때만) |
 | `limited` | 신호만 확인 · 미확인 |
 | `insufficient` · `no_results` · `error` | 미확인 |
+| 기대는 아이디어 항목이 모름 (가격 ← 수익모델, 구매자 ← 고객) | 미확인 (근거 문장은 쓸 수 있음, 검증 과제는 그 항목을 정하는 일부터) |
 
-- 검증 항목: 허용 판정인지, 차원당 문장 3개 이하인지, 사실 문장(`fact`)에 이 차원 근거의 인용이 있는지, 문장의 숫자가 인용 기사(제목·요약·발행연도)나 아이디어 입력에 있는지, 확인됨·신호만 확인에 인용된 사실 문장이 있는지, 미확인에 검증 과제가 있는지.
+- 검증 항목: 허용 판정인지, 차원당 문장 3개 이하인지, 사실 문장(`fact`)에 이 차원 근거의 인용이 있는지, 문장의 숫자가 인용 기사(제목·요약·발행일)나 아이디어 입력에 있는지, 사실 문장의 단위 붙은 수치(%·원·억·건·대 등)에 4자리 기준 연도가 있는지, 확인됨·신호만 확인에 인용된 사실 문장이 있는지, 미확인에 검증 과제가 있는지.
 - 검증에 실패하면 오류 내용을 넘겨 최대 2회 재생성한다. 그래도 실패한 문장은 제거하고, 판정을 유지할 수 없으면 미확인과 기본 검증 과제로 바꾼다.
 - 문장이 기사 내용을 정확히 옮겼는지(원문 일치)는 코드로 검증하지 않으며, 평가 단계(Citation Accuracy)에서 확인한다.
 - 수집 뉴스는 모두 사업 신호(`business_signal`)이므로, 뉴스만으로는 수요가 '확인됨'이 되지 않는다.
@@ -201,13 +202,15 @@ flowchart TD
 |---|---|
 | 아이디어 구조화·재질문 | `prompts/idea_parser.md`, `src/generation/idea_parser.py` |
 | 입력 가드레일 | `src/generation/input_guard.py`, `prompts/idea_parser.md`, `evaluation/guardrail_cases.json`, `evaluation/guardrail_eval.py` |
-| 수집 키워드·요청 설정 | `configs/market_keywords.yaml` |
+| 공통 기술 분야·시장/특허 키워드·시장 수집 설정 | `configs/technology_areas.yaml` |
 | 네이버 뉴스 수집 | `src/ingestion/news_client.py` → `data/market/raw/` |
 | DART 공시 수집 | `src/ingestion/dart_client.py` |
 | 정제·중복 제거 | `src/ingestion/market_processor.py` → `data/market/processed/market_docs.jsonl` |
 | 색인·차원별 검색 툴 | `src/retrieval/market_search.py` → `data/market/chroma/` |
 | 관련성 판정·충분성 상태 | `src/retrieval/market_relevance.py`, `prompts/market_label_judge.md` |
 | 시장 조사 진입점 | `src/services/market_service.py` |
+| 보고서용 마크다운 섹션 | `src/generation/market_markdown.py` |
+| 연결 계약 (입력·출력·오류) | `docs/api_contract.md` |
 | 시장 분석 생성 규칙 | `prompts/market_analysis.md`, `src/generation/market_analysis.py` |
 | 데이터 형식·결과 계약 | `src/schemas.py` (`MarketDocument`, `MarketSearchRequest`, `MarketReport`) |
 | 평가 문항·정답 라벨 | `evaluation/market_cases.json`, `evaluation/labels/`, `evaluation/market_labeling.py`, `evaluation/market_judge.py` |
