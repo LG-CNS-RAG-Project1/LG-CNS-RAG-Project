@@ -2,9 +2,8 @@
 
 from pathlib import Path
 
-import chromadb
 from chromadb.api import ClientAPI
-from chromadb.config import Settings
+from src.retrieval.chroma_client import connect_chroma
 
 from typing import Callable
 from src.schemas import PatentChunk, PatentDocument
@@ -23,12 +22,7 @@ def get_collection(
     """cosine 거리를 사용하는 특허 컬렉션을 반환한다."""
 
     if client is None:
-        chroma_dir.mkdir(parents=True, exist_ok=True)
-
-        client = chromadb.PersistentClient(
-            path=str(chroma_dir),
-            settings=Settings(anonymized_telemetry=False),
-        )
+        client = connect_chroma(chroma_dir)
 
     return client.get_or_create_collection(
         name=name,

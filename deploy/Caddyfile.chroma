@@ -1,0 +1,9 @@
+{$CHROMA_PUBLIC_HOST} {
+    forward_auth 127.0.0.1:8010 {
+        uri /verify
+    }
+    reverse_proxy 127.0.0.1:8000 {
+        header_up -Authorization
+    }
+    header Cache-Control "no-store"
+}
