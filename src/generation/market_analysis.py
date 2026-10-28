@@ -33,7 +33,7 @@ from src.schemas import (
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 PROMPT_PATH = ROOT_DIR / "prompts" / "market_analysis.md"
-ANALYSIS_MODEL = "gpt-4o"
+ANALYSIS_MODEL = "gpt-4o-mini"
 MAX_RETRIES = 2
 MAX_CLAIMS = 3
 RECENT_DAYS = 365

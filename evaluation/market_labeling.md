@@ -37,7 +37,7 @@
 ## LLM 초안과 사람 검토
 
 라벨은 LLM 초안을 사람이 검토하는 방식으로 만든다. 판정 기준은 이 문서와 같은 내용을
-[prompts/market_label_judge.md](../prompts/market_label_judge.md)에 담아 `gpt-4o`에 준다.
+[prompts/market_label_judge.md](../prompts/market_label_judge.md)에 담아 LLM에 준다. 현재 라벨 초안(`market_llm_labels.csv`)은 `gpt-4o`로 만들었고, `market_judge`의 기본 모델은 `gpt-4o-mini`다(다시 실행하면 판정이 달라질 수 있다).
 
 1. 사람이 일부 문항(예: `SF-01-price`, `SF-03-buyer`)을 LLM 결과를 보지 않고 먼저 라벨링한다.
 2. `python -m evaluation.market_judge prelabel`: LLM 판정을 `evaluation/labels/market_llm_labels.csv`에 따로 저장한다.

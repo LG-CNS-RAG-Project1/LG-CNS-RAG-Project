@@ -14,7 +14,7 @@
 사용 예:
     python -m evaluation.evaluate market --label baseline
     python -m evaluation.evaluate patent --mode hybrid --label baseline
-    python -m evaluation.evaluate relevance --model gpt-4o
+    python -m evaluation.evaluate relevance
     python -m evaluation.evaluate guardrail
 """
 
