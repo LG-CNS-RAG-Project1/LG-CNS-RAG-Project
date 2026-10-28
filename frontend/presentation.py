@@ -22,7 +22,7 @@ def _drawing(match):
     return f'<img class="research-drawing" src="data:image/svg+xml;base64,{encoded}" alt="" />'
 
 
-def hero():
+def hero(show_cta=True):
     markup = """<section class="paper-hero" aria-label="아이디어를 구체화하는 네 단계">
       <div class="hero-copy"><span class="eyebrow">IDEALENS · IDEA TO EVIDENCE</span>
       <h1>한 장의 생각에서,<br>근거 있는 아이디어로.</h1>
@@ -69,6 +69,8 @@ def hero():
           </div></div>
         </div></div></section>"""
 
+    if not show_cta:
+        markup = re.sub(r'<a class="hero-cta".*?</a>', "", markup)
     return re.sub(r"<svg\b.*?</svg>", _drawing, markup, flags=re.DOTALL)
 
 
