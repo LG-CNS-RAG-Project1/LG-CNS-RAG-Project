@@ -1,8 +1,10 @@
 """scripts/idealens.py의 .env 해석·키 미출력·확인 질문·포트 점검·명령 구성을 검증한다."""
 
 import importlib.util
+import os
 import socket
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -138,8 +140,14 @@ def test_script_is_python39_compatible():
     import ast
 
     ast.parse(SCRIPT.read_text(encoding="utf-8"), feature_version=(3, 9))
+    # 도움말에 한글이 있다. Windows 파이프 기본값(ANSI 코드 페이지)이나 상속된
+    # PYTHONIOENCODING과 관계없이 쓰는 쪽과 읽는 쪽을 모두 UTF-8로 맞춘다.
     result = subprocess.run(
-        ["python", str(SCRIPT), "--help"], capture_output=True, text=True
+        [sys.executable, str(SCRIPT), "--help"],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        env={**os.environ, "PYTHONIOENCODING": "utf-8"},
     )
     assert result.returncode == 0 and "doctor" in result.stdout
 
