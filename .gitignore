@@ -110,6 +110,9 @@ ipython_config.py
 /data/market/chroma/**
 !/data/market/chroma/.gitkeep
 
+# 사업기획 근거 자료집 실행 폴더(기사 본문 포함, 커밋 금지)
+/data/market/runs/**
+
 # 13. Generated reports
 /reports/**
 !/reports/.gitkeep
