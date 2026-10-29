@@ -3,220 +3,385 @@
   "dimensions": [
     {
       "dimension": "demand",
-      "verdict": "signal_only",
-      "claims": [
-        {
-          "statement": "현대차그룹은 현장에 AI를 도입하여 업무 방식을 변화시키고 있다.",
-          "claim_type": "fact",
-          "citation_ids": [
-            1
-          ]
-        },
-        {
-          "statement": "제조 현장에서 AI 기반의 작업 지원 솔루션에 대한 수요가 있을 가능성이 있다.",
-          "claim_type": "ai_hypothesis",
-          "citation_ids": []
-        }
-      ],
-      "next_check": null,
-      "evidence_status": "limited",
-      "relevant_count": 1,
-      "limitation": "관련 자료가 1건뿐이라 확인할 수 없음 (최대 신호 수준)"
+      "verdict": "unverified",
+      "claims": [],
+      "next_check": "목표 고객사 5곳 인터뷰로 현재 해결 방식과 도입 의향 확인",
+      "evidence_status": "sufficient",
+      "relevant_count": 7,
+      "limitation": "수요 확인에는 고객 검증 자료(인터뷰·설문·파일럿·LOI)가 필요하며 기사·공시로는 확인할 수 없음"
     },
     {
       "dimension": "competition",
       "verdict": "signal_only",
       "claims": [
         {
-          "statement": "동부건설은 AI 챗봇 어시스턴트를 통해 품질 기준과 하자 사례를 신속하게 제공하고 있다.",
+          "statement": "AI를 활용한 공정 최적화 기술이 기존 제조 환경에서 공정 조건을 자동으로 조정할 수 있도록 지원하는 방식이 있다.",
           "claim_type": "fact",
           "citation_ids": [
-            2
+            8
           ]
         },
         {
-          "statement": "AI 기반의 작업 지원 솔루션 시장에서 경쟁이 치열할 가능성이 있다.",
-          "claim_type": "ai_hypothesis",
-          "citation_ids": []
+          "statement": "엠아이큐브솔루션 사업보고서(FY2025)에 따르면 AI와 고도화된 시뮬레이션을 결합하여 공정 최적화, 고장 예측, 생산성 분석을 수행하는 기술이 자리 잡고 있다.",
+          "claim_type": "fact",
+          "citation_ids": [
+            9
+          ]
         }
       ],
       "next_check": null,
       "evidence_status": "sufficient",
-      "relevant_count": 3,
-      "limitation": "관련 자료 3건이 모두 사업 신호·기업 주장·추정치라 확인할 수 없음"
+      "relevant_count": 4,
+      "limitation": "관련 자료 4건이 모두 사업 신호·기업 주장·추정치라 확인할 수 없음"
     },
     {
       "dimension": "price",
-      "verdict": "unverified",
-      "claims": [],
-      "next_check": "수익모델(판매·구독 등)을 정한 뒤 공급사 견적으로 가격대 확인",
-      "evidence_status": "insufficient",
-      "relevant_count": 0,
-      "limitation": "검색된 자료 7건이 모두 이 차원과 무관하다고 판정됨"
-    },
-    {
-      "dimension": "buyer",
       "verdict": "signal_only",
       "claims": [
         {
-          "statement": "엠아이큐브솔루션은 삼성전기와 삼성SDI 등 대형 고객을 대상으로 영업을 진행하고 있다.",
-          "claim_type": "fact",
-          "citation_ids": [
-            4
-          ]
-        },
-        {
-          "statement": "제조업체들이 AI 기반 솔루션을 도입할 가능성이 있다.",
-          "claim_type": "ai_hypothesis",
-          "citation_ids": []
-        }
-      ],
-      "next_check": null,
-      "evidence_status": "limited",
-      "relevant_count": 1,
-      "limitation": "관련 자료가 1건뿐이라 확인할 수 없음 (최대 신호 수준)"
-    },
-    {
-      "dimension": "adoption_barrier",
-      "verdict": "signal_only",
-      "claims": [
-        {
-          "statement": "AI 도입 초기 비용과 기술적 부담이 중소기업의 진입 장벽으로 작용하고 있다.",
+          "statement": "중소·중견기업의 AI 도입을 가로막는 최대 과제가 도입 비용이라는 점이 있다.",
           "claim_type": "fact",
           "citation_ids": [
             5
           ]
         },
         {
-          "statement": "제조 현장에서 AI 솔루션 도입에 대한 장벽이 존재할 가능성이 있다.",
-          "claim_type": "ai_hypothesis",
-          "citation_ids": []
+          "statement": "뉴로메카 사업보고서(FY2025)에 따르면 로봇 자동화 시장에서 고객이 자동화 도입을 결정할 때 가격민감도와 기술민감도가 중요한 의사결정 요소로 작용한다.",
+          "claim_type": "fact",
+          "citation_ids": [
+            7
+          ]
         }
       ],
       "next_check": null,
-      "evidence_status": "limited",
-      "relevant_count": 1,
-      "limitation": "관련 자료가 1건뿐이라 확인할 수 없음 (최대 신호 수준)"
+      "evidence_status": "sufficient",
+      "relevant_count": 2,
+      "limitation": "관련 자료 2건이 모두 사업 신호·기업 주장·추정치라 확인할 수 없음"
+    },
+    {
+      "dimension": "buyer",
+      "verdict": "signal_only",
+      "claims": [
+        {
+          "statement": "AI 기반 공정 최적화 솔루션은 다양한 산업 현장에서 적용 사례를 확보하고 있다.",
+          "claim_type": "fact",
+          "citation_ids": [
+            3
+          ]
+        },
+        {
+          "statement": "뉴로메카 사업보고서(FY2025)에 따르면 중소 제조공정부터 대기업의 양산공정에 이르는 폭넓은 고객층을 대상으로 하고 있다.",
+          "claim_type": "fact",
+          "citation_ids": [
+            7
+          ]
+        }
+      ],
+      "next_check": null,
+      "evidence_status": "sufficient",
+      "relevant_count": 5,
+      "limitation": "관련 자료 5건이 모두 사업 신호·기업 주장·추정치라 확인할 수 없음"
+    },
+    {
+      "dimension": "adoption_barrier",
+      "verdict": "signal_only",
+      "claims": [
+        {
+          "statement": "엠아이큐브솔루션 사업보고서(FY2025)에 따르면 AI 도입 시 고객사가 익혀야 할 지식과 기술이 매우 많은 것이 현실이다.",
+          "claim_type": "fact",
+          "citation_ids": [
+            6
+          ]
+        },
+        {
+          "statement": "비전문가도 손쉽게 운용할 수 있도록 한 접근 방식이 제조 현장의 AI 도입 장벽을 크게 낮추고 있다.",
+          "claim_type": "fact",
+          "citation_ids": [
+            4
+          ]
+        }
+      ],
+      "next_check": null,
+      "evidence_status": "sufficient",
+      "relevant_count": 4,
+      "limitation": "관련 자료 4건이 모두 사업 신호·기업 주장·추정치라 확인할 수 없음"
     }
   ],
   "evidence": [
     {
       "citation_id": 1,
-      "source_id": "news-b12f2e5b2d62",
+      "source_id": "news-8c4f35ebe958",
       "source_type": "news",
-      "title": "정의선 회장의 'IT 기업' 주문 현실로…현대차그룹, 현장에 AI 심었다",
-      "publisher": "dailian.co.kr",
-      "quote": "실제 현장의 업무 방식도 바꾸고 있는 것으로 나타났다. 남양연구소의 ‘충돌안전 AI 어시스턴트’는 여러... 생산 라인의 대차 이동 경로도 AI가 최적화한다. 과거에는 설비 오류 등으로 대차 순서가 꼬이면 작업자가...",
+      "title": "식품연, AIㆍ로봇 기반 면 제조 공정 초자동화 기술 개발 착수",
+      "publisher": "foodnews.co.kr",
+      "quote": "연구팀은 이번 기술 적용을 통해 기존 공정 대비 제품 손실률 20% 이상 절감, 생산성 30% 이상 향상, 전체 자동화율 50% 이상 달성을 목표로 하고 있다. 또한 해외 의존도가 높았던 지능형 제어기와 로봇 설비를 국산화하고...",
       "section": "title+description",
-      "url": "https://www.dailian.co.kr/news/view/1677545/?sc=Naver",
-      "published_at": 20260812,
+      "url": "http://www.foodnews.co.kr/news/articleView.html?idxno=120374",
+      "published_at": 20261001,
       "period": null,
       "reliability": "medium",
       "recency": "high",
       "directness": "medium",
       "evidence_nature": "business_signal",
-      "similarity": 0.4899
+      "similarity": 0.5686
     },
     {
       "citation_id": 2,
-      "source_id": "news-101d572a6de1",
+      "source_id": "news-6438a2240a7f",
       "source_type": "news",
-      "title": "AI 통번역부터 품질 챗봇까지…동부건설, 스마트 건설기술 고도화",
-      "publisher": "e-science.co.kr",
-      "quote": "AI 챗봇 어시스턴트 기능을 통해 임직원이 품질이나 하자 관련 질문을 입력하면 등록된 데이터베이스를 분석해 관련 기준과 사례, 해결 방안을 즉시 제공한다. 기존에는 품질 기준과 하자 사례가 개별 문서나 현장 경험에...",
+      "title": "제조업 AI 도입률 4%···\"현장 데이터 99%는 쓰고 버려져\"",
+      "publisher": "sisajournal-e.com",
+      "quote": "기존 제어시스템을 함께 연동해야 해 일반적인 소프트웨어 도입보다 구축 과정이 복잡하다. 윤병동 서울대 기계공학부 교수 겸 원프레딕트 대표는 \"제조 현장에 가보면 품질, 에너지, 공정, 안전 업무가 각각의 영역에서...",
       "section": "title+description",
-      "url": "https://www.e-science.co.kr/news/articleView.html?idxno=132028",
-      "published_at": 20260716,
+      "url": "https://www.sisajournal-e.com/news/articleView.html?idxno=422629",
+      "published_at": 20260723,
       "period": null,
       "reliability": "medium",
       "recency": "high",
       "directness": "medium",
       "evidence_nature": "business_signal",
-      "similarity": 0.37760000000000005
+      "similarity": 0.5621
     },
     {
       "citation_id": 3,
-      "source_id": "news-60d08c0d35bf",
+      "source_id": "news-0cd11fa355b1",
       "source_type": "news",
-      "title": "동부건설, 현장 무인 드론·AI로 건설현장 안전관리 고도화",
-      "publisher": "biztribune.co.kr",
-      "quote": "하고, AI 챗봇 어시스턴트를 통해 임직원이 관련 질문을 입력하면 등록된 자료를 기반으로 필요한 정보를 검색해 답변하도록 했다. 이를 통해 현장에서 필요한 품질 기준과 하자 사례, 조치 방안 등을 보다 신속하게...",
+      "title": "설명가능 AI 기반 공정 최적화… 제조 산업 고도화 지원",
+      "publisher": "engjournal.co.kr",
+      "quote": "솔루션은 제조 공정의 주요 변수 예측을 자동화하고 공정 운영 조건을 최적화하는 데 초점을 맞추고 있으며 다양한 산업 현장에서 적용 사례를 확보하고 있다. 대표적인 사례로는 유리 용해로 온도 예측 및 최적 제어...",
       "section": "title+description",
-      "url": "http://www.biztribune.co.kr/news/articleView.html?idxno=358413",
-      "published_at": 20260903,
+      "url": "http://www.engjournal.co.kr/news/articleView.html?idxno=3766",
+      "published_at": 20260501,
       "period": null,
       "reliability": "medium",
       "recency": "high",
       "directness": "medium",
       "evidence_nature": "business_signal",
-      "similarity": 0.37729999999999997
+      "similarity": 0.5621
     },
     {
       "citation_id": 4,
-      "source_id": "dart-20260320000616-3-0",
+      "source_id": "news-8aaf96cfc67d",
+      "source_type": "news",
+      "title": "탄소관리와 공정 최적화, AI로 동시에 가능해진다",
+      "publisher": "engjournal.co.kr",
+      "quote": "이 과정에서 인공지능(AI)은 단순한 자동화 기술을 넘어, 공정 최적화와 탄소 감축의 실질적인 해법으로... 특히 다양한 AI 기능을 비전문가도 손쉽게 운용할 수 있도록 한 접근 방식은 제조 현장의 AI 도입 장벽을 크게...",
+      "section": "title+description",
+      "url": "http://www.engjournal.co.kr/news/articleView.html?idxno=3319",
+      "published_at": 20250701,
+      "period": null,
+      "reliability": "medium",
+      "recency": "medium",
+      "directness": "medium",
+      "evidence_nature": "business_signal",
+      "similarity": 0.5579000000000001
+    },
+    {
+      "citation_id": 5,
+      "source_id": "news-b0bc3f9c80c9",
+      "source_type": "news",
+      "title": "[Fact Sheet] 제조AI 확대 1순위는 공정 제어… 확산과제는 인력 확보·데...",
+      "publisher": "industrynews.co.kr",
+      "quote": "기존 시스템이 맡는 경우가 많다. 공정 최적화·설비 제어에서는 AI가 온도·압력·속도 같은 공정 조건을... 중소·중견기업 최대 과제 도입 비용, 서술형 응답은 ROI 입증 요구 중소·중견 제조기업의 AX 도입을 가로막는...",
+      "section": "title+description",
+      "url": "https://www.industrynews.co.kr/news/articleView.html?idxno=88366",
+      "published_at": 20261028,
+      "period": null,
+      "reliability": "medium",
+      "recency": "high",
+      "directness": "medium",
+      "evidence_nature": "business_signal",
+      "similarity": 0.5578000000000001
+    },
+    {
+      "citation_id": 6,
+      "source_id": "dart-20260320000616-5-16",
       "source_type": "dart",
-      "title": "엠아이큐브솔루션 사업보고서(FY2025) 4. 매출 및 수주상황",
+      "title": "엠아이큐브솔루션 사업보고서(FY2025) 7. 기타 참고사항",
       "publisher": "엠아이큐브솔루션 (DART 사업보고서)",
-      "quote": "가. 매출실적\n나. 판매조직\n당사의 영업 조직은 각 사업부 내의 별도의 영업부서를 운영하고 있습니다. S&S사업부 내 영업팀은 당사의 주요 고객인 삼성전기, 삼성SDI 등 대형 고객들의 SI 프로젝트의 영업을 담당하고 있습니다. 그 외 사업부는 당사의 솔루션을 기반으로 B2B 및 B2G 영업 업무를 담당하며 LE사업부 영업팀, SMB사업부 영업팀, AM사업부 영업팀으로 구성됩니다. LE사업부 영업팀은 대기업 등의 신규 및 잠재고객 발굴, 영업 전략 수립, 솔루션 영업등 당사의 수주 및 판매와 관련된 업무를 수행하고 있으며, SMB사업부 영업팀은 Cloud MES 솔루션을 기반으로 식품업종 고객 및 중소기업의 신규 및 잠재고객 발굴을 중점적으로 수행하고 있습니다. AM사업부 영업팀은 AI/DT 솔루션을 기반으로 신규 및 잠재 고객 발굴 및 대외 네트워킹을 통한 과제 기획 등의 업무를 수행하고 있습니다. 최근에는 남부(영호남) 지역의 영업력 확대 및 빠른 고객 대응을 위하여 남부 지역을 전담할 수 있는 인력을 운영하고 있습니다.\n다. 판매경로\n라. 판매전략\n당사는 전기/전자, 반도체, 식품, 제철, 2차 전지, 항공우주 등 폭넓은 제조 산업군에 대하여 제조 현장의 디지털화, 지능화를 목표로 전통적인 스마트공장 솔루션인 MES, EES 등의 시스템 공급 및 구축/운영 서비스를 제공하고 하고 있습니다.",
-      "section": "II. 사업의 내용 > 4. 매출 및 수주상황 (본문, 표 제외)",
+      "quote": "특히 중소벤처기업부 산하 스마트제조혁신추진단(KOSMO)에서 실시한 공급기업 역량진단에서 국내 1위(최우수 등급)를 차지하며 대외적인 기술 공신력을 입증하였습니다.\n이와 같이 제조 지능화 솔루션 분야에서 경쟁력을 확보할 수 있었던 것은 상술한 기업부설연구소의 노력과 제조 데이터 수집 및 분석 업무에 대한 노하우를 축적할 수 있도록 오랫동안 경험을 쌓아 온 수행본부의 다양한 연구개발 경험을 바탕으로 합니다. 당사의 솔루션 제품군은 대부분 업종별 특성을 고려하여 템플릿화 되어 있으며, 고객사 맞춤형 기능과 화면 개발을 위한 자체 개발 디자인 프레임워크도 보유하고 있어 현장 프로젝트 수행 시 리스크를 최소화하고 수행 기간을 단축시킬 수 있으며, 프로젝트 완수 이후에도 고객사에 의한 시스템 직접 운영이 가능할 정도로 신뢰성 또한 높습니다.\n(나) 제조 지능화 전담 인력 Pool 구축\n2017년부터 제조 특화 AI 서비스 및 애플리케이션 개발과 운영을 지원하는 Dev/Ops 플랫폼인 'SmartAI'를 출시한 당사는 지금까지 지속하여 제조 현장에 AI 기술을 도입하는 데 앞장서 왔습니다. AI 솔루션 도입 시 현장에서 확보한 데이터 분석은 물론 모델링 방법론이나 서비스 개발에 필요한 오픈 소스 적용 방안 등 고객사 입장에서 익혀야 할 지식과 기술이 매우 많은 것이 현실입니다. 당사는 AI 사업 전개 초기부터 AI 컨설팅 전담 팀을 구성하고 원천 기술을 연구하는 대학이나 연구기관과 협업하여 고객 만족을 위해 최선을 다해 왔습니다.",
+      "section": "II. 사업의 내용 > 7. 기타 참고사항 (본문, 표 제외)",
       "url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260320000616",
       "published_at": 20260320,
       "period": "FY2025",
       "reliability": "high",
       "recency": "high",
-      "directness": "high",
-      "evidence_nature": "purchase_signal",
-      "similarity": 0.3932
+      "directness": "medium",
+      "evidence_nature": "company_claim",
+      "similarity": 0.4598
     },
     {
-      "citation_id": 5,
-      "source_id": "news-ce5dce38a0c6",
+      "citation_id": 7,
+      "source_id": "dart-20260319000890-3-0",
+      "source_type": "dart",
+      "title": "뉴로메카 사업보고서(FY2025) 4. 매출 및 수주상황",
+      "publisher": "뉴로메카 (DART 사업보고서)",
+      "quote": "가. 매출 실적\n나. 판매조직 및 판매경로\n나-1. 판매조직\n나-2. 판매경로\n다. 판매전략\n당사의 주요 시장인 로봇 플랫폼을 활용한 자동화 시장은 조리에서 제조에 이르는 다양한 공정을 포괄하며, 중소 제조공정부터 대기업의 양산공정에 이르기까지 폭넓은 고객층을 대상으로 하고 있습니다. 당사는 로봇 자동화 시장을 전통적인 업종 기준이아니라, ‘가격민감도’와 ‘기술민감도’라는 두 가지 핵심 변수를 기준으로 세분화하고 있습니다. 고객이 자동화 도입을 결정할 때 이 두 요인이 가장 중요한 의사결정 요소로 작용한다는 점에 착안하여, 당사는 각 변수의 수준을 정량화하여 세분 시장별 핵심 판매 전략을 수립하고 있습니다. 또한, 필요 시 세분 시장 내 특정 산업군에 대해서는 별도의 맞춤형 전략을 병행하고 있습니다.\n식음료(F&B) 산업의 경우 조리 공정 자동화를 위해 로봇을 도입하려는 고객들은 가격민감도가 매우 높고, 기술민감도는 상대적으로 낮은 편입니다. 이들은 주로 레시피, 생산성, 유지보수 등 구체적인 요구조건이 충족되는 솔루션을 우선시하며, 디자인과 사용 편의성에 대한 기대 수준이 높은 특징을 보입니다.\n최근에는 다양한 로봇 관련 소프트웨어 및 알고리즘 개발에 상용 로봇을 활용하려는 연구개발(R&D) 고객층이 확대되고 있습니다. 이들은 가격민감도는 낮으나 기술민감도가 높으며, 시스템의 공개성 및 확장성을 중시하고, SW 및 알고리즘에 대한 접근 가능성을 중요한 선택 요인으로 고려합니다.",
+      "section": "II. 사업의 내용 > 4. 매출 및 수주상황 (본문, 표 제외)",
+      "url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260319000890",
+      "published_at": 20260319,
+      "period": "FY2025",
+      "reliability": "high",
+      "recency": "high",
+      "directness": "medium",
+      "evidence_nature": "company_claim",
+      "similarity": 0.4579
+    },
+    {
+      "citation_id": 8,
+      "source_id": "news-0764a277c733",
       "source_type": "news",
-      "title": "디스플레이 소부장도 AI 전환 속도…제조 현장 혁신 모색",
-      "publisher": "dt.co.kr",
-      "quote": "이번 행사는 AI 도입 초기 비용과 기술적 부담 등으로 어려움을 겪는 소부장 중소·중견기업의 진입 장벽을 낮추고 제조 현장의 AX 확산을 지원하기 위해 마련됐다. 행사는 제조 AX 적용 효과를 공유하는 AX 케이스...",
+      "title": "'제조 AI 기반 공정 예측·최적화' 자율형 공장 기술 고도화되다",
+      "publisher": "engjournal.co.kr",
+      "quote": "제안하고 공정 조건을 자동으로 조정할 수 있도록 지원하는 방식이다. 기존 제조 환경에서는 공정 조건... ERP는 전사 자원 관리와 경영 데이터를 통합 관리하는 역할을 수행하고 MES는 생산 현장의 실시간 공정 제어와...",
       "section": "title+description",
-      "url": "https://www.dt.co.kr/article/12090744?ref=naver",
-      "published_at": 20261022,
+      "url": "http://www.engjournal.co.kr/news/articleView.html?idxno=3718",
+      "published_at": 20260403,
       "period": null,
       "reliability": "medium",
       "recency": "high",
       "directness": "medium",
       "evidence_nature": "business_signal",
-      "similarity": 0.4478
+      "similarity": 0.5737
+    },
+    {
+      "citation_id": 9,
+      "source_id": "dart-20260320000616-5-7",
+      "source_type": "dart",
+      "title": "엠아이큐브솔루션 사업보고서(FY2025) 7. 기타 참고사항",
+      "publisher": "엠아이큐브솔루션 (DART 사업보고서)",
+      "quote": "최근에는 단순한 시각화를 넘어, 인공지능(AI)과 고도화된 시뮬레이션을 결합하여\n공정 최적화, 고장 예측, 생산성 분석을 사전에 수행하며, 공장 설계 단계부터 운영, 유지보수까지 제품의 전 생애주기(Lifecycle)를 관리하는 핵심 기술로 자리 잡으며 '자율형 공장' 구현의 필수 인프라가 되고 있습니다.\n디지털 트윈 생산시스템의 글로벌 디지털 트윈 시장 규모는 2024년 약 190억 달러에서 2030년 약 1,500억 달러 규모로 연평균 약 35~40%의 성장이 예상됩니다.\n2) 생산 스케줄링 시스템\nERP와 MES의 중간 위치에서 두 상위 시스템 사이의 간극을 메워 매끄럽게 연결되도록 지원하는 생산 스케줄링 시스템(APS, Advanced Planning and Scheduling)은 MRP(Material Requirement Planning) 시스템의 무한능력 계획의 한계를 보완하는 대안 시스템으로 최초 등장하였습니다. 하지만, 최근에는 글로벌 밸류체인에 대한 관심 증대와 인공지능 기술 및 디지털 트윈, 고도화된 시뮬레이션 기술과의 융합을 통해 활용성과 범용성이 지속 성장하고 있으며, 인공지능(AI) 및 강화학습을 도입하여 급격한 수요 변동이나 원자재 수급 불안, 설비 돌발 고장 등 변수에 실시간으로 대응하는 형태로 변화해오고 있습니다. 디지털 트윈과 연계하여 수천 개의 공정 시나리오를 가상으로 실행해보고, 가장 효율적인 생산 순서를 자율적으로 도출함으로써 제조 리드타임을 획기적으로 단축합니다.",
+      "section": "II. 사업의 내용 > 7. 기타 참고사항 (본문, 표 제외)",
+      "url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260320000616",
+      "published_at": 20260320,
+      "period": "FY2025",
+      "reliability": "high",
+      "recency": "high",
+      "directness": "medium",
+      "evidence_nature": "company_claim",
+      "similarity": 0.39359999999999995
+    },
+    {
+      "citation_id": 10,
+      "source_id": "news-cff4857fefd3",
+      "source_type": "news",
+      "title": "제약기업 AI, 신약개발 넘어 생산 현장 도입 '다양'",
+      "publisher": "monews.co.kr",
+      "quote": "화순공장 생산 기반에 공정 분석기술과 AI 모델을 결합한다. 2030년까지 제조 변동성 제어와 실시간 품질... 자동화부터 설비 관리, 공정 최적화, 품질 예측으로 활용 범위를 넓히고 있다\"며 \"다만 의약품 제조에 적용하려...",
+      "section": "title+description",
+      "url": "https://www.monews.co.kr/news/articleView.html?idxno=414639",
+      "published_at": 20261026,
+      "period": null,
+      "reliability": "medium",
+      "recency": "high",
+      "directness": "medium",
+      "evidence_nature": "business_signal",
+      "similarity": 0.5710999999999999
+    },
+    {
+      "citation_id": 11,
+      "source_id": "news-600938863248",
+      "source_type": "news",
+      "title": "디지털트윈·AI Agent 결합해 생산라인 스스로 최적화",
+      "publisher": "engjournal.co.kr",
+      "quote": "줄이면서 공정 최적화를 추진할 수 있다. 인터엑스는 이 과정에서 데이터 표준화와 시뮬레이션, 예측, 판단, 제어, AI 모델 고도화를 하나의 흐름으로 연결하고 있다. 특히 200곳 이상의 제조AI 시스템 구축 경험을 통해...",
+      "section": "title+description",
+      "url": "http://www.engjournal.co.kr/news/articleView.html?idxno=4001",
+      "published_at": 20261012,
+      "period": null,
+      "reliability": "medium",
+      "recency": "high",
+      "directness": "medium",
+      "evidence_nature": "business_signal",
+      "similarity": 0.5469999999999999
+    },
+    {
+      "citation_id": 12,
+      "source_id": "news-e5352ff22b18",
+      "source_type": "news",
+      "title": "GC녹십자, AI로 mRNA 백신 품질 실시간 제어…'AI-GMP' 국가 R&D 착수",
+      "publisher": "e-science.co.kr",
+      "quote": "전 공정에서 발생하는 제조 변동성을 실시간으로 분석하고 품질을 자동 최적화하는 시스템을 개발한다.... 이번 과제는 단순한 생산 자동화를 넘어 AI가 제조 데이터를 기반으로 품질을 예측하고 공정을 제어하는...",
+      "section": "title+description",
+      "url": "https://www.e-science.co.kr/news/articleView.html?idxno=135022",
+      "published_at": 20260908,
+      "period": null,
+      "reliability": "medium",
+      "recency": "high",
+      "directness": "medium",
+      "evidence_nature": "business_signal",
+      "similarity": 0.5453
+    },
+    {
+      "citation_id": 13,
+      "source_id": "news-5b22d23dfa75",
+      "source_type": "news",
+      "title": "식품硏 면 제조공정 초자동화 생산설비 기술개발 본격 추진",
+      "publisher": "jjn.co.kr",
+      "quote": "자율생산 공정 일체 지능형 생산 설비 개발' 과제에 지난 4월 착수했으며, 2030년까지 면 제조 전 과정을... 살피고 제어하는 '통합 운영·관제 솔루션' 등이다. 다시 말해 센서가 품질을 읽고 AI가 판단하며 로봇이 작업하고...",
+      "section": "title+description",
+      "url": "http://www.jjn.co.kr/news/articleView.html?idxno=1053567",
+      "published_at": 20261001,
+      "period": null,
+      "reliability": "medium",
+      "recency": "high",
+      "directness": "medium",
+      "evidence_nature": "business_signal",
+      "similarity": 0.603
+    },
+    {
+      "citation_id": 14,
+      "source_id": "news-f0a4bdfe9de4",
+      "source_type": "news",
+      "title": "이수화학, AI로 화학공장 운전 최적화···공정 이상 사전 감지 추진",
+      "publisher": "enewstoday.co.kr",
+      "quote": "이수화학이 인공지능(AI)을 활용해 화학공장의 공정 이상을 사전에 감지하고 설비 운영을 최적화하는... 운전원의 의사결정을 실시간으로 지원하는 기능도 도입한다. AI가 공정 데이터를 종합적으로 분석해 운전 조건을...",
+      "section": "title+description",
+      "url": "http://www.enewstoday.co.kr/news/articleView.html?idxno=2484216",
+      "published_at": 20261026,
+      "period": null,
+      "reliability": "medium",
+      "recency": "high",
+      "directness": "medium",
+      "evidence_nature": "business_signal",
+      "similarity": 0.5822
     }
   ],
   "opportunity_review": {
     "status": "buyer_signals",
-    "target_segment": "제조 현장 작업자와 생산 관리자",
+    "target_segment": "사출·화학·소재처럼 반복·연속 공정을 운영하는 중견 제조사 생산기술팀",
     "value_hypotheses": [],
     "reasons": [
-      {
-        "topic": "수요",
-        "statement": "수요 판단은 signal_only이며, 현재 확정 아이디어의 고객·문제 범위 안에서 해석해야 합니다.",
-        "citation_ids": [
-          1
-        ]
-      },
       {
         "topic": "경쟁·대체재",
         "statement": "경쟁·대체재 판단은 signal_only이며, 현재 확정 아이디어의 고객·문제 범위 안에서 해석해야 합니다.",
         "citation_ids": [
-          2
+          8,
+          9
+        ]
+      },
+      {
+        "topic": "가격·수익모델",
+        "statement": "가격·수익모델 판단은 signal_only이며, 현재 확정 아이디어의 고객·문제 범위 안에서 해석해야 합니다.",
+        "citation_ids": [
+          5,
+          7
         ]
       },
       {
         "topic": "구매자",
         "statement": "구매자 판단은 signal_only이며, 현재 확정 아이디어의 고객·문제 범위 안에서 해석해야 합니다.",
         "citation_ids": [
-          4
+          3,
+          7
         ]
       },
       {
         "topic": "도입장벽",
         "statement": "도입장벽 판단은 signal_only이며, 현재 확정 아이디어의 고객·문제 범위 안에서 해석해야 합니다.",
         "citation_ids": [
-          5
+          6,
+          4
         ]
       }
     ],
@@ -224,19 +389,19 @@
       "고객의 현재 해결 방식과 대체재",
       "고객 인터뷰·구매 검토·파일럿 등 직접 수요 증거",
       "고객 가치와 ROI를 계산할 측정 변수",
-      "price 차원 추가 근거"
+      "demand 차원 추가 근거"
     ],
     "validation_actions": [
       {
         "title": "목표 고객 문제·구매 검증",
-        "target": "제조 현장 작업자와 생산 관리자",
+        "target": "사출·화학·소재처럼 반복·연속 공정을 운영하는 중견 제조사 생산기술팀",
         "method": "현재 해결 방식, 문제 발생 맥락, 비용 영향, 구매결정자와 도입 조건을 묻는 인터뷰를 수행하고 익명 요약만 기록",
         "success_signal": "여러 고객이 같은 문제와 현재 대안을 구체적 사례로 확인하고, 구매 절차 또는 후속 실증 의사를 설명함",
         "citation_ids": []
       },
       {
         "title": "고객 가치 측정 기준 설정",
-        "target": "제조 현장 작업자와 생산 관리자",
+        "target": "사출·화학·소재처럼 반복·연속 공정을 운영하는 중견 제조사 생산기술팀",
         "method": "고객과 함께 문제 빈도, 현재 처리시간·불량·비용 중 측정 가능한 기준을 선택하고 파일럿 전후에 같은 방식으로 기록",
         "success_signal": "현재 기준선과 목표 효과를 고객이 합의하고, 측정 자료 접근 범위가 정해짐",
         "citation_ids": []
@@ -244,47 +409,28 @@
     ]
   },
   "commercial_analysis": {
-    "user": "제조 현장 작업자와 생산 관리자",
+    "user": "미확인",
     "buyer": "미확인",
     "budget_owner": "미확인",
-    "use_case": "현장 작업자가 작업 표준서·설비 매뉴얼을 찾는 데 도움을 주는 음성 어시스턴트",
-    "current_alternative": "기존 문서 검색 방식",
-    "switching_trigger": "작업 지연 문제 해결 필요성",
+    "use_case": "미확인",
+    "current_alternative": "미확인",
+    "switching_trigger": "미확인",
     "purchase_process": "미확인",
     "adoption_requirements": [],
-    "pricing_hypothesis": "사용자 수 기준 월 구독료",
+    "pricing_hypothesis": "미확인",
     "critical_assumptions": [],
-    "citation_ids": [
-      1,
-      2,
-      3,
-      4,
-      5
-    ],
+    "citation_ids": [],
     "unknowns": [],
     "hypotheses": [
       {
         "question": "누가 구매를 승인하는가?",
-        "hypothesis": "구매 결정자는 제조업체의 생산 관리자일 가능성이 높다.",
-        "basis": "제조 현장 작업자와 생산 관리자가 고객으로 명시되어 있으나, 구매 결정자에 대한 정보는 부족하다.",
+        "hypothesis": "구매 승인자는 중견 제조사의 생산기술팀일 가능성이 높다.",
+        "basis": "입력 아이디어에서 고객이 중견 제조사 생산기술팀으로 명시되어 있으나, 구매 승인자에 대한 정보는 부족하다.",
         "assumptions": [],
         "citation_ids": [],
-        "validation_target": "제조업체의 생산 관리자",
+        "validation_target": "중견 제조사 생산기술팀의 구매 승인 프로세스",
         "validation_method": "인터뷰·조달 문서 확인 등",
-        "success_criterion": "구매 승인 권한이 있는 사람의 확인",
-        "numeric_value": null,
-        "numeric_unit": "",
-        "numeric_basis": ""
-      },
-      {
-        "question": "예산 보유자는 누구인가?",
-        "hypothesis": "예산 보유자는 제조업체의 재무 부서일 가능성이 있다.",
-        "basis": "예산 보유자에 대한 정보가 제공되지 않음.",
-        "assumptions": [],
-        "citation_ids": [],
-        "validation_target": "제조업체의 재무 부서",
-        "validation_method": "인터뷰·조달 문서 확인 등",
-        "success_criterion": "예산 승인 권한이 있는 사람의 확인",
+        "success_criterion": "구매 승인자의 역할과 권한에 대한 명확한 정보 확보",
         "numeric_value": null,
         "numeric_unit": "",
         "numeric_basis": ""
@@ -292,9 +438,9 @@
     ]
   },
   "unknowns": [
-    "가격 근거 미확인: 검색된 자료 7건이 모두 이 차원과 무관하다고 판정됨"
+    "수요 근거 미확인: 수요 확인에는 고객 검증 자료(인터뷰·설문·파일럿·LOI)가 필요하며 기사·공시로는 확인할 수 없음"
   ],
-  "search_scope": "네이버 뉴스 검색 API로 사전 수집한 스마트팩토리 기사 677건(제목·요약, 발행일 20240102~20261023) · DART 사업보고서 '사업의 내용' 발췌 98건(기업 4곳, FY2025), 아이디어 SF-05 연결 자료 범위",
+  "search_scope": "네이버 뉴스 검색 API로 사전 수집한 스마트팩토리 기사 1976건(제목·요약, 발행일 20240102~20261029) · DART 사업보고서 '사업의 내용' 발췌 348건(기업 14곳, FY2025), 전체 수집 범위 · 아이디어와 가까워 검색한 DART 기업: 엠아이큐브솔루션, 뉴로메카, 레인보우로보틱스",
   "data_as_of": 20261029,
   "error_message": null
 }
