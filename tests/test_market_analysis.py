@@ -1,4 +1,4 @@
-﻿import json
+import json
 
 import pytest
 
@@ -273,7 +273,7 @@ def test_build_report_completed():
     assert len(report.evidence) == 2
     assert "아이디어 차별점 항목 미입력" in report.unknowns
     assert (
-        "구매자 근거 미확인: 검색된 기사 1건이 모두 이 차원과 무관하다고 판정됨"
+        "구매자 근거 미확인: 검색된 자료 1건이 모두 이 차원과 무관하다고 판정됨"
         in report.unknowns
     )
     assert (
@@ -283,7 +283,7 @@ def test_build_report_completed():
     assert by_dim["demand"].evidence_status == "sufficient"
     assert by_dim["demand"].relevant_count == 2
     assert "고객 검증 자료" in by_dim["demand"].limitation
-    assert by_dim["price"].limitation.startswith("관련 기사가 1건뿐")
+    assert by_dim["price"].limitation.startswith("관련 자료가 1건뿐")
     assert by_dim["adoption_barrier"].limitation.startswith("관련성 판정이 실패")
 
 
@@ -359,8 +359,8 @@ def test_limitation_for_signal_only_pool():
         ),
     )
     by_dim = {d.dimension: d for d in report.dimensions}
-    assert by_dim["competition"].limitation.startswith("관련 기사 2건이 모두 사업 신호")
-    assert by_dim["buyer"].limitation.startswith("검색 범위에 이 차원의 기사가 없음")
+    assert by_dim["competition"].limitation.startswith("관련 자료 2건이 모두 사업 신호")
+    assert by_dim["buyer"].limitation.startswith("검색 범위에 이 차원의 자료가 없음")
 
 
 def test_build_report_no_results_and_error():

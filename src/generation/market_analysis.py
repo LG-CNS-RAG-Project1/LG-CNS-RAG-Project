@@ -1,7 +1,7 @@
 """관련성 판정된 시장 검색 결과로 차원별 시장 분석(MarketReport)을 생성하고 인용을 검증한다.
 
 흐름:
-    build_evidence(assessed)        관련 판정된 기사만 인용 근거(MarketEvidence)로 정리, 기사당 citation_id 1개
+    build_evidence(assessed)        관련 판정된 자료(뉴스·DART 청크)만 인용 근거(MarketEvidence)로 정리, 자료당 citation_id 1개
     allowed_verdicts(...)           충분성 상태로 쓸 수 있는 판정 제한
     generate_dimensions(...)        LLM 생성 → validate_dimension 검증 → 실패 시 오류를 알려 최대 MAX_RETRIES회 재생성
     finalize_dimension(...)         재생성 후에도 실패한 문장은 제거하고, 판정을 유지할 수 없으면 낮춤
@@ -266,10 +266,12 @@ def dimension_inputs(
                 "evidence": [
                     {
                         "citation_id": e.citation_id,
+                        "source_type": e.source_type,
                         "title": e.title,
                         "quote": e.quote,
                         "publisher": e.publisher,
                         "published_at": e.published_at,
+                        **({"period": e.period} if e.period else {}),
                         "evidence_nature": e.evidence_nature,
                     }
                     for e in cited
@@ -522,17 +524,17 @@ def limitation_text(
     status = (result or {}).get("status", "no_results")
     searched = len((result or {}).get("hits", []))
     if status == "no_results":
-        return "검색 범위에 이 차원의 기사가 없음 (수요·시장이 없다는 뜻은 아님)"
+        return "검색 범위에 이 차원의 자료가 없음 (수요·시장이 없다는 뜻은 아님)"
     if status == "error":
         return "관련성 판정이 실패해 근거로 쓰지 않음"
     if status == "insufficient":
-        return f"검색된 기사 {searched}건이 모두 이 차원과 무관하다고 판정됨"
+        return f"검색된 자료 {searched}건이 모두 이 차원과 무관하다고 판정됨"
     if status == "limited":
-        return "관련 기사가 1건뿐이라 확인할 수 없음 (최대 신호 수준)"
+        return "관련 자료가 1건뿐이라 확인할 수 없음 (최대 신호 수준)"
     if dimension == "demand":
-        return "수요 확인에는 고객 검증 자료(인터뷰·설문·파일럿·LOI)가 필요하며 기사로는 확인할 수 없음"
+        return "수요 확인에는 고객 검증 자료(인터뷰·설문·파일럿·LOI)가 필요하며 기사·공시로는 확인할 수 없음"
     if all(e.evidence_nature in SIGNAL_ONLY_NATURES for e in pool):
-        return f"관련 기사 {len(pool)}건이 모두 사업 신호·기업 주장·추정치라 확인할 수 없음"
+        return f"관련 자료 {len(pool)}건이 모두 사업 신호·기업 주장·추정치라 확인할 수 없음"
     return "구매·조사 근거가 있으나 분석 단계에서 판단에 충분하지 않다고 봄"
 
 
