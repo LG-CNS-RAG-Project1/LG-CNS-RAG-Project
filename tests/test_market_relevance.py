@@ -5,8 +5,10 @@ import pytest
 from src.retrieval.market_relevance import (
     MIN_SUFFICIENT,
     assess_dimensions,
+    checked_nature,
     judge_hits,
     judge_input,
+    judged_hit,
     parse_relevance,
     sufficiency_status,
 )
@@ -55,12 +57,48 @@ def test_judge_input_contains_idea_dimension_and_summary():
 
 
 def test_parse_relevance():
-    assert parse_relevance({"label": 1, "confidence": "high", "reason": " 가격  "}) == {
+    assert parse_relevance(
+        {
+            "label": 1,
+            "confidence": "high",
+            "reason": " 가격  ",
+            "evidence_nature": "purchase_signal",
+        }
+    ) == {
         "relevant": True,
         "relevance_confidence": "high",
         "relevance_reason": "가격",
+        "article_nature": "purchase_signal",
     }
     assert parse_relevance({"label": "yes"})["relevant"] is False
+    assert parse_relevance({"evidence_nature": "direct_demand"})["article_nature"] == (
+        "business_signal"
+    )
+
+
+@pytest.mark.parametrize(
+    "nature, text, expected",
+    [
+        ("purchase_signal", "A사, B공장에 FEMS 구축 완료", "purchase_signal"),
+        ("purchase_signal", "전문가 '로봇 확산 필요'", "business_signal"),
+        ("indirect_demand", "무역협회 조사에 따르면 63.0%가 응답", "indirect_demand"),
+        ("indirect_demand", "중소기업 AI 도입 더뎌…전문가 진단", "business_signal"),
+        ("company_claim", "자사 제품 성능 강조", "company_claim"),
+    ],
+)
+def test_checked_nature(nature, text, expected):
+    assert checked_nature(nature, text) == expected
+
+
+def test_judged_hit_replaces_nature_for_news_only():
+    raw = {"label": 1, "evidence_nature": "purchase_signal"}
+    news = {**make_hit("a", "A사 예지보전 시스템 도입"), "source_type": "news"}
+    news["evidence_nature"] = "business_signal"
+    dart = {**news, "source_type": "dart", "evidence_nature": "company_claim"}
+
+    assert judged_hit(news, raw)["evidence_nature"] == "purchase_signal"
+    assert judged_hit(dart, raw)["evidence_nature"] == "company_claim"
+    assert judged_hit(dart, raw)["article_nature"] == "purchase_signal"
 
 
 def test_judge_hits_keeps_search_order():

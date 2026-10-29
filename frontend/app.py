@@ -1142,6 +1142,8 @@ def render_patent_report(patent, *, widget_suffix="", preview=False):
 
 
 def render_market_report(market, draft=None):
+    from src.generation.market_markdown import NATURE_LABELS
+
     """시장성 화면에는 고객 신호와 다음 검증을 우선 표시하고 상세 자료를 접는다."""
     if market.status == "error":
         st.error(market.error_message or "시장 조사에 실패했습니다.")
@@ -1253,7 +1255,7 @@ def render_market_report(market, draft=None):
 
         verdict_labels = {
             "confirmed": "근거 확인",
-            "signal_only": "산업 신호",
+            "signal_only": "신호만 확인",
             "unverified": "미확인",
         }
         key_dimensions = ["demand", "buyer", "competition", "price", "adoption_barrier"]
@@ -1266,6 +1268,12 @@ def render_market_report(market, draft=None):
             st.markdown(
                 f"**{DIMENSION_LABELS[key]} · {verdict_labels[dimension.verdict]}**"
             )
+            if dimension.limitation:
+                st.caption(f"확인되지 않은 이유: {dimension.limitation}")
+            if dimension.relevant_count is not None:
+                st.caption(
+                    f"관련 검색 자료 {dimension.relevant_count}건 · 인용 건수와 별개입니다."
+                )
             if dimension.claims:
                 for claim in dimension.claims[:1]:
                     label = {
@@ -1292,7 +1300,7 @@ def render_market_report(market, draft=None):
                 st.markdown(f"**M:{item.citation_id} · {escape_md(item.title)}**")
                 st.caption(
                     f"{item.publisher} · {item.published_at or '발행일 미확인'} · "
-                    f"{item.evidence_nature} · 신뢰도 {item.reliability}"
+                    f"{NATURE_LABELS.get(item.evidence_nature, item.evidence_nature)} · 신뢰도 {item.reliability}"
                 )
                 st.write(item.quote)
                 if safe_url(item.url):

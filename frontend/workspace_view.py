@@ -261,6 +261,10 @@ def render_report(s, payload, archived=False):
         if archived
         else cost_markdown(cost_rows) + "\n\n## 검토 메모\n" + s.saved_memo
     )
+    if not archived and s.real_mode and s.pipeline_result:
+        from frontend.report_overview import market_verification_markdown
+
+        payload["markdown"] += market_verification_markdown(s.pipeline_result.market)
     markdown = payload["markdown"] + appendix
     with full:
         with st.container(height=520, border=True):

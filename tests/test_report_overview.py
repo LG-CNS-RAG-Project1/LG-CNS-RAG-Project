@@ -65,9 +65,29 @@ def test_dashboard_preserves_verdict_and_citations_without_filling_missing_dimen
             "implication": "고객 견적 확인",
             "kind": "미확인",
             "citations": "",
+            "limitation": "",
+            "evidence_status": "",
+            "relevant_count": None,
         }
     ]
     assert "직접 고객 자료 없음" in data["unknowns"]
+
+
+def test_market_limitations_are_preserved_in_dashboard_and_export():
+    from frontend.report_overview import market_verification_markdown
+
+    r = result()
+    dimension = r.market.dimensions[0]
+    dimension.limitation = "기업 주장 | 견적 미확보"
+    dimension.evidence_status = "error"
+    dimension.relevant_count = 0
+    data = dashboard_data(r)
+    assert data["dimensions"][0]["limitation"] == dimension.limitation
+    assert data["dimensions"][0]["relevant_count"] == 0
+    text = market_verification_markdown(r.market)
+    assert "판정 오류" in text and "견적 미확보" in text
+    dimension.relevant_count = None
+    assert "미제공" in market_verification_markdown(r.market)
 
 
 def test_final_dashboard_renders_existing_data_and_chart_without_api():

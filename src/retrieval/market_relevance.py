@@ -2,7 +2,8 @@
 
 검색 거리는 관련성을 구분하지 못하므로(평가 라벨 300건 기준 관련/비관련 AUC 0.52) 충분성은
 거리 임계값이 아니라 관련성 판정 결과로 정한다. 판정 기준은 평가셋 라벨과 같은
-prompts/market_label_judge.md를 쓴다. 프로젝트 LLM은 비용 때문에 모두 gpt-4o-mini를 쓴다.
+prompts/market_label_judge.md를 쓴다. 같은 호출에서 기사의 근거 성격(구매 신호·간접 수요·
+추정치·기업 주장·사업 신호)도 판정해, 수집 단계에서 모두 사업 신호로 둔 뉴스의 성격을 바꾼다. 프로젝트 LLM은 비용 때문에 모두 gpt-4o-mini를 쓴다.
 사람 라벨 91건 기준 정밀도는 비교 측정한 gpt-4o 0.89보다 낮은 0.69로, 비관련 기사를 더 많이
 관련으로 판정한다(evaluation/results/market_relevance_*.csv).
 
@@ -20,6 +21,7 @@ prompts/market_label_judge.md를 쓴다. 프로젝트 LLM은 비용 때문에 �
 import argparse
 import json
 import os
+import re
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Callable
@@ -45,6 +47,25 @@ DIMENSION_LABELS = {
 }
 
 JudgeFn = Callable[[str, str], dict]
+
+# 판정기가 기사에 붙일 수 있는 근거 성격. direct_demand는 고객 검증 자료에만 쓴다.
+ARTICLE_NATURES = {
+    "purchase_signal",
+    "indirect_demand",
+    "estimate",
+    "company_claim",
+    "business_signal",
+}
+# confirmed 판정을 열어 주는 성격은 기사 제목·요약에 이 표현이 있어야 유지한다.
+NATURE_CUES = {
+    "purchase_signal": [
+        re.compile(r"도입|구축|적용|계약|공급|납품|수주|운영 중|발주|구매"),
+    ],
+    "indirect_demand": [
+        re.compile(r"조사|설문|통계|실태"),
+        re.compile(r"\d+(?:\.\d+)?\s*(?:%|퍼센트|개사|곳|명|건)"),
+    ],
+}
 
 
 def call_relevance_llm(
@@ -87,15 +108,33 @@ def judge_input(idea: StructuredIdea, dimension: str, hit: dict) -> str:
 
 
 def parse_relevance(raw: dict) -> dict:
-    """LLM 응답을 relevant(bool)·relevance_confidence·relevance_reason으로 정리한다.
+    """LLM 응답을 relevant(bool)·relevance_confidence·relevance_reason·article_nature로 정리한다.
 
-    label이 1이 아니면 비관련, confidence가 high가 아니면 low로 본다.
+    label이 1이 아니면 비관련, confidence가 high가 아니면 low로 본다. evidence_nature가
+    ARTICLE_NATURES에 없으면 article_nature는 business_signal이다.
     """
+    nature = str(raw.get("evidence_nature", "")).strip()
     return {
         "relevant": str(raw.get("label", "")).strip() == "1",
         "relevance_confidence": "high" if raw.get("confidence") == "high" else "low",
         "relevance_reason": " ".join(str(raw.get("reason", "")).split()),
+        "article_nature": nature if nature in ARTICLE_NATURES else "business_signal",
     }
+
+
+def checked_nature(nature: str, text: str) -> str:
+    """NATURE_CUES의 표현이 기사에 모두 없으면 판정기가 고른 성격 대신 business_signal을 쓴다."""
+    cues = NATURE_CUES.get(nature, [])
+    return nature if all(cue.search(text) for cue in cues) else "business_signal"
+
+
+def judged_hit(hit: dict, raw: dict) -> dict:
+    """검색 결과에 판정 필드를 붙인다. 뉴스는 근거 성격을 검사를 통과한 article_nature로 바꾼다."""
+    judged = {**hit, **parse_relevance(raw)}
+    judged["article_nature"] = checked_nature(judged["article_nature"], hit["text"])
+    if hit.get("source_type") == "news":
+        judged["evidence_nature"] = judged["article_nature"]
+    return judged
 
 
 def judge_hits(
@@ -116,7 +155,7 @@ def judge_hits(
                 hits,
             )
         )
-    return [{**hit, **parse_relevance(raw)} for hit, raw in zip(hits, raws)]
+    return [judged_hit(hit, raw) for hit, raw in zip(hits, raws)]
 
 
 def sufficiency_status(judged: list[dict]) -> str:
@@ -168,7 +207,8 @@ def search_with_relevance(
     """차원별로 검색한 뒤 관련성을 판정해 충분성 상태와 함께 반환한다 (에이전트용 툴).
 
     반환: {차원: {"status", "relevant_count", "hits"}}. hits의 각 항목은 search_market 반환 형식에
-    relevant·relevance_confidence·relevance_reason이 추가된다.
+    relevant·relevance_confidence·relevance_reason·article_nature가 추가되고, 뉴스는
+    evidence_nature가 article_nature로 바뀐다.
     """
     results = search_by_dimensions(
         request, idea_id=idea_id, collection=collection, embed_fn=embed_fn
