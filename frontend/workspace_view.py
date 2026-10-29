@@ -137,6 +137,8 @@ def report_payload(s):
     """가공·추가 요약 없이 기존 분석과 시연 보고서를 문서 화면 계약으로 맞춘다."""
     if s.real_mode and s.pipeline_result:
         r = s.pipeline_result
+        from frontend.decision_trace import decision_trace
+
         rows = [
             {
                 "질문": x.question_id,
@@ -154,6 +156,7 @@ def report_payload(s):
             "market_count": len(r.market.evidence),
             "demo": False,
             "dashboard": dashboard_data(r),
+            "decision_trace": decision_trace(r),
         }
     snap = s.report_snapshot
     if not snap:
@@ -194,7 +197,18 @@ def render_report(s, payload, archived=False):
         "종합 보고서 / "
         + ("시연용 가상 자료" if payload["demo"] else "실제 조사 결과 · 원문 검토 필요")
     )
-    overview, full, costs = st.tabs(["한눈에 보기", "보고서 원문", "비용 · 메모"])
+    overview, trace, full, costs = st.tabs(
+        ["한눈에 보기", "판단 근거 따라보기", "보고서 원문", "비용 · 메모"]
+    )
+    with trace:
+        if payload.get("decision_trace"):
+            from frontend.decision_trace import render_decision_trace
+
+            render_decision_trace(payload["decision_trace"])
+        else:
+            st.info(
+                "이 기록에는 판단별 원문 연결이 없습니다. 보고서 원문을 확인하세요."
+            )
     cost_rows = s.cost_rows
     with costs:
         if not archived and s.real_mode and s.pipeline_result:
@@ -324,6 +338,12 @@ def validate_records(raw):
             from frontend.report_overview import Dashboard
 
             item["dashboard"] = Dashboard.model_validate(item["dashboard"]).model_dump()
+        if "decision_trace" in item:
+            from frontend.decision_trace import DecisionTrace
+
+            item["decision_trace"] = DecisionTrace.model_validate(
+                item["decision_trace"]
+            ).model_dump()
         for name in ["title", "raw", "markdown", "appendix", "saved_at", "id"]:
             if not isinstance(item.get(name), str):
                 raise ValueError("기록의 필수 항목이 없습니다.")
