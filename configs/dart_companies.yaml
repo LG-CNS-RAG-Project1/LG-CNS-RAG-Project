@@ -33,7 +33,8 @@ idea_terms:
     - 공장에너지
     - 공장 에너지
     - 공정별 전력
-  SF-05: [음성인식, 음성 인식, 생성형 AI, LLM, 공정제어]
+  # '공정 최적화'(검사 데이터 활용·통신)·'DCS'·'제어시스템'(전력망·철도)은 다른 사업에도 나와 쓰지 않는다.
+  SF-05: [공정제어, 공정 제어, 자동제어]
 
 companies:
   - name: 두산로보틱스
@@ -67,11 +68,11 @@ companies:
   - name: 엠아이큐브솔루션
     stock_code: "373170"
     idea_ids: [SF-03, SF-05]
-    reason: 스마트팩토리 MES·설비 예지보전·제조 AI 솔루션 사업
+    reason: 스마트팩토리 MES·설비 예지보전·공정제어 솔루션 사업
   - name: 이삭엔지니어링
     stock_code: "351330"
-    idea_ids: [SF-03]
-    reason: 설비 상태감시·예방진단 솔루션 사업
+    idea_ids: [SF-03, SF-05]
+    reason: 설비 상태감시·예방진단과 공정 제어 솔루션 사업
   - name: 엔텔스
     stock_code: "069410"
     idea_ids: [SF-04]
@@ -91,12 +92,4 @@ companies:
   - name: 포스코DX
     stock_code: "022100"
     idea_ids: [SF-05]
-    reason: 제조 IT·산업 자동화·생성형 AI 사업
-  - name: LG씨엔에스
-    stock_code: "064400"
-    idea_ids: [SF-05]
-    reason: 스마트팩토리·생성형 AI 플랫폼 사업
-  - name: 삼성에스디에스
-    stock_code: "018260"
-    idea_ids: [SF-05]
-    reason: 제조 IT·생성형 AI 서비스 사업
+    reason: 철강·이차전지소재 공장 공정제어·자동제어 사업

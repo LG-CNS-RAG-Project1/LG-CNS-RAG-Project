@@ -109,6 +109,7 @@ ipython_config.py
 
 /data/market/chroma/**
 !/data/market/chroma/.gitkeep
+/data/market/trends/**
 
 # 13. Generated reports
 /reports/**

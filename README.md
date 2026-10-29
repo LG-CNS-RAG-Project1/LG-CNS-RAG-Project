@@ -37,7 +37,7 @@
 │   ├── processed/           # 정규화 문서와 검색 청크
 │   ├── indexes/             # 검색 색인
 │   ├── patents/             # 특허 원문·정제 데이터·Chroma 벡터 저장소
-│   ├── market/              # 시장 자료 원문·정제 데이터
+│   ├── market/              # 시장 자료 원문·정제 데이터·검색 관심도 캐시
 │   └── samples/             # 시연용 샘플 아이디어·시장 결과(MarketReport) 예시
 ├── deploy/                  # 공용 Chroma·HTTPS 중계·개인 키 인증 배포 설정
 ├── docs/                    # 기획·설계·개발 환경 문서, 프로젝트 목표·PR 분석 안내서(review-baseline.md)
@@ -166,7 +166,7 @@ python -m src.ingestion.market_processor                                        
 
 - 시장·특허 공통 기술 분야, 분야별 검색어 및 시장 수집 기준은 `configs/technology_areas.yaml`에서 관리한다. 공통 시장 키워드는 `shared_market_keywords`, 분야별 시장 키워드와 특허 키워드는 각 `technology_areas` 항목에 둔다.
 - NAVER API HUB 뉴스 검색 API의 제목·요약·링크·발행일만 `data/market/raw/news_{keyword_id}_{수집일}.json`에 저장한다.
-- 정제 단계는 같은 URL 기사를 합치고, 제목 유사도 0.8 초과·발행일 3일 이내 기사를 같은 `dup_group`으로 묶어 대표 1건만 `data/market/processed/market_docs.jsonl`에 저장한다.
+- 정제 단계는 기사의 아이디어 연결(`idea_ids`)을 수집 당시 값이 아니라 현재 `configs/technology_areas.yaml`의 키워드 설정으로 정하고, 설정에 없는 키워드로 수집한 기사는 제외한다(원본 파일은 유지). 같은 URL 기사를 합치고, 제목 유사도 0.8 초과·발행일 3일 이내 기사를 같은 `dup_group`으로 묶어 대표 1건만 `data/market/processed/market_docs.jsonl`에 저장한다.
 
 ### DART 사업보고서 수집·정제
 
@@ -197,7 +197,7 @@ python -m src.ingestion.patent_processor --field-id SF-05 --limit 20 --include-c
 - KIPRIS 검색·청구항 API 원본 XML과 키를 제외한 요청 메타데이터는 `data/patents/raw/`에 저장한다. 해당 폴더는 로컬 전용이며 Git 추적 대상에서 제외된다.
 - 색인 시 문서 임베딩 API 호출이 필요하다(`OPENAI_API_KEY`). 이후 문서 벡터는 로컬 Chroma에서 재사용한다. Dense/Hybrid 검색의 질의 임베딩은 검색 때 별도로 생성된다.
 - `PatentSearchRequest.technology_area_id`를 지정하면 검색 결과를 해당 분야로 제한한다. 원문 JSONL과 Chroma DB는 로컬에 저장되고 Git에는 포함되지 않는다.
-- 기존 SF-05 시장 평가 샘플·라벨은 현장 작업자용 LLM 음성 어시스턴트 기준이다. 과거 검색어는 `legacy_market_keywords`에 기록하며 신규 뉴스 수집에는 사용하지 않는다. 새 SF-05 시장 성능을 평가하려면 아이디어 샘플을 갱신하고 자료를 다시 수집·라벨링해야 한다.
+- `data/samples/ideas.json`의 SF-05와 시장 뉴스·DART 기업 연결은 지능형 공정제어 기준이다. 이전 SF-05(현장 작업자용 LLM 음성 어시스턴트)의 검색어는 `legacy_market_keywords`에 기록만 하며, 그 검색어로 수집한 기사는 정제 단계(`market_processor`)에서 제외한다. 시장 평가 라벨은 아직 이전 SF-05 기준이라 새 SF-05 시장 성능을 평가하려면 다시 라벨링해야 한다.
 
 ### 시장 근거 색인·검색
 
@@ -225,17 +225,23 @@ python -m src.retrieval.market_relevance --idea-id SF-01   # 차원별 검색 + 
 ```bash
 python -m src.services.market_service --idea-id SF-01                                         # MarketReport JSON 출력
 python -m src.services.market_service --idea-id SF-01 --out data/samples/market_reports/SF-01.json   # 파일로 저장
+python -m src.services.market_service --idea-id SF-01 --idea-filter                           # 아이디어 연결 자료로 한정
+python -m src.services.market_service --idea-id SF-01 --no-trend                              # 검색 관심도 흐름 생략
+python -m src.ingestion.trend_client 예지보전 예측정비                                         # 주제어 검색 관심도 직접 조회
 ```
+
+- `--idea-id`는 `data/samples/ideas.json`에서 아이디어를 고르는 데 쓴다. 기본 실행은 화면 통합 실행과 같이 전체 색인을 검색하며, `--idea-filter`를 주면 그 아이디어에 연결된 뉴스·DART 기업으로 좁힌다. 답변 평가(`evaluation.market_answer_eval`)는 아이디어 연결 자료로 한정해 실행한다.
 
 - `run_market_research(MarketSearchRequest)`가 차원별 검색 → 관련성 판정 → 시장 분석 생성·인용 검증을 실행해 `MarketReport`(`src/schemas.py`)를 반환한다. 분석 규칙은 `prompts/market_analysis.md`, 생성·검증은 `src/generation/market_analysis.py`에서 관리한다. `OPENAI_API_KEY`가 필요하다.
 - 사실 문장은 인용 근거(`evidence`의 `citation_id`)가 있어야 하고, 인용 기사·아이디어 입력에 없는 숫자가 있거나 수치에 기준 연도가 없으면 재생성(최대 2회)하거나 해당 문장을 제거한다. 판정은 차원별 충분성 상태와 근거 성격으로 제한하고(근거 1건이거나 사업 신호뿐이면 최대 '신호만 확인'), 기대는 아이디어 항목이 모름이면 미확인으로 둔다(가격 ← 수익모델, 구매자 ← 고객). 뉴스의 근거 성격(구매 신호·간접 수요·사업 신호 등)은 관련성 판정과 같은 호출에서 정하고, 차원마다 확인되지 않은 이유(`limitation`)를 붙인다. DART 사업보고서를 인용한 문장은 "기업 사업보고서(FY연도)에 따르면"처럼 공시 기업을 밝힌다.
-- `data/samples/market_reports/`에는 SF-01~SF-05 실행 결과 예시가 있다. 로컬 수집 뉴스 기준이므로 다시 수집하면 내용이 달라진다.
+- 검색 관심도 흐름(`MarketReport.search_trend`): 아이디어 5개 항목에서 LLM이 검색 주제어(대표 범주 + 같은 범주의 다른 이름, 최대 3개, `prompts/market_trend_terms.md`)를 고르고, 네이버 검색어 트렌드로 기준 주제어(스마트공장·스마트팩토리)와 함께 최근 24개월 월별 검색량을 조회한다(`src/ingestion/trend_client.py`, 설정 `configs/search_trend.yaml`). 월별 '주제어 ÷ 기준 × 100' 지수의 최근 6개월 평균을 직전 6개월과 비교해 ±10% 이상이면 상승·둔화, 그 사이는 유지로 표시하고, 평균 검색량이 적으면 판단하지 않는다(`src/services/market_trend.py`). 시장 화면에 월별 선 그래프로 나오며(`frontend/market_trend_view.py`), 차원별 판정에는 쓰지 않는다. 화면 통합 실행과 CLI에서만 붙고, 같은 요청은 그날 `data/market/trends/`에 캐시한다. `NAVER_TREND_CLIENT_ID`·`NAVER_TREND_CLIENT_SECRET`이 필요하다.
+- `data/samples/market_reports/`에는 SF-01~SF-05를 기본 실행(화면과 같은 전체 색인 검색)으로 만든 결과 예시가 있다. 로컬 수집 뉴스·DART 기준이므로 다시 수집하면 내용이 달라진다.
 
 ```bash
 python -m src.generation.market_markdown data/samples/market_reports/SF-01.json   # 종합 보고서용 마크다운 섹션 출력
 ```
 
-- `market_report_to_markdown(report)`는 `MarketReport`를 종합 보고서의 '시장 조사 및 분석 결과' 섹션(차원별 판정 요약 표, 차원별 문장·검증 과제, 미확인 사항, 근거 목록)으로 바꾼다. LLM을 부르지 않으며, 인용은 UI와 같은 `M:{citation_id}`로 쓴다.
+- `market_report_to_markdown(report)`는 `MarketReport`를 종합 보고서의 '시장 조사 및 분석 결과' 섹션(차원별 판정 요약 표, 차원별 문장·검증 과제, 검색 관심도 흐름, 미확인 사항, 근거 목록)으로 바꾼다. LLM을 부르지 않으며, 인용은 UI와 같은 `M:{citation_id}`로 쓴다.
 - 아이디어 입력·시장 조사 진입점의 입력·출력·오류 처리 약속은 [docs/api_contract.md](docs/api_contract.md)에 정리한다.
 
 ### 아이디어 구조화
@@ -275,6 +281,7 @@ docker compose run --rm app python -m src.pipeline run --idea-id SF-02 --out rep
 | `KIPRIS_API_KEY` | KIPRIS Plus 특허 API 키 |
 | `DART_API_KEY` | DART OpenAPI 공시 API 키 |
 | `NAVER_CLIENT_ID` · `NAVER_CLIENT_SECRET` | NAVER API HUB(네이버클라우드) Application의 Client ID·Secret. 해당 Application에서 뉴스 검색 API 활성화 필요 |
+| `NAVER_TREND_CLIENT_ID` · `NAVER_TREND_CLIENT_SECRET` | 검색어 트렌드(Search Trend) API를 활성화한 NAVER API HUB Application의 Client ID·Secret. 없으면 시장 보고서의 검색 관심도 흐름만 오류로 표시된다 |
 | `IDEALENS_MARKET_TIMEOUT` · `IDEALENS_PATENT_TIMEOUT` | (선택) 통합 분석의 영역별 제한 시간(초). 기본 120·180 |
 | `IDEALENS_SERIAL` | (선택) `1`이면 시장·특허 조사를 순차 실행 |
 | `IDEALENS_APP_PASSWORD` | (호스팅 배포) 접속 비밀번호. 비어 있으면 비밀번호 화면을 띄우지 않는다(로컬 실행) |

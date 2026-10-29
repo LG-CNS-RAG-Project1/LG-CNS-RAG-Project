@@ -13,21 +13,21 @@
           ]
         },
         {
-          "statement": "LG전자가 발전소 운영 과정에서 예지보전 기술을 검토하고 있다.",
+          "statement": "LG전자가 발전소 운영에서 예지보전 기술을 검토하고 있다.",
           "claim_type": "fact",
           "citation_ids": [
             2
           ]
         },
         {
-          "statement": "예지보전 기술에 대한 수요가 증가할 가능성이 있다.",
+          "statement": "예지보전 기술에 대한 관심이 높아지고 있을 가능성이 있다.",
           "claim_type": "ai_hypothesis",
           "citation_ids": []
         }
       ],
       "next_check": null,
       "evidence_status": "sufficient",
-      "relevant_count": 4,
+      "relevant_count": 2,
       "limitation": "수요 확인에는 고객 검증 자료(인터뷰·설문·파일럿·LOI)가 필요하며 기사·공시로는 확인할 수 없음"
     },
     {
@@ -38,14 +38,14 @@
           "statement": "디플리가 소리로 산업용 로봇의 이상 징후를 찾아내는 예지보전 시장에 진출했다.",
           "claim_type": "fact",
           "citation_ids": [
-            5
+            3
           ]
         },
         {
-          "statement": "삼성전자가 AI 자율 공장 구축을 위해 예지보전 기술을 활용하고 있다.",
+          "statement": "여러 기업들이 예지보전 기술을 활용하여 경쟁하고 있다.",
           "claim_type": "fact",
           "citation_ids": [
-            7
+            4
           ]
         },
         {
@@ -56,18 +56,18 @@
       ],
       "next_check": null,
       "evidence_status": "sufficient",
-      "relevant_count": 6,
-      "limitation": "관련 자료 6건이 모두 사업 신호·기업 주장·추정치라 확인할 수 없음"
+      "relevant_count": 5,
+      "limitation": "관련 자료 5건이 모두 사업 신호·기업 주장·추정치라 확인할 수 없음"
     },
     {
       "dimension": "price",
       "verdict": "unverified",
       "claims": [
         {
-          "statement": "이삭엔지니어링은 고객의 요구에 따라 솔루션 가격이 표준화되어 있지 않다고 밝혔다.",
+          "statement": "인텍플러스의 제품은 고객사의 요청 사양에 따라 가격이 달라진다.",
           "claim_type": "fact",
           "citation_ids": [
-            11
+            8
           ]
         }
       ],
@@ -88,36 +88,7 @@
           ]
         },
         {
-          "statement": "유디엠텍이 중견 자동차 부품기업과 예지보전 시스템 구축 계약을 체결했다.",
-          "claim_type": "fact",
-          "citation_ids": [
-            12
-          ]
-        },
-        {
-          "statement": "중소·중견 제조사가 주요 고객이 될 가능성이 있다.",
-          "claim_type": "ai_hypothesis",
-          "citation_ids": []
-        }
-      ],
-      "next_check": null,
-      "evidence_status": "sufficient",
-      "relevant_count": 4,
-      "limitation": "구매·조사 근거가 있으나 분석 단계에서 판단에 충분하지 않다고 봄"
-    },
-    {
-      "dimension": "adoption_barrier",
-      "verdict": "signal_only",
-      "claims": [
-        {
-          "statement": "위존은 데이터 전문가가 없어도 시스템을 활용할 수 있다고 밝혔다.",
-          "claim_type": "fact",
-          "citation_ids": [
-            14
-          ]
-        },
-        {
-          "statement": "AI 기반 예지보전 솔루션의 도입 장벽이 낮아질 가능성이 있다.",
+          "statement": "중소·중견 제조사들이 예지보전 솔루션을 필요로 할 가능성이 있다.",
           "claim_type": "ai_hypothesis",
           "citation_ids": []
         }
@@ -126,6 +97,35 @@
       "evidence_status": "limited",
       "relevant_count": 1,
       "limitation": "관련 자료가 1건뿐이라 확인할 수 없음 (최대 신호 수준)"
+    },
+    {
+      "dimension": "adoption_barrier",
+      "verdict": "signal_only",
+      "claims": [
+        {
+          "statement": "기술 도입과 현장 검증을 지원하는 방안이 주요 과제로 떠오르고 있다.",
+          "claim_type": "fact",
+          "citation_ids": [
+            9
+          ]
+        },
+        {
+          "statement": "데이터 전문가가 없어도 시스템을 활용할 수 있는 방안이 필요하다.",
+          "claim_type": "fact",
+          "citation_ids": [
+            10
+          ]
+        },
+        {
+          "statement": "기술 도입에 있어 현장 정착이 어려울 가능성이 있다.",
+          "claim_type": "ai_hypothesis",
+          "citation_ids": []
+        }
+      ],
+      "next_check": null,
+      "evidence_status": "sufficient",
+      "relevant_count": 2,
+      "limitation": "관련 자료 2건이 모두 사업 신호·기업 주장·추정치라 확인할 수 없음"
     }
   ],
   "evidence": [
@@ -165,40 +165,6 @@
     },
     {
       "citation_id": 3,
-      "source_id": "news-20d13c5ea510",
-      "source_type": "news",
-      "title": "LG전자·K-water, 시화조력발전소 AI 전환 업무협약",
-      "publisher": "tournews21.com",
-      "quote": "AI 에이전트는 발전량 손실 원인을 분석하고 설비 이상 징후를 찾아내며, 고장을 미리 예측하는 예지보전과 위험성 평가, 점검 일정 조정 등을 돕는다. 기상과 해수면 변화, 설비 상태, 발전 데이터를 종합해 운영 방안을...",
-      "section": "title+description",
-      "url": "https://www.tournews21.com/news/articleView.html?idxno=146410",
-      "published_at": 20261022,
-      "period": null,
-      "reliability": "medium",
-      "recency": "high",
-      "directness": "medium",
-      "evidence_nature": "business_signal",
-      "similarity": 0.5467
-    },
-    {
-      "citation_id": 4,
-      "source_id": "dart-20260323001123-5-13",
-      "source_type": "dart",
-      "title": "이삭엔지니어링 사업보고서(FY2025) 7. 기타 참고사항",
-      "publisher": "이삭엔지니어링 (DART 사업보고서)",
-      "quote": "장할 것으로 예상됩니다.\n반면 국내 초고압 전력기기 예방 진단 시장은 초기 형성 단계로 국내 시장 규모를 전망한 자료는 없습니다. 다만, 본 사업은 주로 154kv 변전소를 대상으로 이루어지고 있으며, 154kv 변전소의 대부분은 한국 전력이 운용, 관리하고 있습니다. 민수 시장으로는 소수의 대용량 전력 수용가인 삼성전자, SK Hynix, 포스코, 현대제철 등에서 생산 공장 내에 운용, 관리하는 변전소가 있습니다. 이에 전력기기 예방 진단 솔루션에 대한 최대 고객이 한국전력임을 감안하면 국내 시장은 한국전력의 해당 솔루션 투자와 일치할 것으로 예상됩니다.\n한국전력공사는 변전 설비 예방진단 중장기 운영 전략을 수립하고 단계별 구축을 아래와 같이 계획하였습니다.\n한국전력은 2018년부터 3년간 목표 대비42% 예방 진단 시스템 구축을 진행하였으며, 3년간 전체 프로젝트 규모는 1,018억원으로 국가산업단지, 수도권 부하밀집지역 등 중요 부하 공급 변전소를 대상으로 우선 구축하였습니다.\n따라서 당사는 한전에서 주도하는 시장의 규모를 연간 35개소 변전소, 개소 당 약 16억원, 총 투자 560억원으로 예상하고 있습니다.\n향후 한전 변전소 시장에서 민수, 해외 시장으로 확대, 신재생 에너지 플랜트 건설에 따른 변전소의 증가로 예방 진단 시스템의 수요는 증가할 것으로 예상하고 있습니다.",
-      "section": "II. 사업의 내용 > 7. 기타 참고사항 (본문, 표 제외)",
-      "url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260323001123",
-      "published_at": 20260323,
-      "period": "FY2025",
-      "reliability": "high",
-      "recency": "high",
-      "directness": "medium",
-      "evidence_nature": "company_claim",
-      "similarity": 0.4649
-    },
-    {
-      "citation_id": 5,
       "source_id": "news-cf14734f4b14",
       "source_type": "news",
       "title": "디플리, 소리로 로봇 고장 잡는다…다축 로봇 예지보전 공급",
@@ -215,7 +181,7 @@
       "similarity": 0.5603
     },
     {
-      "citation_id": 6,
+      "citation_id": 4,
       "source_id": "news-f6981f3c7bca",
       "source_type": "news",
       "title": "설비 고장만 보던 AI, 공장 전체 본다···원프레딕트 FIX서 'AI 네이티...",
@@ -232,7 +198,7 @@
       "similarity": 0.5562
     },
     {
-      "citation_id": 7,
+      "citation_id": 5,
       "source_id": "news-3c217c0f3e4d",
       "source_type": "news",
       "title": "AI가 장비 고장 먼저 잡는다...반도체 ‘자율형 팹’ 경쟁 본격화",
@@ -249,7 +215,7 @@
       "similarity": 0.5466
     },
     {
-      "citation_id": 8,
+      "citation_id": 6,
       "source_id": "news-a4b97e2c185b",
       "source_type": "news",
       "title": "디플리, 소리로 로봇 고장 징후 찾는다…부품 제조사에 '리슨 AI' 공급",
@@ -266,7 +232,7 @@
       "similarity": 0.5351
     },
     {
-      "citation_id": 9,
+      "citation_id": 7,
       "source_id": "news-cd15f97ec68b",
       "source_type": "news",
       "title": "오픈인, AI로 설비고장 10분 전 예측…'설비건전성 예측 플랫폼' 구축",
@@ -283,75 +249,41 @@
       "similarity": 0.5266
     },
     {
-      "citation_id": 10,
-      "source_id": "dart-20260323001123-5-11",
+      "citation_id": 8,
+      "source_id": "dart-20260318001550-2-0",
       "source_type": "dart",
-      "title": "이삭엔지니어링 사업보고서(FY2025) 7. 기타 참고사항",
-      "publisher": "이삭엔지니어링 (DART 사업보고서)",
-      "quote": "에서 생산 공장 내에 운용, 관리하는 변전소가 있으나, 그 규모는 한전이 운용하는 변전소에 비해 적은 것이 사실입니다. 이에 당사는 전력기기 예방 진단 솔루션 주 목표시장을 한국전력으로 설정하여 시장 진입을 준비중에 있으며, 향후 민수 시장 진입을 목표하고 있습니다.\n한국전력은 1997년 \"변압기 상태감시시스템 시범 적용\"을 시작으로 현재까지 매년 지속적인 기술개발과 도입을 추진하고 있으며, 2005년 GIS부분방전 진단 UHF센서 적용, 2015년 변전설비 예방진단 중장기 운영전략 수립, 2016년 예방진단 시스템 시범적용 등 변전소 설비에 대한 예방진단 솔루션 구축에 지속적인 투자를 하고 있습니다. 한국전력은 2022년 12월 현재 전국에 893개 변전소를 운영 중에 있으며, 매년 10여개 변전소가 신설되고 있습니다.\n전국 각 지역 전력공급의 시작점인 변전소에서 사고가 발생할 경우, 정전으로 인한 피해가 막대한 만큼 한국전력은 1997년 변압기 상태감시시스템 시범 적용, 2005년 GIS부분방전 진단 UHF센서 적용, 2015년 변전설비 예방진단 중장기 운영전략 수립, 2016년 예방진단 시스템 시범적용 등 변전소 설비에 대한 예방진단 솔루션 구축에 지속적인 투자를 하고 있습니다.\n다만 현재 초고압 전력 설비 예방 진단 솔루션 시장은 외산 예방 진단 솔루션이 도입되어 설치되고 있으며, 국산화 개발이 진행되고 있는 상황입니다\n당사는 다수의 센서 및 분석 장비를 자체 개발하여 현대일렉트릭㈜에 OEM 납품 중에 있으며 예방 진단 센서를 한국 전력 연구원, 현대일렉트릭㈜의 과제로 개발 완료하였습니다.",
-      "section": "II. 사업의 내용 > 7. 기타 참고사항 (본문, 표 제외)",
-      "url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260323001123",
-      "published_at": 20260323,
-      "period": "FY2025",
-      "reliability": "high",
-      "recency": "high",
-      "directness": "medium",
-      "evidence_nature": "company_claim",
-      "similarity": 0.39449999999999996
-    },
-    {
-      "citation_id": 11,
-      "source_id": "dart-20260323001123-2-0",
-      "source_type": "dart",
-      "title": "이삭엔지니어링 사업보고서(FY2025) 2. 주요 제품 및 서비스",
-      "publisher": "이삭엔지니어링 (DART 사업보고서)",
-      "quote": "당사는 스마트팩토리 요소기술의 결합에 따라 다음과 같이 사업부문을 구분하고 있습니다.\n2-1. 주요 제품등의 현황\n2-2. 주요 제품의 가격변동 추이당사의 제품은 일반 제조업의 경우와 달리 고객의 요구에 부합하는 솔루션을 구축하여야 함으로 판매가격이 표준화 되어 있지 않습니다. 따라서 제품의 가격변동 추이를 정확히 파악하여 기재하기는 어렵습니다.",
+      "title": "인텍플러스 사업보고서(FY2025) 2. 주요 제품 및 서비스",
+      "publisher": "인텍플러스 (DART 사업보고서)",
+      "quote": "가. 주요제품 현황\n나. 주요제품 가격변동 추이\n당사의 제품은 산업용 장비라는 특성 때문에 대부분 고객사의 Needs에 따라 제작되므로 가격은 해당제품의 고객사 요청 사양에 따라 차이가 있습니다. 아래 수치는 해당기간의 매출액을 수량(EA)으로 나눈 단순평균가격 입니다.",
       "section": "II. 사업의 내용 > 2. 주요 제품 및 서비스 (본문, 표 제외)",
-      "url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260323001123",
-      "published_at": 20260323,
+      "url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260318001550",
+      "published_at": 20260318,
       "period": "FY2025",
       "reliability": "high",
       "recency": "high",
       "directness": "medium",
       "evidence_nature": "company_claim",
-      "similarity": 0.46440000000000003
+      "similarity": 0.4507
     },
     {
-      "citation_id": 12,
-      "source_id": "news-13f035442612",
+      "citation_id": 9,
+      "source_id": "news-23becf685263",
       "source_type": "news",
-      "title": "유디엠텍, 중견 車 부품기업과 'AI 사출금형 예지보전 시스템 구축' 계약",
-      "publisher": "newsis.com",
-      "quote": "시스템 구축을 내용으로 한다. 이를 통해 제조 현장의 불시 정지를 방지하고 유지보수 비용을 절감할 전망이다. 유디엠텍의 예지보전 솔루션은 단순히 센서 데이터만을 분석하는 기존 방식과 달리 설비의 제어 로직(PLC)을...",
+      "title": "중기중앙회, 中企 제조 AI 전환에 협동조합 역할 제시",
+      "publisher": "pinpointnews.co.kr",
+      "quote": "특히 업종별 협동조합을 중심으로 기술 도입과 현장 검증을 지원하는 방안이 주요 과제로 떠올랐다.... 오민석 메가존㈜ 부사장은 로봇이나 솔루션 구매비 지원만으로는 현장 정착에 한계가 있다고 진단했다. 데이터...",
       "section": "title+description",
-      "url": "https://www.newsis.com/view/NISX20260414_0003590402",
-      "published_at": 20260414,
+      "url": "https://www.pinpointnews.co.kr/news/articleView.html?idxno=497095",
+      "published_at": 20261021,
       "period": null,
       "reliability": "medium",
       "recency": "high",
-      "directness": "high",
-      "evidence_nature": "purchase_signal",
-      "similarity": 0.493
+      "directness": "medium",
+      "evidence_nature": "business_signal",
+      "similarity": 0.5492
     },
     {
-      "citation_id": 13,
-      "source_id": "dart-20260323001123-3-0",
-      "source_type": "dart",
-      "title": "이삭엔지니어링 사업보고서(FY2025) 4. 매출 및 수주상황",
-      "publisher": "이삭엔지니어링 (DART 사업보고서)",
-      "quote": "4-1. 매출실적\n4-2. 판매경로\n4-2-1. 판매조직\n당사의 영업조직은 산업별 전략영업 23명, 마케팅 2명 총 25명으로 구성되어 있습니다. 전략영업은 산업별로 ①반도체/전자산업, ②철강/제지산업, ③EPC, ④Software사업, ⑤초고압 전력설비 예방 진단 사업, ⑥Part Biz 등 총 6개로 구성되어 있습니다. 주요 영업활동은 최초 기술상담에 따른 견적서 및 제안서 작성이 가장 큰 비중을 차지하고 있으며, 당사의 사업본부와 고객간의 가교역할을 통한 수주 증대의 역할을 담당하고 있습니다. 특히, 중점 영업대상 산업인 반도체와 철강사업에는 주요 사업장(반도체-경기도 이천, 철강-당진,광양)에 영업사원이 전진 배치되어 영업활동을 하고 있습니다.\n4-2-2. 판매경로\n4-3. 판매전략\n당사는 보유 자동화 솔루션을 최종 고객에게 직접 판매하고 있습니다. 최종 사용자는주로 SK Hynix, 현대제철, 동부제철, 포스코, 동국제강 등 반도체 및 철강 산업 대기업이며, 각 기업별 상황에 맞는 최적화된 솔루션을 구축하고 있습니다.\n당사는 사업부별로 주요 고객사와 시장 경쟁상황 등을 분석하여 판매전략을 수립하고 있으며, 당사 솔루션의 주요 영업 전략을 다음과 같이 수립하여 진행하고 있습니다.\n또한 당사는 고객에게 최적의 솔루션을 제공하고자 세계 유수의 기업들과 제휴를 맺고 있습니다. 이러한 제휴를 통해 세계 최고 수준의 솔루션과 자재 공급, 공동 영업 및 신뢰도 향상의 효과를 기대할 수 있습니다.\n당사와 전략적 제휴관계인 업체는 아래와 같습니다.4-4-1. 핵심 원자재 및 기술 도입 관련 제휴",
-      "section": "II. 사업의 내용 > 4. 매출 및 수주상황 (본문, 표 제외)",
-      "url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260323001123",
-      "published_at": 20260323,
-      "period": "FY2025",
-      "reliability": "high",
-      "recency": "high",
-      "directness": "high",
-      "evidence_nature": "purchase_signal",
-      "similarity": 0.40359999999999996
-    },
-    {
-      "citation_id": 14,
+      "citation_id": 10,
       "source_id": "news-82144ac96ae6",
       "source_type": "news",
       "title": "위존, AI 기반 예지보전 솔루션으로 산업 설비 혁신 가속",
@@ -385,30 +317,30 @@
         "topic": "경쟁·대체재",
         "statement": "경쟁·대체재 판단은 signal_only이며, 현재 확정 아이디어의 고객·문제 범위 안에서 해석해야 합니다.",
         "citation_ids": [
-          5,
-          7
+          3,
+          4
         ]
       },
       {
         "topic": "가격·수익모델",
         "statement": "가격·수익모델 판단은 unverified이며, 현재 확정 아이디어의 고객·문제 범위 안에서 해석해야 합니다.",
         "citation_ids": [
-          11
+          8
         ]
       },
       {
         "topic": "구매자",
         "statement": "구매자 판단은 signal_only이며, 현재 확정 아이디어의 고객·문제 범위 안에서 해석해야 합니다.",
         "citation_ids": [
-          1,
-          12
+          1
         ]
       },
       {
         "topic": "도입장벽",
         "statement": "도입장벽 판단은 signal_only이며, 현재 확정 아이디어의 고객·문제 범위 안에서 해석해야 합니다.",
         "citation_ids": [
-          14
+          9,
+          10
         ]
       }
     ],
@@ -439,50 +371,215 @@
     "user": "중소·중견 제조사 설비 보전 담당자",
     "buyer": "미확인",
     "budget_owner": "미확인",
-    "use_case": "설비 고장 예방 및 유지보수 비용 절감",
-    "current_alternative": "기존의 사후 정비 방식",
-    "switching_trigger": "설비 고장으로 인한 생산 중단 및 높은 유지보수 비용",
+    "use_case": "설비의 진동·전류 데이터를 분석하여 고장 가능성을 사전에 파악",
+    "current_alternative": "미확인",
+    "switching_trigger": "설비 돌발 고장으로 인한 생산 중단 및 높은 사후 정비 비용",
     "purchase_process": "미확인",
     "adoption_requirements": [],
-    "pricing_hypothesis": "센서 키트 판매와 월 구독료 기반",
+    "pricing_hypothesis": "센서 키트 판매와 월 구독료를 통해 수익을 창출할 수 있다.",
     "critical_assumptions": [],
     "citation_ids": [
       1,
       2,
-      3,
       4,
       5,
-      6,
-      7,
-      8,
-      9,
-      10,
-      11,
-      12,
-      13,
-      14
+      10
     ],
     "unknowns": [],
     "hypotheses": [
       {
         "question": "누가 구매를 승인하는가?",
         "hypothesis": "구매 승인자는 설비 보전 담당자일 가능성이 높다.",
-        "basis": "중소·중견 제조사에서 설비 보전 담당자가 예지보전 솔루션을 필요로 하고 있다는 점에서 추론됨. 그러나 구매 승인자의 구체적인 역할이나 권한에 대한 정보는 부족함.",
+        "basis": "중소·중견 제조사에서 설비 보전 담당자가 예지보전 솔루션을 필요로 하는 것으로 보인다.",
         "assumptions": [],
         "citation_ids": [],
-        "validation_target": "설비 보전 담당자 및 구매 결정자",
+        "validation_target": "설비 보전 담당자 및 구매 결정권자",
         "validation_method": "인터뷰·조달 문서 확인 등",
-        "success_criterion": "구매 승인자의 역할 및 권한에 대한 명확한 정보 확보",
+        "success_criterion": "구매 승인 프로세스 및 결정권자의 확인",
+        "numeric_value": null,
+        "numeric_unit": "",
+        "numeric_basis": ""
+      },
+      {
+        "question": "현재 대안은 무엇인가?",
+        "hypothesis": "현재 대안으로는 전통적인 정비 방식이나 다른 예지보전 솔루션이 있을 수 있다.",
+        "basis": "현재 대안에 대한 정보가 부족하다.",
+        "assumptions": [],
+        "citation_ids": [],
+        "validation_target": "경쟁사 제품 및 서비스 분석",
+        "validation_method": "시장 조사 및 경쟁사 분석",
+        "success_criterion": "경쟁사 제품 및 서비스의 확인",
         "numeric_value": null,
         "numeric_unit": "",
         "numeric_basis": ""
       }
     ]
   },
+  "search_trend": {
+    "status": "completed",
+    "keywords": [
+      "예지보전",
+      "예측정비"
+    ],
+    "reference_keywords": [
+      "스마트공장",
+      "스마트팩토리"
+    ],
+    "points": [
+      {
+        "period": "2024-10",
+        "theme_ratio": 5.57568,
+        "reference_ratio": 83.40302,
+        "relative_index": 6.69
+      },
+      {
+        "period": "2024-11",
+        "theme_ratio": 6.96031,
+        "reference_ratio": 85.64259,
+        "relative_index": 8.13
+      },
+      {
+        "period": "2024-12",
+        "theme_ratio": 4.46055,
+        "reference_ratio": 68.22785,
+        "relative_index": 6.54
+      },
+      {
+        "period": "2025-01",
+        "theme_ratio": 3.4848,
+        "reference_ratio": 61.23966,
+        "relative_index": 5.69
+      },
+      {
+        "period": "2025-02",
+        "theme_ratio": 4.54418,
+        "reference_ratio": 72.93002,
+        "relative_index": 6.23
+      },
+      {
+        "period": "2025-03",
+        "theme_ratio": 6.43992,
+        "reference_ratio": 100.0,
+        "relative_index": 6.44
+      },
+      {
+        "period": "2025-04",
+        "theme_ratio": 8.0197,
+        "reference_ratio": 82.90121,
+        "relative_index": 9.67
+      },
+      {
+        "period": "2025-05",
+        "theme_ratio": 6.00315,
+        "reference_ratio": 67.53089,
+        "relative_index": 8.89
+      },
+      {
+        "period": "2025-06",
+        "theme_ratio": 6.21689,
+        "reference_ratio": 66.82464,
+        "relative_index": 9.3
+      },
+      {
+        "period": "2025-07",
+        "theme_ratio": 7.28556,
+        "reference_ratio": 63.30266,
+        "relative_index": 11.51
+      },
+      {
+        "period": "2025-08",
+        "theme_ratio": 6.47709,
+        "reference_ratio": 55.05064,
+        "relative_index": 11.77
+      },
+      {
+        "period": "2025-09",
+        "theme_ratio": 8.20555,
+        "reference_ratio": 72.3074,
+        "relative_index": 11.35
+      },
+      {
+        "period": "2025-10",
+        "theme_ratio": 7.66657,
+        "reference_ratio": 61.43481,
+        "relative_index": 12.48
+      },
+      {
+        "period": "2025-11",
+        "theme_ratio": 9.54372,
+        "reference_ratio": 76.36836,
+        "relative_index": 12.5
+      },
+      {
+        "period": "2025-12",
+        "theme_ratio": 6.41204,
+        "reference_ratio": 67.71675,
+        "relative_index": 9.47
+      },
+      {
+        "period": "2026-01",
+        "theme_ratio": 5.89164,
+        "reference_ratio": 69.724,
+        "relative_index": 8.45
+      },
+      {
+        "period": "2026-02",
+        "theme_ratio": 4.82297,
+        "reference_ratio": 52.79249,
+        "relative_index": 9.14
+      },
+      {
+        "period": "2026-03",
+        "theme_ratio": 6.5886,
+        "reference_ratio": 71.15509,
+        "relative_index": 9.26
+      },
+      {
+        "period": "2026-04",
+        "theme_ratio": 7.7502,
+        "reference_ratio": 61.5742,
+        "relative_index": 12.59
+      },
+      {
+        "period": "2026-05",
+        "theme_ratio": 5.91952,
+        "reference_ratio": 67.28928,
+        "relative_index": 8.8
+      },
+      {
+        "period": "2026-06",
+        "theme_ratio": 7.29486,
+        "reference_ratio": 57.3088,
+        "relative_index": 12.73
+      },
+      {
+        "period": "2026-07",
+        "theme_ratio": 6.70012,
+        "reference_ratio": 43.30452,
+        "relative_index": 15.47
+      },
+      {
+        "period": "2026-08",
+        "theme_ratio": 5.61286,
+        "reference_ratio": 32.8501,
+        "relative_index": 17.09
+      },
+      {
+        "period": "2026-09",
+        "theme_ratio": 5.61286,
+        "reference_ratio": 34.21615,
+        "relative_index": 16.4
+      }
+    ],
+    "recent_change_pct": 35.5,
+    "direction": "rising",
+    "note": "네이버 검색 관심도를 기준 주제어 검색량 대비 지수로 나타낸 것이며, 시장 규모나 고객 수요의 근거가 아닙니다.",
+    "error_message": null
+  },
   "unknowns": [
     "가격 근거 미확인: 관련 자료가 1건뿐이라 확인할 수 없음 (최대 신호 수준)"
   ],
-  "search_scope": "네이버 뉴스 검색 API로 사전 수집한 스마트팩토리 기사 548건(제목·요약, 발행일 20240102~20261023) · DART 사업보고서 '사업의 내용' 발췌 48건(기업 2곳, FY2025), 아이디어 SF-03 연결 자료 범위",
+  "search_scope": "네이버 뉴스 검색 API로 사전 수집한 스마트팩토리 기사 1976건(제목·요약, 발행일 20240102~20261029) · DART 사업보고서 '사업의 내용' 발췌 348건(기업 14곳, FY2025), 전체 수집 범위 · 아이디어와 가까워 검색한 DART 기업: 이삭엔지니어링, 인텍플러스, 라온피플",
   "data_as_of": 20261029,
   "error_message": null
 }
