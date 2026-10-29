@@ -587,6 +587,25 @@ def _compact_patent_lines(patent: PatentReport) -> list[str]:
             "",
         ]
 
+    statistics = patent.indexed_statistics
+    related_statistics = patent.related_statistics
+    if statistics:
+        top_ipc = (
+            " · ".join(
+                f"{item.label} {item.count}건"
+                for item in statistics.ipc_distribution[:3]
+            )
+            or "IPC 분류 미확보"
+        )
+        related_count = (
+            f"관련 후보 {related_statistics.total_patents}건"
+            if related_statistics
+            else "관련 후보 분류 미확인"
+        )
+        lines.append(
+            f"- 색인 기술 동향: {_compact_text(top_ipc, 100)} · {related_count}"
+        )
+
     evidence_by_id = {item.citation_id: item for item in patent.evidence}
     precheck = patent.patentability_precheck
     if precheck:
@@ -766,6 +785,114 @@ def _compact_business_lines(review: BusinessReview) -> list[str]:
     return lines
 
 
+def _cross_analysis_lines(patent: PatentReport, market: MarketReport) -> list[str]:
+    """특허 비교 신호와 시장 근거 상태를 나란히 보여주는 짧은 교차표를 만든다."""
+    precheck = patent.patentability_precheck
+    patent_signal = (
+        PATENTABILITY_STATUS_LABELS[precheck.status]
+        if precheck and precheck.citation_ids
+        else "특허 비교 근거 부족"
+    )
+    market_review = market.opportunity_review
+    market_labels = {
+        "validated_demand": "직접 고객 검증 자료 있음",
+        "buyer_signals": "구매자 관련 공개 신호",
+        "indirect_signals": "간접 산업 신호",
+        "insufficient_evidence": "수요 근거 부족",
+    }
+    market_signal = (
+        market_labels.get(market_review.status, "시장 판단 자료 없음")
+        if market_review
+        else "시장 판단 자료 없음"
+    )
+    patent_refs = (
+        _compact_refs([f"P:{item}" for item in precheck.citation_ids])
+        if precheck and precheck.citation_ids
+        else "인용 근거 없음"
+    )
+    market_refs = (
+        _compact_refs(
+            [
+                f"M:{citation_id}"
+                for reason in market_review.reasons
+                for citation_id in reason.citation_ids
+            ]
+        )
+        if market_review
+        else "인용 근거 없음"
+    )
+    directions: list[tuple[str, str]] = []
+    if (
+        market.status in {"error", "no_results"}
+        or not market_review
+        or market_review.status == "insufficient_evidence"
+    ):
+        directions.append(("고객 인터뷰와 문제·지불의사 검증을 우선", market_refs))
+    elif precheck and precheck.citation_ids and precheck.status == "overlap_concern":
+        directions.append(
+            ("수요 신호와 별도로 청구항 대조 및 차별 구성 검토", patent_refs)
+        )
+    elif (
+        precheck and precheck.citation_ids and precheck.status == "potentially_distinct"
+    ):
+        directions.append(
+            (
+                "차별 구성은 예비 신호로 두고 고객 조건을 확인한 제한 파일럿 검토",
+                f"{patent_refs} · {market_refs}",
+            )
+        )
+    else:
+        directions.append(
+            ("특허 범위 확인과 고객 검증을 병행", f"{patent_refs} · {market_refs}")
+        )
+
+    for dimension in market.dimensions:
+        has_citations = any(claim.citation_ids for claim in dimension.claims)
+        if (
+            dimension.dimension == "adoption_barrier"
+            and dimension.verdict != "unverified"
+            and has_citations
+        ):
+            refs = _compact_refs(
+                [f"M:{cid}" for claim in dimension.claims for cid in claim.citation_ids]
+            )
+            directions.append(
+                ("도입 비용·설치 장벽을 확인하고 저비용 MVP 가설 검증", refs)
+            )
+            break
+    for dimension in market.dimensions:
+        has_citations = any(claim.citation_ids for claim in dimension.claims)
+        if (
+            dimension.dimension == "competition"
+            and dimension.verdict != "unverified"
+            and has_citations
+        ):
+            refs = _compact_refs(
+                [f"M:{cid}" for claim in dimension.claims for cid in claim.citation_ids]
+            )
+            directions.append(
+                ("경쟁·대체재 근거를 확인해 목표 고객과 가치 제안 재검토", refs)
+            )
+            break
+    rows = [
+        "| 특허 분석 | 시장 분석 | 종합 검토 방향 |",
+        "|---|---|---|",
+        f"| {_compact_text(patent_signal, 70)} ({patent_refs}) | {_compact_text(market_signal, 70)} ({market_refs}) | {_compact_text(directions[0][0], 100)} |",
+    ]
+    for direction, references in directions[1:]:
+        rows.append(
+            f"| 특허와 별도 확인 | {_compact_text(references, 45)} | {_compact_text(direction, 100)} |"
+        )
+    return [
+        "## 특허와 시장 근거의 교차 분석",
+        "",
+        *rows,
+        "",
+        "특허 검색 결과만으로 사업성을 판단하지 않습니다. 시장 근거가 부족한 결론은 검증 가설로 남깁니다.",
+        "",
+    ]
+
+
 def integrated_report_markdown(
     title: str,
     questions: list[dict],
@@ -814,6 +941,7 @@ def integrated_report_markdown(
     lines += [
         *_compact_patent_lines(patent),
         *_compact_market_lines(market),
+        *_cross_analysis_lines(patent, market),
         "> 상세 비교표·원문 인용·시장 분석은 특허 및 시장성 단계의 상세 근거에서 확인할 수 있습니다.",
     ]
     return "\n".join(lines) + "\n"

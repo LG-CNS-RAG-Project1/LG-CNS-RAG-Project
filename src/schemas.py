@@ -126,6 +126,8 @@ class PatentDocument(BaseModel):
     registration_number: str | None = None
 
     applicant: str | None = None
+    ipc_codes: list[str] = Field(default_factory=list)
+    cpc_codes: list[str] = Field(default_factory=list)
     application_date: str | None = None
     publication_date: str | None = None
     public_date: str | None = None
@@ -167,6 +169,8 @@ class PatentEvidence(BaseModel):
     application_date: str | None = None
     publication_date: str | None = None
     registration_number: str | None = None
+    ipc_codes: list[str] = Field(default_factory=list)
+    cpc_codes: list[str] = Field(default_factory=list)
     collected_at: str | None = None
     claim_number: int | None = Field(default=None, ge=1)
     claim_type: Literal["independent", "dependent", "unclassified"] | None = None
@@ -296,6 +300,25 @@ class PatentDesignAnalysis(BaseModel):
     limitations: list[str] = Field(default_factory=list)
 
 
+class PatentStatisticItem(BaseModel):
+    label: str
+    count: int = Field(ge=0)
+
+
+class PatentTrendStatistics(BaseModel):
+    scope: str
+    total_patents: int = Field(ge=0)
+    ipc_coverage: int = Field(default=0, ge=0)
+    cpc_coverage: int = Field(default=0, ge=0)
+    application_date_coverage: int = Field(default=0, ge=0)
+    applicant_coverage: int = Field(default=0, ge=0)
+    ipc_distribution: list[PatentStatisticItem] = Field(default_factory=list)
+    cpc_distribution: list[PatentStatisticItem] = Field(default_factory=list)
+    yearly_applications: list[PatentStatisticItem] = Field(default_factory=list)
+    top_applicants: list[PatentStatisticItem] = Field(default_factory=list)
+    data_as_of: str | None = None
+
+
 # 8. 최종 특허 RAG 결과
 class PatentReport(BaseModel):
     status: Literal["completed", "partial", "no_results", "error"]
@@ -305,6 +328,8 @@ class PatentReport(BaseModel):
     patent_reviews: list[PatentDocumentReview] = Field(default_factory=list)
     patentability_precheck: PatentabilityPrecheck | None = None
     design_analysis: PatentDesignAnalysis | None = None
+    indexed_statistics: PatentTrendStatistics | None = None
+    related_statistics: PatentTrendStatistics | None = None
     unknowns: list[str] = Field(default_factory=list)
 
     search_scope: str
