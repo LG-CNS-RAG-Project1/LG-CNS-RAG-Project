@@ -577,8 +577,6 @@ def _compact_patent_lines(patent: PatentReport) -> list[str]:
     lines = ["## 특허 핵심", ""]
     if patent.status == "error":
         return lines + [f"- 조사 실패: {_compact_text(patent.error_message, 120)}", ""]
-    if patent.status == "partial" and patent.error_message:
-        lines.append(f"- 부분 완료: {_compact_text(patent.error_message, 120)}")
     if patent.status == "partial":
         lines.append("- 원문 근거는 확보했지만 비교 분석 일부가 완료되지 않았습니다.")
         if patent.error_message:
