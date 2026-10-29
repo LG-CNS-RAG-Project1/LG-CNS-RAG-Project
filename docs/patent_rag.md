@@ -54,6 +54,8 @@ python -m pytest tests/test_patent_claims.py tests/test_patent_analysis_service.
 
 라벨 검토 전 `python -m evaluation.patent_preflight`로 질의와 후보 파일의 케이스별 분포, URL·중복·라벨 상태와 SHA-256을 검사할 수 있다. 이 사전 점검은 외부 API를 호출하지 않는다.
 
+`python -m evaluation.patent_review_context`는 기존 로컬 특허 처리 파일에서 초록·청구항·서지 정보를 후보와 연결해 Git 제외 경로에 JSONL로 만든다. 출원번호·발명의 명칭·후보 청구항 번호의 일치 통계를 출력하며 외부 API를 호출하지 않는다. 이 확인 결과는 기술적 관련도의 자동 판정이 아니다.
+
 ```bash
 python -m evaluation.patent_labeling export
 # evaluation/labels/patent_candidates.csv에서 relevant 열을 1(관련) 또는 0(비관련)으로 채운다.
