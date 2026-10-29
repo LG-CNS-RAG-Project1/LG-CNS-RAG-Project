@@ -467,6 +467,7 @@ def analyze_patents(
                             registration_number=meta.get("registration_number"),
                             application_date=meta.get("application_date"),
                             publication_date=meta.get("publication_date"),
+                            collected_at=meta.get("collected_at"),
                             claim_number=claim.claim_number,
                             claim_type=claim.claim_type,
                             depends_on=claim.depends_on,
@@ -493,6 +494,7 @@ def analyze_patents(
                         registration_number=meta.get("registration_number"),
                         application_date=meta.get("application_date"),
                         publication_date=meta.get("publication_date"),
+                        collected_at=meta.get("collected_at"),
                         claim_type="unclassified",
                         version_id=meta.get("version_id") or version_id,
                     )
@@ -521,6 +523,7 @@ def analyze_patents(
                         registration_number=meta.get("registration_number"),
                         application_date=meta.get("application_date"),
                         publication_date=meta.get("publication_date"),
+                        collected_at=meta.get("collected_at"),
                         version_id=version_id,
                     )
                 )

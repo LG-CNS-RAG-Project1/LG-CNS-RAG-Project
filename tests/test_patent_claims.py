@@ -150,6 +150,25 @@ def test_claims_become_individual_index_chunks_with_location_metadata():
     assert metadata["claim_number"] == 2
 
 
+def test_patent_collection_timestamp_is_preserved_in_search_metadata():
+    collected_at = "2026-10-29T01:02:03+00:00"
+    patent = to_patent_document(
+        {
+            "application_number": "1020230030067",
+            "title": "비전 검사 장치",
+            "abstract": "카메라 영상을 처리한다.",
+            "collected_at": collected_at,
+        }
+    )
+    chunk = build_chunks([patent])[0]
+
+    assert patent.collected_at == collected_at
+    assert (
+        patent_to_search_document(chunk, patent).metadata["collected_at"]
+        == collected_at
+    )
+
+
 def test_unparsed_claim_text_is_not_invented_as_a_numbered_claim():
     assert structure_claims("청구항 번호가 없는 임의 텍스트") == []
 

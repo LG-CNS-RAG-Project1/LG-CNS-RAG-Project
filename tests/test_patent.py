@@ -253,6 +253,31 @@ def test_to_patent_document_without_application_number():
         to_patent_document({"title": "출원번호 없는 특허"})
 
 
+def test_collect_to_jsonl_records_utc_collection_time(tmp_path):
+    from datetime import datetime, timezone
+
+    from src.ingestion.patent_processor import collect_to_jsonl
+
+    output_path = tmp_path / "patent_docs.jsonl"
+    records = [
+        {
+            "application_number": "P-TIMESTAMP",
+            "title": "수집 시각 확인 특허",
+            "abstract": "센서 기반 검사 장치.",
+        }
+    ]
+    with (
+        patch("src.ingestion.patent_processor.collect_patents", return_value=records),
+        patch("src.ingestion.patent_processor.OUTPUT_PATH", output_path),
+    ):
+        collected, total = collect_to_jsonl("검사 장치")
+
+    saved = PatentDocument.model_validate_json(output_path.read_text(encoding="utf-8"))
+    timestamp = datetime.fromisoformat(saved.collected_at)
+    assert (collected, total) == (1, 1)
+    assert timestamp.tzinfo == timezone.utc
+
+
 def test_build_chunks():
     patent = PatentDocument(
         patent_id="1020240001234",
