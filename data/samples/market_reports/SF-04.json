@@ -13,16 +13,11 @@
           ]
         },
         {
-          "statement": "FEMS 구축을 통해 공장 내 에너지 흐름을 한눈에 확인할 수 있는 수요가 확인되었다.",
+          "statement": "FEMS 구축을 통해 공장 내 에너지 흐름을 한눈에 확인할 수 있는 수요가 존재한다.",
           "claim_type": "fact",
           "citation_ids": [
             2
           ]
-        },
-        {
-          "statement": "전력기기 수요가 증가하는 추세로, FEMS와 같은 시스템의 필요성이 높아질 가능성이 있다.",
-          "claim_type": "ai_hypothesis",
-          "citation_ids": []
         }
       ],
       "next_check": null,
@@ -35,23 +30,18 @@
       "verdict": "signal_only",
       "claims": [
         {
-          "statement": "FEMS를 구축해 설비별 전력 사용량을 모니터링하는 경쟁 솔루션이 존재한다.",
+          "statement": "FEMS를 통해 설비별 전력 사용량을 실시간으로 계측하고 데이터를 수집하는 경쟁 솔루션이 존재한다.",
           "claim_type": "fact",
           "citation_ids": [
-            1
+            2
           ]
         },
         {
-          "statement": "다양한 기업들이 FEMS를 통해 에너지 효율화를 추진하고 있다.",
+          "statement": "다양한 기업들이 FEMS를 구축하여 에너지 효율화를 추진하고 있다.",
           "claim_type": "fact",
           "citation_ids": [
             6
           ]
-        },
-        {
-          "statement": "FEMS와 유사한 시스템이 여러 기업에서 개발되고 있어 경쟁이 치열할 가능성이 있다.",
-          "claim_type": "ai_hypothesis",
-          "citation_ids": []
         }
       ],
       "next_check": null,
@@ -64,45 +54,42 @@
       "verdict": "signal_only",
       "claims": [
         {
-          "statement": "FEMS 리스는 고객사가 초기 설비 투자비를 한꺼번에 부담하지 않도록 설계되었다.",
+          "statement": "FEMS 리스 사업은 고객사가 초기 설비 투자비를 부담 없이 사용할 수 있도록 하고 있다.",
           "claim_type": "fact",
           "citation_ids": [
             3
           ]
         },
         {
-          "statement": "FEMS의 가격 모델이 초기 투자비 부담을 줄이는 방향으로 설정될 가능성이 있다.",
-          "claim_type": "ai_hypothesis",
-          "citation_ids": []
+          "statement": "FEMS는 공장의 전력 사용을 실시간으로 모니터링하고 분석·제어해 에너지 효율을 높이는 시스템이다.",
+          "claim_type": "fact",
+          "citation_ids": [
+            9
+          ]
         }
       ],
-      "next_check": "FEMS 공급사 2곳의 견적으로 실제 가격대 확인",
-      "evidence_status": "limited",
-      "relevant_count": 1,
-      "limitation": "관련 자료가 1건뿐이라 확인할 수 없음 (최대 신호 수준)"
+      "next_check": null,
+      "evidence_status": "sufficient",
+      "relevant_count": 3,
+      "limitation": "관련 자료 3건이 모두 사업 신호·기업 주장·추정치라 확인할 수 없음"
     },
     {
       "dimension": "buyer",
       "verdict": "signal_only",
       "claims": [
         {
-          "statement": "FEMS는 공장에 적합한 에너지 효율화 설비를 적용하는 데 사용된다.",
+          "statement": "LS일렉트릭은 에너지통합관리시스템(FEMS)을 구축하여 제조업 현장의 에너지 절감과 비용 최적화를 지원하고 있다.",
           "claim_type": "fact",
           "citation_ids": [
-            1
+            10
           ]
         },
         {
-          "statement": "LS일렉트릭의 FEMS는 에너지 사용 패턴을 분석해 제조업 현장의 에너지 절감과 비용 최적화를 지원한다.",
+          "statement": "HD건설기계는 공정별 에너지 소비량을 확인할 수 있는 FEMS를 운영 중이다.",
           "claim_type": "fact",
           "citation_ids": [
-            9
+            4
           ]
-        },
-        {
-          "statement": "중소·중견 제조사가 FEMS를 도입할 가능성이 높다.",
-          "claim_type": "ai_hypothesis",
-          "citation_ids": []
         }
       ],
       "next_check": null,
@@ -115,29 +102,24 @@
       "verdict": "signal_only",
       "claims": [
         {
-          "statement": "FEMS 구축을 통해 설비별 전력 사용량을 실시간으로 모니터링할 수 있어 도입 장벽이 낮아질 가능성이 있다.",
+          "statement": "FEMS 구축을 통해 설비별 전력 사용량을 실시간으로 모니터링하는 것이 도입 장벽을 낮출 수 있다.",
           "claim_type": "fact",
           "citation_ids": [
             1
           ]
         },
         {
-          "statement": "FEMS 리스 사업은 초기 투자비 부담 없이 도입할 수 있는 장점이 있다.",
+          "statement": "FEMS는 초기 투자비 부담 없이 사용할 수 있는 옵션을 제공하여 도입 장벽을 완화하고 있다.",
           "claim_type": "fact",
           "citation_ids": [
             3
           ]
-        },
-        {
-          "statement": "FEMS 도입에 대한 초기 투자비 부담이 여전히 도입 장벽으로 작용할 가능성이 있다.",
-          "claim_type": "ai_hypothesis",
-          "citation_ids": []
         }
       ],
       "next_check": null,
       "evidence_status": "sufficient",
-      "relevant_count": 6,
-      "limitation": "관련 자료 6건이 모두 사업 신호·기업 주장·추정치라 확인할 수 없음"
+      "relevant_count": 5,
+      "limitation": "관련 자료 5건이 모두 사업 신호·기업 주장·추정치라 확인할 수 없음"
     }
   ],
   "evidence": [
@@ -279,6 +261,23 @@
     },
     {
       "citation_id": 9,
+      "source_id": "news-2c404475e72c",
+      "source_type": "news",
+      "title": "LS일렉트릭, 에너지 30% 절감 '스마트 무선 조명' 사업 박차",
+      "publisher": "news1.kr",
+      "quote": "한편 FEMS는 공장에너지관리시스템(Factory Energy Management System)의 약자로 공장의 전력 사용을 실시간으로 모니터링·분석·제어해 에너지 효율을 높이는 시스템이다. FEMS 리스 사업은 기업이 초기 투자비 부담 없이...",
+      "section": "title+description",
+      "url": "https://www.news1.kr/industry/general-industry/6178449",
+      "published_at": 20260527,
+      "period": null,
+      "reliability": "medium",
+      "recency": "high",
+      "directness": "medium",
+      "evidence_nature": "business_signal",
+      "similarity": 0.5922000000000001
+    },
+    {
+      "citation_id": 10,
       "source_id": "news-c6a8911b71b4",
       "source_type": "news",
       "title": "LS ELECTRIC, 에이스침대 공장에 태양광 연계 FEMS 구축…RE100 이행 지원",
@@ -292,10 +291,10 @@
       "recency": "high",
       "directness": "high",
       "evidence_nature": "purchase_signal",
-      "similarity": 0.5533
+      "similarity": 0.5534
     },
     {
-      "citation_id": 10,
+      "citation_id": 11,
       "source_id": "dart-20260323001123-5-11",
       "source_type": "dart",
       "title": "이삭엔지니어링 사업보고서(FY2025) 7. 기타 참고사항",
@@ -310,23 +309,6 @@
       "directness": "medium",
       "evidence_nature": "company_claim",
       "similarity": 0.4716
-    },
-    {
-      "citation_id": 11,
-      "source_id": "news-2c404475e72c",
-      "source_type": "news",
-      "title": "LS일렉트릭, 에너지 30% 절감 '스마트 무선 조명' 사업 박차",
-      "publisher": "news1.kr",
-      "quote": "한편 FEMS는 공장에너지관리시스템(Factory Energy Management System)의 약자로 공장의 전력 사용을 실시간으로 모니터링·분석·제어해 에너지 효율을 높이는 시스템이다. FEMS 리스 사업은 기업이 초기 투자비 부담 없이...",
-      "section": "title+description",
-      "url": "https://www.news1.kr/industry/general-industry/6178449",
-      "published_at": 20260527,
-      "period": null,
-      "reliability": "medium",
-      "recency": "high",
-      "directness": "medium",
-      "evidence_nature": "business_signal",
-      "similarity": 0.6012
     }
   ],
   "opportunity_review": {
@@ -346,7 +328,7 @@
         "topic": "경쟁·대체재",
         "statement": "경쟁·대체재 판단은 signal_only이며, 현재 확정 아이디어의 고객·문제 범위 안에서 해석해야 합니다.",
         "citation_ids": [
-          1,
+          2,
           6
         ]
       },
@@ -354,15 +336,16 @@
         "topic": "가격·수익모델",
         "statement": "가격·수익모델 판단은 signal_only이며, 현재 확정 아이디어의 고객·문제 범위 안에서 해석해야 합니다.",
         "citation_ids": [
-          3
+          3,
+          9
         ]
       },
       {
         "topic": "구매자",
         "statement": "구매자 판단은 signal_only이며, 현재 확정 아이디어의 고객·문제 범위 안에서 해석해야 합니다.",
         "citation_ids": [
-          1,
-          9
+          10,
+          4
         ]
       },
       {
@@ -397,45 +380,195 @@
     ]
   },
   "commercial_analysis": {
-    "user": "전력 사용량이 많은 중소·중견 제조사",
+    "user": "미확인",
     "buyer": "미확인",
     "budget_owner": "미확인",
-    "use_case": "공정별 전력 사용량을 모니터링하고 낭비를 찾아 에너지 절감 조치를 제안",
+    "use_case": "미확인",
     "current_alternative": "미확인",
-    "switching_trigger": "전기요금 상승에 따른 에너지 비용 절감 필요성",
+    "switching_trigger": "미확인",
     "purchase_process": "미확인",
     "adoption_requirements": [],
-    "pricing_hypothesis": "계측 장비 설치비와 분석 소프트웨어 구독료를 통해 수익을 창출할 수 있을 것으로 예상",
+    "pricing_hypothesis": "미확인",
     "critical_assumptions": [],
-    "citation_ids": [
-      1,
-      2,
-      3,
-      4,
-      5,
-      6,
-      7,
-      8,
-      9,
-      10,
-      11
-    ],
+    "citation_ids": [],
     "unknowns": [],
     "hypotheses": [
       {
         "question": "누가 구매를 승인하는가?",
-        "hypothesis": "구매 결정자는 공장 운영 관리자 또는 에너지 관리 담당자일 가능성이 높다.",
-        "basis": "입력 아이디어에서 중소·중견 제조사 고객을 대상으로 하고 있으며, 에너지 관리 시스템의 필요성이 강조되고 있다.",
+        "hypothesis": "구매 승인자는 공장 관리자 또는 에너지 관리 담당자일 가능성이 높다.",
+        "basis": "입력 아이디어에서 전력 사용량을 관리하는 시스템을 제안하고 있으며, 일반적으로 이러한 시스템은 공장 운영 및 에너지 관리에 책임이 있는 인물이 승인할 것이다. 그러나 구체적인 정보는 제공되지 않았다.",
         "assumptions": [],
         "citation_ids": [],
-        "validation_target": "공장 운영 관리자 또는 에너지 관리 담당자",
+        "validation_target": "공장 관리자 또는 에너지 관리 담당자",
         "validation_method": "인터뷰·조달 문서 확인 등",
-        "success_criterion": "구매 승인 프로세스에 대한 명확한 이해",
+        "success_criterion": "구매 승인자의 역할 및 책임에 대한 명확한 확인",
         "numeric_value": null,
         "numeric_unit": "",
         "numeric_basis": ""
       }
     ]
+  },
+  "search_trend": {
+    "status": "completed",
+    "keywords": [
+      "에너지관리시스템",
+      "FEMS",
+      "공장에너지관리시스템"
+    ],
+    "reference_keywords": [
+      "스마트공장",
+      "스마트팩토리"
+    ],
+    "points": [
+      {
+        "period": "2024-10",
+        "theme_ratio": 8.99544,
+        "reference_ratio": 83.40302,
+        "relative_index": 10.79
+      },
+      {
+        "period": "2024-11",
+        "theme_ratio": 9.75745,
+        "reference_ratio": 85.64259,
+        "relative_index": 11.39
+      },
+      {
+        "period": "2024-12",
+        "theme_ratio": 8.0104,
+        "reference_ratio": 68.22785,
+        "relative_index": 11.74
+      },
+      {
+        "period": "2025-01",
+        "theme_ratio": 6.14255,
+        "reference_ratio": 61.23966,
+        "relative_index": 10.03
+      },
+      {
+        "period": "2025-02",
+        "theme_ratio": 8.6609,
+        "reference_ratio": 72.93002,
+        "relative_index": 11.88
+      },
+      {
+        "period": "2025-03",
+        "theme_ratio": 9.03261,
+        "reference_ratio": 100.0,
+        "relative_index": 9.03
+      },
+      {
+        "period": "2025-04",
+        "theme_ratio": 8.22414,
+        "reference_ratio": 82.90121,
+        "relative_index": 9.92
+      },
+      {
+        "period": "2025-05",
+        "theme_ratio": 5.52922,
+        "reference_ratio": 67.53089,
+        "relative_index": 8.19
+      },
+      {
+        "period": "2025-06",
+        "theme_ratio": 5.78013,
+        "reference_ratio": 66.82464,
+        "relative_index": 8.65
+      },
+      {
+        "period": "2025-07",
+        "theme_ratio": 6.05891,
+        "reference_ratio": 63.30266,
+        "relative_index": 9.57
+      },
+      {
+        "period": "2025-08",
+        "theme_ratio": 4.56277,
+        "reference_ratio": 55.05064,
+        "relative_index": 8.29
+      },
+      {
+        "period": "2025-09",
+        "theme_ratio": 5.28761,
+        "reference_ratio": 72.3074,
+        "relative_index": 7.31
+      },
+      {
+        "period": "2025-10",
+        "theme_ratio": 3.30824,
+        "reference_ratio": 61.43481,
+        "relative_index": 5.38
+      },
+      {
+        "period": "2025-11",
+        "theme_ratio": 4.92519,
+        "reference_ratio": 76.36836,
+        "relative_index": 6.45
+      },
+      {
+        "period": "2025-12",
+        "theme_ratio": 4.5163,
+        "reference_ratio": 67.71675,
+        "relative_index": 6.67
+      },
+      {
+        "period": "2026-01",
+        "theme_ratio": 5.1668,
+        "reference_ratio": 69.724,
+        "relative_index": 7.41
+      },
+      {
+        "period": "2026-02",
+        "theme_ratio": 3.52197,
+        "reference_ratio": 52.79249,
+        "relative_index": 6.67
+      },
+      {
+        "period": "2026-03",
+        "theme_ratio": 4.75792,
+        "reference_ratio": 71.15509,
+        "relative_index": 6.69
+      },
+      {
+        "period": "2026-04",
+        "theme_ratio": 5.01812,
+        "reference_ratio": 61.5742,
+        "relative_index": 8.15
+      },
+      {
+        "period": "2026-05",
+        "theme_ratio": 3.13167,
+        "reference_ratio": 67.28928,
+        "relative_index": 4.65
+      },
+      {
+        "period": "2026-06",
+        "theme_ratio": 3.21531,
+        "reference_ratio": 57.3088,
+        "relative_index": 5.61
+      },
+      {
+        "period": "2026-07",
+        "theme_ratio": 3.59632,
+        "reference_ratio": 43.30452,
+        "relative_index": 8.3
+      },
+      {
+        "period": "2026-08",
+        "theme_ratio": 2.74138,
+        "reference_ratio": 32.8501,
+        "relative_index": 8.35
+      },
+      {
+        "period": "2026-09",
+        "theme_ratio": 1.9329,
+        "reference_ratio": 34.21615,
+        "relative_index": 5.65
+      }
+    ],
+    "recent_change_pct": 3.7,
+    "direction": "stable",
+    "note": "네이버 검색 관심도를 기준 주제어 검색량 대비 지수로 나타낸 것이며, 시장 규모나 고객 수요의 근거가 아닙니다.",
+    "error_message": null
   },
   "unknowns": [],
   "search_scope": "네이버 뉴스 검색 API로 사전 수집한 스마트팩토리 기사 1976건(제목·요약, 발행일 20240102~20261029) · DART 사업보고서 '사업의 내용' 발췌 348건(기업 14곳, FY2025), 전체 수집 범위 · 아이디어와 가까워 검색한 DART 기업: 그리드위즈, 이삭엔지니어링, 엘에스일렉트릭",

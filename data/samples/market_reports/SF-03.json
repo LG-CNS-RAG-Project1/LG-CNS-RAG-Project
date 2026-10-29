@@ -13,7 +13,7 @@
           ]
         },
         {
-          "statement": "LG전자가 발전소 운영 과정에서 예지보전 기술을 검토하고 있다.",
+          "statement": "LG전자가 발전소 운영에서 예지보전 기술을 검토하고 있다.",
           "claim_type": "fact",
           "citation_ids": [
             2
@@ -42,14 +42,14 @@
           ]
         },
         {
-          "statement": "삼성전자가 AI 자율 공장 구축을 위해 예지보전 기술을 활용하고 있다.",
+          "statement": "여러 기업들이 예지보전 기술을 활용하여 경쟁하고 있다.",
           "claim_type": "fact",
           "citation_ids": [
-            5
+            4
           ]
         },
         {
-          "statement": "예지보전 시장에서 다양한 기술이 경쟁하고 있을 가능성이 있다.",
+          "statement": "예지보전 시장에서 경쟁이 치열해질 가능성이 있다.",
           "claim_type": "ai_hypothesis",
           "citation_ids": []
         }
@@ -88,7 +88,7 @@
           ]
         },
         {
-          "statement": "중소·중견 제조사들이 예지보전 기술을 필요로 할 가능성이 있다.",
+          "statement": "중소·중견 제조사들이 예지보전 솔루션을 필요로 할 가능성이 있다.",
           "claim_type": "ai_hypothesis",
           "citation_ids": []
         }
@@ -110,7 +110,7 @@
           ]
         },
         {
-          "statement": "데이터 전문가가 없어도 시스템을 활용할 수 있는 가능성이 있다.",
+          "statement": "데이터 전문가가 없어도 시스템을 활용할 수 있는 방안이 필요하다.",
           "claim_type": "fact",
           "citation_ids": [
             10
@@ -318,7 +318,7 @@
         "statement": "경쟁·대체재 판단은 signal_only이며, 현재 확정 아이디어의 고객·문제 범위 안에서 해석해야 합니다.",
         "citation_ids": [
           3,
-          5
+          4
         ]
       },
       {
@@ -376,7 +376,7 @@
     "switching_trigger": "설비 돌발 고장으로 인한 생산 중단 및 높은 사후 정비 비용",
     "purchase_process": "미확인",
     "adoption_requirements": [],
-    "pricing_hypothesis": "센서 키트 판매와 월 구독료 모델",
+    "pricing_hypothesis": "센서 키트 판매와 월 구독료를 통해 수익을 창출할 수 있다.",
     "critical_assumptions": [],
     "citation_ids": [
       1,
@@ -408,12 +408,173 @@
         "citation_ids": [],
         "validation_target": "경쟁사 제품 및 서비스 분석",
         "validation_method": "시장 조사 및 경쟁사 분석",
-        "success_criterion": "경쟁사 제품의 기능 및 가격 비교",
+        "success_criterion": "경쟁사 제품 및 서비스의 확인",
         "numeric_value": null,
         "numeric_unit": "",
         "numeric_basis": ""
       }
     ]
+  },
+  "search_trend": {
+    "status": "completed",
+    "keywords": [
+      "예지보전",
+      "예측정비"
+    ],
+    "reference_keywords": [
+      "스마트공장",
+      "스마트팩토리"
+    ],
+    "points": [
+      {
+        "period": "2024-10",
+        "theme_ratio": 5.57568,
+        "reference_ratio": 83.40302,
+        "relative_index": 6.69
+      },
+      {
+        "period": "2024-11",
+        "theme_ratio": 6.96031,
+        "reference_ratio": 85.64259,
+        "relative_index": 8.13
+      },
+      {
+        "period": "2024-12",
+        "theme_ratio": 4.46055,
+        "reference_ratio": 68.22785,
+        "relative_index": 6.54
+      },
+      {
+        "period": "2025-01",
+        "theme_ratio": 3.4848,
+        "reference_ratio": 61.23966,
+        "relative_index": 5.69
+      },
+      {
+        "period": "2025-02",
+        "theme_ratio": 4.54418,
+        "reference_ratio": 72.93002,
+        "relative_index": 6.23
+      },
+      {
+        "period": "2025-03",
+        "theme_ratio": 6.43992,
+        "reference_ratio": 100.0,
+        "relative_index": 6.44
+      },
+      {
+        "period": "2025-04",
+        "theme_ratio": 8.0197,
+        "reference_ratio": 82.90121,
+        "relative_index": 9.67
+      },
+      {
+        "period": "2025-05",
+        "theme_ratio": 6.00315,
+        "reference_ratio": 67.53089,
+        "relative_index": 8.89
+      },
+      {
+        "period": "2025-06",
+        "theme_ratio": 6.21689,
+        "reference_ratio": 66.82464,
+        "relative_index": 9.3
+      },
+      {
+        "period": "2025-07",
+        "theme_ratio": 7.28556,
+        "reference_ratio": 63.30266,
+        "relative_index": 11.51
+      },
+      {
+        "period": "2025-08",
+        "theme_ratio": 6.47709,
+        "reference_ratio": 55.05064,
+        "relative_index": 11.77
+      },
+      {
+        "period": "2025-09",
+        "theme_ratio": 8.20555,
+        "reference_ratio": 72.3074,
+        "relative_index": 11.35
+      },
+      {
+        "period": "2025-10",
+        "theme_ratio": 7.66657,
+        "reference_ratio": 61.43481,
+        "relative_index": 12.48
+      },
+      {
+        "period": "2025-11",
+        "theme_ratio": 9.54372,
+        "reference_ratio": 76.36836,
+        "relative_index": 12.5
+      },
+      {
+        "period": "2025-12",
+        "theme_ratio": 6.41204,
+        "reference_ratio": 67.71675,
+        "relative_index": 9.47
+      },
+      {
+        "period": "2026-01",
+        "theme_ratio": 5.89164,
+        "reference_ratio": 69.724,
+        "relative_index": 8.45
+      },
+      {
+        "period": "2026-02",
+        "theme_ratio": 4.82297,
+        "reference_ratio": 52.79249,
+        "relative_index": 9.14
+      },
+      {
+        "period": "2026-03",
+        "theme_ratio": 6.5886,
+        "reference_ratio": 71.15509,
+        "relative_index": 9.26
+      },
+      {
+        "period": "2026-04",
+        "theme_ratio": 7.7502,
+        "reference_ratio": 61.5742,
+        "relative_index": 12.59
+      },
+      {
+        "period": "2026-05",
+        "theme_ratio": 5.91952,
+        "reference_ratio": 67.28928,
+        "relative_index": 8.8
+      },
+      {
+        "period": "2026-06",
+        "theme_ratio": 7.29486,
+        "reference_ratio": 57.3088,
+        "relative_index": 12.73
+      },
+      {
+        "period": "2026-07",
+        "theme_ratio": 6.70012,
+        "reference_ratio": 43.30452,
+        "relative_index": 15.47
+      },
+      {
+        "period": "2026-08",
+        "theme_ratio": 5.61286,
+        "reference_ratio": 32.8501,
+        "relative_index": 17.09
+      },
+      {
+        "period": "2026-09",
+        "theme_ratio": 5.61286,
+        "reference_ratio": 34.21615,
+        "relative_index": 16.4
+      }
+    ],
+    "recent_change_pct": 35.5,
+    "direction": "rising",
+    "note": "네이버 검색 관심도를 기준 주제어 검색량 대비 지수로 나타낸 것이며, 시장 규모나 고객 수요의 근거가 아닙니다.",
+    "error_message": null
   },
   "unknowns": [
     "가격 근거 미확인: 관련 자료가 1건뿐이라 확인할 수 없음 (최대 신호 수준)"
