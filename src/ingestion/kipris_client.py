@@ -59,6 +59,13 @@ def _get_text(element, tag):
     return value.strip() if value else None
 
 
+def _classification_codes(value: str | None) -> list[str]:
+    """KIPRIS 분류 코드 목록을 분리하면서 원본 코드 표기는 유지한다."""
+    return list(
+        dict.fromkeys(item.strip() for item in (value or "").split("|") if item.strip())
+    )
+
+
 def _local_name(tag: str) -> str:
     return tag.rsplit("}", 1)[-1].lower()
 
@@ -179,6 +186,13 @@ def search_patents(
             "title": _get_text(item, "InventionName"),
             "abstract": _get_text(item, "Abstract"),
             "applicant": _get_text(item, "Applicant"),
+            "ipc_codes": _classification_codes(
+                _get_text(item, "InternationalpatentclassificationNumber")
+            ),
+            "cpc_codes": _classification_codes(
+                _get_text(item, "CooperativepatentclassificationNumber")
+                or _get_text(item, "CPCNumber")
+            ),
             "application_date": _get_text(item, "ApplicationDate"),
             "publication_date": _get_text(item, "OpeningDate")
             or _get_text(item, "OpenDate"),

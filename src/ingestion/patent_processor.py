@@ -117,6 +117,8 @@ def to_patent_document(raw: dict) -> PatentDocument:
         claim_items=claim_items,
         claim_version_id=version_id,
         applicant=raw.get("applicant"),
+        ipc_codes=raw.get("ipc_codes") or [],
+        cpc_codes=raw.get("cpc_codes") or [],
         application_date=raw.get("application_date"),
         publication_date=raw.get("publication_date"),
         public_date=raw.get("public_date"),
@@ -254,7 +256,12 @@ def save_documents(
                     "technology_area_ids": sorted(
                         set(previous.technology_area_ids)
                         | set(patent.technology_area_ids)
-                    )
+                    ),
+                    "ipc_codes": patent.ipc_codes or previous.ipc_codes,
+                    "cpc_codes": patent.cpc_codes or previous.cpc_codes,
+                    "applicant": patent.applicant or previous.applicant,
+                    "application_date": patent.application_date
+                    or previous.application_date,
                 }
             )
         merged[patent.patent_id] = patent
