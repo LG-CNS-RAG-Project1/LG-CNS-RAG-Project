@@ -1800,7 +1800,11 @@ def review_navigation(number, label, column, key, *, icon=None):
     if column.button(
         label,
         key=key,
-        type="primary" if s.stage == number else "secondary",
+        type=(
+            "primary"
+            if s.stage == number or (key == "nav_2" and s.stage == 3)
+            else "secondary"
+        ),
         disabled=not can_visit(number)
         or (active_job is not None and s.stage == number),
         width="stretch",
