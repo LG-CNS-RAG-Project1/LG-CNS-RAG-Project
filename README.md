@@ -167,6 +167,21 @@ python -m src.ingestion.market_processor                                        
 - NAVER API HUB 뉴스 검색 API의 제목·요약·링크·발행일만 `data/market/raw/news_{keyword_id}_{수집일}.json`에 저장한다.
 - 정제 단계는 같은 URL 기사를 합치고, 제목 유사도 0.8 초과·발행일 3일 이내 기사를 같은 `dup_group`으로 묶어 대표 1건만 `data/market/processed/market_docs.jsonl`에 저장한다.
 
+### DART 사업보고서 수집·정제
+
+시장 근거는 뉴스와 DART 사업보고서를 함께 쓴다. 두 자료가 모두 있어야 시장 색인을 만든다.
+
+```bash
+python -m src.ingestion.dart_client                         # 설정 기업의 최신 사업보고서 원문 수집
+python -m src.ingestion.dart_processor                      # '사업의 내용' 본문 → 청크 MarketDocument
+```
+
+- 기업 목록·관련 아이디어·선정 이유는 `configs/dart_companies.yaml`에서 관리한다. `DART_API_KEY`가 필요하다.
+- 기업마다 최신 사업연도 사업보고서를 고르고, 기재정정 보고서가 있으면 가장 늦게 접수된 것을 쓴다. 원문 XML과 메타데이터는 `data/market/raw/dart/`에 저장한다.
+- 정제 단계는 'II. 사업의 내용'의 사업의 개요·주요 제품·매출 및 수주상황·주요계약·기타 참고사항 본문(표 제외)을 800자·150자 겹침 청크로 나눠 `data/market/processed/dart_docs.jsonl`에 저장한다. 표 구조 보존 추출은 별도 작업이다(#29).
+- 기업은 `idea_terms`의 아이디어 용어가 '사업의 내용'에 나올 때만 그 아이디어에 연결하고, 용어별 등장 횟수를 `data/market/processed/dart_selection.json`에 남긴다.
+- 매출 및 수주상황(판매 경로·주요 매출처)은 구매 신호, 그 밖의 섹션은 기업 주장으로 저장한다. 공시일(`published_at`)과 보고 대상 사업연도(`period`, 예: `FY2025`)를 구분한다.
+
 ### 특허 문서 수집·분야별 사전 색인
 
 ```bash
@@ -186,11 +201,12 @@ python -m src.ingestion.patent_processor --field-id SF-05 --limit 20 --include-c
 ### 시장 근거 색인·검색
 
 ```bash
-python -m src.retrieval.market_search build                                     # market_docs.jsonl 색인
+python -m src.retrieval.market_search build                                     # market_docs.jsonl·dart_docs.jsonl 색인
 python -m src.retrieval.market_search search "협동로봇 도입 확대" --idea-id SF-01   # 질의 검색
 ```
 
-- `data/market/processed/market_docs.jsonl`을 `text-embedding-3-small`로 임베딩해 `data/market/chroma/`의 `news` 컬렉션(cosine)에 저장한다. `OPENAI_API_KEY`가 필요하다.
+- `data/market/processed/market_docs.jsonl`(뉴스)과 `dart_docs.jsonl`(DART)을 `text-embedding-3-small`로 임베딩해 `data/market/chroma/`의 `news` 컬렉션(cosine)에 저장한다. 출처는 `source_type`(`news`·`dart`)으로 구분한다. `OPENAI_API_KEY`가 필요하다.
+- `search_by_dimensions`는 차원마다 뉴스 5건과 DART 2건을 따로 검색해 합친다. 통합 실행 준비 점검은 시장 색인에 DART가 없으면 사유를 표시한다.
 - 이미 색인된 문서는 다시 임베딩하지 않으며, `--rebuild`로 전체를 다시 임베딩한다.
 - 에이전트 툴은 `search_market`(질의 1건)과 `search_by_dimensions`(수요·경쟁·가격·구매자·도입장벽 차원별 질의)이며, 같은 `dup_group` 결과는 1건만 반환한다.
 - 차원별 질의는 목표 세그먼트·고객·문제·현재 대안·기술·차별점·수익모델을 해당 차원에 맞게 결합한다. 빈 항목은 질의에서 빠진다.
@@ -210,7 +226,7 @@ python -m src.services.market_service --idea-id SF-01 --out data/samples/market_
 ```
 
 - `run_market_research(MarketSearchRequest)`가 차원별 검색 → 관련성 판정 → 시장 분석 생성·인용 검증을 실행해 `MarketReport`(`src/schemas.py`)를 반환한다. 분석 규칙은 `prompts/market_analysis.md`, 생성·검증은 `src/generation/market_analysis.py`에서 관리한다. `OPENAI_API_KEY`가 필요하다.
-- 사실 문장은 인용 근거(`evidence`의 `citation_id`)가 있어야 하고, 인용 기사·아이디어 입력에 없는 숫자가 있거나 수치에 기준 연도가 없으면 재생성(최대 2회)하거나 해당 문장을 제거한다. 판정은 차원별 충분성 상태와 근거 성격으로 제한하고(근거 1건이거나 사업 신호뿐이면 최대 '신호만 확인'), 기대는 아이디어 항목이 모름이면 미확인으로 둔다(가격 ← 수익모델, 구매자 ← 고객). 뉴스의 근거 성격(구매 신호·간접 수요·사업 신호 등)은 관련성 판정과 같은 호출에서 정하고, 차원마다 확인되지 않은 이유(`limitation`)를 붙인다.
+- 사실 문장은 인용 근거(`evidence`의 `citation_id`)가 있어야 하고, 인용 기사·아이디어 입력에 없는 숫자가 있거나 수치에 기준 연도가 없으면 재생성(최대 2회)하거나 해당 문장을 제거한다. 판정은 차원별 충분성 상태와 근거 성격으로 제한하고(근거 1건이거나 사업 신호뿐이면 최대 '신호만 확인'), 기대는 아이디어 항목이 모름이면 미확인으로 둔다(가격 ← 수익모델, 구매자 ← 고객). 뉴스의 근거 성격(구매 신호·간접 수요·사업 신호 등)은 관련성 판정과 같은 호출에서 정하고, 차원마다 확인되지 않은 이유(`limitation`)를 붙인다. DART 사업보고서를 인용한 문장은 "기업 사업보고서(FY연도)에 따르면"처럼 공시 기업을 밝힌다.
 - `data/samples/market_reports/`에는 SF-01~SF-05 실행 결과 예시가 있다. 로컬 수집 뉴스 기준이므로 다시 수집하면 내용이 달라진다.
 
 ```bash

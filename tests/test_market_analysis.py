@@ -1,4 +1,4 @@
-﻿import json
+import json
 
 import pytest
 
@@ -6,6 +6,7 @@ from src.generation import market_analysis
 from src.generation.market_analysis import (
     DEFAULT_CHECKS,
     allowed_verdicts,
+    attribute_dart,
     build_evidence,
     build_report,
     claim_errors,
@@ -214,6 +215,28 @@ def test_claim_errors():
         "claim_type": "user_claim",
     }
     assert claim_errors(hedged, {2}, by_id, "제조사 구매자") == []
+    dart = by_id[2].model_copy(
+        update={
+            "source_type": "dart",
+            "publisher": "가상로봇 (DART 사업보고서)",
+            "period": "FY2025",
+            "quote": "2차전지 업체들이 외관 검사 장비를 도입하고 있습니다.",
+        }
+    )
+    unnamed = fact("2차전지 업체들이 외관 검사 장비를 도입하고 있다", 2)
+    named = fact(
+        "가상로봇은 2차전지 업체들이 외관 검사 장비를 도입하고 있다고 밝혔다", 2
+    )
+    assert "공시 기업(가상로봇)" in claim_errors(unnamed, {2}, {2: dart}, "")[0]
+    assert claim_errors(named, {2}, {2: dart}, "") == []
+    attributed = attribute_dart(unnamed, {2: dart})
+    assert attributed["statement"] == (
+        "가상로봇 사업보고서(FY2025)에 따르면 "
+        "2차전지 업체들이 외관 검사 장비를 도입하고 있다"
+    )
+    assert claim_errors(attributed, {2}, {2: dart}, "") == []
+    assert attribute_dart(named, {2: dart}) == named
+    assert attribute_dart(fact("뉴스 문장", 1), by_id) == fact("뉴스 문장", 1)
 
 
 def test_generate_retries_with_errors_then_passes():
@@ -273,7 +296,7 @@ def test_build_report_completed():
     assert len(report.evidence) == 2
     assert "아이디어 차별점 항목 미입력" in report.unknowns
     assert (
-        "구매자 근거 미확인: 검색된 기사 1건이 모두 이 차원과 무관하다고 판정됨"
+        "구매자 근거 미확인: 검색된 자료 1건이 모두 이 차원과 무관하다고 판정됨"
         in report.unknowns
     )
     assert (
@@ -283,7 +306,7 @@ def test_build_report_completed():
     assert by_dim["demand"].evidence_status == "sufficient"
     assert by_dim["demand"].relevant_count == 2
     assert "고객 검증 자료" in by_dim["demand"].limitation
-    assert by_dim["price"].limitation.startswith("관련 기사가 1건뿐")
+    assert by_dim["price"].limitation.startswith("관련 자료가 1건뿐")
     assert by_dim["adoption_barrier"].limitation.startswith("관련성 판정이 실패")
 
 
@@ -359,8 +382,8 @@ def test_limitation_for_signal_only_pool():
         ),
     )
     by_dim = {d.dimension: d for d in report.dimensions}
-    assert by_dim["competition"].limitation.startswith("관련 기사 2건이 모두 사업 신호")
-    assert by_dim["buyer"].limitation.startswith("검색 범위에 이 차원의 기사가 없음")
+    assert by_dim["competition"].limitation.startswith("관련 자료 2건이 모두 사업 신호")
+    assert by_dim["buyer"].limitation.startswith("검색 범위에 이 차원의 자료가 없음")
 
 
 def test_build_report_no_results_and_error():
@@ -376,6 +399,31 @@ def test_build_report_no_results_and_error():
     assert report.status == "error"
     assert "API 오류" in report.error_message
     assert len(report.evidence) == 2
+
+
+def test_search_scope_reports_dart_per_idea():
+    class Collection:
+        def get(self, include):
+            news = {"source_type": "news", "published_at": 20260101}
+            dart = {
+                "source_type": "dart",
+                "publisher": "가상로봇 (DART 사업보고서)",
+                "period": "FY2025",
+                "published_at": 20260318,
+            }
+            return {
+                "metadatas": [
+                    {**news, "idea_SF-01": True, "idea_SF-04": True},
+                    {**dart, "idea_SF-01": True},
+                ]
+            }
+
+    sf01 = market_service.search_scope(Collection(), "SF-01")
+    sf04 = market_service.search_scope(Collection(), "SF-04")
+
+    assert "발췌 1건(기업 1곳, FY2025)" in sf01
+    assert "이 아이디어 용어가 나오는 기업 없음" in sf04
+    assert "기사 1건" in sf04
 
 
 def test_run_market_research_reports_search_error(monkeypatch):

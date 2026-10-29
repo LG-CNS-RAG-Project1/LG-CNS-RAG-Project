@@ -290,6 +290,14 @@ def open_collection(name: str, local_dir: Path, client=None):
     return collection, IndexState(location=location, collection=name, count=count)
 
 
+def _market_dart_count(collection) -> int:
+    """시장 컬렉션의 DART 사업보고서 청크 수. 확인하지 못하면 0."""
+    try:
+        return len(collection.get(where={"source_type": "dart"}, include=[])["ids"])
+    except Exception:
+        return 0
+
+
 def _market_collected_at(collection) -> int | None:
     try:
         metadatas = collection.get(include=["metadatas"])["metadatas"] or []
@@ -333,6 +341,11 @@ def prepare_sources(
     market_runnable = keys["OPENAI_API_KEY"] and bool(market_state.count)
     if not market_state.count:
         reasons.append(f"시장 색인 준비 필요({market_state.reason or '문서 0건'})")
+    elif not _market_dart_count(market):
+        reasons.append(
+            "시장 색인에 DART 사업보고서 없음: dart_client·dart_processor 실행 후 "
+            "market_search build 필요"
+        )
     total_local_patents = patent_state.count or 0
     selected_area_count = (
         patent_state.area_counts.get(technology_area_id, 0)

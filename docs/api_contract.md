@@ -49,7 +49,7 @@
 | `dimensions[].next_check` | 다음 검증 과제 (`unverified`이면 항상 있음) |
 | `dimensions[].evidence_status` · `relevant_count` | 검색·관련성 판정 상태(`sufficient`·`limited`·`insufficient`·`no_results`·`error`)와 관련 판정된 기사 수 |
 | `dimensions[].limitation` | `confirmed`가 아닌 이유 (아이디어 항목 공백·검색 결과 없음·판정 실패·관련 기사 없음·1건뿐·사업 신호만·수요는 고객 검증 자료 필요). `confirmed`이면 `null` |
-| `evidence` | 인용 근거. `citation_id`·제목·출처·`quote`(기사 요약)·`url`·`published_at`(YYYYMMDD)·`evidence_nature`·신뢰도·최신성·직접성 |
+| `evidence` | 인용 근거. `citation_id`·`source_type`(`news` 뉴스 · `dart` DART 사업보고서)·제목·출처·`quote`(기사 요약 또는 사업보고서 본문 발췌, 최대 800자)·`url`·`published_at`(YYYYMMDD, 뉴스 발행일·DART 공시일)·`period`(DART 보고 대상 사업연도, 예: `FY2025`)·`section`(DART 원문 위치)·`evidence_nature`·신뢰도·최신성·직접성 |
 | `unknowns` | 미확인 사항 (비어 있는 아이디어 항목, 미확인 차원) |
 | `opportunity_review` | 목표 세그먼트·가치 가설·직접 수요 상태·시장 근거와 인용·미확인 사항·다음 고객 검증 행동 |
 | `search_scope` · `data_as_of` | 검색 범위 설명, 분석 기준일(YYYYMMDD) |

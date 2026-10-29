@@ -123,9 +123,10 @@ IdeaLens/
 │   │   ├── __init__.py
 │   │   ├── kipris_client.py     # 특허 API 호출
 │   │   ├── patent_processor.py  # 특허 정제·청킹
-│   │   ├── dart_client.py       # DART 공시 수집
+│   │   ├── dart_client.py       # DART 사업보고서 수집
+│   │   ├── dart_processor.py    # DART '사업의 내용' 정제·청킹
 │   │   ├── news_client.py       # 네이버 뉴스 수집
-│   │   └── market_processor.py  # 시장 자료 정제
+│   │   └── market_processor.py  # 시장 뉴스 정제
 │   │
 │   ├── retrieval/
 │   │   ├── __init__.py

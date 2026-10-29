@@ -1,7 +1,7 @@
 """관련성 판정된 시장 검색 결과로 차원별 시장 분석(MarketReport)을 생성하고 인용을 검증한다.
 
 흐름:
-    build_evidence(assessed)        관련 판정된 기사만 인용 근거(MarketEvidence)로 정리, 기사당 citation_id 1개
+    build_evidence(assessed)        관련 판정된 자료(뉴스·DART 청크)만 인용 근거(MarketEvidence)로 정리, 자료당 citation_id 1개
     allowed_verdicts(...)           충분성 상태로 쓸 수 있는 판정 제한
     generate_dimensions(...)        LLM 생성 → validate_dimension 검증 → 실패 시 오류를 알려 최대 MAX_RETRIES회 재생성
     finalize_dimension(...)         재생성 후에도 실패한 문장은 제거하고, 판정을 유지할 수 없으면 낮춤
@@ -266,10 +266,12 @@ def dimension_inputs(
                 "evidence": [
                     {
                         "citation_id": e.citation_id,
+                        "source_type": e.source_type,
                         "title": e.title,
                         "quote": e.quote,
                         "publisher": e.publisher,
                         "published_at": e.published_at,
+                        **({"period": e.period} if e.period else {}),
                         "evidence_nature": e.evidence_nature,
                     }
                     for e in cited
@@ -305,6 +307,36 @@ def content_overlap(statement: str, sources: str) -> float:
     return len(statement_tokens & source_tokens) / len(statement_tokens)
 
 
+def disclosing_company(evidence: MarketEvidence) -> str | None:
+    """DART 근거면 공시 기업명(publisher의 '(DART 사업보고서)' 앞부분), 그 밖은 None."""
+    if evidence.source_type != "dart":
+        return None
+    return evidence.publisher.split(" (DART")[0].strip() or None
+
+
+def attribute_dart(claim: dict, by_id: dict[int, MarketEvidence]) -> dict:
+    """DART를 인용했는데 공시 기업명이 없는 문장 앞에 '기업 사업보고서(FY연도)에 따르면'을 붙인다.
+
+    기업 주장이 시장 전체의 사실처럼 읽히지 않게 한다. 인용 ID가 근거에 없으면 그대로 둔다.
+    """
+    statement = str(claim.get("statement", "")).strip()
+    cited = [
+        by_id[i]
+        for i in claim.get("citation_ids") or []
+        if isinstance(i, int) and i in by_id
+    ]
+    reports = dict.fromkeys(
+        (disclosing_company(e), e.period) for e in cited if disclosing_company(e)
+    )
+    missing = [(c, p) for c, p in reports if c not in statement]
+    if not statement or not missing:
+        return claim
+    prefix = "·".join(
+        f"{c} 사업보고서({p})" if p else f"{c} 사업보고서" for c, p in missing
+    )
+    return {**claim, "statement": f"{prefix}에 따르면 {statement}"}
+
+
 def claim_errors(
     claim: dict, allowed_ids: set[int], by_id: dict[int, MarketEvidence], idea_text: str
 ) -> list[str]:
@@ -313,6 +345,7 @@ def claim_errors(
     - 문장 유형이 fact·user_claim·ai_hypothesis 중 하나인지
     - fact는 인용이 1개 이상이고 모두 이 차원의 근거 ID인지
     - user_claim·ai_hypothesis가 "확인되었다"처럼 확인된 사실로 쓰이지 않았는지
+    - DART 사업보고서를 인용하면 문장에 공시 기업명이 있는지 (기업 주장을 시장 사실로 쓰지 않게)
     - 문장의 숫자가 인용 기사(제목·요약·발행연도)나 아이디어 입력에 있는지
     - fact 문장에 단위가 붙은 수치(METRIC_PATTERN)가 있으면 4자리 기준 연도도 있는지
     """
@@ -332,12 +365,22 @@ def claim_errors(
     unknown = [i for i in citation_ids if i not in allowed_ids]
     if unknown:
         return [f"이 차원의 근거에 없는 인용 {unknown}: {statement}"]
+    unnamed = [
+        company
+        for company in dict.fromkeys(disclosing_company(by_id[i]) for i in citation_ids)
+        if company and company not in statement
+    ]
+    if unnamed:
+        return [
+            f"DART 공시 내용은 공시 기업({', '.join(unnamed)})을 주어로 써야 함: {statement}"
+        ]
 
     sources = (
         idea_text
         + " "
         + " ".join(
             f"{by_id[i].title} {by_id[i].quote} {publication_date_text(by_id[i])}"
+            f" {by_id[i].period or ''}"
             for i in citation_ids
         )
     )
@@ -367,7 +410,10 @@ def validate_dimension(
     verdict = raw.get("verdict")
     if verdict not in allowed:
         errors.append(f"허용되지 않은 판정 {verdict} (허용: {allowed})")
-    claims = raw.get("claims") or []
+    claims = [
+        attribute_dart(c, by_id) if isinstance(c, dict) else c
+        for c in raw.get("claims") or []
+    ]
     if len(claims) > MAX_CLAIMS:
         errors.append(f"문장 {len(claims)}개 (최대 {MAX_CLAIMS}개)")
     for claim in claims:
@@ -404,13 +450,16 @@ def finalize_dimension(
     default_check(없으면 DEFAULT_CHECKS)를 쓴다.
     """
     raw = raw or {}
+    attributed = [
+        attribute_dart(c, by_id) for c in raw.get("claims") or [] if isinstance(c, dict)
+    ]
     claims = [
         {
             "statement": " ".join(str(c["statement"]).split()),
             "claim_type": c["claim_type"],
             "citation_ids": list(dict.fromkeys(c.get("citation_ids") or [])),
         }
-        for c in (raw.get("claims") or [])
+        for c in attributed
         if not claim_errors(c, allowed_ids, by_id, idea_text)
     ]
     hypotheses = [c for c in claims if c["claim_type"] == "ai_hypothesis"]
@@ -522,17 +571,17 @@ def limitation_text(
     status = (result or {}).get("status", "no_results")
     searched = len((result or {}).get("hits", []))
     if status == "no_results":
-        return "검색 범위에 이 차원의 기사가 없음 (수요·시장이 없다는 뜻은 아님)"
+        return "검색 범위에 이 차원의 자료가 없음 (수요·시장이 없다는 뜻은 아님)"
     if status == "error":
         return "관련성 판정이 실패해 근거로 쓰지 않음"
     if status == "insufficient":
-        return f"검색된 기사 {searched}건이 모두 이 차원과 무관하다고 판정됨"
+        return f"검색된 자료 {searched}건이 모두 이 차원과 무관하다고 판정됨"
     if status == "limited":
-        return "관련 기사가 1건뿐이라 확인할 수 없음 (최대 신호 수준)"
+        return "관련 자료가 1건뿐이라 확인할 수 없음 (최대 신호 수준)"
     if dimension == "demand":
-        return "수요 확인에는 고객 검증 자료(인터뷰·설문·파일럿·LOI)가 필요하며 기사로는 확인할 수 없음"
+        return "수요 확인에는 고객 검증 자료(인터뷰·설문·파일럿·LOI)가 필요하며 기사·공시로는 확인할 수 없음"
     if all(e.evidence_nature in SIGNAL_ONLY_NATURES for e in pool):
-        return f"관련 기사 {len(pool)}건이 모두 사업 신호·기업 주장·추정치라 확인할 수 없음"
+        return f"관련 자료 {len(pool)}건이 모두 사업 신호·기업 주장·추정치라 확인할 수 없음"
     return "구매·조사 근거가 있으나 분석 단계에서 판단에 충분하지 않다고 봄"
 
 
