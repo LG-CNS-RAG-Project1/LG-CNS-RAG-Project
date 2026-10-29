@@ -9,6 +9,7 @@ def _market_source_location(evidence) -> str:
         "dart": "DART 사업보고서",
         "news": "뉴스",
         "customer_validation": "고객 검증 자료",
+        "procurement": "나라장터 입찰공고",
         "research": "조사 자료",
     }
     parts = [source_labels.get(evidence.source_type, evidence.source_type)]

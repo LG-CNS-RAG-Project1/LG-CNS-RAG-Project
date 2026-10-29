@@ -37,7 +37,7 @@
 │   ├── processed/           # 정규화 문서와 검색 청크
 │   ├── indexes/             # 검색 색인
 │   ├── patents/             # 특허 원문·정제 데이터·Chroma 벡터 저장소
-│   ├── market/              # 시장 자료 원문·정제 데이터·검색 관심도 캐시
+│   ├── market/              # 시장 자료 원문·정제 데이터·검색 관심도·조달 공고 캐시
 │   └── samples/             # 시연용 샘플 아이디어·시장 결과(MarketReport) 예시
 ├── deploy/                  # 공용 Chroma·HTTPS 중계·개인 키 인증 배포 설정
 ├── docs/                    # 기획·설계·개발 환경 문서, 프로젝트 목표·PR 분석 안내서(review-baseline.md)
@@ -231,6 +231,8 @@ python -m src.services.market_service --idea-id SF-01 --out data/samples/market_
 python -m src.services.market_service --idea-id SF-01 --idea-filter                           # 아이디어 연결 자료로 한정
 python -m src.services.market_service --idea-id SF-01 --no-trend                              # 검색 관심도 흐름 생략
 python -m src.services.market_service --idea-id SF-01 --no-network                            # 키워드 동시 출현 네트워크 생략
+python -m src.services.market_service --idea-id SF-01 --no-procurement                        # 공공 조달 입찰공고 생략
+python -m src.ingestion.procurement_client 협동로봇 202609                                     # 주제어 한 달 입찰공고 직접 조회
 python -m src.ingestion.trend_client 예지보전 예측정비                                         # 주제어 검색 관심도 직접 조회
 ```
 
@@ -238,15 +240,16 @@ python -m src.ingestion.trend_client 예지보전 예측정비                  
 
 - `run_market_research(MarketSearchRequest)`가 차원별 검색 → 관련성 판정 → 시장 분석 생성·인용 검증을 실행해 `MarketReport`(`src/schemas.py`)를 반환한다. 분석 규칙은 `prompts/market_analysis.md`, 생성·검증은 `src/generation/market_analysis.py`에서 관리한다. `OPENAI_API_KEY`가 필요하다.
 - 사실 문장은 인용 근거(`evidence`의 `citation_id`)가 있어야 하고, 인용 기사·아이디어 입력에 없는 숫자가 있거나 수치에 기준 연도가 없으면 재생성(최대 2회)하거나 해당 문장을 제거한다. 판정은 차원별 충분성 상태와 근거 성격으로 제한하고(근거 1건이거나 사업 신호뿐이면 최대 '신호만 확인'), 기대는 아이디어 항목이 모름이면 미확인으로 둔다(가격 ← 수익모델, 구매자 ← 고객). 뉴스의 근거 성격(구매 신호·간접 수요·사업 신호 등)은 관련성 판정과 같은 호출에서 정하고, 차원마다 확인되지 않은 이유(`limitation`)를 붙인다. DART 사업보고서를 인용한 문장은 "기업 사업보고서(FY연도)에 따르면"처럼 공시 기업을 밝힌다.
-- 검색 관심도 흐름(`MarketReport.search_trend`): 아이디어 5개 항목에서 LLM이 검색 주제어(대표 범주 + 같은 범주의 다른 이름, 최대 3개, `prompts/market_trend_terms.md`)를 고르고, 네이버 검색어 트렌드로 기준 주제어(스마트공장·스마트팩토리)와 함께 최근 24개월 월별 검색량을 조회한다(`src/ingestion/trend_client.py`, 설정 `configs/search_trend.yaml`). 월별 '주제어 ÷ 기준 × 100' 지수의 최근 6개월 평균을 직전 6개월과 비교해 ±10% 이상이면 상승·둔화, 그 사이는 유지로 표시한다. 평균 검색량이 적으면 LLM이 함께 고른 상위 범주 주제어로 한 번 더 조회하고, 그래도 적으면 판단하지 않는다(`src/services/market_trend.py`). 시장 화면에 월별 선 그래프로 나오며, 검색량이 적어 판단하지 않은 경우에도 월별 지수를 참고용 안내와 함께 그린다(`frontend/market_trend_view.py`). 차원별 판정에는 쓰지 않는다. 화면 통합 실행과 CLI에서만 붙고, 같은 요청은 그날 `data/market/trends/`에 캐시한다. `NAVER_TREND_CLIENT_ID`·`NAVER_TREND_CLIENT_SECRET`이 필요하다.
-- 키워드 동시 출현 네트워크(`MarketReport.keyword_network`): 아이디어 전체 문장과 가까운 뉴스의 제목·요약에서 `kiwipiepy`로 명사를 뽑고(붙어 쓴 명사는 합침), 명사가 많이 겹치는 같은 소식의 재게재를 뺀 100건으로 전체 뉴스보다 이 아이디어 주변에서 두드러진 명사 30개(lift ≥ 1.5, 기사 수 × ln(lift) 순)를 같은 기사에 함께 나온 기사 수로 잇는다. `networkx`로 키워드 묶음(가중 모듈성)과 배치를 계산해 시장 화면에 연결망 그림과 묶음 목록으로 보여 준다(`src/services/market_network.py`, 설정 `configs/keyword_network.yaml`, 화면 `frontend/market_network_view.py`). LLM 없이 질의 임베딩 1회만 쓰며, 함께 나온 것은 같은 기사에서 다뤄졌다는 뜻이라 차원별 판정에는 쓰지 않는다. 화면 통합 실행과 CLI에서만 붙는다.
+- 검색 관심도 흐름(`MarketReport.search_trend`): 아이디어 5개 항목에서 LLM이 검색 주제어(대표 범주 + 같은 범주의 다른 이름, 최대 3개, `prompts/market_trend_terms.md`)를 고르고, 네이버 검색어 트렌드로 기준 주제어(스마트공장·스마트팩토리)와 함께 최근 24개월 월별 검색량을 조회한다(`src/ingestion/trend_client.py`, 설정 `configs/search_trend.yaml`). 월별 '주제어 ÷ 기준 × 100' 지수의 최근 6개월 평균을 직전 6개월과 비교해 ±10% 이상이면 상승·둔화, 그 사이는 유지로 표시하고, 평균 검색량이 적으면 판단하지 않는다(`src/services/market_trend.py`). 시장 화면에 월별 선 그래프로 나오며(`frontend/market_trend_view.py`), 차원별 판정에는 쓰지 않는다. 화면 통합 실행과 CLI에서만 붙고, 같은 요청은 그날 `data/market/trends/`에 캐시한다. `NAVER_TREND_CLIENT_ID`·`NAVER_TREND_CLIENT_SECRET`이 필요하다.
+- 키워드 동시 출현 네트워크(`MarketReport.keyword_network`): 아이디어 전체 문장과 가까운 뉴스 100건의 제목·요약에서 `kiwipiepy`로 명사를 뽑고(붙어 쓴 명사는 합침), 전체 뉴스보다 이 아이디어 주변에서 두드러진 명사 30개(lift ≥ 1.5, 기사 수 × ln(lift) 순)를 같은 기사에 함께 나온 기사 수로 잇는다. `networkx`로 키워드 묶음(가중 모듈성)과 배치를 계산해 시장 화면에 연결망 그림과 묶음 목록으로 보여 준다(`src/services/market_network.py`, 설정 `configs/keyword_network.yaml`, 화면 `frontend/market_network_view.py`). LLM 없이 질의 임베딩 1회만 쓰며, 함께 나온 것은 같은 기사에서 다뤄졌다는 뜻이라 차원별 판정에는 쓰지 않는다. 화면 통합 실행과 CLI에서만 붙는다.
+- 공공 조달 공고(`MarketReport.procurement`): 검색 관심도 주제어로 조달청 나라장터 입찰공고정보서비스(공공데이터포털)에서 기준일 직전 달까지 6개월의 물품·용역 공고를 달마다 조회한다(API 조회 기간이 약 1개월로 제한, `src/ingestion/procurement_client.py`, 설정 `configs/procurement.yaml`). 같은 공고의 이전 차수·재공고·취소공고를 빼고, 공고명에 주제어 글자만 들어간 다른 물건은 LLM이 공고명·세부품명으로 걸러 낸다(`prompts/market_procurement_relevance.md`, `src/services/market_procurement.py`). 시장 화면에 관련 공고 수·예산 중앙값·범위, 구매 주체 유형(민간 기업·대학·학교·연구기관·공공기관), 최근 공고 10건 목록을 보여 준다(`frontend/market_procurement_view.py`). 관련 공고는 분석 전에 조회해 집계 1건과 공고 최대 3건(민간 기업 공고 우선)을 가격·구매자 차원의 구매 신호 근거(`source_type: procurement`)로 넣고(`attach_procurement`), 사업 승인 분석의 구매자·예산 보유자·구매 절차·가격 가설을 '공공 부문(나라장터 공고 기준)'으로 채울 수 있게 한다. 공공기관·대학·연구기관의 구매가 대부분이라 민간 고객 수요의 근거가 아니므로 수요 차원에는 넣지 않고, 아이디어 고객이 공공 부문이 아니면 구매자 차원을 '확인됨'으로 올리지 않으며 공공 부문으로 채운 사업 승인 항목에 '목표 고객은 미확인'을 붙인다(`src/generation/market_analysis.py`). 근거 문장에 기준 연도가 없으면 공고 기간을 앞에 붙인다. 담당 공무원 이름·연락처는 저장하지 않고, 끝난 달의 결과는 `data/market/procurement/`에 캐시한다. 화면 통합 실행과 CLI에서만 붙고 `DATA_GO_KR_SERVICE_KEY`가 필요하다.
 - `data/samples/market_reports/`에는 SF-01~SF-05를 기본 실행(화면과 같은 전체 색인 검색)으로 만든 결과 예시가 있다. 로컬 수집 뉴스·DART 기준이므로 다시 수집하면 내용이 달라진다.
 
 ```bash
 python -m src.generation.market_markdown data/samples/market_reports/SF-01.json   # 종합 보고서용 마크다운 섹션 출력
 ```
 
-- `market_report_to_markdown(report)`는 `MarketReport`를 종합 보고서의 '시장 조사 및 분석 결과' 섹션(차원별 판정 요약 표, 차원별 문장·검증 과제, 검색 관심도 흐름, 키워드 동시 출현 묶음, 미확인 사항, 근거 목록)으로 바꾼다. LLM을 부르지 않으며, 인용은 UI와 같은 `M:{citation_id}`로 쓴다.
+- `market_report_to_markdown(report)`는 `MarketReport`를 종합 보고서의 '시장 조사 및 분석 결과' 섹션(차원별 판정 요약 표, 차원별 문장·검증 과제, 검색 관심도 흐름, 키워드 동시 출현 묶음, 공공 조달 공고, 미확인 사항, 근거 목록)으로 바꾼다. LLM을 부르지 않으며, 인용은 UI와 같은 `M:{citation_id}`로 쓴다.
 - 아이디어 입력·시장 조사 진입점의 입력·출력·오류 처리 약속은 [docs/api_contract.md](docs/api_contract.md)에 정리한다.
 
 ### 아이디어 구조화
@@ -287,6 +290,7 @@ docker compose run --rm app python -m src.pipeline run --idea-id SF-02 --out rep
 | `DART_API_KEY` | DART OpenAPI 공시 API 키 |
 | `NAVER_CLIENT_ID` · `NAVER_CLIENT_SECRET` | NAVER API HUB(네이버클라우드) Application의 Client ID·Secret. 해당 Application에서 뉴스 검색 API 활성화 필요 |
 | `NAVER_TREND_CLIENT_ID` · `NAVER_TREND_CLIENT_SECRET` | 검색어 트렌드(Search Trend) API를 활성화한 NAVER API HUB Application의 Client ID·Secret. 없으면 시장 보고서의 검색 관심도 흐름만 오류로 표시된다 |
+| `DATA_GO_KR_SERVICE_KEY` | 공공데이터포털 일반 인증키(Decoding 값). '조달청_나라장터 입찰공고정보서비스' 활용신청이 필요하다. 없으면 시장 보고서의 공공 조달 공고만 오류로 표시된다 |
 | `IDEALENS_MARKET_TIMEOUT` · `IDEALENS_PATENT_TIMEOUT` | (선택) 통합 분석의 영역별 제한 시간(초). 기본 120·180 |
 | `IDEALENS_SERIAL` | (선택) `1`이면 시장·특허 조사를 순차 실행 |
 | `IDEALENS_APP_PASSWORD` | (호스팅 배포) 접속 비밀번호. 비어 있으면 비밀번호 화면을 띄우지 않는다(로컬 실행) |

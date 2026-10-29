@@ -1357,6 +1357,12 @@ def render_market_report(market, draft=None, widget_suffix=""):
             "뉴스 제목·요약에서 함께 나온 단어의 관계이며 수요·인과·고객 유형을 뜻하지 않습니다."
         )
 
+    procurement = getattr(market, "procurement", None)
+    if procurement is not None:
+        from frontend.market_procurement_view import render_procurement
+
+        render_procurement(procurement)
+
     observed_dimensions = [
         dimension
         for dimension in market.dimensions

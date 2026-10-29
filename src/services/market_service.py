@@ -25,8 +25,10 @@ from src.retrieval.market_relevance import (
     search_with_relevance,
 )
 from src.retrieval.market_search import EmbedFn, embed_texts, get_collection
+from src.services.market_procurement import attach_procurement
 from src.schemas import (
     MarketKeywordNetwork,
+    MarketProcurement,
     MarketReport,
     MarketSearchRequest,
     MarketSearchTrend,
@@ -36,6 +38,8 @@ from src.schemas import (
 TrendFn = Callable[[StructuredIdea, int], MarketSearchTrend]
 # (요청, 컬렉션, 임베딩 함수) → 키워드 동시 출현 네트워크
 NetworkFn = Callable[[MarketSearchRequest, object, EmbedFn], MarketKeywordNetwork]
+# (아이디어, 검색 관심도 주제어, 기준일) → 공공 조달 입찰공고
+ProcurementFn = Callable[[StructuredIdea, list[str], int], MarketProcurement]
 
 
 def search_scope(collection, idea_id: str | None) -> str:
@@ -91,13 +95,18 @@ def run_market_research(
     data_as_of: int | None = None,
     trend_fn: TrendFn | None = None,
     network_fn: NetworkFn | None = None,
+    procurement_fn: ProcurementFn | None = None,
 ) -> MarketReport:
     """차원별 검색·관련성 판정·분석을 실행해 MarketReport를 반환한다.
 
     검색·판정 단계에서 예외가 나면 status=error 보고서를 반환한다. data_as_of가 없으면 오늘 날짜를 쓴다.
     trend_fn(아이디어, data_as_of)을 주면 검색 관심도 흐름(search_trend)을, network_fn(요청, 컬렉션,
-    임베딩 함수)을 주면 키워드 동시 출현 네트워크(keyword_network)를 붙인다. 두 단계의 실패는 각
-    필드의 status=error로만 남기고 보고서의 나머지에는 영향을 주지 않는다.
+    임베딩 함수)을 주면 키워드 동시 출현 네트워크(keyword_network)를, procurement_fn(아이디어,
+    검색 관심도 주제어, data_as_of)을 주면 공공 조달 입찰공고(procurement)를 붙인다. 주제어는
+    search_trend의 keywords를 쓰므로 trend_fn이 없거나 주제어를 정하지 못하면 no_keywords가 된다.
+    검색 관심도와 조달 공고는 분석 전에 만들고, 관련 공고는 가격·구매자 차원의 근거로 분석에 넣는다
+    (attach_procurement). 이 단계들의 실패는 각 필드의 status=error로만 남기고 보고서의 나머지에는
+    영향을 주지 않는다.
     """
     data_as_of = data_as_of or int(date.today().strftime("%Y%m%d"))
     scope = "네이버 뉴스 사전 수집 기사 · DART 사업보고서 발췌"
@@ -123,14 +132,28 @@ def run_market_research(
         scope += (
             f" · 검색한 DART 기업(아이디어와 같은 사업 범주): {', '.join(companies)}"
         )
-    report = build_report(request.idea, assessed, scope, data_as_of, llm_fn)
+    search_trend = None
     if trend_fn is not None:
         try:
-            report.search_trend = trend_fn(request.idea, data_as_of)
+            search_trend = trend_fn(request.idea, data_as_of)
         except Exception as exc:  # 관심도 실패는 시장 보고서 본문을 막지 않는다
-            report.search_trend = MarketSearchTrend(
-                status="error", error_message=str(exc)
-            )
+            search_trend = MarketSearchTrend(status="error", error_message=str(exc))
+    procurement = None
+    if procurement_fn is not None:
+        keywords = search_trend.keywords if search_trend else []
+        try:
+            procurement = procurement_fn(request.idea, keywords, data_as_of)
+        except Exception as exc:  # 조달 조회 실패도 보고서 본문을 막지 않는다
+            procurement = MarketProcurement(status="error", error_message=str(exc))
+    report = build_report(
+        request.idea,
+        attach_procurement(assessed, procurement),
+        scope,
+        data_as_of,
+        llm_fn,
+    )
+    report.search_trend = search_trend
+    report.procurement = procurement
     if network_fn is not None:
         try:
             report.keyword_network = network_fn(request, collection, embed_fn)
@@ -162,6 +185,11 @@ def main() -> None:
         action="store_true",
         help="키워드 동시 출현 네트워크(keyword_network) 생략",
     )
+    parser.add_argument(
+        "--no-procurement",
+        action="store_true",
+        help="공공 조달 입찰공고(procurement) 생략",
+    )
     args = parser.parse_args()
 
     entries = json.loads(IDEAS_PATH.read_text(encoding="utf-8"))
@@ -170,6 +198,7 @@ def main() -> None:
 
     started = time.perf_counter()
     from src.services.market_network import build_keyword_network
+    from src.services.market_procurement import build_procurement
     from src.services.market_trend import build_search_trend
 
     report = run_market_research(
@@ -177,6 +206,7 @@ def main() -> None:
         idea_id=args.idea_id if args.idea_filter else None,
         trend_fn=None if args.no_trend else build_search_trend,
         network_fn=None if args.no_network else build_keyword_network,
+        procurement_fn=None if args.no_procurement else build_procurement,
     )
     elapsed = time.perf_counter() - started
 
@@ -202,6 +232,12 @@ def main() -> None:
         print(
             f"  keyword_network   {network.status} 기사 {network.document_count} "
             f"명사 {len(network.nodes)} 묶음 {len(network.clusters)}"
+        )
+    if report.procurement:
+        procurement = report.procurement
+        print(
+            f"  procurement       {procurement.status} {procurement.keywords} "
+            f"검색 {procurement.searched_count} 관련 {len(procurement.notices)}"
         )
     if report.error_message:
         print(f"  error: {report.error_message}")

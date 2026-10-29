@@ -15,6 +15,8 @@
     limited       signal_only · unverified
     그 밖         unverified
 차원이 기대는 아이디어 항목(DEPENDENT_FIELDS)이 비어 있으면(모름) 근거가 있어도 unverified만 허용한다.
+나라장터 조달 공고(procurement)는 공공 부문 구매라, 목표 고객이 공공 부문이 아니면 구매자 차원의
+confirmed 근거로 쓰지 않는다.
 """
 
 import json
@@ -60,6 +62,17 @@ DEPENDENT_FIELDS = {"price": "revenue", "buyer": "customers"}
 
 # 이 성격의 근거만 있으면 어느 차원도 confirmed가 될 수 없다
 SIGNAL_ONLY_NATURES = {"business_signal", "company_claim", "estimate"}
+# 아이디어 고객이 공공 부문인지 가리키는 말 (조달 공고를 구매자 확인 근거로 쓸지 정한다)
+PUBLIC_CUSTOMER_TERMS = (
+    "공공",
+    "기관",
+    "정부",
+    "지자체",
+    "대학",
+    "학교",
+    "연구",
+    "교육",
+)
 
 DEFAULT_CHECKS = {
     "demand": "목표 고객사 5곳 인터뷰로 현재 해결 방식과 도입 의향 확인",
@@ -189,17 +202,20 @@ def allowed_verdicts(
     status: str,
     cited: list[MarketEvidence],
     missing_field: str | None = None,
+    confirmable: list[MarketEvidence] | None = None,
 ) -> list[str]:
     """충분성 상태·근거 성격·아이디어 항목 공백으로 이 차원에 쓸 수 있는 판정을 정한다.
 
     confirmed는 확인 가능한 성격의 근거가 있을 때만 허용한다: 수요는 direct_demand,
     그 밖의 차원은 SIGNAL_ONLY_NATURES(사업 신호·기업 주장·추정치)가 아닌 근거.
+    confirmable을 주면 cited 중 confirmed 근거로 볼 수 있는 것을 그 목록으로 좁힌다.
     """
     if missing_field or not cited or status not in ("sufficient", "limited"):
         return ["unverified"]
     if status == "limited":
         return ["signal_only", "unverified"]
-    if not any(confirms(dimension, e) for e in cited):
+    candidates = cited if confirmable is None else confirmable
+    if not any(confirms(dimension, e) for e in candidates):
         return ["signal_only", "unverified"]
     return ["confirmed", "signal_only", "unverified"]
 
@@ -239,6 +255,11 @@ def analysis_input(
     return json.dumps(data, ensure_ascii=False)
 
 
+def public_target(idea: StructuredIdea) -> bool:
+    """아이디어 고객 항목이 공공기관·대학·연구기관 같은 공공 부문을 가리키는지 판단한다."""
+    return any(term in (idea.customers or "") for term in PUBLIC_CUSTOMER_TERMS)
+
+
 def dimension_inputs(
     idea: StructuredIdea,
     assessed: dict[str, dict],
@@ -255,13 +276,22 @@ def dimension_inputs(
         if dimension not in assessed:
             continue
         cited = [by_id[i] for i in ids_by_dimension.get(dimension, [])]
+        confirmable = (
+            [e for e in cited if e.source_type != "procurement"]
+            if dimension == "buyer" and not public_target(idea)
+            else None
+        )
         missing = missing_dependent_field(idea, dimension)
         inputs.append(
             {
                 "dimension": dimension,
                 "label": DIMENSION_LABELS[dimension],
                 "allowed_verdicts": allowed_verdicts(
-                    dimension, assessed[dimension]["status"], cited, missing
+                    dimension,
+                    assessed[dimension]["status"],
+                    cited,
+                    missing,
+                    confirmable,
                 ),
                 **({"missing_idea_field": missing} if missing else {}),
                 "evidence": [
@@ -338,6 +368,28 @@ def attribute_dart(claim: dict, by_id: dict[int, MarketEvidence]) -> dict:
     return {**claim, "statement": f"{prefix}에 따르면 {statement}"}
 
 
+def attribute_procurement(claim: dict, by_id: dict[int, MarketEvidence]) -> dict:
+    """나라장터 공고를 인용했는데 4자리 기준 연도가 없는 문장 앞에 공고 기간을 붙인다.
+
+    공고 근거의 period('2026년 4월~2026년 9월' 등)를 써서 금액 문장의 기준 시점 검증을 통과하게 한다.
+    문장에 이미 '나라장터'가 있으면 기간만 붙인다.
+    """
+    statement = str(claim.get("statement", "")).strip()
+    periods = dict.fromkeys(
+        by_id[i].period
+        for i in claim.get("citation_ids") or []
+        if isinstance(i, int)
+        and i in by_id
+        and by_id[i].source_type == "procurement"
+        and by_id[i].period
+    )
+    if not statement or not periods or YEAR_PATTERN.search(statement):
+        return claim
+    period = "·".join(periods)
+    prefix = period if "나라장터" in statement else f"나라장터 입찰공고({period}) 기준"
+    return {**claim, "statement": f"{prefix} {statement}"}
+
+
 def claim_errors(
     claim: dict, allowed_ids: set[int], by_id: dict[int, MarketEvidence], idea_text: str
 ) -> list[str]:
@@ -412,7 +464,11 @@ def validate_dimension(
     if verdict not in allowed:
         errors.append(f"허용되지 않은 판정 {verdict} (허용: {allowed})")
     claims = [
-        attribute_dart(c, by_id) if isinstance(c, dict) else c
+        (
+            attribute_procurement(attribute_dart(c, by_id), by_id)
+            if isinstance(c, dict)
+            else c
+        )
         for c in raw.get("claims") or []
     ]
     if len(claims) > MAX_CLAIMS:
@@ -452,7 +508,9 @@ def finalize_dimension(
     """
     raw = raw or {}
     attributed = [
-        attribute_dart(c, by_id) for c in raw.get("claims") or [] if isinstance(c, dict)
+        attribute_procurement(attribute_dart(c, by_id), by_id)
+        for c in raw.get("claims") or []
+        if isinstance(c, dict)
     ]
     claims = [
         {
@@ -748,6 +806,35 @@ def opportunity_review(
     )
 
 
+# 공공 조달 근거로 채울 수 있는 사업 승인 분석 항목
+PUBLIC_SCOPE_FIELDS = (
+    "buyer",
+    "budget_owner",
+    "purchase_process",
+    "pricing_hypothesis",
+)
+
+
+def mark_target_unknown(
+    result: MarketCommercialAnalysis, idea: StructuredIdea
+) -> MarketCommercialAnalysis:
+    """고객이 공공 부문이 아니면 공공 조달로 채운 항목 끝에 목표 고객은 미확인임을 붙인다.
+
+    '공공'으로 시작하거나 '나라장터'가 들어간 항목만 대상이며, 이미 '목표 고객'을 밝혔으면 그대로 둔다.
+    """
+    if public_target(idea):
+        return result
+    target = idea.customers or "목표 고객"
+    updates = {}
+    for field in PUBLIC_SCOPE_FIELDS:
+        value = getattr(result, field)
+        if (
+            value.startswith("공공") or "나라장터" in value
+        ) and "목표 고객" not in value:
+            updates[field] = f"{value} / 목표 고객({target})은 미확인"
+    return result.model_copy(update=updates)
+
+
 def generate_commercial_analysis(
     idea: StructuredIdea, evidence: list[MarketEvidence], llm_fn: LLMFn
 ) -> MarketCommercialAnalysis:
@@ -780,7 +867,7 @@ def generate_commercial_analysis(
                 if item.citation_id in hypothesis.citation_ids
             ):
                 raise ValueError("시장 수치 가설이 인용 원문과 일치하지 않습니다")
-    return result
+    return mark_target_unknown(result, idea)
 
 
 def build_report(
