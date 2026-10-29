@@ -68,7 +68,7 @@
 ```
 
 - 원문·가공 데이터·검색 색인·생성 보고서는 Git 추적에서 제외. Chroma 색인은 로컬 또는 공용 서버에 보관.
-- 서비스 연결 구조는 [docs/architecture.md](docs/architecture.md)의 mermaid 다이어그램으로 관리.
+- 서비스 연결 구조는 [docs/architecture.md](docs/architecture.md)의 mermaid 다이어그램으로 관리. 실제 구현·데이터 준비·V1.0 출시 게이트 기준선은 [RAG 서비스 현황](docs/rag-service-baseline.md)을 참고한다.
 
 ## 빠른 시작 (팀원용)
 
@@ -143,7 +143,9 @@ make patent-collect ARGS="--field-id SF-02 --limit 20 --include-claims"
 make patent-index ARGS="--field-id SF-02"
 ```
 
-홈은 서비스 소개·왜 IdeaLens인가·내 기록과 돋보기 시작 버튼으로 구성한다. 상단 IdeaLens 로고를 누르면 홈으로 이동하며 별도 안내 말풍선은 표시하지 않는다. 첫 방문에는 메인 문구 → 설명과 문서 → 돋보기 순서로 나타나며, 동작 줄이기 설정을 지원한다. 시작 전에는 입력 폼을 표시하지 않는다. 조사 화면은 **아이디어 구체화 → 특허·시장 검토 → 종합 보고서**의 세 단계이며 가운데 단계의 특허·시장 탭으로 결과를 나눠 본다.
+홈은 서비스 소개·왜 IdeaLens인가·내 기록과 돋보기 시작 버튼으로 구성한다. 상단 IdeaLens 로고를 누르면 홈으로 이동하며 별도 안내 말풍선은 표시하지 않는다. 첫 방문에는 다른 내용을 감춘 채 메인 문구의 윗줄·아랫줄이 차례로 나타나고, 두 줄을 읽을 시간을 둔 뒤 실제 제목이 제자리로 이동한다. 이어서 메뉴·설명·문서·돋보기가 나타난다. 새로고침하면 연출을 다시 볼 수 있고 같은 세션에서 홈으로 돌아올 때는 반복하지 않는다. 클릭·키 입력·스크롤·크기 변경 시 연출을 마무리하며, 동작 줄이기 설정에서는 즉시 표시한다. 시작 전에는 입력 폼을 표시하지 않는다. 조사 화면은 **아이디어 구체화 → 특허·시장 검토 → 종합 보고서**의 세 단계이며 가운데 단계의 특허·시장 탭으로 결과를 나눠 본다.
+
+`frontend/quick_nav.py`의 고정 바로가기 바는 넓은 화면에서는 오른쪽, 좁은 화면에서는 하단에 표시한다. 조사 화면에서는 홈·아이디어·특허·시장·보고서·내 기록·맨 위로, 홈·소개·차별점·기록 화면에서는 페이지 메뉴와 조사 시작/계속을 제공한다. 처음 홈에서는 돋보기만 조사 시작 버튼으로 사용한다. 다른 페이지로 이동한 후 조사 계속을 누르면 입력과 결과·기존 단계를 복원하며, 페이지를 바꾸면 맨 위에서 시작한다. 아직 열 수 없는 단계는 비활성화하고 분석 중에는 완료된 단계의 읽기 전용 미리보기를 연다. 이동만으로 재분석하거나 결과를 초기화하지 않으며 로그인 전에는 표시하지 않는다.
 
 아이디어 초안은 제목·문제·기술·고객·대안·세그먼트·구성요소·가치 가설을 확인·수정할 수 있다. 분석 실행 후에는 백그라운드에서 특허 조사 → 시장 분석 → 최종 검토를 진행한다. 실제 완료 콜백으로 대기·분석 중·완료·근거 부족·실패를 표시하고 경과 시간과 현재 작업을 설명한다. 화면을 이동해도 분석은 계속되며 읽던 결과 화면은 자동 전환하지 않는다. 취소 후 새 입력과 늦은 결과가 섞이지 않게 한다. 이미 전송한 요청은 즉시 중단되지 않아 비용이 발생할 수 있다.
 
@@ -344,11 +346,12 @@ python -m evaluation.patent_labeling export              # SF-02/SF-05 특허 �
 ```
 
 - 시장 평가에는 사람 라벨 25문항이 있으나 SF-05 라벨은 이전 '현장 작업자용 LLM 음성 어시스턴트' 기준이다. 현재 SF-05(지능형 공정제어)와 맞지 않으므로 최신 비교는 `--idea-ids SF-01,SF-02,SF-03,SF-04`로 20문항을 실행하고, SF-05는 새 수집·라벨 이후 포함한다.
-- 특허 평가셋은 현재 로컬 색인이 준비된 SF-02·SF-05에서 각각 기술 요소 질의로 구성한다. `patent_cases.json`의 사람 정답은 초기화 상태이며, CSV 라벨을 작성해 import한 뒤에만 검색 지표를 계산한다.
-- 검색 CSV에는 mode, 모델, prompt 적용 여부, 커밋 ID가 기록된다. LLM 단독/RAG 답변 비교는 `answer_eval`의 LLM 판정 점수이며 사람 정답 평가와 구분해야 한다.
+- 특허 평가셋은 SF-02·SF-05의 기술 요소 질의로 구성한다. 후보 CSV는 검색 방식과 순위를 숨겨 사람 라벨 편향을 줄이고, 원문 URL이 없으면 출원번호로 KIPRIS 검색 링크를 만든다. 판정 기준은 [특허 평가 라벨링 가이드](evaluation/patent_labeling.md)를 따르며, 사람 정답을 import한 뒤에만 검색 지표를 계산한다.
+- 특허 검색 결과 CSV에는 검색 방식·모델·커밋·작업 트리 상태, 평가 데이터와 색인 지문, Top-K·후보 수·RRF 설정이 기록된다. LLM 단독/RAG 답변 비교는 `answer_eval`의 LLM 판정 점수이며 사람 정답 평가와 구분해야 한다.
 - `market_answer_eval`은 실제 시장 조사 결과(`run_market_research`)를 LLM 단독·단순 RAG(검색 상위 5건 그대로)와 같은 문항으로 비교한다. 인용된 fact 문장마다 `prompts/market_claim_judge.md` 판정기가 인용 기사 제목·요약과 대조하고(Citation Accuracy), 사람 검토 표본으로 판정기 결과를 보정한다. 인용 기사의 관련성은 사람 정답 라벨로 센다. 결과와 해석은 [docs/market_research.md](docs/market_research.md#시장-답변-평가).
 - 라벨링 후보는 문항마다 벡터 검색 상위 8건과 그 아래 순위에서 차원 표현(가격·비용, 도입·사례 등)이 들어간 4건, 그리고 `extend`로 추가한 bm25·hybrid 상위 5건 중 새 문서다. 방식 비교 결과는 [docs/market_research.md](docs/market_research.md#시장-검색-방식-비교). 라벨 기준과 LLM 초안·사람 검토 절차는 [evaluation/market_labeling.md](evaluation/market_labeling.md).
 - 관련 문서가 없는 문항은 평균에서 빼고 따로 센다. 라벨 후보에 없던 문서가 상위 5건에 나오면 `unjudged`로 표시한다.
+- 시장 조사의 Baseline·실험·결정과 오류 개선 기록은 [docs/experiments.md](docs/experiments.md)에 모은다.
 - 관련성 판정 평가는 사람이 직접 라벨한 행(`label_source=human`)만 비교해 정확도·정밀도·재현율·kappa를 계산하고, 사람 라벨만 있는 문항의 충분성 상태 일치를 함께 출력한다.
 - 정답 `source_id`는 로컬에 수집한 뉴스 기준이므로, 다시 수집하면 문서가 달라질 수 있다.
 - `--mode`는 `dense`(기본, 기존 Chroma 검색), `bm25`, `hybrid`(RRF 결합) 중 선택한다. 검색 함수 기본 동작은 dense로 유지한다.
@@ -358,18 +361,26 @@ python -m evaluation.patent_labeling export              # SF-02/SF-05 특허 �
 
 ### 특허 검색 평가
 
+- 라벨 검토 전 데이터 준비 상태는 `python -m evaluation.patent_preflight`로 확인한다. 이 명령은 API를 호출하지 않고 질의·후보 수, 케이스별 후보 분포, 중복·누락 링크, 라벨 진행 상태와 두 입력 파일의 SHA-256을 출력한다. JSON 출력은 `--json`을 사용한다.
+- 검토 편의를 위해 로컬 처리 특허의 초록·전체 청구항·서지 정보와 후보 행의 일치 여부를 묶으려면 `python -m evaluation.patent_review_context`를 실행한다. 결과는 Git 제외 경로 `data/patents/processed/patent_eval_review_context.jsonl`에 생성되며 KIPRIS·OpenAI API를 호출하지 않는다. 관련도 라벨은 자동 판정하지 않는다.
+- 오프라인 파이프라인 점검용 합성 데이터는 `evaluation/fixtures/patent_retrieval_synthetic_v1.json`에 있다. `python -m evaluation.patent_fixture`로 문헌·질의·관련도 참조 무결성과 데이터 SHA-256을 확인한다. 가상 데이터이므로 실제 특허 검색 성능 평가나 제품 성능 주장의 근거로 사용하지 않는다.
 - `evaluation/patent_cases.json`은 샘플 아이디어에서 고정한 5개 특허 검색 질의로 시작하며, 정답 문헌 라벨은 비어 있다.
-- 특허 원문을 수집·색인한 뒤 `python -m evaluation.patent_labeling export`로 Dense·BM25·Hybrid 상위 후보를 같은 CSV에 모은다. 선택적으로 `--rerank`를 주면 Hybrid+Cross-Encoder 후보도 포함한다.
+- 특허 원문을 수집·색인한 뒤 `python -m evaluation.patent_labeling export`로 Dense·BM25·Hybrid 상위 후보를 같은 CSV에 모은다. 선택적으로 `--reranker bi-encoder` 또는 `--reranker cross-encoder`를 주면 각 Hybrid 재정렬 후보도 포함한다.
 - 후보 CSV에서 각 문헌의 `relevant`를 `1`(관련) 또는 `0`(비관련)으로 사람 검토 후 채우고 `python -m evaluation.patent_labeling import`로 라벨을 반영한다. 모든 후보를 판정한 문항만 평가에 포함한다.
-- 동일한 문헌 단위 정답셋으로 `python -m evaluation.evaluate patent --mode dense --label baseline`, `--mode bm25`, `--mode hybrid`, `--mode hybrid --rerank`를 실행해 Hit@5·Recall@5·Precision@5·MRR·nDCG@5와 검색·리랭킹 지연시간을 비교한다. 결과 CSV는 `evaluation/results/`에 저장한다.
+- 실제 `PatentReport` JSON의 구성요소 주장과 연결된 원문 인용을 검토하려면 `python -m evaluation.patent_groundedness export <report.json>`으로 사람 검토 CSV를 만들고, 라벨 입력 후 `python -m evaluation.patent_groundedness score <labels.csv>`로 분포·파일 지문을 저장한다. 라벨 기준은 [특허 주장 근거 지지 검토 가이드](evaluation/patent_groundedness.md)를 따른다.
+- 동일한 문헌 단위 정답셋으로 `python -m evaluation.evaluate patent --mode dense --label baseline`, `--mode bm25`, `--mode hybrid`, `--mode hybrid --reranker bi-encoder`, `--mode hybrid --reranker cross-encoder --candidate-k 40`을 실행해 Hit@5·Recall@5·Precision@5·MRR·nDCG@5와 검색·리랭킹 지연시간을 비교한다. 결과 CSV는 `evaluation/results/`에 저장한다. `--candidate-k` 비교 시 다른 조건은 고정하고, 새 Top-5 문헌이 미판정이면 먼저 추가 라벨링한다.
 - 검색 결과에서 나온 적 없는 문헌이 top-K에 나타나면 `unjudged`로 따로 세므로 라벨 후보를 추가 검토한다. 평가 문항이 라벨되기 전에는 성능 수치를 보고하지 않는다.
-- Dense·Hybrid 질의 임베딩은 `OPENAI_API_KEY`가 필요하며, 평가 도구는 현재 임베딩 사용 비용을 계산하지 않는다. Cross-Encoder는 `sentence-transformers`와 모델 파일을 별도로 설치해야 한다.
+- Dense·Hybrid 검색과 Bi-Encoder 재정렬은 `OPENAI_API_KEY`가 필요하며 후보 문헌을 매 질의 다시 임베딩한다. 평가 도구는 임베딩 비용을 자동 계산하지 않는다. Cross-Encoder는 `sentence-transformers`와 모델 파일을 별도로 설치해야 한다.
 
 ### 특허 청구항 분석
 
-특허 분석 입력은 `PatentSearchRequest`, 반환 계약은 `PatentReport`이며 `src.services.patent_service.analyze_patents()`에서 호출한다. 문헌별 청구항 원문·버전·번호·종속항 참조를 인용 근거로 보존하고, KIPRIS 청구항 조회가 비어 있거나 실패하면 초록 근거와 미확인 상태를 반환한다. 구현 흐름과 Mock 통합 예제는 [docs/patent_rag.md](docs/patent_rag.md)를 참고한다.
+특허 분석 입력은 `PatentSearchRequest`, 반환 계약은 `PatentReport`이며 `src.services.patent_service.analyze_patents()`에서 호출한다. 문헌별 청구항 원문·버전·번호·종속항 참조와 UTC 수집 시각을 인용 근거 및 색인에 보존한다. 비교 문맥은 상위항 관계와 문헌당 약 1,800 토큰, 보고서 분석 전체 약 6,000 토큰의 보수적 추정 예산을 고려해 구성한다. KIPRIS 청구항 조회가 비어 있거나 실패하면 초록 근거와 미확인 상태를 반환한다. 구현 흐름과 Mock 통합 예제는 [docs/patent_rag.md](docs/patent_rag.md)를 참고한다.
+
+특허 비교 뒤에는 `PatentDesignAnalysis`가 사용자 기술 구성요소와 기존 문헌별 비교 결과를 받아 최대 3개의 구체적 설계 대안을 생성한다. 각 대안에는 변경 대상, 구현 접근, 기술적 차이, 장점·제약, 정성적 실현 가능성, 검증 계획과 확인 가능한 인용 ID가 포함된다. 청구항을 확보하지 못하면 초록 기반으로 제한됨을 표시하며, 제안 생성이 실패해도 검색 근거와 기존 비교 결과는 보존한다. 결과는 기술 검토용이며 특허 침해·등록 가능성·실시 자유의 법률 판단을 제공하지 않는다. 상세 계약과 테스트 안내는 [docs/patent_rag.md](docs/patent_rag.md)를 참고한다.
 
 ## 통합 분석 화면
+
+상단 ‘2 특허·시장 검토’는 특허와 시장 화면 모두에서 현재 단계로 강조하며, 하위 탭과 바로가기 바는 실제로 열려 있는 영역만 강조한다.
 
 시장 검토는 근거 성격을 구매 신호·간접 수요·기업 주장 등으로 구분하고, 차원별 자료 상태·관련 검색 자료 수·확인되지 않은 이유·다음 검증 과제를 표시한다. 동일한 확인 범위를 최종 원문·PDF·기록에도 포함한다. 관련 검색 자료 수와 인용 건수는 구분하며, 미제공 값은 0으로 채우지 않는다. 기존 기록에 새 항목이 없으면 미제공으로 표시한다.
 

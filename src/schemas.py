@@ -132,6 +132,7 @@ class PatentDocument(BaseModel):
 
     source: str = "KIPRIS Plus"
     source_url: str | None = None
+    collected_at: str | None = None
     technology_area_ids: list[str] = Field(default_factory=list)
 
 
@@ -166,6 +167,7 @@ class PatentEvidence(BaseModel):
     application_date: str | None = None
     publication_date: str | None = None
     registration_number: str | None = None
+    collected_at: str | None = None
     claim_number: int | None = Field(default=None, ge=1)
     claim_type: Literal["independent", "dependent", "unclassified"] | None = None
     depends_on: list[int] = Field(default_factory=list)
@@ -244,6 +246,56 @@ class PatentabilityPrecheck(BaseModel):
     )
 
 
+class PatentTechnicalComponent(BaseModel):
+    id: str
+    name: str
+    description: str
+    source_type: Literal["user_stated", "derived"] = "user_stated"
+
+
+class ProposalVerificationPlan(BaseModel):
+    method: str
+    metrics: list[str] = Field(default_factory=list)
+    success_criteria: str
+
+
+class PatentDesignProposal(BaseModel):
+    proposal_id: str
+    title: str
+    target_component_ids: list[str] = Field(min_length=1)
+    problem: str
+    proposed_change: str
+    implementation_approach: list[str] = Field(min_length=1)
+    technical_difference: str
+    expected_benefits: list[str] = Field(default_factory=list)
+    limitations: list[str] = Field(default_factory=list)
+    feasibility: Literal["low", "medium", "high", "unknown"] = "unknown"
+    related_patent_ids: list[str] = Field(default_factory=list)
+    citation_ids: list[int] = Field(default_factory=list)
+    evidence_status: Literal["grounded", "insufficient_evidence"] = "grounded"
+    verification_plan: ProposalVerificationPlan
+    patent_verification_required: bool = True
+
+    @model_validator(mode="after")
+    def validate_evidence_status(self):
+        if self.evidence_status == "grounded" and not self.citation_ids:
+            raise ValueError("Grounded design proposals require citations")
+        if self.evidence_status == "insufficient_evidence" and self.citation_ids:
+            raise ValueError("Insufficient-evidence proposals cannot cite evidence")
+        return self
+
+
+class PatentDesignAnalysis(BaseModel):
+    status: Literal["success", "partial", "insufficient_evidence", "failed"]
+    evidence_level: Literal[
+        "claims_and_abstract", "claims_only", "abstract_only", "insufficient"
+    ]
+    technical_components: list[PatentTechnicalComponent] = Field(default_factory=list)
+    proposals: list[PatentDesignProposal] = Field(default_factory=list, max_length=3)
+    missing_information: list[str] = Field(default_factory=list)
+    limitations: list[str] = Field(default_factory=list)
+
+
 # 8. 최종 특허 RAG 결과
 class PatentReport(BaseModel):
     status: Literal["completed", "no_results", "error"]
@@ -252,6 +304,7 @@ class PatentReport(BaseModel):
     comparisons: list[PatentComparison] = Field(default_factory=list)
     patent_reviews: list[PatentDocumentReview] = Field(default_factory=list)
     patentability_precheck: PatentabilityPrecheck | None = None
+    design_analysis: PatentDesignAnalysis | None = None
     unknowns: list[str] = Field(default_factory=list)
 
     search_scope: str
@@ -315,6 +368,28 @@ class PatentReport(BaseModel):
                     raise ValueError(
                         "Common patent recommendation references unknown citation"
                     )
+
+        if self.design_analysis:
+            component_ids = {
+                item.id for item in self.design_analysis.technical_components
+            }
+            patent_ids = {item.patent_id for item in self.evidence}
+            for proposal in self.design_analysis.proposals:
+                if not set(proposal.target_component_ids) <= component_ids:
+                    raise ValueError("Design proposal references unknown component")
+                if not set(proposal.related_patent_ids) <= patent_ids:
+                    raise ValueError("Design proposal references unknown patent")
+                if not set(proposal.citation_ids) <= set(ids):
+                    raise ValueError("Design proposal references unknown citation")
+                if proposal.evidence_status == "grounded" and not proposal.citation_ids:
+                    raise ValueError("Grounded design proposals require citations")
+                citation_patents = {
+                    item.patent_id
+                    for item in self.evidence
+                    if item.citation_id in proposal.citation_ids
+                }
+                if not citation_patents <= set(proposal.related_patent_ids):
+                    raise ValueError("Cited patents must be listed as related patents")
 
         if len({e.patent_id for e in self.evidence}) > 5:
             raise ValueError("Maximum 5 unique patents")
