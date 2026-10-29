@@ -133,6 +133,46 @@ def test_judged_hit_keeps_purchase_signal_for_listing_news():
     assert judged_hit(news, raw)["evidence_nature"] == "purchase_signal"
 
 
+@pytest.mark.parametrize(
+    "title, summary, expected",
+    [
+        (
+            '"제조공정에 첨단 AI로봇 도입"…삼성SDS·LG CNS, 북미 RX 시장 돌격',
+            "우선 430여개 제조 고객사들의 생산 라인에 로봇 자동화를 지원한 뒤 플랫폼에 연동하는 방식이다.",
+            "business_signal",
+        ),
+        (
+            "두산로보틱스, 동남아에 협동로봇 공급 MOU 체결",
+            "계약으로 이어질 경우 대규모 수주가 될 전망이다.",
+            "business_signal",
+        ),
+        (
+            "이수화학, AI로 화학공장 운전 최적화…공정 이상 사전 감지 추진",
+            "AI 공정 최적화 솔루션 도입을 추진한다.",
+            "business_signal",
+        ),
+        (
+            "유디엠텍, 중견 車 부품기업과 'AI 사출금형 예지보전 시스템 구축' 계약",
+            "향후 다른 공장으로 확대될 전망이다.",
+            "purchase_signal",
+        ),
+        (
+            "HD건설기계, 재생에너지 조달·공장 효율화 '투트랙'",
+            "태양광을 설치한 뒤 FEMS를 구축해 운영 중이다. 내년 확대 계획이다.",
+            "purchase_signal",
+        ),
+    ],
+)
+def test_judged_hit_downgrades_announced_purchase_signals(title, summary, expected):
+    raw = {"label": 1, "confidence": "high", "evidence_nature": "purchase_signal"}
+    news = {**make_hit("a", title, summary), "source_type": "news"}
+
+    judged = judged_hit(news, raw)
+
+    assert judged["relevant"] is True
+    assert judged["evidence_nature"] == expected
+
+
 def test_judge_hits_keeps_search_order():
     hits = [make_hit("a", "관련1"), make_hit("b", "무관"), make_hit("c", "관련2")]
 
