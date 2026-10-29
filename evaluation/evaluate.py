@@ -211,8 +211,14 @@ def evaluate_patents(cases: list[dict], search_fn, k: int = K) -> list[dict]:
     return rows
 
 
-def default_patent_search_fn(retrieval_mode: str = "dense", reranker=None):
+def default_patent_search_fn(
+    retrieval_mode: str = "dense",
+    reranker=None,
+    candidate_k: int | None = None,
+):
     """특허 Chroma 색인을 지정한 검색 모드로 평가하는 함수를 만든다."""
+    if candidate_k is not None and candidate_k < K:
+        raise ValueError(f"candidate_k must be at least top_k={K}")
     collection = get_patent_collection()
     if collection.count() == 0:
         raise RuntimeError(
@@ -238,6 +244,11 @@ def default_patent_search_fn(retrieval_mode: str = "dense", reranker=None):
             top_k=top_k,
             retrieval_mode=retrieval_mode,
             reranker=timed_reranker,
+            retrieval_config=RetrievalConfig(
+                candidate_k=candidate_k or max(top_k * 4, top_k),
+                top_k=top_k,
+                deduplicate_by_source=True,
+            ),
             technology_area_id=technology_area_id,
         )
         rerank_ms = rerank_times[0] if rerank_times else 0.0
@@ -486,6 +497,12 @@ def main() -> None:
         choices=["bi-encoder", "cross-encoder"],
         help="특허 검색 후보 재정렬 모델 (bi-encoder는 임베딩 API 호출)",
     )
+    patent.add_argument(
+        "--candidate-k",
+        type=int,
+        default=20,
+        help="reranking 전 평가 후보 문헌 수 (기본 20 = Top-5의 4배)",
+    )
     relevance = sub.add_parser("relevance", help="시장 관련성 필터 평가")
     relevance.add_argument(
         "--model", default=RELEVANCE_MODEL, help="판정 모델 (기본: 필터 기본 모델)"
@@ -501,6 +518,9 @@ def main() -> None:
     if args.command == "guardrail":
         run_guardrail(args.label)
         return
+
+    if args.command == "patent" and args.candidate_k < K:
+        raise SystemExit(f"--candidate-k must be at least {K}")
 
     reranker = None
     patent_reranker_model = None
@@ -549,7 +569,9 @@ def main() -> None:
                 "no labeled patent cases; run python -m evaluation.patent_labeling export, "
                 "fill relevant=0/1, then run python -m evaluation.patent_labeling import"
             )
-        search_fn = default_patent_search_fn(args.mode, reranker=reranker)
+        search_fn = default_patent_search_fn(
+            args.mode, reranker=reranker, candidate_k=args.candidate_k
+        )
         rows = evaluate_patents(cases, search_fn)
         attach_patent_run_metadata(
             rows,
@@ -557,6 +579,7 @@ def main() -> None:
             use_rerank,
             evaluation_data=cases,
             index_metadata=index_snapshot(search_fn.collection),
+            candidate_k=args.candidate_k,
             reranker_model=patent_reranker_model,
         )
         result_path = save_patent_results(

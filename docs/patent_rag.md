@@ -65,8 +65,11 @@ python -m evaluation.evaluate patent --mode bm25 --label baseline
 python -m evaluation.evaluate patent --mode hybrid --label baseline
 python -m evaluation.evaluate patent --mode hybrid --reranker bi-encoder --label baseline
 python -m evaluation.evaluate patent --mode hybrid --reranker cross-encoder --label baseline
+python -m evaluation.evaluate patent --mode hybrid --reranker cross-encoder --candidate-k 40 --label candidate40
 ```
 
 후보 CSV는 기본적으로 세 검색 방식의 상위 20건을 문헌 단위로 합친다. 색인에 원문 URL이 없으면 출원번호로 KIPRIS 검색 링크를 생성하며, 라벨 검토자는 검색 결과의 출원번호와 발명의 명칭을 대조한다. 재정렬 후보도 라벨링하려면 `export --reranker bi-encoder` 또는 `export --reranker cross-encoder`를 사용한다. Bi-Encoder는 OpenAI 임베딩으로 질의와 후보 문헌을 다시 임베딩하므로 API 호출 비용이 추가되고, Cross-Encoder는 `sentence-transformers`와 모델 다운로드가 필요하다. 모든 후보를 판정한 질의만 Hit@K·Recall@K·Precision@K·MRR·nDCG@K에 포함하며, 라벨되지 않은 결과는 `unjudged`로 별도 집계한다. 비용은 자동 집계하지 않는다. 평가셋 라벨링 전에는 특허 검색 성능 수치를 보고하지 않는다.
 
 새 평가 CSV에는 실행 시각, Git 커밋과 작업 트리 상태, 평가 문항·라벨 데이터 해시, 색인 문서 수와 색인 내용·메타데이터 해시, Top-K·후보 수·RRF 상수, 임베딩·reranker 모델, BM25 설정을 함께 기록한다. 이전 결과 파일에는 이 지문이 없으므로 새 실행 결과와 직접 동등한 재현 기록으로 취급하지 않는다.
+
+`--candidate-k`는 재정렬 전에 보유할 후보 문헌 수이며 기본값 20은 평가 Top-5의 4배다. 후보 수를 비교할 때는 평가 질의·사람 라벨·색인 지문·Top-K·reranker를 고정하고 후보 수만 바꾼다. 라벨 후보 CSV는 출력할 상위 20건을 포함하므로, 다른 후보 수에서 새 문헌이 Top-K에 나타나 `unjudged`가 늘면 그 문헌을 추가 판정한 뒤 해당 비교를 다시 실행한다.

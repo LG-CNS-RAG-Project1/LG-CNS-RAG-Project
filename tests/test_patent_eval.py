@@ -78,6 +78,28 @@ def test_patent_run_metadata_records_selected_reranker():
     assert rows[0]["mode"] == "hybrid+rerank"
 
 
+def test_default_patent_search_fn_passes_candidate_count_to_retriever(monkeypatch):
+    from evaluation import evaluate as module
+
+    class Collection:
+        def count(self):
+            return 100
+
+    captured = {}
+    monkeypatch.setattr(module, "get_patent_collection", lambda: Collection())
+
+    def search(*args, **kwargs):
+        captured.update(kwargs)
+        return []
+
+    monkeypatch.setattr(module, "search_patent_documents", search)
+    search_fn = module.default_patent_search_fn("hybrid", candidate_k=40)
+    search_fn("query", 5)
+
+    assert captured["retrieval_config"].candidate_k == 40
+    assert captured["retrieval_config"].top_k == 5
+
+
 def test_export_candidates_unions_modes_by_patent_source(tmp_path):
     modes = {
         "dense": lambda query: [result("p1", "Patent one", claim_number=2)],
