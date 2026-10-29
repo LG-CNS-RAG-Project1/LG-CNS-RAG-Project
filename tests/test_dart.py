@@ -19,7 +19,6 @@ from src.ingestion.dart_processor import (
 
 REPORT_CONFIG = {
     "sections": ["사업의 개요", "매출", "기타 참고사항"],
-    "purchase_sections": ["매출"],
     "chunk_size": 120,
     "chunk_overlap": 20,
 }
@@ -136,14 +135,23 @@ def test_chunk_text_overlaps_and_respects_size():
     assert chunk_text("짧은 글", 100, 20) == ["짧은 글"]
 
 
+def test_chunk_text_starts_next_chunk_at_sentence_start():
+    sentences = [f"{i}번 문장은 협동로봇 시장을 설명합니다. " for i in range(20)]
+    chunks = chunk_text("".join(sentences), 100, 40)
+
+    assert len(chunks) > 1
+    assert all(len(c) <= 100 for c in chunks)
+    assert all(c.split("번 문장")[0].isdigit() for c in chunks)
+    assert all(c.endswith("다.") for c in chunks)
+    assert chunks[0][-10:] in chunks[1]
+
+
 def test_build_company_documents_links_ideas_by_terms():
     documents, selection = build_company_documents(META, XML, REPORT_CONFIG, IDEA_TERMS)
 
     assert selection["linked_idea_ids"] == ["SF-01"]
     assert selection["matched_terms"]["SF-03"] == {}
-    assert {d.evidence_nature for d in documents if "매출" in d.title} == {
-        "purchase_signal"
-    }
+    assert {d.evidence_nature for d in documents} == {"company_claim"}
     overview = next(d for d in documents if "사업의 개요" in d.title)
     assert overview.evidence_nature == "company_claim"
     assert overview.source_type == "dart"
