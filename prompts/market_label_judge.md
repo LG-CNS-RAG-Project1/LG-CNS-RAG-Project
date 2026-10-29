@@ -18,11 +18,12 @@ JSON으로 다음 값이 주어진다.
 ## 출력 형식
 
 ```json
-{"label": 1, "confidence": "high", "reason": "한국어 한 문장"}
+{"label": 1, "confidence": "high", "evidence_nature": "purchase_signal", "reason": "한국어 한 문장"}
 ```
 
 - `label`: 관련이면 1, 아니면 0
 - `confidence`: 기준에 분명히 들어맞으면 `"high"`, 판단이 갈릴 수 있으면 `"low"`
+- `evidence_nature`: 기사가 보도하는 내용의 성격. 아래 "근거 성격" 기준으로 `label`과 따로 판정한다
 - `reason`: 판정 근거를 기사 내용과 차원을 들어 60자 이내로 쓴다
 
 ## 1 = 관련
@@ -53,6 +54,22 @@ JSON으로 다음 값이 주어진다.
 - 다른 기술·산업이 중심인 기사 (예: 협동로봇 아이디어에 휴머노이드 개발만 다룬 기사)
 - 아이디어와 연결되지 않는 일반 정책·행사 소개
 
+## 근거 성격 (`evidence_nature`)
+
+관련성과 상관없이 기사가 **무엇을 보도하는지**만 보고 하나를 고른다. 차원이 달라도 같은 기사는 같은 성격이다.
+
+| 값 | 기사 내용 |
+|---|---|
+| `purchase_signal` | 이름이 드러난 고객(기업·기관·공장)이 솔루션을 실제로 도입·구축 완료했거나 운영 중이거나, 구매·납품·공급 계약·수주·조달 발주가 이뤄졌다는 보도 |
+| `indirect_demand` | 요약에 **조사·통계를 낸 기관과 그 결과(비율·건수 등)** 가 직접 나오는 보도 (예: "OO 조사에 따르면 도입 기업의 63%가 …") |
+| `estimate` | 시장 규모·성장률 전망 등 조사기관·기업의 추정치 |
+| `company_claim` | 공급 기업이 자사 제품의 성능·효과·고객 수를 스스로 주장하는 홍보성 보도 (구매 고객 이름이 없음) |
+| `business_signal` | 투자, 출시·개발 계획, 제휴·MOU, 도입 계획 발표, 정책·지원사업 발표, 행사, 주식 시황, 그 밖의 기사 |
+
+- 도입 **계획**·MOU·협약은 실제 구매가 아니므로 `business_signal`이다.
+- 전문가·기업인 발언, 행사·세미나 소개, 정책 제언, 기술 설명, 기업 사업 소개는 조사 결과가 아니므로 `business_signal`이다.
+- 판단이 갈리면 `business_signal`을 고른다.
+
 ## 규칙
 
 1. 제목과 요약에 적힌 내용만으로 판단한다. 배경지식으로 기사에 없는 내용을 보충하지 않는다.
@@ -64,32 +81,32 @@ JSON으로 다음 값이 주어진다.
 
 아이디어 기술: 협동로봇 머신비전 / 차원: `price`
 기사: "로봇주 일제히 상승…협동로봇 대장주 8% 급등"
-출력: {"label": 0, "confidence": "high", "reason": "주가 등락을 다룬 주식 시황 기사로 제품 가격 정보가 없음"}
+출력: {"label": 0, "confidence": "high", "evidence_nature": "business_signal", "reason": "주가 등락을 다룬 주식 시황 기사로 제품 가격 정보가 없음"}
 
 아이디어 기술: 협동로봇 머신비전 / 차원: `adoption_barrier`
 기사: "中企 자동화 설비 도입, 초기 비용과 운영 인력 부족이 걸림돌"
-출력: {"label": 1, "confidence": "high", "reason": "중소기업 자동화 설비 도입의 비용·인력 장벽을 직접 다룸"}
+출력: {"label": 1, "confidence": "high", "evidence_nature": "business_signal", "reason": "중소기업 자동화 설비 도입의 비용·인력 장벽을 직접 다룸"}
 
 아이디어 기술: 공정별 전력 계측 FEMS / 차원: `buyer`
 기사: "A산업, 공장 에너지관리시스템 구축해 전력비 12% 절감"
-출력: {"label": 1, "confidence": "high", "reason": "제조사의 FEMS 실제 도입 사례와 효과를 다룸"}
+출력: {"label": 1, "confidence": "high", "evidence_nature": "purchase_signal", "reason": "제조사의 FEMS 실제 도입 사례와 효과를 다룸"}
 
 아이디어 기술: 협동로봇 머신비전 / 차원: `price`
 기사: "공장 로봇, 이제 월 사용료 내고 빌려 쓴다…초기 구매 부담 덜어"
-출력: {"label": 1, "confidence": "high", "reason": "로봇 구매 대신 월 사용료 임대라는 과금 방식과 비용 부담을 다룸"}
+출력: {"label": 1, "confidence": "high", "evidence_nature": "business_signal", "reason": "로봇 구매 대신 월 사용료 임대라는 과금 방식과 비용 부담을 다룸"}
 
 아이디어 기술: 협동로봇 머신비전 / 차원: `price`
 기사: "C정밀, 검사 공정에 협동로봇 투입해 불량 비용 대폭 줄였다"
-출력: {"label": 1, "confidence": "high", "reason": "협동로봇 도입으로 생긴 비용 절감을 다루며 수치가 없어도 가격 판단 근거가 됨"}
+출력: {"label": 1, "confidence": "high", "evidence_nature": "purchase_signal", "reason": "협동로봇 도입으로 생긴 비용 절감을 다루며 수치가 없어도 가격 판단 근거가 됨"}
 
 아이디어 기술: 협동로봇 머신비전 / 차원: `price`
 기사: "인건비 급등에 中企 시름…생산직 구인난 심화"
-출력: {"label": 0, "confidence": "high", "reason": "협동로봇과 연결되지 않은 일반 인건비 압박으로 솔루션 가격 정보가 아님"}
+출력: {"label": 0, "confidence": "high", "evidence_nature": "business_signal", "reason": "협동로봇과 연결되지 않은 일반 인건비 압박으로 솔루션 가격 정보가 아님"}
 
 아이디어 기술: 진동 센서 기반 예지보전 / 차원: `buyer`
 기사: "B화학, 전 공장 설비에 AI 예지보전 시스템 도입 계획"
-출력: {"label": 1, "confidence": "high", "reason": "특정 기업의 예지보전 도입 계획으로 센서 방식이 달라도 같은 기술 범주"}
+출력: {"label": 1, "confidence": "high", "evidence_nature": "business_signal", "reason": "특정 기업의 예지보전 도입 계획으로 센서 방식이 달라도 같은 기술 범주"}
 
 아이디어 기술: 딥러닝 AI 비전 외관 검사 장비 / 차원: `competition`
 기사: "정부, 제조 AI 확산 위한 내년 예산 확대"
-출력: {"label": 0, "confidence": "low", "reason": "제조 AI 정책 기사로 비전 검사 경쟁 기업·제품 언급이 없음"}
+출력: {"label": 0, "confidence": "low", "evidence_nature": "business_signal", "reason": "제조 AI 정책 기사로 비전 검사 경쟁 기업·제품 언급이 없음"}
