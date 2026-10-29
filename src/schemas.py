@@ -422,6 +422,14 @@ class MarketDimensionResult(BaseModel):
     verdict: MarketVerdict
     claims: list[MarketClaim] = Field(default_factory=list, max_length=3)
     next_check: str | None = None  # 미확인일 때 다음 검증 과제
+    # 검색·관련성 판정 결과: sufficient·limited·insufficient·no_results·error
+    evidence_status: (
+        Literal["sufficient", "limited", "insufficient", "no_results", "error"] | None
+    ) = None
+    relevant_count: int | None = None  # 관련 판정된 검색 결과 수
+    limitation: str | None = (
+        None  # 확인됨이 아닌 이유 (자료 없음·판정 실패·사업 신호만 등)
+    )
 
     @model_validator(mode="after")
     def validate_verdict(self):

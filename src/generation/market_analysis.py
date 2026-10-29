@@ -4,12 +4,14 @@
     build_evidence(assessed)        관련 판정된 기사만 인용 근거(MarketEvidence)로 정리, 기사당 citation_id 1개
     allowed_verdicts(...)           충분성 상태로 쓸 수 있는 판정 제한
     generate_dimensions(...)        LLM 생성 → validate_dimension 검증 → 실패 시 오류를 알려 최대 MAX_RETRIES회 재생성
-    finalize_dimension(...)         재생성 후에도 실패한 문장은 제거하고, 판정을 유지할 수 없으면 미확인으로 바꿈
+    finalize_dimension(...)         재생성 후에도 실패한 문장은 제거하고, 판정을 유지할 수 없으면 낮춤
+    with_limitations(...)           차원마다 검색 상태·관련 근거 수·확인되지 않은 이유를 붙임
     build_report(...)               MarketReport로 묶음
 
 판정 제한 (차원별 충분성 상태 기준):
     sufficient    confirmed · signal_only · unverified (confirmed는 수요면 direct_demand 근거,
-                  그 밖의 차원은 사업 신호·기업 주장·추정치가 아닌 근거가 있을 때만)
+                  그 밖의 차원은 사업 신호·기업 주장·추정치가 아닌 근거가 있을 때만이며,
+                  그 근거를 인용한 fact 문장이 있어야 유지된다)
     limited       signal_only · unverified
     그 밖         unverified
 차원이 기대는 아이디어 항목(DEPENDENT_FIELDS)이 비어 있으면(모름) 근거가 있어도 unverified만 허용한다.
@@ -48,11 +50,13 @@ METRIC_PATTERN = re.compile(
     r"\d+(?:[.,]\d+)*\s*(%|퍼센트|배|원|만|억|조|달러|건|대|개사|곳|명|개월)"
 )
 YEAR_PATTERN = re.compile(r"(?<!\d)(?:19|20)\d{2}년")
+# 사용자 주장·AI 가설에 쓰면 확인된 사실처럼 읽히는 표현
+CERTAINTY_PATTERN = re.compile(r"확인(?:되었|됐|된다|된\s)|입증|증명")
 
 # 시장 차원이 판정에 기대는 아이디어 항목
 DEPENDENT_FIELDS = {"price": "revenue", "buyer": "customers"}
 
-# 이 성격의 근거만 있으면 어느 차원도 confirmed가 될 수 없다 (뉴스는 모두 business_signal)
+# 이 성격의 근거만 있으면 어느 차원도 confirmed가 될 수 없다
 SIGNAL_ONLY_NATURES = {"business_signal", "company_claim", "estimate"}
 
 DEFAULT_CHECKS = {
@@ -91,11 +95,29 @@ def recency_grade(published_at: int, data_as_of: int) -> str:
     return "medium" if days <= STALE_DAYS else "low"
 
 
-def directness_grade(hit: dict) -> str:
+def directness_grade(hit: dict, nature: str) -> str:
     """근거의 직접성 등급. 구매·지불 근거면 high, 관련성 판정 확신이 높으면 medium, 그 밖은 low."""
-    if hit["evidence_nature"] in ("direct_demand", "purchase_signal"):
+    if nature in ("direct_demand", "purchase_signal"):
         return "high"
     return "medium" if hit.get("relevance_confidence") == "high" else "low"
+
+
+def source_natures(assessed: dict[str, dict]) -> dict[str, str]:
+    """관련 기사별 근거 성격. 차원마다 판정이 다르면 confirmed를 열지 않는 쪽(약한 성격)을 쓴다."""
+    natures: dict[str, str] = {}
+    for result in assessed.values():
+        if result["status"] == "error":
+            continue
+        for hit in result["hits"]:
+            if not hit.get("relevant"):
+                continue
+            current = natures.get(hit["source_id"])
+            if current is None or (
+                current not in SIGNAL_ONLY_NATURES
+                and hit["evidence_nature"] in SIGNAL_ONLY_NATURES
+            ):
+                natures[hit["source_id"]] = hit["evidence_nature"]
+    return natures
 
 
 def quote_text(hit: dict) -> str:
@@ -109,9 +131,10 @@ def build_evidence(
 ) -> tuple[list[MarketEvidence], dict[str, list[int]]]:
     """관련 판정된 기사를 인용 근거로 만들고 차원별 citation_id 목록을 반환한다.
 
-    같은 기사가 여러 차원에 나오면 citation_id 하나를 공유한다. 판정 실패(error) 차원의
-    결과는 근거로 쓰지 않는다.
+    같은 기사가 여러 차원에 나오면 citation_id 하나와 source_natures의 성격을 공유한다.
+    판정 실패(error) 차원의 결과는 근거로 쓰지 않는다.
     """
+    natures = source_natures(assessed)
     evidence: list[MarketEvidence] = []
     by_source: dict[str, int] = {}
     ids_by_dimension: dict[str, list[int]] = {}
@@ -138,8 +161,8 @@ def build_evidence(
                             period=hit.get("period"),
                             reliability=hit["reliability"],
                             recency=recency_grade(hit["published_at"], data_as_of),
-                            directness=directness_grade(hit),
-                            evidence_nature=hit["evidence_nature"],
+                            directness=directness_grade(hit, natures[hit["source_id"]]),
+                            evidence_nature=natures[hit["source_id"]],
                             similarity=(
                                 None
                                 if distance is None
@@ -174,14 +197,29 @@ def allowed_verdicts(
         return ["unverified"]
     if status == "limited":
         return ["signal_only", "unverified"]
-    confirming = (
-        (lambda e: e.evidence_nature == "direct_demand")
-        if dimension == "demand"
-        else (lambda e: e.evidence_nature not in SIGNAL_ONLY_NATURES)
-    )
-    if not any(confirming(e) for e in cited):
+    if not any(confirms(dimension, e) for e in cited):
         return ["signal_only", "unverified"]
     return ["confirmed", "signal_only", "unverified"]
+
+
+def confirms(dimension: str, evidence: MarketEvidence) -> bool:
+    """이 근거가 차원의 confirmed를 뒷받침할 수 있는 성격인지 판단한다."""
+    if dimension == "demand":
+        return evidence.evidence_nature == "direct_demand"
+    return evidence.evidence_nature not in SIGNAL_ONLY_NATURES
+
+
+def has_confirming_fact(
+    dimension: str, claims: list[dict], by_id: dict[int, MarketEvidence]
+) -> bool:
+    """confirmed를 뒷받침하는 성격의 근거를 인용한 fact 문장이 있는지 확인한다."""
+    return any(
+        confirms(dimension, by_id[i])
+        for c in claims
+        if c.get("claim_type") == "fact"
+        for i in c.get("citation_ids") or []
+        if i in by_id
+    )
 
 
 def analysis_input(
@@ -273,6 +311,7 @@ def claim_errors(
 
     - 문장 유형이 fact·user_claim·ai_hypothesis 중 하나인지
     - fact는 인용이 1개 이상이고 모두 이 차원의 근거 ID인지
+    - user_claim·ai_hypothesis가 "확인되었다"처럼 확인된 사실로 쓰이지 않았는지
     - 문장의 숫자가 인용 기사(제목·요약·발행연도)나 아이디어 입력에 있는지
     - fact 문장에 단위가 붙은 수치(METRIC_PATTERN)가 있으면 4자리 기준 연도도 있는지
     """
@@ -287,6 +326,8 @@ def claim_errors(
         return [f"citation_ids는 정수 목록이어야 함: {citation_ids}"]
     if claim_type == "fact" and not citation_ids:
         return [f"인용 없는 fact 문장: {statement}"]
+    if claim_type != "fact" and CERTAINTY_PATTERN.search(statement):
+        return [f"{claim_type} 문장을 확인된 사실처럼 씀: {statement}"]
     unknown = [i for i in citation_ids if i not in allowed_ids]
     if unknown:
         return [f"이 차원의 근거에 없는 인용 {unknown}: {statement}"]
@@ -336,6 +377,12 @@ def validate_dimension(
         c.get("claim_type") == "fact" for c in claims
     ):
         errors.append(f"{verdict} 판정에 인용된 fact 문장이 없음")
+    elif verdict == "confirmed" and not has_confirming_fact(
+        str(raw.get("dimension")), claims, by_id
+    ):
+        errors.append(
+            "confirmed 판정의 fact 문장이 구매 신호·간접 수요 근거를 인용하지 않음"
+        )
     if verdict == "unverified" and not str(raw.get("next_check") or "").strip():
         errors.append("unverified 판정에 next_check가 없음")
     return errors
@@ -371,6 +418,8 @@ def finalize_dimension(
 
     verdict = raw.get("verdict")
     has_fact = any(c["claim_type"] == "fact" for c in claims)
+    if verdict == "confirmed" and not has_confirming_fact(dimension, claims, by_id):
+        verdict = "signal_only"
     if verdict not in allowed or (verdict != "unverified" and not has_fact):
         verdict = "unverified"
     next_check = " ".join(str(raw.get("next_check") or "").split()) or None
@@ -454,10 +503,73 @@ def generate_dimensions(
     return results, retries
 
 
+def limitation_text(
+    dimension: str,
+    verdict: str,
+    result: dict | None,
+    pool: list[MarketEvidence],
+    missing_field: str | None,
+) -> str | None:
+    """판정이 confirmed가 아닌 이유를 자료 없음·판정 실패·관련 부족·근거 성격으로 구분해 쓴다.
+
+    result는 assess_dimensions의 차원 결과, pool은 이 차원에 관련 판정된 근거다.
+    """
+    if verdict == "confirmed":
+        return None
+    if missing_field:
+        return f"아이디어 {missing_field} 항목이 비어 있어 판단하지 않음"
+    status = (result or {}).get("status", "no_results")
+    searched = len((result or {}).get("hits", []))
+    if status == "no_results":
+        return "검색 범위에 이 차원의 기사가 없음 (수요·시장이 없다는 뜻은 아님)"
+    if status == "error":
+        return "관련성 판정이 실패해 근거로 쓰지 않음"
+    if status == "insufficient":
+        return f"검색된 기사 {searched}건이 모두 이 차원과 무관하다고 판정됨"
+    if status == "limited":
+        return "관련 기사가 1건뿐이라 확인할 수 없음 (최대 신호 수준)"
+    if dimension == "demand":
+        return "수요 확인에는 고객 검증 자료(인터뷰·설문·파일럿·LOI)가 필요하며 기사로는 확인할 수 없음"
+    if all(e.evidence_nature in SIGNAL_ONLY_NATURES for e in pool):
+        return f"관련 기사 {len(pool)}건이 모두 사업 신호·기업 주장·추정치라 확인할 수 없음"
+    return "구매·조사 근거가 있으나 분석 단계에서 판단에 충분하지 않다고 봄"
+
+
+def with_limitations(
+    idea: StructuredIdea,
+    dimensions: list[MarketDimensionResult],
+    assessed: dict[str, dict],
+    evidence: list[MarketEvidence],
+    ids_by_dimension: dict[str, list[int]],
+) -> list[MarketDimensionResult]:
+    """차원 결과에 검색 상태·관련 근거 수·확인되지 않은 이유를 붙인다."""
+    by_id = {e.citation_id: e for e in evidence}
+    enriched = []
+    for d in dimensions:
+        result = assessed.get(d.dimension)
+        pool = [by_id[i] for i in ids_by_dimension.get(d.dimension, [])]
+        enriched.append(
+            d.model_copy(
+                update={
+                    "evidence_status": (result or {}).get("status", "no_results"),
+                    "relevant_count": (result or {}).get("relevant_count"),
+                    "limitation": limitation_text(
+                        d.dimension,
+                        d.verdict,
+                        result,
+                        pool,
+                        missing_dependent_field(idea, d.dimension),
+                    ),
+                }
+            )
+        )
+    return enriched
+
+
 def report_unknowns(
     idea: StructuredIdea, dimensions: list[MarketDimensionResult]
 ) -> list[str]:
-    """비어 있는 아이디어 항목과 미확인 차원을 미확인 목록으로 만든다."""
+    """비어 있는 아이디어 항목과 미확인 차원(이유 포함)을 미확인 목록으로 만든다."""
     unknowns = [
         f"아이디어 {FIELD_LABELS[f]} 항목 미입력"
         for f in IDEA_FIELDS
@@ -465,6 +577,7 @@ def report_unknowns(
     ]
     unknowns += [
         f"{DIMENSION_LABELS[d.dimension]} 근거 미확인"
+        + (f": {d.limitation}" if d.limitation else "")
         for d in dimensions
         if d.verdict == "unverified"
     ]
@@ -606,6 +719,9 @@ def build_report(
     inputs = dimension_inputs(idea, assessed, evidence, ids_by_dimension)
     try:
         dimensions, _ = generate_dimensions(idea, inputs, evidence, llm_fn)
+        dimensions = with_limitations(
+            idea, dimensions, assessed, evidence, ids_by_dimension
+        )
     except Exception as exc:  # 생성 실패를 보고서 단위 오류로 전달
         return MarketReport(
             status="error",
