@@ -1145,7 +1145,7 @@ def render_patent_report(patent, *, widget_suffix="", preview=False):
                     st.text(evidence.quote)
 
 
-def render_market_report(market, draft=None):
+def render_market_report(market, draft=None, widget_suffix=""):
     from src.generation.market_markdown import NATURE_LABELS
 
     """시장성 화면에는 고객 신호와 다음 검증을 우선 표시하고 상세 자료를 접는다."""
@@ -1293,6 +1293,10 @@ def render_market_report(market, draft=None):
             else:
                 st.caption(dimension.next_check or "검증 자료가 없습니다.")
 
+    from frontend.market_trend_view import render_search_trend
+
+    render_search_trend(getattr(market, "search_trend", None), widget_suffix)
+
     if market.dimensions or market.evidence:
         from src.generation.market_markdown import market_report_to_markdown
 
@@ -1389,7 +1393,7 @@ def workflow_stage_result_dialog(stage, draft, job, pipeline_result):
         if market is None:
             st.info("시장성 분석 결과가 아직 준비되지 않았습니다.")
             return
-        render_market_report(market, draft)
+        render_market_report(market, draft, widget_suffix="_preview")
         return
 
     if stage == 4:
