@@ -224,7 +224,10 @@ def write_semantic(target, revision: int, payload: dict, semantic) -> str:
 
 
 def list_runs(root: Path | None = None, area_id: str | None = None) -> list[dict]:
-    """게시된 실행의 manifest 요약을 최신순으로 반환한다. 읽을 수 없는 폴더는 건너뛴다."""
+    """게시된 실행의 manifest 요약을 최신순(기준일 → 게시 시각)으로 반환한다.
+
+    run_id의 무작위 부분은 순서를 뜻하지 않는다. 읽을 수 없는 폴더는 건너뛴다.
+    """
     root = Path(root) if root else runs_root()
     if not root.exists():
         return []
@@ -236,7 +239,15 @@ def list_runs(root: Path | None = None, area_id: str | None = None) -> list[dict
         except (OSError, ValueError):
             continue
         runs.append({"path": manifest_path.parent, "manifest": manifest})
-    return sorted(runs, key=lambda r: r["manifest"].run_id, reverse=True)
+    return sorted(
+        runs,
+        key=lambda r: (
+            r["manifest"].as_of,
+            (r["path"] / "manifest.json").stat().st_mtime,
+            r["manifest"].run_id,
+        ),
+        reverse=True,
+    )
 
 
 def find_run(root: Path | None, run_ref: str) -> Path:

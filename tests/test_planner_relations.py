@@ -188,3 +188,123 @@ def test_price_dotplot_requires_reviewed_comparable_prices():
         [], [price(1, ["reviewer_approved"]), price(2, ["reviewer_approved"])]
     )
     assert {c.chart_id: c for c in reviewed}["price_dotplot"].available
+
+
+def _mini(key, title, snippet, mentions, relation):
+    from tests.planner_fixtures import article
+
+    subject, obj, clause = relation
+    return article(
+        key,
+        title,
+        snippet,
+        candidates={
+            "mentions": mentions,
+            "relations": [
+                {
+                    "exact_clause": clause,
+                    "subject_text": subject,
+                    "object_text": obj,
+                    "relation_hint": "supply",
+                }
+            ],
+        },
+    )
+
+
+def test_relation_counterparts_must_be_organizations_on_topic():
+    world = [
+        _mini(
+            "B1",
+            "가상메트리, 미국향 검사장비 공급계약",
+            "가상메트리는 미국향 ESS 검사장비 공급계약을 체결했다.",
+            [("가상메트리", "supplier")],
+            (
+                "가상메트리",
+                "미국향 ESS 검사장비",
+                "가상메트리는 미국향 ESS 검사장비 공급계약을 체결했다",
+            ),
+        ),
+        _mini(
+            "B2",
+            "가상코, 비전 검사장비 사업 확대",
+            "가상코가 세라믹 원재료를 공급하면 가상코세라믹스가 부품으로 만든다.",
+            [("가상코", "supplier"), ("가상코세라믹스", "adopter")],
+            (
+                "가상코",
+                "가상코세라믹스",
+                "가상코가 세라믹 원재료를 공급하면 가상코세라믹스가 부품으로 만든다",
+            ),
+        ),
+        _mini(
+            "B3",
+            "가상미코, 계열사에 AI 검사 장비 공급",
+            "가상미코는 가상미코테크에 AI 검사 장비를 공급했다.",
+            [("가상미코", "supplier"), ("가상미코테크", "adopter")],
+            (
+                "가상미코",
+                "가상미코테크",
+                "가상미코는 가상미코테크에 AI 검사 장비를 공급했다",
+            ),
+        ),
+        _mini(
+            "B4",
+            "가상세이지, 배터리 3사에 비전검사 솔루션 공급",
+            "가상세이지는 가상SDI · 가상엔솔 · 가상온 등에 비전검사 솔루션을 공급하고 있다.",
+            [("가상세이지", "supplier"), ("가상SDI · 가상엔솔 · 가상온", "adopter")],
+            (
+                "가상세이지",
+                "가상SDI · 가상엔솔 · 가상온",
+                "가상세이지는 가상SDI · 가상엔솔 · 가상온 등에 비전검사 솔루션을 공급하고 있다",
+            ),
+        ),
+        _mini(
+            "B5",
+            "가상피플, 라면 공장에 AI 검사 솔루션 적용",
+            "가상피플은 지방의 한 라면 공장에 검사 솔루션을 적용하고 있다.",
+            [("가상피플", "supplier")],
+            (
+                "가상피플",
+                "라면 공장",
+                "가상피플은 지방의 한 라면 공장에 검사 솔루션을 적용하고 있다",
+            ),
+        ),
+    ]
+    result, relations, _, _ = analyzed(world)
+    reasons = {
+        e.span.source_id: e.reasons for e in result["evidence"] if e.kind == "relation"
+    }
+    assert "counterpart_not_an_organization" in reasons[source_id_of(world, "B1")]
+    assert "off_topic_relation" in reasons[source_id_of(world, "B2")]
+    approved = [e for e in relations["edges"] if e.status == "approved"]
+    overlap = next(e for e in approved if e.supplier_id == entity_id("가상미코"))
+    assert "affiliate_name_overlap" in overlap.reasons
+    listed = [e for e in approved if e.supplier_id == entity_id("가상세이지")]
+    assert sorted(e.counterpart_id for e in listed) == sorted(
+        entity_id(n) for n in ("가상SDI", "가상엔솔", "가상온")
+    )
+    noodle = next(e for e in approved if e.supplier_id == entity_id("가상피플"))
+    assert noodle.counterpart_kind == "anonymous"
+    counts = relations["counts"]
+    assert counts["named_external_adopters"] == 3
+    assert counts["affiliate_excluded"] == 1
+
+
+def source_id_of(world, key):
+    from src.ingestion.news_client import make_source_id
+
+    return make_source_id(next(a["url"] for a in world if a["key"] == key))
+
+
+def test_v3_lexical_rules():
+    from src.planner.rules import is_public, mention_name, relation_type, split_parties
+
+    assert relation_type("가상이 추진한 검사 기술의 양산 검증을 통과했다") == "poc"
+    assert relation_type("가상은 내년 공급을 추진할 예정이다") == "plan"
+    assert mention_name("회사")[1] == "generic_noun_mention"
+    assert is_public("코트라") and not is_public("가상비전")
+    assert split_parties("가상SDI · 가상엔솔 · 가상온") == [
+        "가상SDI",
+        "가상엔솔",
+        "가상온",
+    ]

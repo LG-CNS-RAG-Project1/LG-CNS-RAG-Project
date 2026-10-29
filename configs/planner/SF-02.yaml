@@ -3,7 +3,7 @@
 # 값을 바꾸면 profile_hash가 바뀌어 rule_version이 달라지고, 이전 실행과 '규칙 변경'으로 구분된다.
 # 예산·배분은 연구 초기 운영안(초기 50 + 후속 10×3)이며 최적값으로 검증되지 않았다.
 area_id: SF-02
-version: sf02-planner-profile-v2
+version: sf02-planner-profile-v3
 model: gpt-4o-mini
 
 budget:
@@ -95,7 +95,7 @@ criteria:
   - id: defect_data_preparation
     label: 불량 데이터 준비 부담
     decision_id: C2
-    strong: [불량 이미지, 불량 데이터, 결함 데이터, 결함 이미지, 제로샷, 정상 이미지, 가상 결함, 데이터 부족, 소량 데이터, 적은 데이터, 라벨링]
+    strong: [불량 이미지, 불량 데이터, 결함 데이터, 결함 이미지, 제로샷, 정상 이미지, 가상 결함, 데이터 부족, 소량 데이터, 적은 데이터, 라벨링, 레이블 데이터]
     weak: [학습 데이터, 데이터 확보, 데이터 준비, 불량 샘플, 결함 샘플, 준지도]
     next_question: {explicit: C4, partial: C2, unknown: C2, conflicting: C3}
   - id: changeover_reconfiguration
@@ -107,8 +107,9 @@ criteria:
   - id: site_customization
     label: 현장 맞춤 구성
     decision_id: C2
-    strong: [맞춤, 광학 구성, 광학 설계, 조명 설계, 현장에 맞, 공정에 맞, 커스터마이, 모듈형]
-    weak: [광학, 조명, 기존 라인, 기존 설비, 추가 설치, 현장 설치, 라인 연동]
+    # 단독 '맞춤'은 맞춤형 반도체 등 다른 뜻으로도 쓰여 검사 구성 문맥 표현만 쓴다.
+    strong: [맞춘 광학, 맞춤 구성, 맞춤형 검사, 광학 구성, 광학 설계, 광학계 설계, 조명 설계, 현장에 맞, 공정에 맞, 특성에 맞, 커스터마이]
+    weak: [광학, 조명, 모듈형, 기존 라인, 기존 설비, 추가 설치, 현장 설치, 라인 연동]
     next_question: {explicit: C4, partial: C2, unknown: C2, conflicting: C3}
 
 # LLM 추출 지침에 넣는 관심 주제(판정은 코드가 한다)

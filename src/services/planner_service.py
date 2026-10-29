@@ -2,7 +2,8 @@
 
 - refresh: 예산 안에서 뉴스 수집 → 본문 수집 → 기사별 추출 → 규칙 판정 → 후속 질문 라운드(최대 3회)
   → 새 실행 폴더에 게시. 부모 실행의 추출 결과는 캐시로만 쓰고 부모 폴더는 바꾸지 않는다.
-- reanalyze: 같은 기사로 현재 규칙·프롬프트를 다시 적용한 새 실행(검색 없음).
+- reanalyze: 같은 기사로 현재 규칙·프롬프트를 다시 적용한 새 실행(검색 없음). 현재 범위 규칙에서
+  벗어난 기사는 분석에서 빼고 사유를 남긴다.
 - replay: 저장 파일만 읽어 의미 결과를 재계산하고 해시를 대조한다. 검색·HTTP·LLM·Chroma 호출 없음.
 - review: 근거 승인·제외와 가격 입력을 새 revision으로 추가한다.
 
@@ -30,6 +31,7 @@ from src.planner.collect import (
     collect_followup,
     collect_initial,
     default_search,
+    in_scope,
     now_kst,
 )
 from src.planner.config import (
@@ -579,9 +581,14 @@ def reanalyze(
     bank = load_question_bank()
     extractor = Extractor(profile, llm_fn, _parent_cache(path))
     versions = versions_for(profile, extractor.prompt_hash, bank)
-    records, bodies, statuses = [], {}, {}
+    records, bodies, statuses, excluded = [], {}, {}, []
     for meta in inputs["articles"]:
         sid = meta["source_id"]
+        if not in_scope(f"{meta['title']}\n{meta['snippet']}", profile):
+            excluded.append(
+                {"source_id": sid, "title": meta["title"], "reason": "out_of_scope"}
+            )
+            continue
         statuses[sid] = meta["body_status"]
         body_path = path / "bodies" / f"{sid}.txt"
         if body_path.exists():
@@ -630,6 +637,7 @@ def reanalyze(
         plan = store.read_json(path / "query_plan.json")
         plan["collection"] = collection
         plan["reanalyzed_from"] = inputs["manifest"].run_id
+        plan["reanalysis_excluded"] = excluded
         raw = [
             store.read_json(p) for p in sorted((path / "raw_responses").glob("*.json"))
         ]

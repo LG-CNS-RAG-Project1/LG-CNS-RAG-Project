@@ -32,7 +32,7 @@ def manifest(run_id="20261029-aaaa0001", digest="d" * 64):
         idea_hash=digest,
         area_id="SF-02",
         idea_title="가상 검사",
-        as_of="20261029",
+        as_of=run_id[:8],
         versions={"rule_version": "r1"},
         budget={"max_articles": 80},
     )
@@ -120,11 +120,17 @@ def test_revisions_are_append_only_and_self_hashed(tmp_path):
 def test_list_runs_skips_staging_and_sorts_latest_first(tmp_path):
     publish(tmp_path, "20261029-aaaa0001")
     publish(tmp_path, "20261030-bbbb0002")
+    publish(tmp_path, "20261029-0000zzzz")
+    later = tmp_path / "SF-02" / ("d" * 12) / "20261029-0000zzzz" / "manifest.json"
+    import os
+
+    os.utime(later, (later.stat().st_atime, later.stat().st_mtime + 10))
     Staging(tmp_path, "SF-02", "d" * 64, "20261031-cccc0003")
     runs = list_runs(tmp_path, "SF-02")
     assert [r["manifest"].run_id for r in runs] == [
         "20261030-bbbb0002",
+        "20261029-0000zzzz",
         "20261029-aaaa0001",
     ]
-    assert find_run(tmp_path, "20261029-aaaa0001") == runs[1]["path"]
+    assert find_run(tmp_path, "20261029-aaaa0001") == runs[2]["path"]
     assert list_runs(tmp_path / "missing") == []

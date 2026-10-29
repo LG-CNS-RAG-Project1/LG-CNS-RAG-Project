@@ -56,6 +56,11 @@ def _classify(item: Evidence, criterion_id: str) -> tuple[str, str]:
     ):
         if marker in markers:
             return "partial", reason
+    if (
+        "owner_basis:single_supplier_in_article" in item.reasons
+        and "pronoun_subject" not in markers
+    ):
+        return "partial", "owner_by_article_only"
     return ("negative" if "negated" in markers else "positive"), ""
 
 

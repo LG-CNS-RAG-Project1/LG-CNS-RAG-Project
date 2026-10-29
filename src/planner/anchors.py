@@ -70,6 +70,7 @@ def build_anchors(
     for item in candidates.get("dropped", []):
         reject(item.get("kind", ""), item, "unknown_sentence_id")
     mention_roles: dict[str, str] = {}
+    proposed: set[str] = set()
     seen_mentions = set()
     for item in candidates.get("mentions", []):
         sentence = by_id[item["sentence_id"]]
@@ -78,6 +79,8 @@ def build_anchors(
             reject("mention", item, "span_not_found")
             continue
         name, problem = rules.mention_name(item["exact_text"])
+        if problem == "compound_mention":
+            proposed.add(rules.normalize_name(item["exact_text"]))
         if problem:
             reject("mention", item, problem)
             continue
@@ -139,6 +142,11 @@ def build_anchors(
                 features=features,
                 markers=rules.sentence_markers(
                     _tail(sentence, found), sentence.truncated, sentence.layer
+                )
+                + (
+                    ["pronoun_subject"]
+                    if rules.PRONOUN_SUBJECT_RE.search(sentence.text)
+                    else []
                 ),
             )
         )
@@ -165,7 +173,16 @@ def build_anchors(
         ):
             features.append("endpoints_not_in_clause")
         for side, text in (("subject", subject), ("object", obj)):
-            if rules.is_anonymous(text):
+            is_mention = (
+                text in mention_roles
+                or text in proposed
+                or all(part in mention_roles for part in rules.split_parties(text))
+            )
+            if is_mention:
+                features.append(f"{side}_is_mention")
+            if rules.is_anonymous(text) or (
+                not is_mention and rules.ends_with_generic_noun(text)
+            ):
                 features.append(f"{side}_anonymous")
             if rules.is_channel(text) or mention_roles.get(text) in {
                 "equipment_maker",
@@ -174,6 +191,10 @@ def build_anchors(
                 features.append(f"{side}_channel")
             if rules.is_public(text) or mention_roles.get(text) == "public_or_research":
                 features.append(f"{side}_public")
+        if any(t in sentence.text for t in profile.scope.include_any) or any(
+            t in sentence.text for t in profile.offering_terms
+        ):
+            features.append("relation_on_topic")
         event_at, event_text = rules.event_dates(sentence.text)
         markers = rules.sentence_markers(
             sentence.text, sentence.truncated, sentence.layer

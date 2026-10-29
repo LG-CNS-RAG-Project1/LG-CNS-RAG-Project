@@ -15,13 +15,42 @@ import unicodedata
 
 from src.planner.schemas import Anchor, Entity, Evidence
 
-RULE_VERSION = "planner-rules-v2"
+RULE_VERSION = "planner-rules-v3"
 
 NEGATION_RE = re.compile(
     r"않는다|않았다|않아|않고|않는|않을|못한다|못했|못하|아니다|아닌|어렵다|어려운|"
     r"어려워|불가능|불가하|한계가 있|여전히 필요"
 )
-PLAN_RE = re.compile(r"예정|계획|추진|목표로|방침|할 것|나설|키로|MOU|업무협약|협약")
+PLAN_RE = re.compile(
+    r"예정|계획이다|계획을|계획하|추진할|추진한다|추진 중|추진하고|추진키로|목표로|방침|할 것|"
+    r"나설|키로|MOU|업무협약|협약"
+)
+PRONOUN_SUBJECT_RE = re.compile(
+    r"(?:^|\s)(?:이\s)?(?:회사|업체|기업|동사)(?:\s?측)?(?:은|는|이|가)\s"
+)
+GENERIC_NAMES = {
+    "회사",
+    "업체",
+    "기업",
+    "당사",
+    "동사",
+    "이 회사",
+    "해당 기업",
+    "고객사",
+    "제조사",
+}
+PUBLIC_NAMES = {
+    "코트라",
+    "KOTRA",
+    "정부",
+    "중기부",
+    "중소벤처기업부",
+    "산업부",
+    "산업통상자원부",
+    "과기정통부",
+    "과학기술정보통신부",
+    "지자체",
+}
 WITHDRAWAL_RE = re.compile(r"철수|중단|실패|포기|해지|철회|지연")
 AFFILIATE_RE = re.compile(
     r"자회사|계열사|계열|그룹 내|그룹사|자체 라인|자사 공장|자사 생산|관계사|"
@@ -127,7 +156,7 @@ GENERIC_PRODUCT_WORDS = {
 }
 RELATION_TYPES = [
     ("withdrawal", re.compile(r"철수|중단|해지|철회|실패")),
-    ("plan", re.compile(r"예정|추진|계획|키로|MOU|업무협약|협약")),
+    ("plan", PLAN_RE),
     ("repeat", re.compile(r"추가 발주|추가 수주|재계약|확대 적용|추가 도입|추가 공급")),
     (
         "operation",
@@ -208,6 +237,9 @@ def mention_name(text: str) -> tuple[str, str]:
     여러 기관을 묶은 언급('A와 B', 'A·B')과 연구진·교수 언급은 기업명으로 쓰지 않는다.
     """
     name = normalize_name(re.split(r"[(（]", text or "", maxsplit=1)[0])
+    parts = split_parties(name)
+    if len(parts) > 1 and all(len(p) <= 20 and len(p.split()) <= 2 for p in parts):
+        return "", "compound_mention"
     if len(name) > 25 or len(name.split()) > 3:
         lead = re.match(r"^\s*(\S{2,20}?)(?:은|는|이|가)\s", normalize_name(text))
         if not lead:
@@ -219,6 +251,8 @@ def mention_name(text: str) -> tuple[str, str]:
         return "", "compound_mention"
     if name.endswith(RESEARCH_SUFFIXES):
         return "", "research_team_mention"
+    if name in GENERIC_NAMES:
+        return "", "generic_noun_mention"
     return name, ""
 
 
@@ -257,7 +291,8 @@ def align(sentence: str, exact: str) -> list[tuple[int, int]]:
 
 
 def is_public(name: str) -> bool:
-    return normalize_name(name).endswith(PUBLIC_SUFFIXES)
+    name = normalize_name(name)
+    return name in PUBLIC_NAMES or name.endswith(PUBLIC_SUFFIXES)
 
 
 def is_anonymous(text: str) -> bool:
@@ -276,6 +311,20 @@ def is_anonymous(text: str) -> bool:
                 return False
             return all(word in ANON_DESCRIPTORS for word in head)
     return False
+
+
+def ends_with_generic_noun(text: str) -> bool:
+    last = re.sub(r"들$", "", (normalize_name(text).split() or [""])[-1])
+    return any(last.endswith(noun) for noun in ANON_NOUNS)
+
+
+def split_parties(text: str) -> list[str]:
+    """'A · B · C', 'A, B', 'A와 B'처럼 나열된 상대를 나눈다. 나눌 수 없으면 원문 하나."""
+    parts = [
+        normalize_name(p) for p in re.split(r"\s*(?:·|,|및|와\s|과\s)\s*", text or "")
+    ]
+    parts = [p for p in parts if len(p) >= 2]
+    return parts if len(parts) > 1 else [normalize_name(text)]
 
 
 def is_channel(text: str) -> bool:
@@ -491,6 +540,15 @@ def evaluate_relation(
         reasons.append("supplier_unresolved")
     if "negated" in anchor.markers and anchor.relation_type != "withdrawal":
         reasons.append("negated")
+    if supplier:
+        side = "subject" if supplier == anchor.counterpart_id else "object"
+        if (
+            f"{side}_is_mention" not in anchor.features
+            and f"{side}_anonymous" not in anchor.features
+        ):
+            reasons.append("counterpart_not_an_organization")
+    if "relation_on_topic" not in anchor.features:
+        reasons.append("off_topic_relation")
     return Evidence(
         evidence_id=f"ev:{anchor.anchor_id}",
         anchor_id=anchor.anchor_id,

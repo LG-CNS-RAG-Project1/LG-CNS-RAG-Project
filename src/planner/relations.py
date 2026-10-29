@@ -2,11 +2,18 @@
 
 - 관계 동사가 있는 승인 근거만 확정 간선이 된다. 동사 없는 동시 언급은 간선을 만들지 않는다.
 - 익명 도입처는 전재 묶음(dup_group)별로 따로 두고 다른 묶음과 합치지 않는다.
-- 자체·계열 현장 적용과 공공기관 상대는 외부 거래 보도 수에서 뺀다.
+- 자체·계열 현장 적용, 이름이 겹치는 계열 추정 상대, 공공기관 상대는 외부 거래 보도 수에서 뺀다.
+- 'A · B · C'처럼 나열된 상대는 각각의 상대로 나눈다.
 - 간선 수·연결 수는 경쟁력이나 시장 지배력을 뜻하지 않는다. 금액이 없으므로 간선 두께도 쓰지 않는다.
 """
 
-from src.planner.rules import RELATION_LABELS, TRANSACTION_TYPES
+from src.planner.rules import (
+    RELATION_LABELS,
+    TRANSACTION_TYPES,
+    entity_id,
+    normalize_name,
+    split_parties,
+)
 from src.planner.schemas import Anchor, Edge, Evidence, Node
 
 
@@ -34,62 +41,84 @@ def build_relations(
             supplier_text = anchor.entity_text
         features = set(anchor.features)
         dup_group = articles[item.source_id]["dup_group"]
-        if f"{side}_anonymous" in features:
-            key = (dup_group, text)
-            if key not in anonymous:
-                count = sum(1 for k in anonymous if k[0] == dup_group)
-                anonymous[key] = f"anon-{dup_group}-{count + 1}"
-            counterpart_id, kind = anonymous[key], "anonymous"
-            node_kind, label = "anonymous_adopter", f"{text} (익명·사건별)"
-        elif f"{side}_channel" in features:
-            counterpart_id, kind, node_kind, label = other, "channel", "channel", text
-        else:
-            counterpart_id, kind, node_kind, label = other, "named", "adopter", text
-        public = f"{side}_public" in features
-        affiliate = "affiliate" in item.markers
-        reasons = list(item.reasons)
-        if public:
-            reasons.append("counterpart_public_or_research")
         supplier_name = (
             entities[supplier].name if supplier in entities else supplier_text
         )
         nodes.setdefault(
             supplier, Node(node_id=supplier, label=supplier_name, kind="supplier")
         )
-        nodes.setdefault(
-            counterpart_id, Node(node_id=counterpart_id, label=label, kind=node_kind)
+        parties = (
+            [(text, other)]
+            if f"{side}_anonymous" in features
+            else [
+                (part, other if len(split_parties(text)) == 1 else entity_id(part))
+                for part in split_parties(text)
+            ]
         )
-        key = (
-            supplier,
-            item.product,
-            counterpart_id,
-            anchor.relation_type,
-            affiliate,
-            status,
-        )
-        edge = grouped.get(key)
-        if edge is None:
-            edge = Edge(
-                edge_id=f"edge-{len(grouped) + 1:03d}",
-                supplier_id=supplier,
-                product=item.product,
-                counterpart_id=counterpart_id,
-                counterpart_kind=kind,
-                relation_type=anchor.relation_type or "unknown",
-                affiliate=affiliate,
-                status=status,
-                event_at=anchor.event_at,
-                event_at_text=anchor.event_at_text,
+        for text, other in parties:
+            if f"{side}_anonymous" in features:
+                key = (dup_group, text)
+                if key not in anonymous:
+                    count = sum(1 for k in anonymous if k[0] == dup_group)
+                    anonymous[key] = f"anon-{dup_group}-{count + 1}"
+                counterpart_id, kind = anonymous[key], "anonymous"
+                node_kind, label = "anonymous_adopter", f"{text} (익명·사건별)"
+            elif f"{side}_channel" in features:
+                counterpart_id, kind, node_kind, label = (
+                    other,
+                    "channel",
+                    "channel",
+                    text,
+                )
+            else:
+                counterpart_id, kind, node_kind, label = other, "named", "adopter", text
+            reasons = list(item.reasons)
+            if f"{side}_public" in features:
+                reasons.append("counterpart_public_or_research")
+            if len(parties) > 1:
+                reasons.append("listed_counterpart")
+            affiliate = "affiliate" in item.markers
+            short, long_ = sorted(
+                [normalize_name(supplier_name), normalize_name(text)], key=len
             )
-            grouped[key] = edge
-        edge.reasons = sorted(set(edge.reasons) | set(reasons))
-        edge.evidence_ids.append(item.evidence_id)
-        if item.source_id not in edge.source_ids:
-            edge.source_ids.append(item.source_id)
-        if dup_group not in edge.dup_groups:
-            edge.dup_groups.append(dup_group)
-        if anchor.event_at and not edge.event_at:
-            edge.event_at = anchor.event_at
+            if kind != "anonymous" and len(short) >= 2 and long_.startswith(short):
+                reasons.append("affiliate_name_overlap")
+            nodes.setdefault(
+                counterpart_id,
+                Node(node_id=counterpart_id, label=label, kind=node_kind),
+            )
+            key = (
+                supplier,
+                item.product,
+                counterpart_id,
+                anchor.relation_type,
+                affiliate,
+                status,
+            )
+            edge = grouped.get(key)
+            if edge is None:
+                edge = Edge(
+                    edge_id=f"edge-{len(grouped) + 1:03d}",
+                    supplier_id=supplier,
+                    product=item.product,
+                    counterpart_id=counterpart_id,
+                    counterpart_kind=kind,
+                    relation_type=anchor.relation_type or "unknown",
+                    affiliate=affiliate,
+                    status=status,
+                    event_at=anchor.event_at,
+                    event_at_text=anchor.event_at_text,
+                )
+                grouped[key] = edge
+            edge.reasons = sorted(set(edge.reasons) | set(reasons))
+            if item.evidence_id not in edge.evidence_ids:
+                edge.evidence_ids.append(item.evidence_id)
+            if item.source_id not in edge.source_ids:
+                edge.source_ids.append(item.source_id)
+            if dup_group not in edge.dup_groups:
+                edge.dup_groups.append(dup_group)
+            if anchor.event_at and not edge.event_at:
+                edge.event_at = anchor.event_at
     edges = sorted(
         grouped.values(),
         key=lambda e: (
@@ -115,6 +144,7 @@ def is_external_transaction(edge: Edge) -> bool:
         and not edge.affiliate
         and edge.counterpart_kind != "channel"
         and "counterpart_public_or_research" not in edge.reasons
+        and "affiliate_name_overlap" not in edge.reasons
     )
 
 
@@ -130,7 +160,11 @@ def relation_counts(edges: list[Edge], co_mentions: int) -> dict:
         "anonymous_cases": len(
             {e.counterpart_id for e in external if e.counterpart_kind == "anonymous"}
         ),
-        "affiliate_excluded": sum(len(e.dup_groups) for e in approved if e.affiliate),
+        "affiliate_excluded": sum(
+            len(e.dup_groups)
+            for e in approved
+            if e.affiliate or "affiliate_name_overlap" in e.reasons
+        ),
         "plan_or_poc_only": sum(
             len(e.dup_groups) for e in approved if e.relation_type in {"plan", "poc"}
         ),
