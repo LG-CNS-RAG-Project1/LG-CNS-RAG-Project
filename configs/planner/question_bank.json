@@ -1,0 +1,588 @@
+{
+  "version": "planner-questions-v1",
+  "status": "copied from research question bank; the service reuses ids, templates and required fields; efficacy not validated",
+  "persona": "스마트팩토리 솔루션 신사업을 검토하는 기업 사업기획자",
+  "default_scope": "SF-02 2차전지·전자부품 외관 검사 공급 사업",
+  "question_count": 32,
+  "collection_budget": {
+    "unit": "unique articles retained for this idea",
+    "maximum": 80,
+    "initial": 50,
+    "followup_reserve": 30,
+    "followup_batch": 10,
+    "maximum_followup_rounds": 3,
+    "api_candidate_and_request_caps": "separately configured; no live collection performed here"
+  },
+  "stop_reasons": [
+    "answer_requirements_met",
+    "budget_exhausted",
+    "no_new_evidence_within_capped_search",
+    "requires_company_input",
+    "requires_customer_validation"
+  ],
+  "question_selection": "decision-changing gap/conflict first; then answerability from available sources; then entity-specific query; stable question-id tie break",
+  "questions": [
+    {
+      "id": "M1",
+      "parent_id": null,
+      "decision": "시장·세그먼트 선택",
+      "question": "어떤 제품·공정·결함을 같은 시장으로 묶을 것인가?",
+      "required_fields": [
+        "industry",
+        "process",
+        "inspection_target",
+        "defect"
+      ],
+      "news_answerability": "partial",
+      "acceptance_rule": "대상 범위가 겹치지 않으면 인접 사례로 분리",
+      "missing_or_conflict_action": "검사 대상이나 공정 누락 시 제품·공정 질의",
+      "decision_effect": "타깃 시장의 포함·제외 범위",
+      "query_template": "{product} {process} {defect} 검사",
+      "next_question": "M2"
+    },
+    {
+      "id": "M2",
+      "parent_id": "M1",
+      "decision": "시장·세그먼트 선택",
+      "question": "구체적인 도입·공급 사건은 어느 세그먼트에 있는가?",
+      "required_fields": [
+        "actor",
+        "process",
+        "action",
+        "event_stage"
+      ],
+      "news_answerability": "partial",
+      "acceptance_rule": "역할·대상·단계가 명시된 사건만 비교",
+      "missing_or_conflict_action": "범용 기업 소개만 있으면 사건 검색",
+      "decision_effect": "세그먼트별 확인된 사례와 단계",
+      "query_template": "{supplier} {product} 도입 계약",
+      "next_question": "M3"
+    },
+    {
+      "id": "M3",
+      "parent_id": "M2",
+      "decision": "시장·세그먼트 선택",
+      "question": "인용한 시장 규모·도입률의 모집단과 기준연도는 맞는가?",
+      "required_fields": [
+        "metric_definition",
+        "population",
+        "geography",
+        "base_year",
+        "source"
+      ],
+      "news_answerability": "conditional",
+      "acceptance_rule": "비교 정의·단위가 맞을 때만 비교",
+      "missing_or_conflict_action": "서로 다른 수치 또는 정의 누락 시 원조사 확인",
+      "decision_effect": "시장 규모 가정의 유지 또는 제거",
+      "query_template": "{survey_name} 모집단 기준연도",
+      "next_question": "M4"
+    },
+    {
+      "id": "M4",
+      "parent_id": "M3",
+      "decision": "시장·세그먼트 선택",
+      "question": "우리에게 접근 가능한 고객·데이터와 수행 역량은 무엇인가?",
+      "required_fields": [
+        "company_access",
+        "data_access",
+        "delivery_capability"
+      ],
+      "news_answerability": "user_input",
+      "acceptance_rule": "회사 조건을 충족하는 세그먼트만 우선 검토",
+      "missing_or_conflict_action": "입력 없으면 조건별 대안을 병렬 유지",
+      "decision_effect": "조사 우선 세그먼트",
+      "query_template": "",
+      "next_question": null
+    },
+    {
+      "id": "D1",
+      "parent_id": null,
+      "decision": "구매 동기와 전환",
+      "question": "고객은 현재 어떤 방법으로 문제를 해결하는가?",
+      "required_fields": [
+        "current_alternative",
+        "process",
+        "actor"
+      ],
+      "news_answerability": "partial",
+      "acceptance_rule": "명시된 대안과 제안 제품을 같은 작업 단위로 비교",
+      "missing_or_conflict_action": "대안 누락 시 육안·기존 장비·룰 기반 검색",
+      "decision_effect": "경쟁 대안의 범위",
+      "query_template": "{process} 육안 기존 장비 검사",
+      "next_question": "D2"
+    },
+    {
+      "id": "D2",
+      "parent_id": "D1",
+      "decision": "구매 동기와 전환",
+      "question": "현재 방식의 손실은 누구에게 어떤 형태로 발생하는가?",
+      "required_fields": [
+        "problem",
+        "affected_role",
+        "impact_metric",
+        "impact_scope"
+      ],
+      "news_answerability": "partial",
+      "acceptance_rule": "손실과 주체가 함께 명시된 경우만 연결",
+      "missing_or_conflict_action": "영향 누락 시 불량 유출·재검사·전환시간 질의",
+      "decision_effect": "고객 가치와 조사할 비용 변수",
+      "query_template": "{process} 불량 재검사 전환시간",
+      "next_question": "D3"
+    },
+    {
+      "id": "D3",
+      "parent_id": "D2",
+      "decision": "구매 동기와 전환",
+      "question": "불편이 실제 도입 행동으로 이어진 계기가 있는가?",
+      "required_fields": [
+        "trigger",
+        "actor",
+        "action",
+        "event_date"
+      ],
+      "news_answerability": "partial",
+      "acceptance_rule": "동일 사건에 연결된 계기만 기록",
+      "missing_or_conflict_action": "기대 효과만 있으면 도입 배경 질의",
+      "decision_effect": "지금 접근할 고객 상황",
+      "query_template": "{adopter} {product} 도입 배경",
+      "next_question": "D4"
+    },
+    {
+      "id": "D4",
+      "parent_id": "D3",
+      "decision": "구매 동기와 전환",
+      "question": "도입은 유상 구매·운영·반복 발주 중 어디까지 확인되는가?",
+      "required_fields": [
+        "transaction_type",
+        "stage",
+        "adopter",
+        "externality"
+      ],
+      "news_answerability": "conditional",
+      "acceptance_rule": "계약·운영·반복 구매를 별도 사건으로 기록",
+      "missing_or_conflict_action": "계획·검증 단계뿐이면 동일 사건 후속 검색",
+      "decision_effect": "수요 근거의 범위",
+      "query_template": "{adopter} {product} 운영 추가 발주",
+      "next_question": null
+    },
+    {
+      "id": "C1",
+      "parent_id": null,
+      "decision": "경쟁과 차별성",
+      "question": "같은 고객 문제를 푸는 경쟁사·대체 방식은 무엇인가?",
+      "required_fields": [
+        "supplier",
+        "offering",
+        "problem",
+        "scope"
+      ],
+      "news_answerability": "partial",
+      "acceptance_rule": "고객 문제와 적용 범위가 대응하는 대안만 직접 비교",
+      "missing_or_conflict_action": "분야명만 같으면 제품 범위를 확인",
+      "decision_effect": "경쟁사·대체재 목록",
+      "query_template": "{process} {problem} 검사 솔루션",
+      "next_question": "C2"
+    },
+    {
+      "id": "C2",
+      "parent_id": "C1",
+      "decision": "경쟁과 차별성",
+      "question": "우리 차별 주장을 이미 제공한다고 말하는 공급자가 있는가?",
+      "required_fields": [
+        "feature_claim",
+        "supplier",
+        "offering",
+        "quote"
+      ],
+      "news_answerability": "partial",
+      "acceptance_rule": "동일 주장이 명시되면 독자성 재검토 표시",
+      "missing_or_conflict_action": "용어 유사만 있으면 적용 조건 검색",
+      "decision_effect": "단독 차별성 주장의 수정",
+      "query_template": "{feature} {process} 제품",
+      "next_question": "C3"
+    },
+    {
+      "id": "C3",
+      "parent_id": "C2",
+      "decision": "경쟁과 차별성",
+      "question": "같은 조건에서 경쟁 제품의 성과가 비교되는가?",
+      "required_fields": [
+        "metric",
+        "unit",
+        "test_scope",
+        "baseline",
+        "claimant"
+      ],
+      "news_answerability": "conditional",
+      "acceptance_rule": "조건·지표가 일치하지 않으면 순위 미생성",
+      "missing_or_conflict_action": "성능 숫자만 있으면 측정 조건 확인",
+      "decision_effect": "비교 가능한 구매 기준",
+      "query_template": "{offering} 검출률 오검출 측정 조건",
+      "next_question": "C4"
+    },
+    {
+      "id": "C4",
+      "parent_id": "C3",
+      "decision": "경쟁과 차별성",
+      "question": "어떤 가치 가설을 유지하고 무엇을 실험해야 하는가?",
+      "required_fields": [
+        "our_claim",
+        "comparison_gap",
+        "customer_metric"
+      ],
+      "news_answerability": "partial",
+      "acceptance_rule": "근거가 지지하는 기능 겹침과 미검증 우위를 구분",
+      "missing_or_conflict_action": "우리 성능 정보가 없으면 검증 가설로 남김",
+      "decision_effect": "가치 제안과 비교 실험",
+      "query_template": "{process} 셋업 데이터 준비 설치 시간",
+      "next_question": null
+    },
+    {
+      "id": "G1",
+      "parent_id": null,
+      "decision": "구매 구조와 진입 경로",
+      "question": "공급자·사용 현장·고객·파트너의 역할은 무엇인가?",
+      "required_fields": [
+        "supplier",
+        "adopter",
+        "partner",
+        "relationship_quote"
+      ],
+      "news_answerability": "partial",
+      "acceptance_rule": "같은 문장에 있다는 이유로 거래 관계 생성 금지",
+      "missing_or_conflict_action": "관계 누락 시 해당 기업·제품의 계약 검색",
+      "decision_effect": "공급 관계도",
+      "query_template": "{supplier} {offering} 고객 공급",
+      "next_question": "G2"
+    },
+    {
+      "id": "G2",
+      "parent_id": "G1",
+      "decision": "구매 구조와 진입 경로",
+      "question": "외부 고객 거래인가, 자체·계열 현장 적용인가?",
+      "required_fields": [
+        "site_owner",
+        "affiliation_statement",
+        "transaction_scope"
+      ],
+      "news_answerability": "conditional",
+      "acceptance_rule": "자체 적용은 외부 구매 증거에서 분리",
+      "missing_or_conflict_action": "관계 미확인 시 외부성 미확인 유지",
+      "decision_effect": "상용 수요 근거의 성격",
+      "query_template": "{supplier} {adopter} 외부 고객 계약",
+      "next_question": "G3"
+    },
+    {
+      "id": "G3",
+      "parent_id": "G2",
+      "decision": "구매 구조와 진입 경로",
+      "question": "직접 판매 외에 장비사·OEM·SI 경유 공급이 있는가?",
+      "required_fields": [
+        "channel_actor_type",
+        "offering_scope",
+        "relationship_quote"
+      ],
+      "news_answerability": "partial",
+      "acceptance_rule": "명시된 공급 경로를 선택지로 기록",
+      "missing_or_conflict_action": "경로 누락 시 OEM·장비사·SI 검색",
+      "decision_effect": "진입 경로 대안",
+      "query_template": "{offering} 장비사 OEM SI 공급",
+      "next_question": "G4"
+    },
+    {
+      "id": "G4",
+      "parent_id": "G3",
+      "decision": "구매 구조와 진입 경로",
+      "question": "그 경로에서 우리에게 필요한 역량과 책임은 무엇인가?",
+      "required_fields": [
+        "our_capability",
+        "integration_owner",
+        "support_owner",
+        "commercial_terms"
+      ],
+      "news_answerability": "mixed",
+      "acceptance_rule": "회사 조건과 거래 조건 충족 여부를 나란히 비교",
+      "missing_or_conflict_action": "협력 가능 여부·원가 배분은 미확인으로 명시",
+      "decision_effect": "판매 방식의 조건부 선택",
+      "query_template": "{channel_actor} 파트너 공급 유지보수",
+      "next_question": null
+    },
+    {
+      "id": "E1",
+      "parent_id": null,
+      "decision": "판매 단위와 경제성",
+      "question": "가격이 장비·모듈·라인·프로젝트 중 무엇의 금액인가?",
+      "required_fields": [
+        "amount",
+        "currency",
+        "quantity",
+        "sales_unit"
+      ],
+      "news_answerability": "conditional",
+      "acceptance_rule": "단위가 다른 수치는 같은 가격대에 합치지 않음",
+      "missing_or_conflict_action": "수량·단위 없으면 제품·계약 범위 검색",
+      "decision_effect": "판매 단위와 비교 표",
+      "query_template": "{offering} 가격 구성 공급 계약",
+      "next_question": "E2"
+    },
+    {
+      "id": "E2",
+      "parent_id": "E1",
+      "decision": "판매 단위와 경제성",
+      "question": "설치·검증·장비·서비스·기간 중 무엇이 포함되는가?",
+      "required_fields": [
+        "hardware_scope",
+        "installation",
+        "validation",
+        "service",
+        "term"
+      ],
+      "news_answerability": "conditional",
+      "acceptance_rule": "포함·제외·미확인을 각각 기록",
+      "missing_or_conflict_action": "범위 누락 시 견적 구성·유지보수 검색",
+      "decision_effect": "비교 가능한 견적 조건",
+      "query_template": "{offering} 설치 유지보수 라이선스",
+      "next_question": "E3"
+    },
+    {
+      "id": "E3",
+      "parent_id": "E2",
+      "decision": "판매 단위와 경제성",
+      "question": "현장 맞춤 작업과 운영 지원이 공급 원가에 미치는 항목은?",
+      "required_fields": [
+        "customization",
+        "site_work",
+        "support",
+        "our_costs"
+      ],
+      "news_answerability": "mixed",
+      "acceptance_rule": "뉴스는 비용 항목 후보, 우리 원가는 입력 가정으로 분리",
+      "missing_or_conflict_action": "원가 숫자를 뉴스 효과 수치로 대체하지 않음",
+      "decision_effect": "사업 방식별 원가 구조",
+      "query_template": "{offering} 광학 튜닝 구축 현장",
+      "next_question": "E4"
+    },
+    {
+      "id": "E4",
+      "parent_id": "E3",
+      "decision": "판매 단위와 경제성",
+      "question": "어느 값이 가격·이익·고객 회수기간의 성립을 바꾸는가?",
+      "required_fields": [
+        "verified_benefit",
+        "initial_cost",
+        "recurring_cost",
+        "supplier_cost",
+        "horizon"
+      ],
+      "news_answerability": "mixed",
+      "acceptance_rule": "출처 또는 사용자 가정이 있는 값만 산식에 사용",
+      "missing_or_conflict_action": "필수 값이 없으면 계산하지 않고 민감 변수 명시",
+      "decision_effect": "경제성 가정과 확인 순서",
+      "query_template": "",
+      "next_question": null
+    },
+    {
+      "id": "T1",
+      "parent_id": null,
+      "decision": "진입 시점과 변화",
+      "question": "기사 발행일과 실제 변화가 일어난 시점은 언제인가?",
+      "required_fields": [
+        "published_at",
+        "event_date"
+      ],
+      "news_answerability": "partial",
+      "acceptance_rule": "두 날짜를 분리하고 사건일 없으면 미확인",
+      "missing_or_conflict_action": "최신 기사라는 이유로 새 사건으로 세지 않음",
+      "decision_effect": "사건 연표",
+      "query_template": "{actor} {event} 발표 도입",
+      "next_question": "T2"
+    },
+    {
+      "id": "T2",
+      "parent_id": "T1",
+      "decision": "진입 시점과 변화",
+      "question": "신규 라인·제품 변경·요구 조건 중 무엇이 도입을 촉발했는가?",
+      "required_fields": [
+        "trigger",
+        "affected_process",
+        "actor"
+      ],
+      "news_answerability": "partial",
+      "acceptance_rule": "동일 대상에 연결된 변화만 구매 계기로 기록",
+      "missing_or_conflict_action": "원인 불명확하면 조건 후보로만 표시",
+      "decision_effect": "기회 발생 상황",
+      "query_template": "{process} 증설 신제품 품질 요구",
+      "next_question": "T3"
+    },
+    {
+      "id": "T3",
+      "parent_id": "T2",
+      "decision": "진입 시점과 변화",
+      "question": "지원·투자·구축은 계획인가, 실제 집행인가?",
+      "required_fields": [
+        "program_or_project",
+        "action_stage",
+        "event_date"
+      ],
+      "news_answerability": "conditional",
+      "acceptance_rule": "계획·신청·선정·집행·완료를 분리",
+      "missing_or_conflict_action": "발표만 있으면 후속 집행 확인",
+      "decision_effect": "진입 시점의 근거",
+      "query_template": "{program_or_project} 선정 착수 완료",
+      "next_question": "T4"
+    },
+    {
+      "id": "T4",
+      "parent_id": "T3",
+      "decision": "진입 시점과 변화",
+      "question": "현재 접근 가능한 기회인가, 이미 종료된 과거 사례인가?",
+      "required_fields": [
+        "effective_period",
+        "eligibility",
+        "current_status"
+      ],
+      "news_answerability": "conditional",
+      "acceptance_rule": "기간·대상이 확인돼야 현재 기회로 표시",
+      "missing_or_conflict_action": "현재 상태 미확인 시 참고 사례로 분류",
+      "decision_effect": "확인할 사업 경로와 시점",
+      "query_template": "{program_or_project} 일정 대상 공고",
+      "next_question": null
+    },
+    {
+      "id": "R1",
+      "parent_id": null,
+      "decision": "도입 위험과 배제 조건",
+      "question": "실패·철수·지연·제약 사례가 있는가?",
+      "required_fields": [
+        "adverse_statement",
+        "scope",
+        "source"
+      ],
+      "news_answerability": "partial",
+      "acceptance_rule": "범위가 관련된 반대 자료를 후보로 보존",
+      "missing_or_conflict_action": "성공 기사뿐이면 반대 증거 검색",
+      "decision_effect": "사업의 취약 가정",
+      "query_template": "{process} 검사 실패 철수 지연",
+      "next_question": "R2"
+    },
+    {
+      "id": "R2",
+      "parent_id": "R1",
+      "decision": "도입 위험과 배제 조건",
+      "question": "실패 원인과 조건이 실제로 명시됐는가?",
+      "required_fields": [
+        "outcome",
+        "cause_quote",
+        "context"
+      ],
+      "news_answerability": "conditional",
+      "acceptance_rule": "같은 사건에 연결된 원인만 기록",
+      "missing_or_conflict_action": "잘린 요약이면 원인 미확인·본문 후보",
+      "decision_effect": "피해야 할 조건",
+      "query_template": "{event} {process} 실패 원인",
+      "next_question": "R3"
+    },
+    {
+      "id": "R3",
+      "parent_id": "R2",
+      "decision": "도입 위험과 배제 조건",
+      "question": "그 조건이 우리 목표 공정·설비·고객에도 적용되는가?",
+      "required_fields": [
+        "target_context",
+        "case_context",
+        "matching_conditions"
+      ],
+      "news_answerability": "mixed",
+      "acceptance_rule": "차이가 있는 조건은 그대로 표시",
+      "missing_or_conflict_action": "우리 현장 조건이 없으면 적용 여부 보류",
+      "decision_effect": "적용 가능한 위험과 참고 위험",
+      "query_template": "{target_process} {constraint} 검사",
+      "next_question": "R4"
+    },
+    {
+      "id": "R4",
+      "parent_id": "R3",
+      "decision": "도입 위험과 배제 조건",
+      "question": "어떤 확인 결과이면 공급 범위·세그먼트를 바꿀 것인가?",
+      "required_fields": [
+        "hard_constraint",
+        "validation_metric",
+        "threshold_source"
+      ],
+      "news_answerability": "user_input",
+      "acceptance_rule": "사용자 제약이나 확인된 필수 요건으로만 기준 설정",
+      "missing_or_conflict_action": "뉴스 수치로 사용자 허용 한계를 임의 설정하지 않음",
+      "decision_effect": "실증의 통과·재설계 조건",
+      "query_template": "",
+      "next_question": null
+    },
+    {
+      "id": "A1",
+      "parent_id": null,
+      "decision": "다음 조사 선택",
+      "question": "지금 비교할 구체적인 대안 두 가지는 무엇인가?",
+      "required_fields": [
+        "options",
+        "shared_decision",
+        "evidence"
+      ],
+      "news_answerability": "partial",
+      "acceptance_rule": "시장·제품·채널 중 같은 결정의 대안을 비교",
+      "missing_or_conflict_action": "대안 정보가 부족하면 조사 결과 불충분 표시",
+      "decision_effect": "선택지 비교 메모",
+      "query_template": "",
+      "next_question": "A2"
+    },
+    {
+      "id": "A2",
+      "parent_id": "A1",
+      "decision": "다음 조사 선택",
+      "question": "어떤 미확인이 두 대안의 선택을 바꾸는가?",
+      "required_fields": [
+        "critical_assumption",
+        "option_effect"
+      ],
+      "news_answerability": "mixed",
+      "acceptance_rule": "결정과 영향이 명시된 공백을 먼저 선택",
+      "missing_or_conflict_action": "모든 공백을 동일 중요도로 나열하지 않음",
+      "decision_effect": "가장 먼저 확인할 전제",
+      "query_template": "",
+      "next_question": "A3"
+    },
+    {
+      "id": "A3",
+      "parent_id": "A2",
+      "decision": "다음 조사 선택",
+      "question": "현재 자료·추가 뉴스·회사 입력 중 어디서 확인할 수 있는가?",
+      "required_fields": [
+        "answerability",
+        "available_evidence",
+        "remaining_budget"
+      ],
+      "news_answerability": "mixed",
+      "acceptance_rule": "먼저 보유 근거를 재사용하고 뉴스로 답할 수 없는 항목은 전환",
+      "missing_or_conflict_action": "예산 안에서 구체 질의, 그 외 확인 대상·방법 명시",
+      "decision_effect": "다음 조사 경로",
+      "query_template": "{actor} {product} {missing_field}",
+      "next_question": "A4"
+    },
+    {
+      "id": "A4",
+      "parent_id": "A3",
+      "decision": "다음 조사 선택",
+      "question": "어떤 결과를 얻으면 조사 또는 다음 사업 단계를 진행·중단하는가?",
+      "required_fields": [
+        "answer_requirements",
+        "decision_change_condition",
+        "stop_reason"
+      ],
+      "news_answerability": "mixed",
+      "acceptance_rule": "충족·예산 소진·새 근거 없음·뉴스 밖의 질문을 종료 사유로 기록",
+      "missing_or_conflict_action": "미확인을 사업 실패로 바꾸지 않음",
+      "decision_effect": "다음 행동과 조사 종료 조건",
+      "query_template": "",
+      "next_question": null
+    }
+  ],
+  "source": "output/planner-market-research-2026-10-29/question-bank.json (planner-questions-v1)"
+}

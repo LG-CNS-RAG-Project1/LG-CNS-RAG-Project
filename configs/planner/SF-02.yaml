@@ -1,0 +1,178 @@
+# SF-02(AI 비전 품질검사) 사업기획 근거 비교 프로필
+# 구매 기준 사전·초기 질의·범위 규칙·가정 템플릿·질문 판정 연결·수집 예산을 관리한다.
+# 값을 바꾸면 profile_hash가 바뀌어 rule_version이 달라지고, 이전 실행과 '규칙 변경'으로 구분된다.
+# 예산·배분은 연구 초기 운영안(초기 50 + 후속 10×3)이며 최적값으로 검증되지 않았다.
+area_id: SF-02
+version: sf02-planner-profile-v1
+model: gpt-4o-mini
+
+budget:
+  max_articles: 80          # 이 아이디어의 고유 기사 총량
+  initial_articles: 50
+  followup_batch: 10
+  max_followup_rounds: 3
+  max_api_requests: 40      # NAVER 뉴스 검색 호출 상한(재시도 포함)
+  display_per_request: 20
+  max_pages_per_query: 2
+  max_candidates: 600       # 검색 API가 반환한 후보 기사 상한
+  api_retries: 1            # 429·5xx·시간 초과만 재시도
+  max_body_fetches: 80
+  llm_retry_per_article: 1
+  llm_retry_total: 10       # LLM 호출 총량 = 추출 기사 수 + 재시도(최대 10)
+  llm_input_chars: 3500
+  queries_per_question: 2
+  date_from: 20240101
+  sort: sim
+
+# 초기 수집: 결정 영역별 기사 수와 질문 ID에 연결한 질의
+initial_allocation:
+  - group: market
+    label: 시장·수요
+    articles: 10
+    queries:
+      - {question_id: M1, query: 2차전지 외관검사 AI 비전}
+      - {question_id: M1, query: 전자부품 외관 불량 AI 비전검사}
+      - {question_id: D1, query: 외관검사 육안 검사 자동화 비전}
+  - group: competition
+    label: 경쟁·대안
+    articles: 10
+    queries:
+      - {question_id: C1, query: AI 비전검사 솔루션 불량 데이터}
+      - {question_id: C1, query: 비전검사 제품 변경 셋업 시간}
+      - {question_id: C2, query: 적은 불량 이미지 학습 비전검사}
+      - {question_id: C2, query: 기존 라인 설치 AI 비전검사 모듈}
+  - group: channel
+    label: 구매·채널
+    articles: 8
+    queries:
+      - {question_id: G3, query: 비전검사 장비사 공급 OEM}
+      - {question_id: G3, query: 머신비전 SI 협력 공급}
+      - {question_id: G1, query: AI 비전검사 고객사 공급}
+  - group: pricing
+    label: 가격·사업 방식
+    articles: 6
+    queries:
+      - {question_id: E1, query: 비전검사 장비 가격 공급 계약}
+      - {question_id: E2, query: AI 비전검사 구독 유지보수 라이선스}
+  - group: risk
+    label: 제약·실패
+    articles: 8
+    queries:
+      - {question_id: R1, query: 비전검사 도입 실패 철수}
+      - {question_id: R1, query: AI 검사 도입 어려움 데이터 부족 현장}
+  - group: timing
+    label: 진입 시점
+    articles: 8
+    queries:
+      - {question_id: T2, query: 2차전지 증설 검사장비 수요}
+      - {question_id: T3, query: AI 비전검사 도입 지원사업 선정}
+
+# 후속 질의 템플릿의 분야 슬롯 값(엔터티 슬롯은 승인된 근거에서만 채운다)
+slots:
+  product: [2차전지, 전자부품]
+  process: [비전검사]
+  defect: [외관 불량]
+  problem: [불량 데이터 부족, 검사 셋업]
+  feature: [적은 불량 이미지 학습, 제품 변경 셋업]
+  offering: [AI 비전검사]
+  target_process: [2차전지 외관검사]
+  constraint: [조명, 검사 속도]
+
+# 범위 판정(LLM 없음): 포함어가 하나 이상 있어야 하고, 제외어가 있으면 비전 표현이 함께 있어야 한다
+scope:
+  include_any: [비전, 머신비전, 외관검사, 외관 검사, 검사장비, 검사 장비, 검사기, 결함 검출, 불량 검출, 결함 탐지, 불량 탐지, AI 검사]
+  vision_terms: [비전, 머신비전, 외관]
+  exclude_any: [예지보전, 건강검진, 자동차검사, 검역, 세무조사]
+  industry_direct: [2차전지, 이차전지, 배터리, 전자부품, 반도체, PCB, 커넥터, 디스플레이, 리드탭, 양극재, 음극재]
+
+# 공급사·제품 판정에 쓰는 제공물 표현
+offering_terms: [솔루션, 플랫폼, 시스템, 장비, 검사기, 소프트웨어, 모듈, AI, 비전, 머신비전]
+
+# 구매 기준(비교표 열). strong은 대응 주장 명시, weak는 설명 불완전 판정에 쓴다.
+criteria:
+  - id: defect_data_preparation
+    label: 불량 데이터 준비 부담
+    decision_id: C2
+    strong: [불량 이미지, 불량 데이터, 결함 데이터, 결함 이미지, 제로샷, 정상 이미지, 가상 결함, 데이터 부족, 소량 데이터, 적은 데이터, 라벨링]
+    weak: [학습 데이터, 데이터, 학습]
+    next_question: {explicit: C4, partial: C2, unknown: C2, conflicting: C3}
+  - id: changeover_reconfiguration
+    label: 제품 변경 시 검사 재설정 부담
+    decision_id: C2
+    strong: [전환시간, 전환 시간, 셋업, 재설정, 제품이 바뀔, 제품 변경, 모델 변경, 다품종, 레시피, 검사 조건 재, 티칭]
+    weak: [유연, 변경, 노코딩]
+    next_question: {explicit: C4, partial: C2, unknown: C2, conflicting: C3}
+  - id: site_customization
+    label: 현장 맞춤 구성
+    decision_id: C2
+    strong: [맞춤, 광학 구성, 광학 설계, 조명 설계, 현장에 맞, 공정에 맞, 커스터마이, 모듈형]
+    weak: [광학, 조명, 기존 라인, 기존 설비, 추가 설치, 설치, 연동, 통합]
+    next_question: {explicit: C4, partial: C2, unknown: C2, conflicting: C3}
+
+# LLM 추출 지침에 넣는 관심 주제(판정은 코드가 한다)
+extraction_focus:
+  - 공급사가 제품·기능이 고객의 어떤 작업·부담을 줄인다고 설명하는 구절
+  - 공급·계약·실증·설치·운영·추가 발주·철수 등 기업 간 관계를 서술한 구절
+  - 장비사·SI·OEM 등 유통·협력 경로를 서술한 구절
+  - 가격·성능 수치와 그 단위·조건을 서술한 구절
+
+# 사업 가정(아이디어 필드 값을 그대로 진술로 쓴다)
+assumptions:
+  - id: A1
+    label: 차별 주장
+    source_field: difference
+    evidence: our_claim_competition
+    affected_choice: 어떤 차별 주장을 유지하거나 수정할 것인가
+    options: [현재 차별 주장 유지, 준비·셋업·검증 총 작업량 비교 가설로 수정]
+    next_questions: [C2, C3, C4]
+  - id: A2
+    label: 공급 형태
+    source_field: technology
+    evidence: criterion_claims
+    criterion_id: site_customization
+    support_terms: [모듈형, 표준형, 기존 라인, 추가 설치]
+    affected_choice: 모듈·표준 장비·현장 맞춤 패키지 중 무엇을 공급할 것인가
+    options: [기존 라인용 모듈·표준 장비, 현장 맞춤 패키지]
+    next_questions: [E2, E3]
+  - id: A3
+    label: 판매 경로
+    source_field: revenue
+    evidence: channel_edges
+    affected_choice: 직접 판매와 장비사·OEM·SI 경유 중 어떤 경로를 검토할 것인가
+    options: [제조사 직접 판매, 장비사·OEM·SI 경유]
+    next_questions: [G3, G4]
+  - id: A4
+    label: 외부 고객 수요
+    source_field: customers
+    evidence: external_adoption
+    affected_choice: 어떤 고객·제품·공정을 먼저 검토할 것인가
+    options: [보도된 외부 도입 공정부터 검토, 회사 접근 가능 고객부터 검토]
+    next_questions: [D4, G2, M4]
+  - id: A5
+    label: 가격 성립
+    source_field: revenue
+    evidence: price_inputs
+    affected_choice: 어떤 비용·고객 효과 조건에서 가격이 성립하는가
+    options: [초기 구축 프로젝트 가격 조건 검토]
+    next_questions: [E1, E4]
+
+# 질문 판정: 코드 검사 이름 연결. 목록에 없는 질문은 not_automated로 표시한다.
+question_checks:
+  C1: approved_suppliers
+  C2: our_claim_competitor_claims
+  C3: metric_with_conditions
+  G1: approved_edges
+  G2: affiliation_resolved
+  G3: channel_edges
+  E1: price_metric_with_unit
+  E2: price_scope_terms
+  M2: adoption_edges
+  D4: external_transaction_stage
+  T1: event_dates
+  R1: adverse_evidence
+company_input: [M4, G4, E3, E4, R4]
+customer_validation: [C4]
+
+body_fetch:
+  enabled: true
+  deny_domains: []
