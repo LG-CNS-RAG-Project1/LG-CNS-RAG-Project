@@ -209,7 +209,7 @@ python -m src.retrieval.market_search search "협동로봇 도입 확대" --idea
 ```
 
 - `data/market/processed/market_docs.jsonl`(뉴스)과 `dart_docs.jsonl`(DART)을 `text-embedding-3-small`로 임베딩해 `data/market/chroma/`의 `news` 컬렉션(cosine)에 저장한다. 출처는 `source_type`(`news`·`dart`)으로 구분한다. `OPENAI_API_KEY`가 필요하다.
-- `search_by_dimensions`는 차원마다 뉴스 5건과 DART를 따로 검색해 합친다. DART는 먼저 아이디어 전체 문장(제목·대상·고객·문제·기술·차별점)과 가까운 기업 3곳을 고르고(`route_dart_companies`), 차원마다 그 기업에서 기업당 1건씩 가져온다. 보고서 검색 범위에 검색한 DART 기업을 표시한다. 통합 실행 준비 점검은 시장 색인에 DART가 없으면 사유를 표시한다.
+- `search_by_dimensions`는 차원마다 뉴스 5건과 DART를 따로 검색해 합친다. DART는 먼저 기업을 최대 3곳 고르고 차원마다 그 기업에서 기업당 1건씩 가져온다. 기업은 관련성 판정 모델이 아이디어 항목과 기업별 주요 사업(`configs/dart_companies.yaml`의 `reason`)을 보고 같은 제품·공정 범주인 곳을 고르며(`choose_dart_companies`, `prompts/market_dart_companies.md`, 맞는 기업이 없으면 DART 없이 검색), 이 호출이 실패하면 아이디어 전체 문장과 가까운 기업을 쓴다(`route_dart_companies`). 보고서 검색 범위에 검색한 DART 기업을 표시한다. 통합 실행 준비 점검은 시장 색인에 DART가 없으면 사유를 표시한다.
 - 같은 텍스트로 이미 색인된 문서는 다시 임베딩하지 않고 메타데이터만 갱신하며, `--rebuild`로 전체를 다시 임베딩한다.
 - DART 청크를 다시 만들면 청크 수가 달라질 수 있다. `build --prune`은 색인이 끝난 뒤 정제 문서에 없는 ID를 지운다. 임베딩이 중간에 실패하면 기존 색인은 그대로 남는다.
 - 에이전트 툴은 `search_market`(질의 1건)과 `search_by_dimensions`(수요·경쟁·가격·구매자·도입장벽 차원별 질의)이며, 같은 `dup_group` 결과는 1건만 반환한다.
