@@ -24,15 +24,28 @@ from src.schemas import MarketReport, MarketSearchRequest, StructuredIdea
 
 
 def search_scope(collection, idea_id: str | None) -> str:
-    """보고서에 표시할 검색 범위(자료 종류·건수·발행일 범위·아이디어 범위)를 만든다."""
+    """보고서에 표시할 검색 범위(출처별 건수·발행일·사업연도·아이디어 범위)를 만든다.
+
+    뉴스는 발행일 범위, DART는 기업 수와 보고 대상 사업연도를 쓴다.
+    """
     metadatas = collection.get(include=["metadatas"])["metadatas"]
-    dates = [m["published_at"] for m in metadatas if m.get("published_at")]
+    news = [m for m in metadatas if m.get("source_type") == "news"]
+    dart = [m for m in metadatas if m.get("source_type") == "dart"]
+    dates = [m["published_at"] for m in news if m.get("published_at")]
     period = f", 발행일 {min(dates)}~{max(dates)}" if dates else ""
-    target = f"아이디어 {idea_id} 수집 키워드 범위" if idea_id else "전체 수집 범위"
-    return (
-        f"네이버 뉴스 검색 API로 사전 수집한 스마트팩토리 기사 {len(metadatas)}건"
-        f"(제목·요약{period}), {target}"
-    )
+    parts = [
+        f"네이버 뉴스 검색 API로 사전 수집한 스마트팩토리 기사 {len(news)}건(제목·요약{period})"
+    ]
+    if dart:
+        companies = len({m["publisher"] for m in dart})
+        years = ", ".join(sorted({m["period"] for m in dart if m.get("period")}))
+        parts.append(
+            f"DART 사업보고서 '사업의 내용' 발췌 {len(dart)}건(기업 {companies}곳, {years})"
+        )
+    else:
+        parts.append("DART 사업보고서 색인 없음")
+    target = f"아이디어 {idea_id} 연결 자료 범위" if idea_id else "전체 수집 범위"
+    return " · ".join(parts) + f", {target}"
 
 
 def run_market_research(
@@ -49,7 +62,7 @@ def run_market_research(
     검색·판정 단계에서 예외가 나면 status=error 보고서를 반환한다. data_as_of가 없으면 오늘 날짜를 쓴다.
     """
     data_as_of = data_as_of or int(date.today().strftime("%Y%m%d"))
-    scope = "네이버 뉴스 사전 수집 기사"
+    scope = "네이버 뉴스 사전 수집 기사 · DART 사업보고서 발췌"
     try:
         collection = collection or get_collection()
         scope = search_scope(collection, idea_id)

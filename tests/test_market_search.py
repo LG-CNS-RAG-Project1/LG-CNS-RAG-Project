@@ -5,10 +5,12 @@ import pytest
 from chromadb.config import Settings
 
 from src.retrieval.market_search import (
+    DART_TOP_K,
     build_dimension_queries,
     build_index,
     build_where,
     get_collection,
+    load_all_documents,
     search_by_dimensions,
     search_market,
     to_chroma_record,
@@ -185,6 +187,55 @@ def test_search_by_dimensions(indexed):
     assert "협동로봇 비전" in queries["price"]
     assert set(results) == {"demand", "price"}
     assert all(len(hits) <= 2 for hits in results.values())
+
+
+def test_search_by_dimensions_appends_dart_quota(indexed):
+    dart = [
+        make_document(
+            f"dart-r1-1-{i}",
+            f"협동로봇 사업보고서 도입 {i}",
+            source_type="dart",
+            dup_group=f"dart-r1-{i}",
+            evidence_nature="company_claim",
+        )
+        for i in range(3)
+    ]
+    build_index(dart, indexed, embed_fn=fake_embed)
+    request = MarketSearchRequest(
+        idea=StructuredIdea(
+            title="협동로봇", problem="인력 부족", technology="협동로봇"
+        ),
+        dimensions=["demand"],
+        top_k=2,
+    )
+
+    hits = search_by_dimensions(
+        request, idea_id="SF-01", collection=indexed, embed_fn=fake_embed
+    )["demand"]
+
+    assert [h["source_type"] for h in hits] == ["news", "news"] + ["dart"] * DART_TOP_K
+    only_dart = search_by_dimensions(
+        request.model_copy(update={"source_types": ["dart"]}),
+        idea_id="SF-01",
+        collection=indexed,
+        embed_fn=fake_embed,
+    )["demand"]
+    assert [h["source_type"] for h in only_dart] == ["dart", "dart"]
+
+
+def test_load_all_documents_requires_dart(tmp_path):
+    news = tmp_path / "market_docs.jsonl"
+    news.write_text(make_document("news-a", "협동로봇").model_dump_json() + "\n")
+
+    with pytest.raises(FileNotFoundError, match="dart_client"):
+        load_all_documents(news, tmp_path / "dart_docs.jsonl")
+
+    dart = tmp_path / "dart_docs.jsonl"
+    dart.write_text(
+        make_document("dart-r1-1-0", "협동로봇", source_type="dart").model_dump_json()
+        + "\n"
+    )
+    assert [d.source_type for d in load_all_documents(news, dart)] == ["news", "dart"]
 
 
 def test_dimension_queries_use_idea_fields():

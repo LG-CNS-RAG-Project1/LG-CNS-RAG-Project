@@ -34,6 +34,8 @@ TERM_POOL = 4
 TERM_SCAN = 60
 EXTEND_TOP_K = 5
 RETRIEVAL_MODES = ["dense", "bm25", "hybrid"]
+# 정답 라벨 후보는 뉴스만으로 만들었으므로 검색 평가도 뉴스로 한정한다
+LABELED_SOURCE_TYPES = ["news"]
 LABEL_VALUES = {"0", "1"}
 
 # 평가 문항(사람이 읽는 질문). LLM 단독 vs RAG 비교에도 같은 문장을 쓴다.
@@ -129,8 +131,15 @@ def case_query(case: dict, ideas: dict[str, dict]) -> str:
     return build_dimension_queries(request)[case["dimension"]]
 
 
-def default_search_fn(retrieval_mode: str = "dense", reranker=None) -> SearchFn:
-    """로컬 Chroma 색인을 쓰는 검색 함수를 만든다. OPENAI_API_KEY가 필요하다."""
+def default_search_fn(
+    retrieval_mode: str = "dense",
+    reranker=None,
+    source_types: list[str] | None = LABELED_SOURCE_TYPES,
+) -> SearchFn:
+    """로컬 Chroma 색인을 쓰는 검색 함수를 만든다. OPENAI_API_KEY가 필요하다.
+
+    기본 검색 대상은 정답 라벨이 있는 뉴스뿐이다. source_types=None이면 모든 출처를 검색한다.
+    """
     from src.retrieval.market_search import get_collection, search_market
 
     collection = get_collection()
@@ -143,6 +152,7 @@ def default_search_fn(retrieval_mode: str = "dense", reranker=None) -> SearchFn:
         collection=collection,
         top_k=top_k,
         idea_id=idea_id,
+        source_types=source_types,
         retrieval_mode=retrieval_mode,
         reranker=reranker,
     )
