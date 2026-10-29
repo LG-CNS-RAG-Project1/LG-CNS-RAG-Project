@@ -761,11 +761,13 @@ def test_build_patent_queries():
             customers="중소 제조기업",
             difference="저비용 실시간 고장 예측",
             revenue="월 구독료",
+            technical_components=["진동 센서", "이상 탐지 모델"],
         )
     )
 
     def fake_llm(system_prompt, user_text):
         assert "진동 센서와 AI 이상 탐지" in user_text
+        assert "진동 센서" in user_text and "이상 탐지 모델" in user_text
 
         return {
             "queries": [

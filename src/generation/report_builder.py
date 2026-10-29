@@ -674,6 +674,18 @@ def _compact_market_lines(market: MarketReport) -> list[str]:
                 f"- {_compact_text(finding.topic, 35)}: "
                 f"{_compact_text(finding.statement, 115)} ({refs})"
             )
+    commercial = market.commercial_analysis
+    if commercial and commercial.hypotheses:
+        lines += ["- LLM 가설 (검증 전이며 확인된 수요가 아님):"]
+        for hypothesis in commercial.hypotheses[:2]:
+            refs = _compact_refs([f"M:{item}" for item in hypothesis.citation_ids])
+            lines.append(
+                f"  - {_compact_text(hypothesis.hypothesis, 105)} "
+                f"(검증: {_compact_text(hypothesis.validation_method, 70)}; "
+                f"성공 기준: {_compact_text(hypothesis.success_criterion, 65)}"
+                + (f"; {refs}" if refs else "; 직접 근거 인용 없음")
+                + ")"
+            )
 
     dimension_labels = {
         "confirmed": "확인",

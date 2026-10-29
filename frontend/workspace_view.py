@@ -188,6 +188,7 @@ def report_payload(s):
 
 
 def render_report(s, payload, archived=False):
+    payload = deepcopy(payload)
     st.title(payload["title"])
     st.caption(
         "종합 보고서 / "
@@ -196,6 +197,10 @@ def render_report(s, payload, archived=False):
     overview, full, costs = st.tabs(["한눈에 보기", "보고서 원문", "비용 · 메모"])
     cost_rows = s.cost_rows
     with costs:
+        if not archived and s.real_mode and s.pipeline_result:
+            from frontend.cost_view import render_cost_estimate
+
+            payload["markdown"] = render_cost_estimate(s.pipeline_result)
         st.caption(
             "비용은 직접 입력한 보조 자료입니다. 금액 누락을 0으로 확정하지 않습니다."
         )

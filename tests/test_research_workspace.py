@@ -43,14 +43,22 @@ def test_landing_has_single_start_and_no_research_form():
 
 def test_demo_report_can_be_saved_and_reopened_without_analysis():
     app = AppTest.from_file(str(APP)).run()
-    for label in [
-        "돋보기로 조사 시작",
-        "예시 불러오기",
-        "구성 확정하고 특허 비교로 →",
-        "시장성 보고서 →",
-        "최종 실행 검토 →",
-    ]:
-        press(app, label)
+    from frontend.quick import DEMO_TEXT, DEMO_PARTS, DEMO_QUESTIONS, candidates
+
+    press(app, "돋보기로 조사 시작")
+    app.session_state.raw = DEMO_TEXT
+    app.session_state.confirmed_context = True
+    app.session_state.report_snapshot = dict(
+        raw=DEMO_TEXT,
+        title="시연 기록",
+        parts=list(DEMO_PARTS),
+        ids=[x["id"] for x in candidates(DEMO_TEXT)],
+        questions=DEMO_QUESTIONS,
+        links={},
+        sources=candidates(DEMO_TEXT),
+    )
+    app.session_state.stage = 4
+    app.run()
     app.text_area(key="report_note").input("현장 설치 조건 확인").run()
     press(app, "내 기록에 보관")
     original = app.session_state.records[0]

@@ -339,3 +339,7 @@ python -m evaluation.patent_labeling export              # SF-02/SF-05 특허 �
 ### 특허 청구항 분석
 
 특허 분석 입력은 `PatentSearchRequest`, 반환 계약은 `PatentReport`이며 `src.services.patent_service.analyze_patents()`에서 호출한다. 문헌별 청구항 원문·버전·번호·종속항 참조를 인용 근거로 보존하고, KIPRIS 청구항 조회가 비어 있거나 실패하면 초록 근거와 미확인 상태를 반환한다. 구현 흐름과 Mock 통합 예제는 [docs/patent_rag.md](docs/patent_rag.md)를 참고한다.
+
+## 통합 분석 화면
+
+특허 분류 시각화·상세 팝업, 시장 사업 검토, 사용자 초안 확정 흐름을 3단계 화면에 연결한다. 비용·메모 탭에서 LLM 비용 가설을 견적과 구분해 편집하고 동일한 결과를 원문·PDF·기록에 반영한다. 비용 분석에는 추가 모델 호출이 발생한다. 분야 기본값은 자동이며 자료가 없는 선택 분야는 전체 색인으로 보완한다.

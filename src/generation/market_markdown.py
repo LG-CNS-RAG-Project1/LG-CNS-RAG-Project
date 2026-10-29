@@ -149,6 +149,28 @@ def market_report_to_markdown(report: MarketReport, heading_level: int = 2) -> s
                     + (f" ({refs})" if refs else ""),
                 ]
 
+    commercial = report.commercial_analysis
+    if commercial and commercial.hypotheses:
+        lines += [
+            "",
+            f"{sub} LLM 검증 전 가설 (확인된 사실·구매 의사가 아님)",
+            "",
+        ]
+        for item in commercial.hypotheses:
+            refs = ", ".join(citation(value) for value in item.citation_ids)
+            lines += [
+                f"- **가설:** {cell(item.hypothesis)}",
+                f"  - 질문: {cell(item.question)} · 근거/한계: {cell(item.basis)}",
+                f"  - 가정: {', '.join(cell(value) for value in item.assumptions) or '없음'}",
+                f"  - 검증: {cell(item.validation_target)} · {cell(item.validation_method)} · 성공 기준: {cell(item.success_criterion)}",
+            ]
+            if item.numeric_value is not None:
+                lines.append(
+                    f"  - 자료 기반 수치 추정: {item.numeric_value:g} {cell(item.numeric_unit)} · 산식/자료: {cell(item.numeric_basis)}"
+                )
+            if refs:
+                lines.append(f"  - 연결 근거: {refs}")
+
     if report.unknowns:
         lines += ["", f"{sub} 미확인 사항", ""]
         lines += [f"- {cell(u)}" for u in report.unknowns]

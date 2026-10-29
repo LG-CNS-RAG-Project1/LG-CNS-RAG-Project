@@ -43,7 +43,14 @@ from src.generation.report_builder import (
     QuestionLink,
     link_questions_with_retry,
 )
-from src.schemas import IDEA_FIELDS, IdeaDraft, MarketReport, PatentReport
+from src.schemas import (
+    IDEA_FIELDS,
+    IdeaDraft,
+    MarketReport,
+    PatentReport,
+    ImplementationCostEstimate,
+    CostScenarioTotals,
+)
 from src.services.market_service import run_market_research
 from src.services.patent_service import analyze_patents
 
@@ -136,6 +143,8 @@ class PipelineReport(BaseModel):
     market_run: PartRun | None = None
     readiness: Readiness | None = None
     analyzed_on: int | None = None
+    cost_estimate: ImplementationCostEstimate | None = None
+    cost_totals: CostScenarioTotals | None = None
 
 
 class Cancelled(RuntimeError):
@@ -324,11 +333,17 @@ def prepare_sources(
     market_runnable = keys["OPENAI_API_KEY"] and bool(market_state.count)
     if not market_state.count:
         reasons.append(f"시장 색인 준비 필요({market_state.reason or '문서 0건'})")
-    local_patents = (
+    total_local_patents = patent_state.count or 0
+    selected_area_count = (
         patent_state.area_counts.get(technology_area_id, 0)
         if technology_area_id
-        else (patent_state.count or 0)
+        else total_local_patents
     )
+    local_patents = selected_area_count or total_local_patents
+    if technology_area_id and not selected_area_count and total_local_patents:
+        reasons.append(
+            f"특허 색인에 {technology_area_id} 문서가 없어 전체 특허 색인으로 검색합니다"
+        )
     if not keys["OPENAI_API_KEY"]:
         patent_mode = "none"
     elif local_patents and keys["KIPRIS_API_KEY"]:
@@ -501,6 +516,13 @@ def analyze_sources(
         readiness, market_collection, patent_collection = prepare_sources(
             technology_area_id
         )
+    if (
+        technology_area_id
+        and readiness.patent_index.count
+        and not readiness.patent_index.area_counts.get(technology_area_id, 0)
+    ):
+        # 오래된 세션의 고정 분야 선택이 비어 있는 분야를 가리켜도 검색을 중단하지 않는다.
+        patent_request.technology_area_id = None
 
     event = threading.Event()
     market_args = {**_market_defaults(event), **(market_kwargs or {})}
@@ -683,11 +705,13 @@ def run_pipeline(
     readiness: Readiness | None = None,
     sources: SourceAnalysis | None = None,
     parallel: bool | None = None,
+    cost_llm_fn=None,
 ) -> PipelineReport:
     """확정된 IdeaDraft로 두 조사와 질문별 통합 근거 보고서를 실행한다.
 
     sources를 넘기면 조사를 다시 하지 않고 질문 연결과 보고서만 새로 만든다.
     """
+    draft.to_structured_idea()
     questions = screen_inputs(technical_components, questions)
     if sources is None:
         sources = analyze_sources(
@@ -713,8 +737,21 @@ def run_pipeline(
     executive_review = build_executive_review(
         draft, sources.patent, sources.market, business_review
     )
+    cost_estimate = None
+    cost_totals = None
+    if cost_llm_fn is not None:
+        from src.generation.cost_estimation import calculate_scenarios, estimate_costs
+
+        cost_estimate = estimate_costs(
+            draft, sources.market, sources.patent, llm_fn=cost_llm_fn
+        )
+        cost_totals = calculate_scenarios(cost_estimate)
     markdown = executive_report_markdown(
-        draft.title, executive_review, analyzed_on=sources.analyzed_on
+        draft.title,
+        executive_review,
+        analyzed_on=sources.analyzed_on,
+        cost_estimate=cost_estimate,
+        cost_totals=cost_totals,
     )
     statuses = {sources.patent.status, sources.market.status}
     status = "completed" if statuses == {"completed"} and not errors else "partial"
@@ -732,6 +769,8 @@ def run_pipeline(
         market_run=sources.market_run,
         readiness=sources.readiness,
         analyzed_on=sources.analyzed_on,
+        cost_estimate=cost_estimate,
+        cost_totals=cost_totals,
     )
 
 
