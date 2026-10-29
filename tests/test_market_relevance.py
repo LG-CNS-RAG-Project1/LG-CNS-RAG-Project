@@ -101,6 +101,38 @@ def test_judged_hit_replaces_nature_for_news_only():
     assert judged_hit(dart, raw)["article_nature"] == "purchase_signal"
 
 
+@pytest.mark.parametrize(
+    "title",
+    [
+        "2차전지 장비 관련주, '웃음꽃' 한빛레이저·HB테크놀러지",
+        "[특징주] 인텍플러스, 검사장비 공급 기대감에 주가 급등",
+        "[주식마감] 로봇 부품 공급 기대감에 '나무가' 상한가",
+    ],
+)
+def test_judged_hit_treats_stock_articles_as_business_signal(title):
+    raw = {"label": 1, "confidence": "high", "evidence_nature": "purchase_signal"}
+    news = {
+        **make_hit("a", title, "앱솔릭스에 검사 장비를 공급하며"),
+        "source_type": "news",
+        "evidence_nature": "business_signal",
+    }
+
+    judged = judged_hit(news, raw)
+
+    assert judged["relevant"] is True
+    assert judged["evidence_nature"] == "business_signal"
+
+
+def test_judged_hit_keeps_purchase_signal_for_listing_news():
+    raw = {"label": 1, "evidence_nature": "purchase_signal"}
+    news = {
+        **make_hit("a", "브릴스, 코스닥 상장…A사에 AI 로봇 공급 계약"),
+        "source_type": "news",
+    }
+
+    assert judged_hit(news, raw)["evidence_nature"] == "purchase_signal"
+
+
 def test_judge_hits_keeps_search_order():
     hits = [make_hit("a", "관련1"), make_hit("b", "무관"), make_hit("c", "관련2")]
 

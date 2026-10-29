@@ -24,6 +24,7 @@ def test_password_gate_blocks_until_correct(monkeypatch):
     monkeypatch.setenv("IDEALENS_APP_PASSWORD", "FAKE_APP_PASSWORD")
     app = AppTest.from_file(str(APP), default_timeout=30).run()
     assert "돋보기로 조사 시작" not in labels(app)
+    assert not any((button.key or "").startswith("rail_") for button in app.button)
     submit(app, "wrong")
     assert any("맞지 않습니다" in e.value for e in app.error)
     assert "돋보기로 조사 시작" not in labels(app)

@@ -251,6 +251,23 @@ def test_direct_input_runs_followup_and_reaches_report(live):
     text = "\n".join(m.value for m in app.markdown)
     assert "검토일" in text and "P:1" in text
     assert "시연용 가상 자료" not in text
+    previous = app.session_state.pipeline_result
+    previous_calls = dict(live)
+    for stage in (2, 3, 4):
+        app.button(key=f"rail_{stage}").click().run()
+        assert not app.exception
+        assert app.session_state.stage == stage
+        assert app.session_state.pipeline_result == previous
+    assert live == previous_calls
+    for page in ("history", "about", "difference", "home"):
+        app.button(key=f"rail_{page}").click().run()
+        assert not app.exception
+        assert app.session_state.pipeline_result == previous
+    app.button(key="rail_resume").click().run()
+    assert not app.exception
+    assert app.session_state.stage == 4
+    assert app.session_state.pipeline_result == previous
+    assert live == previous_calls
 
 
 def test_kipris_quota_failure_is_not_presented_as_patent_absence(live):
@@ -298,8 +315,10 @@ def test_four_report_stages_use_one_analysis_run(live):
     assert app.session_state.stage == 2 and live["analyze"] == 1
 
 
+@pytest.mark.parametrize("navigation_key", ["nav_1", "rail_1"])
 def test_running_workflow_top_step_opens_idea_preview_without_leaving_current_stage(
     live,
+    navigation_key,
 ):
     app = analysis_app()
     draft = IdeaDraft(
@@ -335,7 +354,7 @@ def test_running_workflow_top_step_opens_idea_preview_without_leaving_current_st
         app.run()
         assert not app.button(key="nav_1").disabled
         assert not app.button(key="nav_2").disabled
-        app.button(key="nav_1").click().run()
+        app.button(key=navigation_key).click().run()
         assert app.session_state.stage == 3
         assert app.session_state.analysis_workflow_id == "navigation-test"
         dialog = app.get("dialog")[0]
@@ -345,7 +364,8 @@ def test_running_workflow_top_step_opens_idea_preview_without_leaving_current_st
             WORKFLOW_JOBS.pop("navigation-test", None)
 
 
-def test_completed_stage_status_button_opens_read_only_dialog(live):
+@pytest.mark.parametrize("navigation_key", ["nav_2", "rail_2"])
+def test_completed_stage_status_button_opens_read_only_dialog(live, navigation_key):
     app = analysis_app()
     draft = IdeaDraft(
         original_text=IDEA,
@@ -384,7 +404,9 @@ def test_completed_stage_status_button_opens_read_only_dialog(live):
         )
         assert "특허" in app.button(key="nav_2").label
         assert app.button(key="nav_3").disabled
-        app.button(key="nav_2").click().run()
+        assert app.button(key="rail_3").disabled
+        assert app.button(key="rail_4").disabled
+        app.button(key=navigation_key).click().run()
 
         assert app.session_state.analysis_workflow_id == "preview-test"
         assert app.session_state.stage == 3

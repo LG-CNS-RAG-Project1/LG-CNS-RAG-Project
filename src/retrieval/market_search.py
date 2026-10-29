@@ -131,19 +131,34 @@ def build_index(
     """문서를 컬렉션에 upsert하고 새로 임베딩한 건수를 반환한다.
 
     rebuild=False이면 이미 같은 텍스트로 색인된 ID는 임베딩하지 않고 메타데이터만 갱신한다.
-    prune=True이면 upsert가 모두 끝난 뒤 documents에 없는 ID를 컬렉션에서 지운다
+    Chroma는 갱신 시 기존 메타데이터와 합치므로, 기존에만 있던 키(예: 빠진 idea_<ID>)는 None으로
+    보내 지운다. prune=True이면 upsert가 모두 끝난 뒤 documents에 없는 ID를 컬렉션에서 지운다
     (documents가 전체 문서일 때만 쓴다). 임베딩이 중간에 실패해도 기존 색인은 지워지지 않는다.
     """
     all_records = [to_chroma_record(d) for d in documents]
+    stored = (
+        collection.get(
+            ids=[r[0] for r in all_records], include=["documents", "metadatas"]
+        )
+        if all_records
+        else {"ids": [], "documents": [], "metadatas": []}
+    )
+    stored_text = dict(zip(stored["ids"], stored["documents"]))
+    stored_meta = dict(zip(stored["ids"], stored["metadatas"]))
+    all_records = [
+        (
+            record_id,
+            text,
+            {
+                **{k: None for k in stored_meta.get(record_id) or {} if k not in meta},
+                **meta,
+            },
+        )
+        for record_id, text, meta in all_records
+    ]
     records = all_records
     if not rebuild and records:
-        texts = {r[0]: r[1] for r in records}
-        stored = collection.get(ids=list(texts), include=["documents"])
-        same_text = {
-            record_id
-            for record_id, text in zip(stored["ids"], stored["documents"])
-            if text == texts[record_id]
-        }
+        same_text = {r[0] for r in records if stored_text.get(r[0]) == r[1]}
         unchanged = [r for r in records if r[0] in same_text]
         for start in range(0, len(unchanged), EMBED_BATCH_SIZE):
             batch = unchanged[start : start + EMBED_BATCH_SIZE]

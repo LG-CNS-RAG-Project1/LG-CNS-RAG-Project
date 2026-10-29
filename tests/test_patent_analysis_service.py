@@ -1,7 +1,14 @@
 from src.retrieval.schemas import RetrievalResult, SearchDocument
 from types import SimpleNamespace
 
-from src.schemas import PatentComparison, PatentSearchRequest, StructuredIdea
+from src.schemas import (
+    PatentComparison,
+    PatentDesignAnalysis,
+    PatentDocumentReview,
+    PatentSearchRequest,
+    PatentabilityPrecheck,
+    StructuredIdea,
+)
 from src.services.patent_service import analyze_patents
 
 
@@ -42,6 +49,7 @@ def result(patent_id, section="abstract", content="비전 검사 장치.", rank=
                 "application_number": patent_id,
                 "publication_number": f"KR{rank:05d}A",
                 "source_url": f"https://example.test/{patent_id}",
+                "collected_at": "2026-10-29T01:02:03+00:00",
             },
         ),
         dense_score=0.9 - rank / 100,
@@ -110,6 +118,9 @@ def test_analysis_limits_to_five_patents_and_keeps_claim_citations(monkeypatch):
     assert len(report.evidence) == 10
     assert all(
         item.section == "claims" and item.claim_number for item in report.evidence
+    )
+    assert all(
+        item.collected_at == "2026-10-29T01:02:03+00:00" for item in report.evidence
     )
     assert [item.citation_id for item in report.comparisons] == list(range(1, 11))
     assert len(fetched) == 5
@@ -389,3 +400,38 @@ def test_review_failure_preserves_retrieved_patent_evidence(monkeypatch):
     assert len(report.evidence) == 1
     assert "원문 근거는 보존했습니다" in report.unknowns[-1]
     assert "invalid component mapping" in report.error_message
+
+
+def test_design_proposal_failure_preserves_search_and_component_review(monkeypatch):
+    import src.services.patent_service as service
+
+    monkeypatch.setattr(service, "judge_patent_candidates", judge_all)
+    monkeypatch.setattr(
+        service, "search_patents", lambda query, **kwargs: [result("P1")]
+    )
+
+    def review(idea, evidence):
+        return (
+            [PatentDocumentReview(patent_id="P1", title="특허 P1")],
+            PatentabilityPrecheck(
+                status="insufficient_evidence", summary="비교 근거 부족"
+            ),
+        )
+
+    def fail_proposals(*_):
+        raise TimeoutError("proposal timeout")
+
+    report = analyze_patents(
+        request(top_k=1),
+        query_llm_fn=query_plan,
+        claim_fetcher=lambda _: [],
+        kipris_search_fn=lambda *_: [],
+        patent_review_fn=review,
+        design_proposal_fn=fail_proposals,
+    )
+
+    assert report.status == "completed"
+    assert len(report.evidence) == 1
+    assert len(report.patent_reviews) == 1
+    assert report.design_analysis.status == "failed"
+    assert "기존 비교 결과는 보존" in report.unknowns[-1]

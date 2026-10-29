@@ -2,6 +2,7 @@
 
 import argparse
 import re
+from datetime import datetime, timezone
 from pathlib import Path
 
 import yaml
@@ -123,6 +124,7 @@ def to_patent_document(raw: dict) -> PatentDocument:
         registration_number=raw.get("registration_number"),
         source=raw.get("source") or "KIPRIS Plus",
         source_url=raw.get("source_url"),
+        collected_at=raw.get("collected_at"),
         technology_area_ids=sorted(set(raw.get("technology_area_ids") or [])),
     )
 
@@ -275,6 +277,7 @@ def collect_to_jsonl(
     raw_patents = collect_patents(keyword, limit=limit)
 
     for raw in raw_patents:
+        raw.setdefault("collected_at", datetime.now(timezone.utc).isoformat())
         if technology_area_id:
             raw["technology_area_ids"] = [technology_area_id]
         if include_claims:

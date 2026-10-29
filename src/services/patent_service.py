@@ -4,12 +4,14 @@ from collections import defaultdict
 from typing import Callable
 
 from src.generation.patent_analysis import review_patents_by_component
+from src.generation.patent_design import generate_patent_design_analysis
 from src.ingestion.kipris_client import KiprisAPIError, fetch_patent_claims
 from src.retrieval.patent_search import build_patent_queries, search_patents
 from src.retrieval.patent_relevance import judge_patent_candidates
 from src.retrieval.schemas import RetrievalResult, SearchDocument
 from src.schemas import (
     PatentComparison,
+    PatentDesignAnalysis,
     PatentClaim,
     PatentEvidence,
     PatentReport,
@@ -135,6 +137,89 @@ def _select_claims(idea, claims: list, limit: int = 5) -> list:
     return sorted(selected, key=lambda claim: claim.claim_number)
 
 
+def _estimate_text_tokens(text: str) -> int:
+    """특허 근거 문맥을 위한 보수적인 토큰 수 근사치를 계산한다.
+
+    한국어·영어가 섞인 원문에서 문자 길이만으로 예산을 과소평가하지 않도록
+    공백 단위 토큰과 문자 길이 기반 상한 중 큰 값을 사용한다.
+    """
+    normalized = " ".join(text.split())
+    if not normalized:
+        return 0
+    return max(len(normalized.split()), (len(normalized) + 2) // 3)
+
+
+def _build_patent_context(
+    idea, claims: list, *, max_tokens: int = 1800, max_claims: int = 5
+) -> tuple[list[PatentClaim], int, list[str]]:
+    """청구항 원문과 상위항 문맥을 예산 내에서 선택한다.
+
+    토큰 추정에는 검색 계획·아이디어·서식 오버헤드를 포함하지 않으므로,
+    호출부는 반환된 사용량을 전체 요청 한도로 간주하지 않아야 한다.
+    """
+    selected = _select_claims(idea, claims, limit=max_claims)
+    selected_numbers = {claim.claim_number for claim in selected}
+    claim_map = {claim.claim_number: claim for claim in claims}
+    notes = []
+
+    def cost(claim: PatentClaim) -> int:
+        return _estimate_text_tokens(claim.text)
+
+    while selected and sum(cost(claim) for claim in selected) > max_tokens:
+        removable = [
+            claim
+            for claim in selected
+            if claim.claim_type == "dependent"
+            and not any(claim.claim_number in other.depends_on for other in selected)
+        ]
+        if removable:
+            selected.remove(max(removable, key=cost))
+            selected_numbers = {claim.claim_number for claim in selected}
+            continue
+
+        # 독립항은 잘라 인용하지 않고, 원문 전체가 예산에 들지 않으면 보류한다.
+        independent = next(
+            (claim for claim in selected if claim.claim_type == "independent"), None
+        )
+        if independent:
+            selected.remove(independent)
+            selected_numbers = {claim.claim_number for claim in selected}
+            notes.append(
+                f"청구항 {independent.claim_number} 원문이 문맥 토큰 예산을 초과해 제외됨"
+            )
+            # 빠진 독립항에 의존하는 종속항도 함께 제외해 문맥이 잘리지 않게 한다.
+            changed = True
+            while changed:
+                changed = False
+                for claim in list(selected):
+                    if any(
+                        parent not in selected_numbers for parent in claim.depends_on
+                    ):
+                        selected.remove(claim)
+                        selected_numbers.remove(claim.claim_number)
+                        notes.append(
+                            f"청구항 {claim.claim_number} 상위항 문맥이 제외되어 함께 제외됨"
+                        )
+                        changed = True
+            continue
+
+        # 남은 종속항 집합이 상위항 관계를 모두 포함하지 않으면 추가 비교에 쓰지 않는다.
+        claim = max(selected, key=cost)
+        selected.remove(claim)
+        selected_numbers.remove(claim.claim_number)
+        notes.append(
+            f"청구항 {claim.claim_number} 원문이 문맥 토큰 예산을 초과해 제외됨"
+        )
+
+    for claim in selected:
+        missing = [number for number in claim.depends_on if number not in claim_map]
+        if missing:
+            notes.append(
+                f"청구항 {claim.claim_number} 상위항 {', '.join(map(str, missing))} 원문 미확보"
+            )
+    return selected, sum(cost(claim) for claim in selected), notes
+
+
 def analyze_patents(
     request: PatentSearchRequest,
     *,
@@ -147,6 +232,7 @@ def analyze_patents(
         Callable[[object, list[PatentEvidence]], list[PatentComparison]] | None
     ) = None,
     patent_review_fn: Callable | None = None,
+    design_proposal_fn: Callable | None = None,
     relevance_fn: Callable | None = None,
     candidate_k: int = 20,
 ) -> PatentReport:
@@ -345,7 +431,14 @@ def analyze_patents(
                 unknowns.append(f"{app_number}: KIPRIS 청구항 원문 조회 실패 ({exc})")
 
             if claims:
-                selected_claims = _select_claims(request.idea, claims)
+                selected_claims, context_tokens, context_notes = _build_patent_context(
+                    request.idea, claims
+                )
+                unknowns.extend(f"{app_number}: {note}" for note in context_notes)
+                if context_tokens:
+                    unknowns.append(
+                        f"{app_number}: 비교 문맥 청구항 원문 추정 토큰 {context_tokens}"
+                    )
                 available_claim_numbers = {claim.claim_number for claim in claims}
                 for claim in selected_claims:
                     missing_parents = [
@@ -377,6 +470,7 @@ def analyze_patents(
                             registration_number=meta.get("registration_number"),
                             application_date=meta.get("application_date"),
                             publication_date=meta.get("publication_date"),
+                            collected_at=meta.get("collected_at"),
                             claim_number=claim.claim_number,
                             claim_type=claim.claim_type,
                             depends_on=claim.depends_on,
@@ -403,6 +497,7 @@ def analyze_patents(
                         registration_number=meta.get("registration_number"),
                         application_date=meta.get("application_date"),
                         publication_date=meta.get("publication_date"),
+                        collected_at=meta.get("collected_at"),
                         claim_type="unclassified",
                         version_id=meta.get("version_id") or version_id,
                     )
@@ -431,6 +526,7 @@ def analyze_patents(
                         registration_number=meta.get("registration_number"),
                         application_date=meta.get("application_date"),
                         publication_date=meta.get("publication_date"),
+                        collected_at=meta.get("collected_at"),
                         version_id=version_id,
                     )
                 )
@@ -449,6 +545,7 @@ def analyze_patents(
         comparisons = []
         patent_reviews = []
         patentability_precheck = None
+        design_analysis = None
         if comparison_fn is not None:
             try:
                 comparisons = comparison_fn(request.idea, evidence)
@@ -474,12 +571,56 @@ def analyze_patents(
             )(request.idea, evidence)
             for review in patent_reviews:
                 unknowns.extend(f"{review.title}: {item}" for item in review.unknowns)
+        try:
+            if not patent_reviews and design_proposal_fn is None:
+                design_analysis = PatentDesignAnalysis(
+                    status="insufficient_evidence",
+                    evidence_level=(
+                        "claims_and_abstract"
+                        if any(item.section == "claims" for item in evidence)
+                        and any(item.section == "abstract" for item in evidence)
+                        else (
+                            "claims_only"
+                            if any(item.section == "claims" for item in evidence)
+                            else "abstract_only"
+                        )
+                    ),
+                    missing_information=[
+                        "문헌별 기술 구성요소 비교가 없어 설계 대안을 생성하지 않았습니다."
+                    ],
+                )
+            else:
+                design_analysis = (
+                    design_proposal_fn or generate_patent_design_analysis
+                )(request.idea, evidence, patent_reviews, patentability_precheck)
+            if design_analysis.status in {"partial", "insufficient_evidence"}:
+                unknowns.extend(design_analysis.missing_information)
+        except Exception as design_error:
+            design_analysis = PatentDesignAnalysis(
+                status="failed",
+                evidence_level=(
+                    "claims_and_abstract"
+                    if any(item.section == "claims" for item in evidence)
+                    and any(item.section == "abstract" for item in evidence)
+                    else (
+                        "claims_only"
+                        if any(item.section == "claims" for item in evidence)
+                        else "abstract_only"
+                    )
+                ),
+                missing_information=["설계 대안 분석을 완료하지 못했습니다."],
+                limitations=[f"대안 생성 단계 오류: {type(design_error).__name__}"],
+            )
+            unknowns.append(
+                "설계 대안 생성에 실패했지만 특허 검색 근거와 기존 비교 결과는 보존했습니다."
+            )
         return PatentReport(
             status="completed",
             evidence=evidence,
             comparisons=comparisons,
             patent_reviews=patent_reviews,
             patentability_precheck=patentability_precheck,
+            design_analysis=design_analysis,
             unknowns=unknowns,
             search_scope=(
                 "아이디어 기술 요소별 Dense 후보 검색·LLM 관련성 판정"

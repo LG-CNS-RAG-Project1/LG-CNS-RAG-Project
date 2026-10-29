@@ -3,6 +3,7 @@
 import re
 from pathlib import Path
 from base64 import b64encode
+from functools import lru_cache
 
 
 def _drawing(match):
@@ -25,7 +26,7 @@ def _drawing(match):
 def hero():
     markup = """<section class="paper-hero" aria-label="아이디어를 구체화하는 조사 노트">
       <div class="hero-copy"><span class="eyebrow">IDEALENS · IDEA TO EVIDENCE</span>
-      <h1>한 장의 생각에서,<br>근거 있는 아이디어로.</h1>
+      <h1><span class="hero-title-line">한 장의 생각에서,</span><span class="hero-title-line">근거 있는 아이디어로.</span></h1>
       <p>흩어진 생각을 정리하고, 특허와 시장을 나란히 살펴보세요.<br>한 장씩 넘길수록 다음 질문이 선명해집니다.</p>
       <span class="hero-note">구체화 → 특허·시장 검토 → 보고서</span>
       </div>
@@ -61,6 +62,7 @@ def hero():
     return re.sub(r"<svg\b.*?</svg>", _drawing, markup, flags=re.DOTALL)
 
 
+@lru_cache(maxsize=1)
 def hero_parts():
     """문서와 설명을 독립된 반응형 열에 배치하기 위한 마크업."""
     markup = hero()
@@ -69,6 +71,7 @@ def hero_parts():
     return markup[start:scene], markup[scene : markup.rindex("</section>")]
 
 
+@lru_cache(maxsize=1)
 def brand_style():
     """홈 버튼에 벡터 심볼을 적용하고 텍스트 이름과 클릭 동작을 유지한다."""
     symbol = (

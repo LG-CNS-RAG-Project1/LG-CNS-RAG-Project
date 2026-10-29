@@ -1,6 +1,7 @@
 """사업 아이디어에서 기술 요소별 특허 검색어를 생성한다."""
 
 import json
+import math
 from typing import Callable
 
 from openai import OpenAI
@@ -187,3 +188,41 @@ def search_patents(
         item.model_copy(update={"final_rank": rank})
         for rank, item in enumerate(response.results[:top_k], 1)
     ]
+
+
+def bi_encoder_reranker(embed_fn=None):
+    """질의·특허 후보 임베딩의 cosine 유사도로 재정렬 함수를 만든다.
+
+    문서 임베딩도 요청마다 계산하므로 실험 시 API 사용량과 지연을 기록해야 한다.
+    운영 색인의 임베딩을 재사용하지 않으며, 외부 호출은 호출부에서 명시적으로 한다.
+    """
+    if embed_fn is None:
+        from src.retrieval.market_search import embed_texts
+
+        embed_fn = embed_texts
+
+    def score(query: str, documents: list[SearchDocument]) -> list[float]:
+        texts = [query] + [f"{item.title}\n{item.content}" for item in documents]
+        vectors = embed_fn(texts)
+        if len(vectors) != len(texts):
+            raise ValueError("embedding function must return one vector per text")
+        query_vector = vectors[0]
+        query_norm = math.sqrt(sum(float(value) ** 2 for value in query_vector))
+        scores = []
+        for vector in vectors[1:]:
+            if len(vector) != len(query_vector):
+                raise ValueError("embedding vectors must have matching dimensions")
+            document_norm = math.sqrt(sum(float(value) ** 2 for value in vector))
+            denominator = query_norm * document_norm
+            scores.append(
+                sum(
+                    float(left) * float(right)
+                    for left, right in zip(query_vector, vector)
+                )
+                / denominator
+                if denominator
+                else 0.0
+            )
+        return scores
+
+    return score

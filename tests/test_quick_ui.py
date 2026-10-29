@@ -19,6 +19,11 @@ def test_landing_preserves_home_and_enters_compact_analysis():
     app = AppTest.from_file(str(APP)).run()
     assert app.button(key="lens_start").label == "돋보기로 조사 시작"
     assert "hero-copy" in "\n".join(item.value for item in app.html)
+    assert app.button(key="rail_home")
+    assert not any(
+        button.key in {"rail_1", "rail_2", "rail_3", "rail_4", "rail_resume"}
+        for button in app.button
+    )
     click(app, "돋보기로 조사 시작")
     assert app.text_area(key="raw_input")
     assert app.button(key="create_idea_draft")
@@ -28,6 +33,66 @@ def test_landing_preserves_home_and_enters_compact_analysis():
         "2",
         "3",
     ]
+    assert not app.button(key="rail_1").disabled
+    assert all(app.button(key=f"rail_{i}").disabled for i in (2, 3, 4))
+    assert any('href="#research-top"' in item.value for item in app.html)
+
+
+def test_quick_history_preserves_input_and_returns_without_reanalysis():
+    app = AppTest.from_file(str(APP)).run()
+    click(app, "돋보기로 조사 시작")
+    text = "공장 설비의 진동 데이터를 분석하는 새로운 서비스"
+    app.text_area(key="raw_input").set_value(text).run()
+    app.session_state.saved_memo = "검토 중인 메모"
+    app.button(key="rail_history").click().run()
+    assert not app.exception
+    assert app.session_state.page == "history"
+    assert app.session_state.raw_input == text
+    assert app.session_state.saved_memo == "검토 중인 메모"
+    assert app.button(key="rail_resume").label == "조사 계속"
+    app.button(key="rail_about").click().run()
+    app.button(key="rail_difference").click().run()
+    app.button(key="rail_home").click().run()
+    assert app.session_state.page == "home"
+    app.button(key="rail_resume").click().run()
+    assert not app.exception
+    assert app.text_area(key="raw_input").value == text
+    assert app.session_state.idea_draft is None
+    assert app.session_state.pipeline_result is None
+
+
+def test_public_shortcuts_allow_starting_and_returning_home_without_api():
+    app = AppTest.from_file(str(APP)).run()
+    for page in ("about", "difference", "history"):
+        app.button(key=f"rail_{page}").click().run()
+        assert not app.exception
+        assert app.session_state.page == page
+        assert app.button(key="rail_resume").label == "조사 시작"
+        assert not any(
+            button.key in {"rail_1", "rail_2", "rail_3", "rail_4"}
+            for button in app.button
+        )
+    app.button(key="rail_resume").click().run()
+    assert app.session_state.page == "workspace"
+    assert app.session_state.stage == 1
+    assert app.session_state.idea_draft is None
+    app.button(key="rail_home").click().run()
+    assert app.session_state.page == "home"
+    assert app.button(key="lens_start")
+
+
+def test_intro_is_prepared_before_home_markup_and_runs_only_on_first_visit():
+    app = AppTest.from_file(str(APP)).run()
+    html = [item.value for item in app.html]
+    hero_html = next(value for value in html if '<div class="hero-copy">' in value)
+    assert hero_html.index("introFallback") < hero_html.index('<div class="hero-copy">')
+    assert sum("title.animate(" in value for value in html) == 1
+    app.button(key="rail_about").click().run()
+    app.button(key="rail_home").click().run()
+    assert not any("title.animate(" in item.value for item in app.html)
+    assert any("function alignPage()" in item.value for item in app.html)
+    app.run()
+    assert not any("function alignPage()" in item.value for item in app.html)
 
 
 def test_example_and_recent_are_separate_controls():

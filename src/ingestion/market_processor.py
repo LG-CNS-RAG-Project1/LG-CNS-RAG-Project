@@ -1,6 +1,8 @@
 """수집한 시장 뉴스 원본을 정제해 MarketDocument JSONL로 저장한다.
 
 - 입력: data/market/raw/news_*.json (news_client 수집 결과)
+- 기사의 idea_ids는 수집 당시 값이 아니라 현재 configs/technology_areas.yaml의 키워드 설정을 따른다.
+  설정에 없는 키워드(legacy_market_keywords 등)로 수집한 기사는 제외한다. 원본 파일은 지우지 않는다.
 - 같은 URL 기사는 1건으로 합치고, 수집 키워드의 idea_ids를 합친다.
 - 제목 유사도가 기준 이상이고 발행일 차이가 기준 이내인 기사는 같은 dup_group으로 묶어
   대표 1건만 저장한다. 대표 기사는 그룹 전체의 idea_ids를 가진다.
@@ -39,6 +41,27 @@ def load_raw_news(raw_dir: Path = RAW_DIR) -> list[dict]:
         with open(path, encoding="utf-8") as f:
             records.extend(json.load(f)["items"])
     return records
+
+
+def apply_keyword_config(
+    records: list[dict], keyword_ideas: dict[str, list[str]]
+) -> list[dict]:
+    """설정에 있는 키워드로 수집한 기사만 남기고 idea_ids를 그 키워드의 현재 설정으로 바꾼다.
+
+    keyword_ideas: {키워드 ID: 아이디어 ID 목록} (news_client.load_keyword_config 기준)
+    """
+    return [
+        {**record, "idea_ids": keyword_ideas[record["keyword_id"]]}
+        for record in records
+        if record["keyword_id"] in keyword_ideas
+    ]
+
+
+def current_keyword_ideas() -> dict[str, list[str]]:
+    """configs/technology_areas.yaml의 시장 키워드별 아이디어 ID를 반환한다."""
+    from src.ingestion.news_client import load_keyword_config
+
+    return {k["id"]: k["idea_ids"] for k in load_keyword_config()["keywords"]}
 
 
 def merge_by_source_id(records: list[dict]) -> list[dict]:
@@ -169,10 +192,18 @@ def main() -> None:
     parser.add_argument("--output", type=Path, default=OUTPUT_PATH)
     args = parser.parse_args()
 
-    records = load_raw_news(args.raw_dir)
+    raw = load_raw_news(args.raw_dir)
+    records = apply_keyword_config(raw, current_keyword_ideas())
     documents = build_documents(records)
     path = save_documents(documents, args.output)
     unique = len({r["source_id"] for r in records})
+    excluded = sorted(
+        {r["keyword_id"] for r in raw} - {r["keyword_id"] for r in records}
+    )
+    if excluded:
+        print(
+            f"설정에 없는 키워드 제외: {', '.join(excluded)} ({len(raw) - len(records)}건)"
+        )
     print(
         f"raw {len(records)} -> unique url {unique} -> documents {len(documents)} "
         f"({unique - len(documents)} near-duplicates grouped) -> {path}"
