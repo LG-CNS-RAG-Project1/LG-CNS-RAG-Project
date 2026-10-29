@@ -259,6 +259,15 @@ def test_direct_input_runs_followup_and_reaches_report(live):
         assert app.session_state.stage == stage
         assert app.session_state.pipeline_result == previous
     assert live == previous_calls
+    for page in ("history", "about", "difference", "home"):
+        app.button(key=f"rail_{page}").click().run()
+        assert not app.exception
+        assert app.session_state.pipeline_result == previous
+    app.button(key="rail_resume").click().run()
+    assert not app.exception
+    assert app.session_state.stage == 4
+    assert app.session_state.pipeline_result == previous
+    assert live == previous_calls
 
 
 def test_kipris_quota_failure_is_not_presented_as_patent_absence(live):
