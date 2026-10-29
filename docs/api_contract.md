@@ -47,6 +47,8 @@
 | `dimensions[].verdict` | `confirmed` 확인됨 · `signal_only` 신호만 확인 · `unverified` 미확인 |
 | `dimensions[].claims` | 최대 3문장. `claim_type`: `fact`(사실, `citation_ids` 1개 이상) · `user_claim`(사용자 주장) · `ai_hypothesis`(AI 가설) |
 | `dimensions[].next_check` | 다음 검증 과제 (`unverified`이면 항상 있음) |
+| `dimensions[].evidence_status` · `relevant_count` | 검색·관련성 판정 상태(`sufficient`·`limited`·`insufficient`·`no_results`·`error`)와 관련 판정된 기사 수 |
+| `dimensions[].limitation` | `confirmed`가 아닌 이유 (아이디어 항목 공백·검색 결과 없음·판정 실패·관련 기사 없음·1건뿐·사업 신호만·수요는 고객 검증 자료 필요). `confirmed`이면 `null` |
 | `evidence` | 인용 근거. `citation_id`·제목·출처·`quote`(기사 요약)·`url`·`published_at`(YYYYMMDD)·`evidence_nature`·신뢰도·최신성·직접성 |
 | `unknowns` | 미확인 사항 (비어 있는 아이디어 항목, 미확인 차원) |
 | `opportunity_review` | 목표 세그먼트·가치 가설·직접 수요 상태·시장 근거와 인용·미확인 사항·다음 고객 검증 행동 |
@@ -54,7 +56,8 @@
 
 - 오류는 예외 대신 `status="error"` 보고서로 돌려준다(검색·판정·분석 생성 실패 모두).
 - 인용 표기: UI와 마크다운 모두 시장 근거를 `M:{citation_id}`로 쓴다(특허는 `P:`). 같은 기사는 여러 차원에서 같은 `citation_id`를 쓴다.
-- 해석 규칙: 수집 뉴스는 모두 `business_signal`(사업 신호)이므로 뉴스 근거만으로는 어느 차원도 `confirmed`가 되지 않는다(최대 `signal_only`). 수요 `confirmed`는 고객 검증 자료(`direct_demand`)가 있을 때만 나온다. 종합 보고서에서도 '신호만 확인'을 수요 확인으로 바꿔 쓰지 않는다.
+- 해석 규칙: 뉴스의 `evidence_nature`는 관련성 판정 때 정한다. 이름이 드러난 고객의 실제 도입·계약 보도는 `purchase_signal`(구매 신호), 조사기관 통계는 `indirect_demand`(간접 수요), 그 밖은 `business_signal`(사업 신호)이다. 수요 외 차원의 `confirmed`는 구매 신호·간접 수요 근거를 인용한 사실 문장이 있을 때만, 수요 `confirmed`는 고객 검증 자료(`direct_demand`)가 있을 때만 나온다. 종합 보고서에서도 '신호만 확인'이나 구매 신호를 수요 확인으로 바꿔 쓰지 않는다.
+- 화면에서 미확인을 보여 줄 때는 `limitation`을 함께 표시한다. 검색 결과가 없다는 것은 수요가 없다는 뜻이 아니다.
 - JSON Schema: `MarketReport.model_json_schema()`
 
 

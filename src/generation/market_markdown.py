@@ -39,7 +39,8 @@ NATURE_LABELS = {
 GRADE_LABELS = {"high": "상", "medium": "중", "low": "하"}
 
 EVIDENCE_NOTE = (
-    "뉴스·기업 자료는 사업 신호이며 고객의 구매 의사를 직접 보여 주는 근거가 아니다. "
+    "뉴스는 실제 도입·계약 보도면 구매 신호, 조사기관 통계면 간접 수요, 그 밖은 사업 신호로 "
+    "구분하며 어느 것도 고객의 구매 의사를 직접 보여 주는 근거가 아니다. "
     "수요 '확인됨'은 고객 검증 자료(인터뷰·설문·파일럿·LOI)가 있을 때만 나온다."
 )
 
@@ -194,14 +195,15 @@ def _dimension_sections(report: MarketReport, sub: str) -> list[str]:
         "",
         f"{sub} 차원별 판정 요약",
         "",
-        "| 차원 | 판정 | 인용 근거 |",
-        "|---|---|---|",
+        "| 차원 | 판정 | 인용 근거 | 확인되지 않은 이유 |",
+        "|---|---|---|---|",
     ]
     for d in report.dimensions:
         cited = dict.fromkeys(i for c in d.claims for i in c.citation_ids)
         refs = ", ".join(citation(i) for i in cited) or "-"
         lines.append(
-            f"| {DIMENSION_LABELS[d.dimension]} | {VERDICT_LABELS[d.verdict]} | {refs} |"
+            f"| {DIMENSION_LABELS[d.dimension]} | {VERDICT_LABELS[d.verdict]} | {refs}"
+            f" | {cell(d.limitation) or '-'} |"
         )
 
     for d in report.dimensions:
@@ -218,6 +220,8 @@ def _dimension_sections(report: MarketReport, sub: str) -> list[str]:
                 f"- [{CLAIM_LABELS[c.claim_type]}] {cell(c.statement)}"
                 + (f" {refs}" if refs else "")
             )
+        if d.limitation:
+            lines.append(f"- 확인되지 않은 이유: {cell(d.limitation)}")
         if d.next_check:
             lines.append(f"- 다음 검증 과제: {cell(d.next_check)}")
     return lines
