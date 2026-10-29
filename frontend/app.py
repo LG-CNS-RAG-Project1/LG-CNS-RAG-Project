@@ -1318,179 +1318,146 @@ def render_patent_report(patent, *, widget_suffix="", preview=False):
 
 
 def render_market_report(market, draft=None, widget_suffix=""):
+    """실제 시장 근거·시각화와 조사 범위를 중심으로 보고서를 표시한다."""
     from src.generation.market_markdown import NATURE_LABELS
+    from src.retrieval.market_relevance import DIMENSION_LABELS
 
-    """시장성 화면에는 고객 신호와 다음 검증을 우선 표시하고 상세 자료를 접는다."""
     if market.status == "error":
-        st.error(market.error_message or "시장 조사에 실패했습니다.")
+        st.error(
+            "시장 조사를 완료하지 못했습니다. 조사 범위와 오류 상태를 확인해 주세요."
+        )
     elif market.status == "no_results":
         st.warning(
-            "검색 범위에서 시장 근거를 찾지 못했습니다. 수요가 없다는 뜻은 아닙니다."
+            "현재 검색 범위에서 시장 근거를 찾지 못했습니다. 수요가 없다는 뜻은 아닙니다."
+        )
+    else:
+        st.caption(
+            f"조사 범위: {market.search_scope} · 기준일 {market.data_as_of or '미제공'}"
         )
 
-    review = market.opportunity_review
-    labels = {
-        "validated_demand": "직접 고객 검증 자료 있음",
-        "buyer_signals": "구매자 신호",
-        "indirect_signals": "간접 산업 신호",
-        "insufficient_evidence": "근거 부족",
-    }
-    if review:
-        st.subheader("사업 승인 관점 요약")
-        st.info(
-            f"{labels[review.status]} · 목표 고객: {review.target_segment or '미확인'}"
+    trend = getattr(market, "search_trend", None)
+    from frontend.market_trend_view import render_search_trend
+
+    if trend is None:
+        st.info("이번 분석 결과에 검색 관심도 데이터가 포함되지 않았습니다.")
+    else:
+        render_search_trend(trend, widget_suffix)
+        st.caption(
+            "검색 관심도는 기준 검색어 대비 상대 지수이며 시장 규모나 고객 수요의 근거가 아닙니다."
         )
-        if review.status in {"buyer_signals", "indirect_signals"}:
-            st.caption("기업·뉴스 자료의 산업 신호는 실제 구매 의사 검증과 구분됩니다.")
-        commercial = getattr(market, "commercial_analysis", None)
-        if commercial:
-            st.markdown("**구매 구조와 승인 조건**")
-            left, right = st.columns(2)
-            left.markdown(
-                f"- 사용자: {commercial.user}\n- 구매자: {commercial.buyer}\n- 예산 주체: {commercial.budget_owner}\n- 업무 상황: {commercial.use_case}"
-            )
-            right.markdown(
-                f"- 현재 대안: {commercial.current_alternative}\n- 전환 계기: {commercial.switching_trigger}\n- 구매 절차: {commercial.purchase_process}\n- 가격 가설: {commercial.pricing_hypothesis}"
-            )
-            if commercial.adoption_requirements:
-                st.markdown(
-                    "**도입 필수조건:** "
-                    + " · ".join(commercial.adoption_requirements[:4])
-                )
-            if commercial.critical_assumptions:
-                st.markdown(
-                    "**승인 전 검증 가정:** "
-                    + " · ".join(commercial.critical_assumptions[:3])
-                )
-            if commercial.citation_ids:
-                st.caption(
-                    "근거: " + ", ".join(f"M:{cid}" for cid in commercial.citation_ids)
-                )
-            if commercial.unknowns:
-                st.caption("미확인: " + " · ".join(commercial.unknowns[:3]))
-            if commercial.hypotheses:
-                st.markdown(
-                    "**LLM 검증 전 가설 · 사실·구매 의사로 확인된 내용이 아닙니다**"
-                )
-                for item in commercial.hypotheses[:4]:
-                    refs = ", ".join(f"M:{cid}" for cid in item.citation_ids)
-                    st.markdown(f"- **가설:** {item.hypothesis}")
-                    st.caption(f"질문: {item.question} · 근거와 한계: {item.basis}")
-                    if item.assumptions:
-                        st.caption("가정: " + " · ".join(item.assumptions))
-                    if item.numeric_value is not None:
-                        st.caption(
-                            f"자료 기반 수치 추정: {item.numeric_value:g} {item.numeric_unit} · "
-                            f"산식/자료: {item.numeric_basis}"
-                        )
-                    st.caption(
-                        f"검증: {item.validation_target} · {item.validation_method} · "
-                        f"성공 기준: {item.success_criterion}"
-                        + (f" · 근거 {refs}" if refs else " · 직접 근거 인용 없음")
-                    )
-        if review.value_hypotheses:
-            st.markdown("**검증 전 가치 가설**")
-            for hypothesis in review.value_hypotheses[:2]:
-                st.markdown(f"- {hypothesis}")
-        if draft:
-            st.markdown("**고객·업무 적합성**")
-            c1, c2 = st.columns(2)
-            user_label = commercial.user if commercial else "미확인"
-            buyer_label = commercial.buyer if commercial else "미확인"
-            budget_label = commercial.budget_owner if commercial else "미확인"
-            c1.write(
-                f"**사용자 후보**\n\n{user_label if user_label != '미확인' else draft.customers or '미확인'}"
-            )
-            c2.write(f"**구매자·예산 주체**\n\n{buyer_label} · {budget_label}")
-            st.caption(
-                f"문제: {draft.problem or '미확인'} · 현재 대안: {draft.current_alternative or '미확인'}"
-            )
-            st.caption(
-                f"과금 가설: {draft.revenue or '미확인'} · 전환 이유: {draft.difference or '미확인'}"
-            )
-        if review.reasons:
-            st.markdown("**사업 판단에 참고할 시장 신호**")
-            for item in review.reasons[:2]:
-                refs = (
-                    ", ".join(f"M:{cid}" for cid in item.citation_ids)
-                    or "근거 인용 없음"
-                )
-                st.markdown(f"- **{item.topic}:** {item.statement} ({refs})")
-        if review.validation_actions:
-            st.markdown("**다음 검증 행동**")
-            for action in review.validation_actions[:3]:
-                st.markdown(
-                    f"- **{action.title} · {action.target or '대상 미정'}:** {action.method}"
-                )
-                st.caption(f"성공 신호: {action.success_signal}")
-    elif market.status == "completed":
-        st.info("아이디어별 구매 수요 결론은 확보한 자료에서 확인되지 않았습니다.")
 
-    if market.dimensions:
-        from src.retrieval.market_relevance import DIMENSION_LABELS
+    network = getattr(market, "keyword_network", None)
+    from frontend.market_network_view import render_keyword_network
 
-        verdict_labels = {
-            "confirmed": "근거 확인",
-            "signal_only": "신호만 확인",
-            "unverified": "미확인",
-        }
-        key_dimensions = ["demand", "buyer", "competition", "price", "adoption_barrier"]
-        for key in key_dimensions:
-            dimension = next(
-                (item for item in market.dimensions if item.dimension == key), None
-            )
-            if not dimension:
-                continue
-            st.markdown(
-                f"**{DIMENSION_LABELS[key]} · {verdict_labels[dimension.verdict]}**"
-            )
-            if dimension.limitation:
-                st.caption(f"확인되지 않은 이유: {dimension.limitation}")
-            if dimension.relevant_count is not None:
-                st.caption(
-                    f"관련 검색 자료 {dimension.relevant_count}건 · 인용 건수와 별개입니다."
+    if network is None:
+        st.info("이번 분석 결과에 뉴스 키워드 네트워크 데이터가 포함되지 않았습니다.")
+    else:
+        render_keyword_network(network, widget_suffix)
+        st.caption(
+            "뉴스 제목·요약에서 함께 나온 단어의 관계이며 수요·인과·고객 유형을 뜻하지 않습니다."
+        )
+
+    observed_dimensions = [
+        dimension
+        for dimension in market.dimensions
+        if dimension.verdict in {"confirmed", "signal_only"} and dimension.claims
+    ]
+    if observed_dimensions:
+        st.subheader("시장 자료에서 확인된 관찰")
+        st.caption("각 문장은 시장 보고서의 기존 분석과 인용을 그대로 표시합니다.")
+        for dimension in observed_dimensions:
+            with st.container(border=True):
+                state = (
+                    "근거 확인" if dimension.verdict == "confirmed" else "신호만 확인"
                 )
-            if dimension.claims:
-                for claim in dimension.claims[:1]:
-                    label = {
+                st.markdown(f"#### {DIMENSION_LABELS[dimension.dimension]} · {state}")
+                for claim in dimension.claims[:2]:
+                    claim_type = {
                         "fact": "자료 사실",
-                        "user_claim": "입력 내용",
-                        "ai_hypothesis": "검증 전 해석",
+                        "user_claim": "사용자 입력",
+                        "ai_hypothesis": "검증 전 가설",
                     }[claim.claim_type]
-                    citations = (
+                    refs = (
                         ", ".join(f"M:{cid}" for cid in claim.citation_ids)
                         or "인용 근거 없음"
                     )
-                    st.markdown(f"- [{label}] {claim.statement} ({citations})")
-            else:
-                st.caption(dimension.next_check or "검증 자료가 없습니다.")
+                    st.markdown(f"- **{claim_type}:** {claim.statement}")
+                    st.caption(f"근거: {refs}")
+                if dimension.relevant_count is not None:
+                    st.caption(
+                        f"관련 판정 자료 {dimension.relevant_count}건 · 인용 수와는 별도 집계"
+                    )
+                if dimension.limitation:
+                    st.caption("해석 한계: " + dimension.limitation)
+    elif market.status == "completed":
+        st.info("이번 조사에서 인용으로 확인된 시장 관찰 문장은 없습니다.")
 
-    from frontend.market_trend_view import render_search_trend
+    pending_checks = [
+        (dimension, dimension.next_check)
+        for dimension in market.dimensions
+        if dimension.next_check and dimension.verdict == "unverified"
+    ]
+    if pending_checks:
+        st.markdown("#### 근거를 더 확인할 항목")
+        for dimension, next_check in pending_checks:
+            label = DIMENSION_LABELS[dimension.dimension]
+            limitation = f" · {dimension.limitation}" if dimension.limitation else ""
+            st.markdown(f"- **{label}:** {next_check}{limitation}")
 
-    render_search_trend(getattr(market, "search_trend", None), widget_suffix)
+    dart_evidence = [item for item in market.evidence if item.source_type == "dart"]
+    if dart_evidence:
+        st.subheader("관련 기업의 DART 공시 발췌")
+        st.caption(
+            "아이디어 관련 검색에서 연결된 기업의 자체 사업보고서입니다. 검색된 기업이 실제 경쟁사라는 확인이나 특허 보유 관계를 뜻하지 않습니다."
+        )
+        companies = {}
+        for item in dart_evidence:
+            company = (
+                item.publisher.removesuffix(" (DART 사업보고서)").strip()
+                or "공시 기업 미제공"
+            )
+            companies.setdefault(company, []).append(item)
+        company_columns = st.columns(min(len(companies), 2))
+        for index, (company, items) in enumerate(companies.items()):
+            with company_columns[index % len(company_columns)]:
+                with st.container(border=True):
+                    st.markdown(f"#### {company}")
+                    for item in items[:3]:
+                        period = item.period or "사업연도 미제공"
+                        section = item.section or "원문 위치 미제공"
+                        st.caption(f"M:{item.citation_id} · {period} · {section}")
+                        st.markdown(f"**{item.title}**")
+                        st.write(item.quote)
+                        if item.url and item.url.startswith(("https://", "http://")):
+                            st.link_button("공시 원문 열기 ↗", item.url)
+        st.caption(
+            "공시 발췌 수는 기업 규모·경쟁력·시장 점유율의 비교 지표가 아닙니다."
+        )
 
-    from frontend.market_network_view import render_keyword_network
-
-    render_keyword_network(getattr(market, "keyword_network", None), widget_suffix)
-
-    if market.dimensions or market.evidence:
+    if market.evidence:
         from src.generation.market_markdown import market_report_to_markdown
+        from src.generation.report_builder import escape_md, safe_url
 
-        with st.expander(f"시장 차원별 분석·기사 목록·원문 ({len(market.evidence)}건)"):
+        with st.expander(f"시장 근거 전체와 분석 원문 ({len(market.evidence)}건)"):
             st.markdown(market_report_to_markdown(market, heading_level=3))
-            from src.generation.report_builder import escape_md, safe_url
-
             for item in market.evidence:
                 st.markdown(f"**M:{item.citation_id} · {escape_md(item.title)}**")
+                details = [
+                    item.publisher,
+                    item.period or "기간 미제공",
+                    item.section or "원문 위치 미제공",
+                ]
                 st.caption(
-                    f"{item.publisher} · {item.published_at or '발행일 미확인'} · "
-                    f"{NATURE_LABELS.get(item.evidence_nature, item.evidence_nature)} · 신뢰도 {item.reliability}"
+                    " · ".join(details)
+                    + f" · {NATURE_LABELS.get(item.evidence_nature, item.evidence_nature)}"
                 )
                 st.write(item.quote)
-                if safe_url(item.url):
-                    st.link_button("시장 원문 열기", safe_url(item.url))
+                url = safe_url(item.url)
+                if url:
+                    st.link_button("시장 원문 열기", url)
+
     if market.unknowns:
-        with st.expander(f"시장 미확인 사항 ({len(market.unknowns)}건)"):
+        with st.expander(f"시장 조사 한계와 미확인 항목 ({len(market.unknowns)}건)"):
             for item in market.unknowns:
                 st.write(f"- {item}")
 

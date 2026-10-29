@@ -732,3 +732,116 @@ def test_completed_idea_preview_marks_ai_hypotheses(live):
     assert any("검증 전 AI 가설" in item.value for item in app.markdown)
     assert any("수익모델" in item.value for item in app.markdown)
     assert app.session_state.stage == 3
+
+
+def test_market_report_prioritizes_real_trend_network_and_dart_evidence(live):
+    from src.schemas import (
+        MarketDimensionResult,
+        MarketEvidence,
+        MarketKeywordEdge,
+        MarketKeywordNetwork,
+        MarketKeywordNode,
+        MarketClaim,
+        MarketSearchTrend,
+        MarketTrendPoint,
+    )
+
+    app = analysis_app()
+    app.session_state.raw = IDEA
+    app.session_state.real_mode = True
+    app.session_state.confirmed_context = True
+    app.session_state.stage = 3
+    result = pipeline.run_pipeline(
+        IdeaDraft(
+            original_text=IDEA,
+            **FIELDS,
+            revenue="월 구독료",
+            field_sources={field: "extracted" for field in FIELDS},
+            status="complete",
+        ),
+        [],
+        sources=sources(),
+    )
+    market = result.market
+    market.status = "completed"
+    market.search_scope = "KIPRIS·시장 뉴스 및 DART 관련 검색 자료"
+    market.data_as_of = 20261029
+    market.evidence = [
+        MarketEvidence(
+            citation_id=1,
+            source_id="dart:sample:2025",
+            source_type="dart",
+            title="사업의 내용",
+            publisher="예시기업 (DART 사업보고서)",
+            quote="공장 자동화 솔루션 사업을 영위한다고 공시했습니다.",
+            section="II. 사업의 내용",
+            url="https://example.com/dart",
+            published_at=20260331,
+            period="FY2025",
+            reliability="medium",
+            recency="medium",
+            directness="low",
+            evidence_nature="company_claim",
+        )
+    ]
+    market.dimensions = [
+        MarketDimensionResult(
+            dimension="competition",
+            verdict="signal_only",
+            claims=[
+                MarketClaim(
+                    statement="관련 분야에서 자동화 사업을 공시한 기업을 찾았습니다.",
+                    claim_type="fact",
+                    citation_ids=[1],
+                )
+            ],
+            evidence_status="limited",
+            relevant_count=2,
+            limitation="검색된 공시만으로 경쟁 관계를 확정할 수 없습니다.",
+        ),
+        MarketDimensionResult(
+            dimension="demand",
+            verdict="unverified",
+            next_check="실제 구매 담당자 인터뷰를 진행합니다.",
+            evidence_status="insufficient",
+            relevant_count=0,
+            limitation="직접 고객 검증 자료가 없습니다.",
+        ),
+    ]
+    market.search_trend = MarketSearchTrend(
+        status="completed",
+        keywords=["예지보전"],
+        reference_keywords=["스마트공장"],
+        points=[
+            MarketTrendPoint(
+                period="2026-01",
+                theme_ratio=10,
+                reference_ratio=20,
+                relative_index=50,
+            )
+        ],
+        recent_change_pct=4,
+        direction="stable",
+    )
+    market.keyword_network = MarketKeywordNetwork(
+        status="completed",
+        document_count=10,
+        nodes=[
+            MarketKeywordNode(term="설비", document_count=5, cluster=0, x=0, y=0),
+            MarketKeywordNode(term="예측", document_count=4, cluster=0, x=0.5, y=0.5),
+        ],
+        edges=[MarketKeywordEdge(source="설비", target="예측", weight=3)],
+        clusters=[["설비", "예측"]],
+    )
+    app.session_state.pipeline_result = result
+    app.run()
+
+    assert not app.exception
+    text = "\n".join(item.value for item in [*app.markdown, *app.caption])
+    assert any("시장 자료에서 확인된 관찰" in item.value for item in app.subheader)
+    assert "실제 구매 담당자 인터뷰" in text
+    assert "예시기업" in text and "FY2025" in text and "II. 사업의 내용" in text
+    assert "경쟁사라는 확인" in text
+    assert "상대 지수" in text and "인과" in text
+    assert len(app.get("vega_lite_chart")) == 2
+    assert not any("사업 승인 관점 요약" in item.value for item in app.subheader)

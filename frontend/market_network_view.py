@@ -113,7 +113,8 @@ def render_keyword_network(network, widget_suffix: str = "") -> None:
         return
     st.markdown("**키워드 동시 출현**")
     st.caption(keyword_network_summary(network))
-    if network.status == "completed" and network.nodes:
+    nodes, edges = network_rows(network)
+    if network.status == "completed" and nodes and edges:
         theme = _theme()
         st.altair_chart(
             network_chart(network, theme),
@@ -126,5 +127,9 @@ def render_keyword_network(network, widget_suffix: str = "") -> None:
         if len(network.clusters) > len(CLUSTER_COLORS[theme]):
             rest = network.clusters[len(CLUSTER_COLORS[theme]) :]
             st.caption("기타: " + " · ".join(t for group in rest for t in group))
+    elif network.status == "completed":
+        st.info(
+            "뉴스 명사 데이터는 있지만 연결할 동시 출현 관계가 없어 네트워크를 표시하지 않습니다."
+        )
     if network.note:
         st.caption(network.note)
