@@ -52,6 +52,8 @@ python -m pytest tests/test_patent_claims.py tests/test_patent_analysis_service.
 
 `evaluation/patent_cases.json`에는 샘플 아이디어에서 고정한 5개 질의가 있으며, 정답 문헌 라벨은 사람이 판정할 때까지 비어 있다. 특허 수집·색인 후 후보를 내보내 같은 문헌을 검토한다. 라벨링 CSV에는 검색 방식과 순위를 기록하지 않아 판정자가 시스템 순위를 보고 영향을 받지 않도록 한다. 구체적인 관련도 판정 기준은 [특허 평가 라벨링 가이드](../evaluation/patent_labeling.md)를 따른다.
 
+라벨 검토 전 `python -m evaluation.patent_preflight`로 질의와 후보 파일의 케이스별 분포, URL·중복·라벨 상태와 SHA-256을 검사할 수 있다. 이 사전 점검은 외부 API를 호출하지 않는다.
+
 ```bash
 python -m evaluation.patent_labeling export
 # evaluation/labels/patent_candidates.csv에서 relevant 열을 1(관련) 또는 0(비관련)으로 채운다.
