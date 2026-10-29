@@ -179,9 +179,9 @@ python -m src.ingestion.dart_processor                      # '사업의 내용'
 
 - 기업 목록·관련 아이디어·선정 이유는 `configs/dart_companies.yaml`에서 관리한다. `DART_API_KEY`가 필요하다.
 - 기업마다 최신 사업연도 사업보고서를 고르고, 기재정정 보고서가 있으면 가장 늦게 접수된 것을 쓴다. 원문 XML과 메타데이터는 `data/market/raw/dart/`에 저장한다.
-- 정제 단계는 'II. 사업의 내용'의 사업의 개요·주요 제품·매출 및 수주상황·주요계약·기타 참고사항 본문(표 제외)을 800자·150자 겹침 청크로 나눠 `data/market/processed/dart_docs.jsonl`에 저장한다. 표 구조 보존 추출은 별도 작업이다(#29).
+- 정제 단계는 'II. 사업의 내용'의 사업의 개요·주요 제품·매출 및 수주상황·주요계약·기타 참고사항 본문(표 제외)을 800자 이하 청크로 나눠 `data/market/processed/dart_docs.jsonl`에 저장한다. 청크는 줄·문장 끝에서 끝나고, 다음 청크는 최대 150자 겹치되 줄·문장 시작에서 시작한다. 표 구조 보존 추출은 별도 작업이다(#29).
 - 기업은 `idea_terms`의 아이디어 용어가 '사업의 내용'에 나올 때만 그 아이디어에 연결하고, 용어별 등장 횟수를 `data/market/processed/dart_selection.json`에 남긴다.
-- 매출 및 수주상황(판매 경로·주요 매출처)은 구매 신호, 그 밖의 섹션은 기업 주장으로 저장한다. 공시일(`published_at`)과 보고 대상 사업연도(`period`, 예: `FY2025`)를 구분한다.
+- DART 본문은 모두 기업 주장(`company_claim`)으로 저장한다. 표를 뺀 매출 및 수주상황 본문은 판매 경로·결제 조건·판매 전략 설명이다. 공시일(`published_at`)과 보고 대상 사업연도(`period`, 예: `FY2025`)를 구분한다.
 
 ### 특허 문서 수집·분야별 사전 색인
 
@@ -207,8 +207,9 @@ python -m src.retrieval.market_search search "협동로봇 도입 확대" --idea
 ```
 
 - `data/market/processed/market_docs.jsonl`(뉴스)과 `dart_docs.jsonl`(DART)을 `text-embedding-3-small`로 임베딩해 `data/market/chroma/`의 `news` 컬렉션(cosine)에 저장한다. 출처는 `source_type`(`news`·`dart`)으로 구분한다. `OPENAI_API_KEY`가 필요하다.
-- `search_by_dimensions`는 차원마다 뉴스 5건과 DART 2건을 따로 검색해 합친다. 통합 실행 준비 점검은 시장 색인에 DART가 없으면 사유를 표시한다.
-- 이미 색인된 문서는 다시 임베딩하지 않으며, `--rebuild`로 전체를 다시 임베딩한다.
+- `search_by_dimensions`는 차원마다 뉴스 5건과 DART를 따로 검색해 합친다. DART는 먼저 아이디어 전체 문장(제목·대상·고객·문제·기술·차별점)과 가까운 기업 3곳을 고르고(`route_dart_companies`), 차원마다 그 기업에서 기업당 1건씩 가져온다. 보고서 검색 범위에 검색한 DART 기업을 표시한다. 통합 실행 준비 점검은 시장 색인에 DART가 없으면 사유를 표시한다.
+- 같은 텍스트로 이미 색인된 문서는 다시 임베딩하지 않고 메타데이터만 갱신하며, `--rebuild`로 전체를 다시 임베딩한다.
+- DART 청크를 다시 만들면 청크 수가 달라질 수 있다. `build --prune`은 색인이 끝난 뒤 정제 문서에 없는 ID를 지운다. 임베딩이 중간에 실패하면 기존 색인은 그대로 남는다.
 - 에이전트 툴은 `search_market`(질의 1건)과 `search_by_dimensions`(수요·경쟁·가격·구매자·도입장벽 차원별 질의)이며, 같은 `dup_group` 결과는 1건만 반환한다.
 - 차원별 질의는 목표 세그먼트·고객·문제·현재 대안·기술·차별점·수익모델을 해당 차원에 맞게 결합한다. 빈 항목은 질의에서 빠진다.
 
