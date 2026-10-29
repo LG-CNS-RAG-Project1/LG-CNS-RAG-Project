@@ -10,6 +10,8 @@
 - 보충: 색인에서 요청 수보다 적은 문헌을 찾으면 KIPRIS 키워드 검색 결과를 더한다. 중복은 출원번호(`source_id`)로 제거하고 최대 5건만 분석한다.
 - 원문: 선택된 문헌에 대해서만 출원번호로 청구항 상세를 조회한다. KIPRIS 상세 청구항 endpoint의 상품 이용 승인이 필요하다. API 권한 오류·빈 응답은 주장항을 만들어 채우지 않고 초록 인용과 미확인 항목으로 남긴다.
 - 비교: `compare_patent_evidence()`가 각 인용 근거별 유사점·차이점·미확인을 만들고, 근거 없는 citation id나 누락된 비교를 거부한다. 법적 특허성·신규성·진보성·침해 여부를 판정하지 않는다.
+- 설계 대안: 문헌별 기술 구성요소 비교가 끝난 뒤 `generate_patent_design_analysis()`가 최대 3개 대안을 별도 생성한다. 입력의 `technical_components`를 우선 사용하며, 없으면 기술 설명을 단일 구성요소로 삼는다. 제안의 구성요소·특허·인용 ID는 입력 근거 목록으로 검증하고, 중복 변경안은 제거한다. LLM 호출 실패는 `PatentReport.design_analysis.status=failed`에 기록하며 기존 증거와 비교 결과를 보존한다. 검색 근거가 없으면 모델을 호출하지 않고 `insufficient_evidence`를 반환한다.
+- 대안에는 구현 단계, 기대효과, 제약, 정성적 실현 가능성, 비교 검증 계획과 성공 기준이 포함된다. 청구항 없이 초록만 있으면 `abstract_only` 및 미확인 정보로 표시한다. 제안은 기술 검토용이지 침해·특허성·실시 자유 판단이 아니다.
 
 KIPRIS 검색 API는 `openapi/rest/patUtiModInfoSearchSevice/freeSearchInfo`의 `accessKey`를 사용한다. 청구항 상세는 별도 KIPO API인 `kipo-api/kipi/patUtiModInfoSearchSevice/getBibliographyDetailInfoSearch`를 호출하며 `applicationNumber`와 `ServiceKey`를 전달한다. 검색용 `accessKey` 파라미터를 상세 API에 그대로 쓰거나 상세 API를 `openapi/rest/` 아래 호출하면 정상 조회되지 않는다. 상세 응답은 XML의 `body/item/claimInfoArray/claimInfo/claim` 구조이며, 개별 `claim` 텍스트 앞에 포함된 항 번호를 파싱하고 원문 텍스트는 보존한다. 이 연동은 실제 API 호출에서 청구항 15건이 담긴 응답으로 확인했다. KIPRIS Plus 상품별 권한은 계정 설정에 따라 달라질 수 있다. [공개·등록공보 API 안내](https://plus.kipris.or.kr/portal/data/apiClas/DBII_000000000000001/view.do?k=&menuNo=210020), [KIPRIS Plus 서지상세 API 설명](https://plus.kipris.or.kr/portal/popup/DBII_000000000000001/SC002/ADI_0000000000010162/apiDescriptionSearch.do)
 
@@ -40,12 +42,12 @@ KIPRIS 검색 결과에서 출원일·공개일을 보존한다. 청구항 문�
 
 `PatentSearchRequest.technology_area_id`에 `SF-02` 또는 `SF-05`를 지정하면 로컬 검색을 해당 분야로 제한한다. 이 필드를 생략하면 기존처럼 전체 특허 컬렉션을 검색한다. 이 설정은 문서 벡터의 사전 생성을 뜻하며, Dense/Hybrid 검색의 질의 임베딩은 요청마다 별도로 생성된다.
 
-분석 함수는 함수 인자로 `collection`, `embed_fn`, `query_llm_fn`, `claim_fetcher`, `kipris_search_fn`, `comparison_fn`을 주입할 수 있다. 자동화 테스트는 Mock을 주입해 검색·폴백·인용 계약을 확인한다. 실제 API 사용 시에는 특허 검색 및 청구항 endpoint의 KIPRIS Plus 상품 이용 권한이 필요하며, 청구항 상세 API는 실제 응답으로 별도 확인했다.
+분석 함수는 함수 인자로 `collection`, `embed_fn`, `query_llm_fn`, `claim_fetcher`, `kipris_search_fn`, `comparison_fn`, `patent_review_fn`, `design_proposal_fn`을 주입할 수 있다. 자동화 테스트는 Mock을 주입해 검색·폴백·인용 계약·설계 대안 생성을 확인한다. 기본 실행은 기존 분석과 설계 대안 생성 단계에서 각각 LLM 호출을 수행할 수 있다. 실제 API 사용 시에는 특허 검색 및 청구항 endpoint의 KIPRIS Plus 상품 이용 권한이 필요하며, 청구항 상세 API는 실제 응답으로 별도 확인했다.
 
 테스트:
 
 ```bash
-python -m pytest tests/test_patent_claims.py tests/test_patent_analysis_service.py tests/test_patent_eval.py
+python -m pytest tests/test_patent_claims.py tests/test_patent_analysis_service.py tests/test_patent_design.py tests/test_patent_eval.py
 ```
 
 ## 특허 검색 품질 평가

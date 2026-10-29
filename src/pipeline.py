@@ -466,6 +466,7 @@ def _patent_defaults(event: threading.Event) -> dict:
         call_comparison_llm,
         review_patents_by_component,
     )
+    from src.generation.patent_design import generate_patent_design_analysis
     from src.ingestion.kipris_client import fetch_patent_claims
     from src.ingestion.kipris_client import search_patents as search_kipris
     from src.retrieval.market_search import embed_texts
@@ -476,12 +477,18 @@ def _patent_defaults(event: threading.Event) -> dict:
     def review(idea, evidence):
         return review_patents_by_component(idea, evidence, llm_fn=guarded_review_llm)
 
+    def design_proposals(idea, evidence, reviews, precheck):
+        return generate_patent_design_analysis(
+            idea, evidence, reviews, precheck, llm_fn=guarded_review_llm
+        )
+
     return {
         "embed_fn": _guard(embed_texts, event),
         "query_llm_fn": _guard(call_query_llm, event),
         "claim_fetcher": _guard(fetch_patent_claims, event),
         "kipris_search_fn": _guard(search_kipris, event),
         "patent_review_fn": review,
+        "design_proposal_fn": design_proposals,
         "relevance_fn": _tolerant_relevance(event),
     }
 
