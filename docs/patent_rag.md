@@ -50,7 +50,7 @@ python -m pytest tests/test_patent_claims.py tests/test_patent_analysis_service.
 
 ## 특허 검색 품질 평가
 
-`evaluation/patent_cases.json`에는 샘플 아이디어에서 고정한 5개 질의가 있으며, 정답 문헌 라벨은 사람이 판정할 때까지 비어 있다. 특허 수집·색인 후 후보를 내보내 같은 문헌이 Dense·BM25·Hybrid에서 어떻게 검색되는지 검토한다.
+`evaluation/patent_cases.json`에는 샘플 아이디어에서 고정한 5개 질의가 있으며, 정답 문헌 라벨은 사람이 판정할 때까지 비어 있다. 특허 수집·색인 후 후보를 내보내 같은 문헌을 검토한다. 라벨링 CSV에는 검색 방식과 순위를 기록하지 않아 판정자가 시스템 순위를 보고 영향을 받지 않도록 한다. 구체적인 관련도 판정 기준은 [특허 평가 라벨링 가이드](../evaluation/patent_labeling.md)를 따른다.
 
 ```bash
 python -m evaluation.patent_labeling export

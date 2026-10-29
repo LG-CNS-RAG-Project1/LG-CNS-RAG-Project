@@ -82,10 +82,9 @@ def test_export_candidates_unions_modes_by_patent_source(tmp_path):
     with open(path, encoding="utf-8-sig", newline="") as file:
         rows = list(csv.DictReader(file))
     assert [row["source_id"] for row in rows] == ["p1", "p2"]
-    assert rows[0]["retrieved_by"] == "dense;bm25"
     assert rows[0]["claim_number"] == "2"
-    assert rows[1]["retrieved_by"] == "bm25;hybrid"
     assert set(rows[0]) == set(CSV_FIELDS)
+    assert not {"retrieved_by", "best_rank", "mode"} & set(rows[0])
 
 
 def test_import_labels_waits_until_every_candidate_is_judged(tmp_path):

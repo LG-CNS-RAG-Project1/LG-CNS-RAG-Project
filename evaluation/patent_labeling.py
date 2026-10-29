@@ -30,11 +30,8 @@ CSV_FIELDS = [
     "claim_number",
     "version_id",
     "url",
-    "retrieved_by",
-    "best_rank",
     "relevant",
     "note",
-    "mode",
 ]
 
 
@@ -101,7 +98,7 @@ def export_candidates(
                 hits = search_fn(case["query"], case.get("technology_area_id"))
             except TypeError:
                 hits = search_fn(case["query"])
-            for rank, hit in enumerate(hits, start=1):
+            for hit in hits:
                 document = hit.document
                 key = (case["case_id"], document.source_id)
                 row = grouped.setdefault(
@@ -117,23 +114,12 @@ def export_candidates(
                         "claim_number": document.metadata.get("claim_number", ""),
                         "version_id": document.metadata.get("version_id", ""),
                         "url": document.metadata.get("source_url", ""),
-                        "retrieved_by": set(),
-                        "best_rank": rank,
                         "relevant": "",
                         "note": "",
-                        "mode": "",
                     },
                 )
-                row["retrieved_by"].add(mode)
-                row["best_rank"] = min(row["best_rank"], rank)
 
-    rows = []
-    for _, row in sorted(grouped.items()):
-        row["retrieved_by"] = ";".join(
-            mode for mode in (*MODES, "hybrid_rerank") if mode in row["retrieved_by"]
-        )
-        row["mode"] = row["retrieved_by"]
-        rows.append(row)
+    rows = [row for _, row in sorted(grouped.items())]
     write_label_rows(rows, CSV_FIELDS, path)
     return len(rows)
 
