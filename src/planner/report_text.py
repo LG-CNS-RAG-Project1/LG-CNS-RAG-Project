@@ -17,6 +17,14 @@ ASSUMPTION_LABELS = {
     "needs_company_input": "회사 입력 필요",
     "needs_customer_validation": "고객 확인 필요",
 }
+STOP_LABELS = {
+    "answer_requirements_met": "증거 요건 충족",
+    "budget_exhausted": "수집 예산 소진",
+    "no_new_evidence_within_capped_search": "제한된 추가 검색에서 새 근거 없음",
+    "requires_company_input": "회사 입력 필요",
+    "requires_customer_validation": "고객 확인 필요",
+    "slot_unfilled": "질의에 넣을 확인된 기업·관계 없음",
+}
 QUESTION_LABELS = {
     "answer_requirements_met": "증거 요건 충족",
     "gap": "근거 공백",
@@ -101,7 +109,11 @@ def semantic_to_markdown(result: SemanticResult, title: str = "") -> str:
             if q:
                 lines.append(
                     f"  - {qid} {q.question} — {QUESTION_LABELS[q.status]}"
-                    + (f" · 중단 사유 {q.stop_reason}" if q.stop_reason else "")
+                    + (
+                        f" · 중단 사유 {STOP_LABELS.get(q.stop_reason, q.stop_reason)}"
+                        if q.stop_reason
+                        else ""
+                    )
                     + (f" · 질의 예: {q.queries[0]}" if q.queries else "")
                 )
     lines += ["", "## 가격 조건", ""]

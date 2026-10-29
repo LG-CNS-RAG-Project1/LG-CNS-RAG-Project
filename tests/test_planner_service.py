@@ -280,3 +280,13 @@ def test_parent_cache_revalidates_stored_raw_responses(tmp_path):
     cache = planner_service._parent_cache(parent)
     assert [m["exact_text"] for m in cache["k1"]["mentions"]] == ["가상"]
     assert cache["k1"]["dropped"][0]["sentence_id"] == "b99"
+
+
+def test_replay_reports_code_rule_change_separately_from_mismatch(
+    published, monkeypatch
+):
+    path = published[0]
+    assert replay(path)["code_changed"] is False
+    monkeypatch.setattr(planner_service, "RULE_VERSION", "planner-rules-next")
+    report = replay(path)
+    assert report["code_changed"] is True and report["rule_drift"] is True

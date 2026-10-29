@@ -5,6 +5,7 @@
 - reanalyze: 같은 기사로 현재 규칙·프롬프트를 다시 적용한 새 실행(검색 없음). 현재 범위 규칙에서
   벗어난 기사는 분석에서 빼고 사유를 남긴다.
 - replay: 저장 파일만 읽어 의미 결과를 재계산하고 해시를 대조한다. 검색·HTTP·LLM·Chroma 호출 없음.
+  실행 이후 코드 규칙 버전이 바뀌었으면 code_changed로 표시하고 저장된 결과(당시 규칙)를 쓴다.
 - review: 근거 승인·제외와 가격 입력을 새 revision으로 추가한다.
 
 사용 예:
@@ -507,6 +508,10 @@ def replay(path: Path, revision: int | None = None) -> dict:
         current_rule = f"{RULE_VERSION}+{profile_hash(current)[:12]}"
     except (OSError, ValueError):
         current_rule = ""
+    versions = inputs["manifest"].versions
+    code_changed = versions.get("rule_version", "").split("+")[0] != RULE_VERSION or (
+        versions.get("calc_version") != CALC_VERSION
+    )
     return {
         "path": path,
         "manifest": inputs["manifest"],
@@ -517,6 +522,7 @@ def replay(path: Path, revision: int | None = None) -> dict:
         "stored_hash": stored_hash,
         "computed_hash": computed_hash,
         "match": stored_hash == computed_hash,
+        "code_changed": code_changed,
         "rule_drift": inputs["manifest"].versions.get("rule_version") != current_rule,
         "missing_optional": inputs["missing_optional"],
         "diff": (

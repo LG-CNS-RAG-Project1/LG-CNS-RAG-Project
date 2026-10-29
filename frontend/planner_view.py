@@ -26,6 +26,7 @@ from src.planner.relations import relation_label
 from src.planner.report_text import (
     ASSUMPTION_LABELS,
     QUESTION_LABELS,
+    STOP_LABELS,
     semantic_to_markdown,
 )
 
@@ -137,7 +138,7 @@ def render_planner_section(area_id, draft, root=None) -> None:
             "근거가 없다는 뜻이 아닙니다."
         )
         return
-    runs.sort(key=lambda r: (r["manifest"].idea_hash != digest, r["manifest"].run_id))
+    runs.sort(key=lambda r: r["manifest"].idea_hash != digest)
     labels = [
         f"{r['manifest'].run_id} · {'현재 아이디어' if r['manifest'].idea_hash == digest else '입력 아이디어와 다름'}"
         f" · {r['manifest'].idea_title}"
@@ -152,7 +153,12 @@ def render_planner_section(area_id, draft, root=None) -> None:
     except (store.RunIntegrityError, OSError, ValueError) as exc:
         st.error(f"자료집을 읽지 못했습니다: {exc}")
         return
-    if not report["match"]:
+    if not report["match"] and report.get("code_changed"):
+        st.info(
+            "이 자료집 이후 판정 규칙 코드가 바뀌어 지금 다시 계산하면 결과가 달라집니다. "
+            "저장 당시 규칙의 결과를 표시합니다. 현재 규칙 결과는 reanalyze로 새 자료집을 만들어 확인하세요."
+        )
+    elif not report["match"]:
         st.error(
             "저장된 의미 결과와 재계산 결과의 해시가 다릅니다. 이 자료집의 결과를 그대로 신뢰하지 마세요."
         )
@@ -350,7 +356,7 @@ def render_cell_detail(semantic, cell) -> None:
             st.caption(
                 f"{QUESTION_LABELS[question.status]}"
                 + (
-                    f" · 중단 사유 {question.stop_reason}"
+                    f" · 중단 사유 {STOP_LABELS.get(question.stop_reason, question.stop_reason)}"
                     if question.stop_reason
                     else ""
                 )
@@ -472,7 +478,11 @@ def render_relations(semantic) -> None:
                 if q:
                     st.markdown(
                         f"- {qid} {md(q.question)} — {QUESTION_LABELS[q.status]}"
-                        + (f" · {q.stop_reason}" if q.stop_reason else "")
+                        + (
+                            f" · {STOP_LABELS.get(q.stop_reason, q.stop_reason)}"
+                            if q.stop_reason
+                            else ""
+                        )
                     )
             evidence_ids = link.counter_ids[:2] + link.supporting_ids[:2]
             if evidence_ids:
@@ -495,7 +505,7 @@ def render_relations(semantic) -> None:
                     "질문": q.question_id,
                     "결정": q.decision,
                     "상태": QUESTION_LABELS[q.status],
-                    "중단 사유": q.stop_reason,
+                    "중단 사유": STOP_LABELS.get(q.stop_reason, q.stop_reason),
                     "질의 예": q.queries[0] if q.queries else "",
                 }
                 for q in semantic.questions
@@ -544,7 +554,7 @@ def price_chart(result):
         alt.Chart(alt.Data(values=rows))
         .mark_bar(size=18)
         .encode(
-            y=alt.Y("구분:N", sort=None, title=None),
+            y=alt.Y("구분:N", sort=None, title=None, axis=alt.Axis(labelLimit=240)),
             x=alt.X(
                 "시작:Q",
                 title="판매가 (만원)",
@@ -682,7 +692,8 @@ def render_dataset(report) -> None:
     counts = semantic.counts
     st.caption(
         f"실행 {manifest.run_id} · {manifest.mode} · 기준일 {manifest.as_of} · 검토 기록 {report['revision']}번 · "
-        f"재계산 해시 {'일치' if report['match'] else '불일치'} · 외부 검색·LLM 호출 없이 저장 자료로 재계산"
+        f"재계산 해시 {'일치' if report['match'] else ('규칙 코드 변경으로 다름' if report.get('code_changed') else '불일치')}"
+        " · 외부 검색·LLM 호출 없이 저장 자료로 재계산"
     )
     st.caption(
         "의미 결과(판정·근거·건수)가 같다는 확인이며 그림의 픽셀 동일성과는 별개입니다. "
