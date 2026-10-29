@@ -68,7 +68,7 @@
 ```
 
 - 원문·가공 데이터·검색 색인·생성 보고서는 Git 추적에서 제외. Chroma 색인은 로컬 또는 공용 서버에 보관.
-- 서비스 연결 구조는 [docs/architecture.md](docs/architecture.md)의 mermaid 다이어그램으로 관리.
+- 서비스 연결 구조는 [docs/architecture.md](docs/architecture.md)의 mermaid 다이어그램으로 관리. 실제 구현·데이터 준비·V1.0 출시 게이트 기준선은 [RAG 서비스 현황](docs/rag-service-baseline.md)을 참고한다.
 
 ## 빠른 시작 (팀원용)
 
