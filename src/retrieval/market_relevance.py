@@ -203,15 +203,22 @@ def search_with_relevance(
     collection=None,
     embed_fn: EmbedFn = embed_texts,
     judge_fn: JudgeFn = call_relevance_llm,
+    dart_companies: list[str] | None = None,
 ) -> dict[str, dict]:
     """차원별로 검색한 뒤 관련성을 판정해 충분성 상태와 함께 반환한다 (에이전트용 툴).
+
+    dart_companies는 search_by_dimensions에 그대로 전달한다 (없으면 아이디어로 기업을 고른다).
 
     반환: {차원: {"status", "relevant_count", "hits"}}. hits의 각 항목은 search_market 반환 형식에
     relevant·relevance_confidence·relevance_reason·article_nature가 추가되고, 뉴스는
     evidence_nature가 article_nature로 바뀐다.
     """
     results = search_by_dimensions(
-        request, idea_id=idea_id, collection=collection, embed_fn=embed_fn
+        request,
+        idea_id=idea_id,
+        collection=collection,
+        embed_fn=embed_fn,
+        dart_companies=dart_companies,
     )
     return assess_dimensions(request.idea, results, judge_fn)
 

@@ -7,7 +7,8 @@
   같은 섹션의 청크는 dup_group을 공유해 검색 결과에 섹션당 1건만 남는다.
 - 기업-아이디어 연결은 설정의 idea_ids 중 '사업의 내용'에 idea_terms 용어가 나오는 것만 남기고,
   선정 근거(용어별 등장 횟수)를 data/market/processed/dart_selection.json에 저장한다.
-- 근거 성격: 판매 실적·주요 매출처 공시 섹션(purchase_sections)은 구매 신호, 그 밖은 기업 주장.
+- 근거 성격은 모두 기업 주장(company_claim)이다. 표를 뺀 '매출 및 수주상황' 본문은 판매 경로·
+  결제 조건·판매 전략 같은 기업 설명이고, 실제 판매 실적은 표에 있다.
   공시일(published_at)과 보고 대상 사업연도(period)를 구분해 저장한다.
 - 출력: data/market/processed/dart_docs.jsonl
 
@@ -42,6 +43,8 @@ _TABLE_RE = re.compile(r"<TABLE-GROUP\b.*?</TABLE-GROUP>|<TABLE\b.*?</TABLE>", r
 _IMAGE_RE = re.compile(r"<IMAGE\b.*?</IMAGE>", re.S)
 _BREAK_RE = re.compile(r"</P>|<BR\s*/?>|</TITLE>|</SPAN>", re.I)
 _TAG_RE = re.compile(r"<[^>]+>")
+# 청크 경계로 쓰는 줄 끝과 문장 끝('다.' 뒤 공백 1자 포함). 문장 끝 뒤에 공백 없이 이어지는 경우도 포함한다.
+_BOUNDARY_RE = re.compile(r"\n|다\. ?")
 
 
 def xml_to_text(fragment: str) -> str:
@@ -70,22 +73,32 @@ def business_sections(xml: str, keywords: list[str]) -> list[tuple[str, str]]:
     return sections
 
 
+def next_chunk_start(text: str, start: int, end: int, overlap: int) -> int:
+    """다음 청크 시작 위치. 겹침 구간(end-overlap ~ end) 안의 첫 줄·문장 끝 바로 뒤에서 시작해
+    청크가 문장 중간에서 시작하지 않게 한다. 겹침 구간에 줄·문장 끝이 없으면 end-overlap이다.
+    """
+    back = max(end - overlap, start + 1)
+    boundary = _BOUNDARY_RE.search(text, back, end)
+    return boundary.end() if boundary else back
+
+
 def chunk_text(text: str, size: int, overlap: int) -> list[str]:
-    """텍스트를 size자 이하 청크로 나눈다. 다음 청크는 overlap자 겹치고, 가능하면 줄·문장 끝에서 자른다."""
+    """텍스트를 size자 이하 청크로 나눈다. 가능하면 줄·문장 끝에서 자르고, 다음 청크는 최대
+    overlap자 겹치되 줄·문장 시작에서 시작한다."""
     chunks, start = [], 0
     while start < len(text):
         end = min(start + size, len(text))
         if end < len(text):
             window = start + size // 2
-            cut = max(text.rfind("\n", window, end), text.rfind("다. ", window, end))
-            if cut > start:
-                end = cut + (1 if text[cut] == "\n" else 2)
+            cuts = [m.end() for m in _BOUNDARY_RE.finditer(text, window, end)]
+            if cuts:
+                end = cuts[-1]
         chunk = text[start:end].strip()
         if chunk:
             chunks.append(chunk)
         if end >= len(text):
             break
-        start = max(end - overlap, start + 1)
+        start = next_chunk_start(text, start, end, overlap)
     return chunks
 
 
@@ -130,11 +143,6 @@ def build_company_documents(
     period = fiscal_period(meta.get("period"))
     documents = []
     for section_no, (title, text) in enumerate(sections, 1):
-        nature = (
-            "purchase_signal"
-            if any(k in title for k in report_config["purchase_sections"])
-            else "company_claim"
-        )
         doc_title = f"{meta['name']} 사업보고서({period}) {title}"
         group = f"dart-{meta['rcept_no']}-{section_no}"
         for chunk_no, chunk in enumerate(
@@ -155,7 +163,7 @@ def build_company_documents(
                     collected_at=meta["collected_at"],
                     section=f"II. 사업의 내용 > {title} (본문, 표 제외)",
                     reliability=DART_RELIABILITY,
-                    evidence_nature=nature,
+                    evidence_nature="company_claim",
                     dup_group=group,
                     license=DART_LICENSE,
                     idea_ids=linked,
