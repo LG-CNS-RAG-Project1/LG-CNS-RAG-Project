@@ -1,0 +1,10 @@
+# Streamlit Community Cloud 전용 실행 의존성. SCC는 진입점(frontend/app.py) 폴더의 이 파일을 루트 requirements.txt보다 먼저 쓴다.
+# 공용 Chroma에 HTTP로만 접속하므로 chromadb 대신 thin client(chromadb-client)를 쓴다. 버전은 루트 파일과 같게 유지한다.
+python-dotenv==1.2.4
+requests==2.34.2
+pydantic==2.14.1
+streamlit==1.66.1
+PyYAML==6.0.3
+chromadb-client==1.5.9
+openai==3.36.1
+reportlab==4.4.3
