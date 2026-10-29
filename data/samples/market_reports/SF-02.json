@@ -6,75 +6,85 @@
       "verdict": "signal_only",
       "claims": [
         {
-          "statement": "2차전지 외관검사 장비는 2차전지 셀의 겉모습을 꼼꼼히 살펴보고 불량 여부를 확인하는 주요 사업으로 다루어지고 있다.",
+          "statement": "2차전지 외관검사 장비는 2차전지 셀의 외관을 꼼꼼히 살펴보고 불량 여부를 판단하는 주요 사업으로 다루어지고 있다.",
           "claim_type": "fact",
           "citation_ids": [
             2
           ]
         },
         {
-          "statement": "AI 열풍에 따른 유리기판 시장 확대가 지속되고 있다.",
-          "claim_type": "fact",
-          "citation_ids": [
-            1
-          ]
+          "statement": "AI 열풍에 따라 2차전지 통합 외관 검사 시장이 확대되고 있다는 신호가 있다.",
+          "claim_type": "ai_hypothesis",
+          "citation_ids": []
         }
       ],
-      "next_check": null
+      "next_check": null,
+      "evidence_status": "sufficient",
+      "relevant_count": 4,
+      "limitation": "수요 확인에는 고객 검증 자료(인터뷰·설문·파일럿·LOI)가 필요하며 기사로는 확인할 수 없음"
     },
     {
       "dimension": "competition",
       "verdict": "signal_only",
       "claims": [
         {
-          "statement": "AI 비전 검사장비와 3D 형상측정 장비, 로봇 기반 자동검사 시스템으로 사업을 넓히고 있는 기업들이 있다.",
+          "statement": "AI 비전 검사 장비와 3D 형상측정 장비를 활용하여 사업을 넓히고 있는 기업들이 있다.",
           "claim_type": "fact",
           "citation_ids": [
-            5
+            6
           ]
         },
         {
-          "statement": "AI 비전 검사 기반 차세대 지능형 제조 플랫폼이 구축되고 있다.",
-          "claim_type": "fact",
-          "citation_ids": [
-            7
-          ]
+          "statement": "AI 비전 검사기 시장에서 경쟁이 치열할 가능성이 있다.",
+          "claim_type": "ai_hypothesis",
+          "citation_ids": []
         }
       ],
-      "next_check": null
+      "next_check": null,
+      "evidence_status": "sufficient",
+      "relevant_count": 3,
+      "limitation": "관련 기사 3건이 모두 사업 신호·기업 주장·추정치라 확인할 수 없음"
     },
     {
       "dimension": "price",
       "verdict": "unverified",
-      "claims": [],
-      "next_check": "공급사 견적이나 공공 지원사업 단가로 도입 가격대 확인"
+      "claims": [
+        {
+          "statement": "비전 검사 장비의 가격대가 시장에서 경쟁력을 가질 가능성이 있다.",
+          "claim_type": "ai_hypothesis",
+          "citation_ids": []
+        }
+      ],
+      "next_check": "공급사 견적이나 공공 지원사업 단가로 도입 가격대 확인",
+      "evidence_status": "limited",
+      "relevant_count": 1,
+      "limitation": "관련 기사가 1건뿐이라 확인할 수 없음 (최대 신호 수준)"
     },
     {
       "dimension": "buyer",
-      "verdict": "signal_only",
+      "verdict": "unverified",
       "claims": [
         {
-          "statement": "HB테크놀러지는 2차전지 통합 외관 검사기 장비를 생산하고 있다.",
+          "statement": "HB테크놀러지가 2차전지 외관 검사 장비를 주요 사업으로 영위하고 있다.",
           "claim_type": "fact",
           "citation_ids": [
-            10
-          ]
-        },
-        {
-          "statement": "현대차와 기아는 AI 기반 자동화 기술을 도입하여 품질을 높이고 있다.",
-          "claim_type": "fact",
-          "citation_ids": [
-            11
+            9
           ]
         }
       ],
-      "next_check": null
+      "next_check": "2차전지 제조사 품질 부서와의 인터뷰를 통해 주요 구매자 확인",
+      "evidence_status": "sufficient",
+      "relevant_count": 2,
+      "limitation": "구매·조사 근거가 있으나 분석 단계에서 판단에 충분하지 않다고 봄"
     },
     {
       "dimension": "adoption_barrier",
       "verdict": "unverified",
       "claims": [],
-      "next_check": "AI 비전 검사 장비 도입 시 예상되는 기술적 문제나 비용 문제를 조사해야 한다."
+      "next_check": "도입장벽에 대한 구체적인 요인을 파악하기 위해 관련 기업과 인터뷰 진행",
+      "evidence_status": "insufficient",
+      "relevant_count": 0,
+      "limitation": "검색된 기사 5건이 모두 이 차원과 무관하다고 판정됨"
     }
   ],
   "evidence": [
@@ -93,7 +103,7 @@
       "recency": "medium",
       "directness": "medium",
       "evidence_nature": "business_signal",
-      "similarity": 0.5841000000000001
+      "similarity": 0.5972999999999999
     },
     {
       "citation_id": 2,
@@ -110,10 +120,27 @@
       "recency": "medium",
       "directness": "medium",
       "evidence_nature": "business_signal",
-      "similarity": 0.5809
+      "similarity": 0.5729
     },
     {
       "citation_id": 3,
+      "source_id": "news-c095dd5c5241",
+      "source_type": "news",
+      "title": "가상공장서 품질 검증·AI가 현장 지원…현대차·기아, 제조혁신 속도",
+      "publisher": "fnnews.com",
+      "quote": "숙련된 작업자의 경험에 의존하던 업무를 데이터와 AI 기반으로 전환하는 데 초점을 맞췄다. 완성차 품질을 높이기 위한 자동화 기술도 선보인다. 대표적인 사례는 현대차·기아가 자체 개발한 '터널형 외관검사 비전...",
+      "section": "title+description",
+      "url": "https://www.fnnews.com/news/202610180907245274",
+      "published_at": 20261018,
+      "period": null,
+      "reliability": "medium",
+      "recency": "high",
+      "directness": "medium",
+      "evidence_nature": "business_signal",
+      "similarity": 0.5621
+    },
+    {
+      "citation_id": 4,
       "source_id": "news-11f85ea25510",
       "source_type": "news",
       "title": "AI 검사부터 3D 로봇 가이던스까지...우리 제조 현장에 필요한 AI 머신비...",
@@ -127,10 +154,10 @@
       "recency": "high",
       "directness": "medium",
       "evidence_nature": "business_signal",
-      "similarity": 0.5716
+      "similarity": 0.5594
     },
     {
-      "citation_id": 4,
+      "citation_id": 5,
       "source_id": "news-20fb66b19106",
       "source_type": "news",
       "title": "독자 개발 AI 딥러닝 소프트웨어로 외산 장비 뛰어넘다",
@@ -143,11 +170,11 @@
       "reliability": "medium",
       "recency": "high",
       "directness": "medium",
-      "evidence_nature": "business_signal",
-      "similarity": 0.5701
+      "evidence_nature": "company_claim",
+      "similarity": 0.6093999999999999
     },
     {
-      "citation_id": 5,
+      "citation_id": 6,
       "source_id": "news-f677a72152db",
       "source_type": "news",
       "title": "시험장비에 AI 입힌다…㈜테스트원, 스마트 검사 솔루션으로 도약 [경기...",
@@ -161,44 +188,10 @@
       "recency": "high",
       "directness": "medium",
       "evidence_nature": "business_signal",
-      "similarity": 0.53
-    },
-    {
-      "citation_id": 6,
-      "source_id": "news-17e2b6cbbd51",
-      "source_type": "news",
-      "title": "뉴로클, Intel Edge Solution Summit서 오토딥러닝 비전검사 기술 공개",
-      "publisher": "hellot.net",
-      "quote": "성공적으로 도입하고 확산하기 위해서는 AI 모델의 정확도뿐만 아니라 배포 용이성, 하드웨어... AI 비전검사를 구축할 수 있음을 보여주는 사례로 평가받았다. 이홍석 뉴로클 대표는 \"제조 현장에서...",
-      "section": "title+description",
-      "url": "https://www.hellot.net/news/article.html?no=113254",
-      "published_at": 20260617,
-      "period": null,
-      "reliability": "medium",
-      "recency": "high",
-      "directness": "medium",
-      "evidence_nature": "business_signal",
-      "similarity": 0.5123
+      "similarity": 0.6054999999999999
     },
     {
       "citation_id": 7,
-      "source_id": "news-5ef05c86c089",
-      "source_type": "news",
-      "title": "미소정보기술, CMTX 제조공정에 AI 비전 검사 플랫폼 구축",
-      "publisher": "datanet.co.kr",
-      "quote": "AI 비전 검사 기반 차세대 지능형 제조 플랫폼 '닥시(DAXI)' 구축을 완료했다고 15일 밝혔다. 이번 프로젝트는 기존 수작업 중심의 육안검사 체계를 AI 기반 자동 판정 시스템으로 전환한 제조 AI 적용 사례다....",
-      "section": "title+description",
-      "url": "https://www.datanet.co.kr/news/articleView.html?idxno=212355",
-      "published_at": 20260615,
-      "period": null,
-      "reliability": "medium",
-      "recency": "high",
-      "directness": "medium",
-      "evidence_nature": "business_signal",
-      "similarity": 0.4939
-    },
-    {
-      "citation_id": 8,
       "source_id": "news-cafe1a2c4f32",
       "source_type": "news",
       "title": "트윔, 방산 분야 AI 비전 검사기 수주...검사 솔루션 적용 확대",
@@ -212,10 +205,10 @@
       "recency": "high",
       "directness": "medium",
       "evidence_nature": "business_signal",
-      "similarity": 0.49329999999999996
+      "similarity": 0.5626
     },
     {
-      "citation_id": 9,
+      "citation_id": 8,
       "source_id": "news-7abbb821d4aa",
       "source_type": "news",
       "title": "고성능·범용성 잡은 표준형 비전검사장비, 세계시장 두드린다",
@@ -228,8 +221,25 @@
       "reliability": "medium",
       "recency": "high",
       "directness": "medium",
-      "evidence_nature": "business_signal",
-      "similarity": 0.569
+      "evidence_nature": "estimate",
+      "similarity": 0.5571999999999999
+    },
+    {
+      "citation_id": 9,
+      "source_id": "news-eccb5335617c",
+      "source_type": "news",
+      "title": "2차전지 장비 관련주, '웃음꽃'  한빛레이저·필옵틱스·HB테크놀러지·...",
+      "publisher": "finomy.com",
+      "quote": "HB테크놀러지는 디스플레이 검사 장비와 2차전지 외관 검사 장비를 주요 사업으로 영위해왔으며, SKC의 자회사 앱솔릭스에 파일럿 양산용 글래스기판 검사·리페어 장비를 공급하며 반도체 유리기판 시장에...",
+      "section": "title+description",
+      "url": "http://www.finomy.com/news/articleView.html?idxno=230586",
+      "published_at": 20250606,
+      "period": null,
+      "reliability": "medium",
+      "recency": "medium",
+      "directness": "high",
+      "evidence_nature": "purchase_signal",
+      "similarity": 0.575
     },
     {
       "citation_id": 10,
@@ -246,48 +256,67 @@
       "recency": "medium",
       "directness": "medium",
       "evidence_nature": "business_signal",
-      "similarity": 0.5783
-    },
-    {
-      "citation_id": 11,
-      "source_id": "news-c095dd5c5241",
-      "source_type": "news",
-      "title": "가상공장서 품질 검증·AI가 현장 지원…현대차·기아, 제조혁신 속도",
-      "publisher": "fnnews.com",
-      "quote": "숙련된 작업자의 경험에 의존하던 업무를 데이터와 AI 기반으로 전환하는 데 초점을 맞췄다. 완성차 품질을 높이기 위한 자동화 기술도 선보인다. 대표적인 사례는 현대차·기아가 자체 개발한 '터널형 외관검사 비전...",
-      "section": "title+description",
-      "url": "https://www.fnnews.com/news/202610180907245274",
-      "published_at": 20261018,
-      "period": null,
-      "reliability": "medium",
-      "recency": "high",
-      "directness": "medium",
-      "evidence_nature": "business_signal",
-      "similarity": 0.5776
-    },
-    {
-      "citation_id": 12,
-      "source_id": "news-2ac953691611",
-      "source_type": "news",
-      "title": "충북 제조현장에 스며든 'AI'…설비 점검시간 90% 단축",
-      "publisher": "bzeronews.com",
-      "quote": "식품 제조기업 에쓰푸드는 베이컨 포장공정에 AI 비전검사 솔루션을 도입했다. 작업자가 육안으로 확인하던 소비기한과 바코드 등을 자동 판독해 제품별 표시사항의 적합 여부를 확인하는 방식이다. 검사 정확도는 99....",
-      "section": "title+description",
-      "url": "https://www.bzeronews.com/news/articleView.html?idxno=824155",
-      "published_at": 20261021,
-      "period": null,
-      "reliability": "medium",
-      "recency": "high",
-      "directness": "medium",
-      "evidence_nature": "business_signal",
-      "similarity": 0.5690999999999999
+      "similarity": 0.5647
     }
   ],
+  "opportunity_review": {
+    "status": "buyer_signals",
+    "target_segment": "2차전지·전자부품 제조사 품질 부서",
+    "value_hypotheses": [],
+    "reasons": [
+      {
+        "topic": "수요",
+        "statement": "수요 판단은 signal_only이며, 현재 확정 아이디어의 고객·문제 범위 안에서 해석해야 합니다.",
+        "citation_ids": [
+          2
+        ]
+      },
+      {
+        "topic": "경쟁·대체재",
+        "statement": "경쟁·대체재 판단은 signal_only이며, 현재 확정 아이디어의 고객·문제 범위 안에서 해석해야 합니다.",
+        "citation_ids": [
+          6
+        ]
+      },
+      {
+        "topic": "구매자",
+        "statement": "구매자 판단은 unverified이며, 현재 확정 아이디어의 고객·문제 범위 안에서 해석해야 합니다.",
+        "citation_ids": [
+          9
+        ]
+      }
+    ],
+    "unknowns": [
+      "고객의 현재 해결 방식과 대체재",
+      "고객 인터뷰·구매 검토·파일럿 등 직접 수요 증거",
+      "고객 가치와 ROI를 계산할 측정 변수",
+      "price 차원 추가 근거",
+      "buyer 차원 추가 근거",
+      "adoption_barrier 차원 추가 근거"
+    ],
+    "validation_actions": [
+      {
+        "title": "목표 고객 문제·구매 검증",
+        "target": "2차전지·전자부품 제조사 품질 부서",
+        "method": "현재 해결 방식, 문제 발생 맥락, 비용 영향, 구매결정자와 도입 조건을 묻는 인터뷰를 수행하고 익명 요약만 기록",
+        "success_signal": "여러 고객이 같은 문제와 현재 대안을 구체적 사례로 확인하고, 구매 절차 또는 후속 실증 의사를 설명함",
+        "citation_ids": []
+      },
+      {
+        "title": "고객 가치 측정 기준 설정",
+        "target": "2차전지·전자부품 제조사 품질 부서",
+        "method": "고객과 함께 문제 빈도, 현재 처리시간·불량·비용 중 측정 가능한 기준을 선택하고 파일럿 전후에 같은 방식으로 기록",
+        "success_signal": "현재 기준선과 목표 효과를 고객이 합의하고, 측정 자료 접근 범위가 정해짐",
+        "citation_ids": []
+      }
+    ]
+  },
   "unknowns": [
-    "가격 근거 미확인",
-    "도입장벽 근거 미확인"
+    "가격 근거 미확인: 관련 기사가 1건뿐이라 확인할 수 없음 (최대 신호 수준)",
+    "구매자 근거 미확인: 구매·조사 근거가 있으나 분석 단계에서 판단에 충분하지 않다고 봄",
+    "도입장벽 근거 미확인: 검색된 기사 5건이 모두 이 차원과 무관하다고 판정됨"
   ],
   "search_scope": "네이버 뉴스 검색 API로 사전 수집한 스마트팩토리 기사 1895건(제목·요약, 발행일 20240102~20261023), 아이디어 SF-02 수집 키워드 범위",
-  "data_as_of": 20261028,
+  "data_as_of": 20261029,
   "error_message": null
 }

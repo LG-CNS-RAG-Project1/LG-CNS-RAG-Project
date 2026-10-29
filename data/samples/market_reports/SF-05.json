@@ -3,106 +3,80 @@
   "dimensions": [
     {
       "dimension": "demand",
-      "verdict": "signal_only",
+      "verdict": "unverified",
       "claims": [
         {
-          "statement": "현대차그룹은 현장에 AI를 도입하여 업무 방식을 변화시키고 있다.",
-          "claim_type": "fact",
-          "citation_ids": [
-            1
-          ]
-        },
-        {
-          "statement": "중소 제조기업은 자동화 설비 투자와 디지털 전환의 필요성이 커지고 있다.",
-          "claim_type": "fact",
-          "citation_ids": [
-            2
-          ]
-        },
-        {
-          "statement": "제조 현장에서 AI 어시스턴트의 도입이 증가할 가능성이 있다.",
+          "statement": "제조 현장에서 AI 도입이 증가하고 있는 것으로 보인다.",
           "claim_type": "ai_hypothesis",
           "citation_ids": []
         }
       ],
-      "next_check": null
+      "next_check": "목표 고객사 5곳 인터뷰로 현재 해결 방식과 도입 의향 확인",
+      "evidence_status": "sufficient",
+      "relevant_count": 2,
+      "limitation": "수요 확인에는 고객 검증 자료(인터뷰·설문·파일럿·LOI)가 필요하며 기사로는 확인할 수 없음"
     },
     {
       "dimension": "competition",
       "verdict": "signal_only",
       "claims": [
         {
-          "statement": "LG전자는 AI 홈 음성 에이전트의 대화 품질을 개선하고 있다.",
-          "claim_type": "fact",
-          "citation_ids": [
-            3
-          ]
-        },
-        {
-          "statement": "산업안전 AI 어시스턴트와 같은 경쟁 제품이 등장하고 있다.",
-          "claim_type": "fact",
-          "citation_ids": [
-            4
-          ]
-        },
-        {
-          "statement": "AI 문서 도구와 같은 대체재가 존재할 가능성이 있다.",
-          "claim_type": "ai_hypothesis",
-          "citation_ids": []
-        }
-      ],
-      "next_check": null
-    },
-    {
-      "dimension": "price",
-      "verdict": "unverified",
-      "claims": [],
-      "next_check": "수익모델(판매·구독 등)을 정한 뒤 공급사 견적으로 가격대 확인"
-    },
-    {
-      "dimension": "buyer",
-      "verdict": "signal_only",
-      "claims": [
-        {
-          "statement": "현대차그룹은 AI 어시스턴트를 도입하여 현장 업무 방식을 변화시키고 있다.",
+          "statement": "현대차그룹의 AI 어시스턴트와 동부건설의 AI 챗봇 어시스턴트가 현장 업무 방식을 변화시키고 있다.",
           "claim_type": "fact",
           "citation_ids": [
             1
           ]
         },
         {
-          "statement": "제조 현장 작업자와 생산 관리자가 주요 고객이 될 가능성이 있다.",
+          "statement": "AI 기반의 다양한 어시스턴트가 경쟁하고 있는 시장일 가능성이 있다.",
           "claim_type": "ai_hypothesis",
           "citation_ids": []
         }
       ],
-      "next_check": null
+      "next_check": null,
+      "evidence_status": "sufficient",
+      "relevant_count": 3,
+      "limitation": "관련 기사 3건이 모두 사업 신호·기업 주장·추정치라 확인할 수 없음"
+    },
+    {
+      "dimension": "price",
+      "verdict": "unverified",
+      "claims": [],
+      "next_check": "수익모델(판매·구독 등)을 정한 뒤 공급사 견적으로 가격대 확인",
+      "evidence_status": "insufficient",
+      "relevant_count": 0,
+      "limitation": "검색된 기사 5건이 모두 이 차원과 무관하다고 판정됨"
+    },
+    {
+      "dimension": "buyer",
+      "verdict": "unverified",
+      "claims": [],
+      "next_check": "제조 현장 작업자와 생산 관리자 5명 인터뷰로 구매 의사 확인",
+      "evidence_status": "insufficient",
+      "relevant_count": 0,
+      "limitation": "검색된 기사 5건이 모두 이 차원과 무관하다고 판정됨"
     },
     {
       "dimension": "adoption_barrier",
       "verdict": "signal_only",
       "claims": [
         {
-          "statement": "스마트공장 도입에 있어 전문인력 부족이 문제로 지적되고 있다.",
+          "statement": "AI 도입 초기 비용과 기술적 부담이 중소·중견기업의 진입 장벽으로 작용하고 있다.",
           "claim_type": "fact",
           "citation_ids": [
-            6
+            5
           ]
         },
         {
-          "statement": "중소기업은 초기 설비 투자와 시스템 구축에 어려움을 겪고 있다.",
-          "claim_type": "fact",
-          "citation_ids": [
-            7
-          ]
-        },
-        {
-          "statement": "도입장벽이 존재할 가능성이 있다.",
+          "statement": "제조 현장에서 AI 도입에 대한 기술적 부담이 존재할 가능성이 있다.",
           "claim_type": "ai_hypothesis",
           "citation_ids": []
         }
       ],
-      "next_check": null
+      "next_check": null,
+      "evidence_status": "limited",
+      "relevant_count": 1,
+      "limitation": "관련 기사가 1건뿐이라 확인할 수 없음 (최대 신호 수준)"
     }
   ],
   "evidence": [
@@ -121,115 +95,128 @@
       "recency": "high",
       "directness": "medium",
       "evidence_nature": "business_signal",
-      "similarity": 0.47340000000000004
+      "similarity": 0.4899
     },
     {
       "citation_id": 2,
-      "source_id": "news-1466dcc44368",
+      "source_id": "news-9fee97947131",
       "source_type": "news",
-      "title": "포스코, 중소기업 스마트공장 지원 확대…제조AI 전환 돕는다",
-      "publisher": "econovill.com",
-      "quote": "창고관리 자동화 시스템을 도입했다. 이를 통해 제품 출하시간을 23% 단축하고 물류 비용을 줄였다. 수작업... 이런 환경에서 중소 제조기업은 자동화 설비 투자와 디지털 전환 필요성이 커지고 있지만, 자금과 전문 인력...",
+      "title": "윤진식 무협 회장 \"美 비자 개선·AX 전환 지원 강화\"…부울경 수출기업...",
+      "publisher": "etoday.co.kr",
+      "quote": "통상·공급망 애로 해소에 나섰다. 미국 E-2 비자 발급 제한과 물류비 부담, 제조업 디지털 전환 지연 등 현장... 무역협회 부산지역본부 조사에 따르면 부울경 스마트공장 도입 기업의 63.0%는 단순 바코드 스캔 수준의 기초...",
       "section": "title+description",
-      "url": "https://www.econovill.com/news/articleView.html?idxno=740430",
-      "published_at": 20260519,
+      "url": "https://www.etoday.co.kr/news/view/2605782",
+      "published_at": 20260722,
       "period": null,
       "reliability": "medium",
       "recency": "high",
       "directness": "medium",
-      "evidence_nature": "business_signal",
-      "similarity": 0.4476
+      "evidence_nature": "indirect_demand",
+      "similarity": 0.43920000000000003
     },
     {
       "citation_id": 3,
-      "source_id": "news-c6ef5a20cdd8",
+      "source_id": "news-101d572a6de1",
       "source_type": "news",
-      "title": "MS, 가전 AI 대화 지연 줄인다…LG '씽큐 온' 협업 공개",
-      "publisher": "epnc.co.kr",
-      "quote": "마이크로소프트(MS)가 LG전자와 함께 AI 홈 음성 에이전트의 대화 품질을 개선하고 있다. 이용자의 말을... 연구개발·생산 현장에 AI와 에이전트를 적용하는 방안을 논의했다. 제조 분야에서는 김철하 LG전자...",
+      "title": "AI 통번역부터 품질 챗봇까지…동부건설, 스마트 건설기술 고도화",
+      "publisher": "e-science.co.kr",
+      "quote": "AI 챗봇 어시스턴트 기능을 통해 임직원이 품질이나 하자 관련 질문을 입력하면 등록된 데이터베이스를 분석해 관련 기준과 사례, 해결 방안을 즉시 제공한다. 기존에는 품질 기준과 하자 사례가 개별 문서나 현장 경험에...",
       "section": "title+description",
-      "url": "https://www.epnc.co.kr/news/articleView.html?idxno=407593",
-      "published_at": 20261001,
+      "url": "https://www.e-science.co.kr/news/articleView.html?idxno=132028",
+      "published_at": 20260716,
       "period": null,
       "reliability": "medium",
       "recency": "high",
       "directness": "medium",
       "evidence_nature": "business_signal",
-      "similarity": 0.3225
+      "similarity": 0.37760000000000005
     },
     {
       "citation_id": 4,
-      "source_id": "news-7a6eeaa73d6d",
+      "source_id": "news-60d08c0d35bf",
       "source_type": "news",
-      "title": "한국오므론제어기기, ‘AI·로봇 안전제어 솔루션 챌린지’ 성과공유회...",
-      "publisher": "biz.chosun.com",
-      "quote": "특성화고 트랙에서는 미래산업과학고 ‘Crack LIGHT’ 팀이 산업안전 AI 어시스턴트 ‘SafeGuide’를 선보여... 대학 트랙에서는 뎁스 카메라를 활용한 작업자 접근 감지 로봇 안전제어 시스템을 개발한 한국폴리텍대학...",
+      "title": "동부건설, 현장 무인 드론·AI로 건설현장 안전관리 고도화",
+      "publisher": "biztribune.co.kr",
+      "quote": "하고, AI 챗봇 어시스턴트를 통해 임직원이 관련 질문을 입력하면 등록된 자료를 기반으로 필요한 정보를 검색해 답변하도록 했다. 이를 통해 현장에서 필요한 품질 기준과 하자 사례, 조치 방안 등을 보다 신속하게...",
       "section": "title+description",
-      "url": "https://biz.chosun.com/industry/business_info/2026/10/21/KQWIEXFACRA2NAAS42WRFPWYUU/?utm_source=naver&utm_medium=original&utm_campaign=biz",
-      "published_at": 20261021,
+      "url": "http://www.biztribune.co.kr/news/articleView.html?idxno=358413",
+      "published_at": 20260903,
       "period": null,
       "reliability": "medium",
       "recency": "high",
       "directness": "medium",
       "evidence_nature": "business_signal",
-      "similarity": 0.31320000000000003
+      "similarity": 0.37729999999999997
     },
     {
       "citation_id": 5,
-      "source_id": "news-74aa4fea0636",
+      "source_id": "news-ce5dce38a0c6",
       "source_type": "news",
-      "title": "한수원, 사내망 전용 'AI 문서 도구' 도입…스마트 업무 혁신 가속",
-      "publisher": "businessplus.kr",
-      "quote": "현장에 전면 도입하며 문서 작업 방식의 대대적인 개편에 나선다. 한수원은 독자적으로 구축한 사내 지식 기반 생성형 AI 플랫폼 '하이누리'(Hy-NuRI)와 한글과컴퓨터의 AI 지능형 문서 작성 설루션인 '한컴어시스턴트'를...",
+      "title": "디스플레이 소부장도 AI 전환 속도…제조 현장 혁신 모색",
+      "publisher": "dt.co.kr",
+      "quote": "이번 행사는 AI 도입 초기 비용과 기술적 부담 등으로 어려움을 겪는 소부장 중소·중견기업의 진입 장벽을 낮추고 제조 현장의 AX 확산을 지원하기 위해 마련됐다. 행사는 제조 AX 적용 효과를 공유하는 AX 케이스...",
       "section": "title+description",
-      "url": "https://www.businessplus.kr/news/articleView.html?idxno=114478",
-      "published_at": 20260723,
+      "url": "https://www.dt.co.kr/article/12090744?ref=naver",
+      "published_at": 20261022,
       "period": null,
       "reliability": "medium",
       "recency": "high",
       "directness": "medium",
       "evidence_nature": "business_signal",
-      "similarity": 0.3042
-    },
-    {
-      "citation_id": 6,
-      "source_id": "news-2cdcefb22f68",
-      "source_type": "news",
-      "title": "AI 스마트공장 키운다…전문기업 첫 지정·전문인력 양성 '속도'",
-      "publisher": "news1.kr",
-      "quote": "전문인력 부족을 겪고 있는 스마트공장 도입·공급기업들의 애로를 해소하기 위한 스마트제조 전문인력 육성사업 또한 본격적으로 진행될 전망이다. 해당 사업을 통해 △스마트제조 역량 △취업매력도 △고용 연계...",
-      "section": "title+description",
-      "url": "https://www.news1.kr/industry/sb-founded/6223455",
-      "published_at": 20260710,
-      "period": null,
-      "reliability": "medium",
-      "recency": "high",
-      "directness": "medium",
-      "evidence_nature": "business_signal",
-      "similarity": 0.4437
-    },
-    {
-      "citation_id": 7,
-      "source_id": "news-c7da5c7cd4ba",
-      "source_type": "news",
-      "title": "[기획] 자동화·AI 도입하는 中企…비용 부담은 '가중'",
-      "publisher": "m-i.kr",
-      "quote": "특히 중소기업은 설비 투자뿐 아니라 시스템 구축, 유지보수, 인력 교육까지 추가 비용이 발생하면서 초기 진입 자체가 쉽지 않은 구조다. 배경에는 제조업 구조 변화가 있다. 최근 제조 현장은 단순 자동화를 넘어 AI 기반...",
-      "section": "title+description",
-      "url": "https://www.m-i.kr/news/articleView.html?idxno=1360939",
-      "published_at": 20260402,
-      "period": null,
-      "reliability": "medium",
-      "recency": "high",
-      "directness": "medium",
-      "evidence_nature": "business_signal",
-      "similarity": 0.4336
+      "similarity": 0.4478
     }
   ],
+  "opportunity_review": {
+    "status": "indirect_signals",
+    "target_segment": "제조 현장 작업자와 생산 관리자",
+    "value_hypotheses": [],
+    "reasons": [
+      {
+        "topic": "경쟁·대체재",
+        "statement": "경쟁·대체재 판단은 signal_only이며, 현재 확정 아이디어의 고객·문제 범위 안에서 해석해야 합니다.",
+        "citation_ids": [
+          1
+        ]
+      },
+      {
+        "topic": "도입장벽",
+        "statement": "도입장벽 판단은 signal_only이며, 현재 확정 아이디어의 고객·문제 범위 안에서 해석해야 합니다.",
+        "citation_ids": [
+          5
+        ]
+      }
+    ],
+    "unknowns": [
+      "고객의 현재 해결 방식과 대체재",
+      "고객 인터뷰·구매 검토·파일럿 등 직접 수요 증거",
+      "고객 가치와 ROI를 계산할 측정 변수",
+      "demand 차원 추가 근거",
+      "price 차원 추가 근거",
+      "buyer 차원 추가 근거"
+    ],
+    "validation_actions": [
+      {
+        "title": "목표 고객 문제·구매 검증",
+        "target": "제조 현장 작업자와 생산 관리자",
+        "method": "현재 해결 방식, 문제 발생 맥락, 비용 영향, 구매결정자와 도입 조건을 묻는 인터뷰를 수행하고 익명 요약만 기록",
+        "success_signal": "여러 고객이 같은 문제와 현재 대안을 구체적 사례로 확인하고, 구매 절차 또는 후속 실증 의사를 설명함",
+        "citation_ids": []
+      },
+      {
+        "title": "고객 가치 측정 기준 설정",
+        "target": "제조 현장 작업자와 생산 관리자",
+        "method": "고객과 함께 문제 빈도, 현재 처리시간·불량·비용 중 측정 가능한 기준을 선택하고 파일럿 전후에 같은 방식으로 기록",
+        "success_signal": "현재 기준선과 목표 효과를 고객이 합의하고, 측정 자료 접근 범위가 정해짐",
+        "citation_ids": []
+      }
+    ]
+  },
   "unknowns": [
-    "가격 근거 미확인"
+    "수요 근거 미확인: 수요 확인에는 고객 검증 자료(인터뷰·설문·파일럿·LOI)가 필요하며 기사로는 확인할 수 없음",
+    "가격 근거 미확인: 검색된 기사 5건이 모두 이 차원과 무관하다고 판정됨",
+    "구매자 근거 미확인: 검색된 기사 5건이 모두 이 차원과 무관하다고 판정됨"
   ],
   "search_scope": "네이버 뉴스 검색 API로 사전 수집한 스마트팩토리 기사 1895건(제목·요약, 발행일 20240102~20261023), 아이디어 SF-05 수집 키워드 범위",
-  "data_as_of": 20261028,
+  "data_as_of": 20261029,
   "error_message": null
 }
