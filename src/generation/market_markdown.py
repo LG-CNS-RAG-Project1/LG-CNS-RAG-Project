@@ -14,7 +14,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 from src.retrieval.market_relevance import DIMENSION_LABELS
-from src.schemas import MarketEvidence, MarketReport
+from src.schemas import MarketEvidence, MarketReport, MarketSearchTrend
 
 SECTION_TITLE = "시장 조사 및 분석 결과"
 
@@ -37,6 +37,12 @@ NATURE_LABELS = {
     "company_claim": "기업 주장",
 }
 GRADE_LABELS = {"high": "상", "medium": "중", "low": "하"}
+TREND_DIRECTION_LABELS = {
+    "rising": "상승",
+    "stable": "유지",
+    "cooling": "둔화",
+    "unknown": "판단 불가",
+}
 
 EVIDENCE_NOTE = (
     "뉴스는 실제 도입·계약 보도면 구매 신호, 조사기관 통계면 간접 수요, 그 밖은 사업 신호로 "
@@ -73,6 +79,21 @@ def safe_url(value: str | None) -> str | None:
     if parsed.scheme not in ("http", "https") or not parsed.netloc or parsed.username:
         return None
     return value.replace("(", "%28").replace(")", "%29").replace(" ", "%20")
+
+
+def search_trend_summary(trend: MarketSearchTrend) -> str:
+    """검색 관심도 흐름의 주제어·판정·변화율을 한 문장으로 쓴다. 검색량 부족·오류면 그 사유를 쓴다."""
+    keywords = ", ".join(trend.keywords) or "주제어 없음"
+    reference = ", ".join(trend.reference_keywords) or "기준 주제어"
+    if trend.status == "error":
+        return f"검색 관심도를 불러오지 못했습니다. ({trend.error_message or '사유 미확인'})"
+    if trend.status == "insufficient_volume":
+        return f"'{keywords}'는 네이버 검색량이 적어 관심도 흐름을 판단하지 않습니다."
+    return (
+        f"'{keywords}' 검색 관심도는 {reference} 대비 "
+        f"{TREND_DIRECTION_LABELS[trend.direction]}입니다 (최근 6개월 평균, 직전 6개월 대비 "
+        f"{trend.recent_change_pct:+.1f}%)."
+    )
 
 
 def evidence_row(e: MarketEvidence) -> str:
@@ -171,6 +192,23 @@ def market_report_to_markdown(report: MarketReport, heading_level: int = 2) -> s
                 )
             if refs:
                 lines.append(f"  - 연결 근거: {refs}")
+
+    trend = report.search_trend
+    if trend:
+        lines += [
+            "",
+            f"{sub} 검색 관심도 흐름",
+            "",
+            f"- {cell(search_trend_summary(trend))}",
+        ]
+        if trend.status == "completed":
+            recent = [p for p in trend.points[-12:] if p.relative_index is not None]
+            lines.append(
+                "- 최근 12개월 지수(기준 대비): "
+                + " · ".join(f"{p.period} {p.relative_index:g}" for p in recent)
+            )
+        if trend.note:
+            lines += ["", f"> {cell(trend.note)}"]
 
     if report.unknowns:
         lines += ["", f"{sub} 미확인 사항", ""]

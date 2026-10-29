@@ -611,6 +611,29 @@ class CostScenarioTotals(BaseModel):
     calculation_note: str = ""
 
 
+class MarketTrendPoint(BaseModel):
+    period: str  # YYYY-MM
+    theme_ratio: float  # 같은 요청 안 최댓값을 100으로 둔 아이디어 주제어 검색량
+    reference_ratio: float  # 같은 요청 안 기준 주제어(스마트공장) 검색량
+    relative_index: float | None = (
+        None  # theme_ratio / reference_ratio × 100, 기준이 0이면 None
+    )
+
+
+class MarketSearchTrend(BaseModel):
+    """네이버 검색어 트렌드로 본 아이디어 주제어의 월별 관심도 (시장 규모·수요 근거가 아님)."""
+
+    status: Literal["completed", "insufficient_volume", "error"]
+    keywords: list[str] = Field(default_factory=list)
+    reference_keywords: list[str] = Field(default_factory=list)
+    points: list[MarketTrendPoint] = Field(default_factory=list)
+    # 최근 N개월 평균 relative_index의 직전 N개월 대비 변화율(%)
+    recent_change_pct: float | None = None
+    direction: Literal["rising", "stable", "cooling", "unknown"] = "unknown"
+    note: str = ""
+    error_message: str | None = None
+
+
 # 14. 최종 시장 근거 결과
 class MarketReport(BaseModel):
     status: Literal["completed", "no_results", "error"]
@@ -619,6 +642,7 @@ class MarketReport(BaseModel):
     evidence: list[MarketEvidence] = Field(default_factory=list)
     opportunity_review: MarketOpportunityReview | None = None
     commercial_analysis: MarketCommercialAnalysis | None = None
+    search_trend: MarketSearchTrend | None = None
     unknowns: list[str] = Field(default_factory=list)
 
     search_scope: str
