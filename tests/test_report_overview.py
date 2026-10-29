@@ -10,6 +10,7 @@ from src.generation.executive_review import (
     ExecutiveReview,
     IntegratedFinding,
     ApprovalGate,
+    DomainEvidenceSummary,
 )
 
 
@@ -103,3 +104,40 @@ render_dashboard(st.session_state.data)
     assert app.get("vega_lite_chart")
     assert any("사업성 점수가 아닙니다" in item.value for item in app.caption)
     assert any("구매 담당자 인터뷰" in item.value for item in app.markdown)
+
+
+def test_dashboard_projects_domain_summaries_and_renders_missing_status():
+    r = result()
+    r.executive_review.domain_summaries = [
+        DomainEvidenceSummary(
+            domain="patent",
+            status="no_results",
+            finding="현재 검색 범위에서 비교 근거를 확보하지 못했습니다.",
+            evidence_ids=[],
+            evidence_scope="KIPRIS · 비교 문헌 0건",
+            limitations=["검색 결과는 법률 판단이 아닙니다."],
+            next_check=["검색 범위를 확인합니다."],
+        ),
+        DomainEvidenceSummary(
+            domain="market",
+            status="timeout",
+            finding="시장 조사 제한 시간이 지나 완료되지 않았습니다.",
+            evidence_ids=["M:1"],
+            evidence_scope="뉴스 검색 · 검색 근거 1건",
+        ),
+    ]
+    data = dashboard_data(r)
+    assert data["domain_summaries"][0]["kind"] == "근거 없음"
+    assert data["domain_summaries"][0]["citations"] == ""
+    assert data["domain_summaries"][1]["kind"] == "시간 초과"
+    assert data["domain_summaries"][1]["citations"] == "M:1"
+
+    app = AppTest.from_string("""
+from frontend.report_overview import render_dashboard
+import streamlit as st
+render_dashboard(st.session_state.data)
+""")
+    app.session_state.data = data
+    app.run()
+    assert not app.exception
+    assert any("특허·시장 영역별 근거" in item.value for item in app.subheader)
