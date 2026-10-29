@@ -761,7 +761,12 @@ def run_pipeline(
     collected = sources.readiness.market_collected_at if sources.readiness else None
     business_review = build_business_review(draft, sources.patent, sources.market)
     executive_review = build_executive_review(
-        draft, sources.patent, sources.market, business_review
+        draft,
+        sources.patent,
+        sources.market,
+        business_review,
+        patent_run_state=sources.patent_run.state,
+        market_run_state=sources.market_run.state,
     )
     cost_estimate = None
     cost_totals = None

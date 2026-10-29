@@ -1,5 +1,6 @@
 from src.generation.business_review import build_business_review
 from src.generation.executive_review import (
+    DomainEvidenceSummary,
     build_executive_review,
     executive_report_markdown,
 )
@@ -136,9 +137,13 @@ def test_executive_report_synthesizes_patent_and_market_into_gates():
     assert {"P:1", "M:1"}.issubset(set(market_finding.evidence_ids))
     assert "유사 청구항 우려를 낮추지는 않습니다" in market_finding.business_implication
     assert "## 기회와 제약을 함께 본 판단" in markdown
+    assert "## 영역별 근거 요약" in markdown
+    assert "특허 · 완료" in markdown
+    assert "시장 · 완료" in markdown
+    assert "M:1" in markdown and "P:1" in markdown
     assert "## 승인 전에 통과할 확인사항" in markdown
     assert "진동 분석 장치" not in markdown  # 상세 보고서의 문헌 반복을 피한다
-    assert len(markdown.splitlines()) < 45
+    assert len(markdown.splitlines()) < 55
 
 
 def test_market_industry_signal_is_not_recast_as_direct_purchase():
@@ -151,3 +156,37 @@ def test_market_industry_signal_is_not_recast_as_direct_purchase():
     )
     assert "구매 의사는 미검증입니다" in market_finding.judgment
     assert "매출 전망" in market_finding.business_implication
+
+
+def test_domain_summary_preserves_source_status_and_scope_without_inference():
+    draft, patent, market = sample_reports()
+    review = build_executive_review(
+        draft,
+        patent,
+        market,
+        build_business_review(draft, patent, market),
+        patent_run_state="partial",
+        market_run_state="skipped",
+    )
+
+    patent_summary, market_summary = review.domain_summaries
+    assert patent_summary.status == "partial"
+    assert patent_summary.evidence_ids == ["P:1"]
+    assert "비교 문헌 1건" in patent_summary.evidence_scope
+    assert market_summary.status == "skipped"
+    assert market_summary.finding == "시장 조사를 실행하지 않았습니다."
+    assert market_summary.evidence_ids == ["M:1"]
+    assert "구매 의사는" not in market_summary.finding
+
+
+def test_domain_summary_rejects_evidence_from_another_domain():
+    import pytest
+
+    with pytest.raises(ValueError, match="foreign evidence ID"):
+        DomainEvidenceSummary(
+            domain="patent",
+            status="completed",
+            finding="확인",
+            evidence_ids=["M:1"],
+            evidence_scope="검색 후보",
+        )
