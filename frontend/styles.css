@@ -345,6 +345,8 @@ html{scroll-behavior:auto;}
   outline:3px solid #b69b42;
   outline-offset:2px;
 }
+.st-key-landing .visual-paper {animation:none;}
+.hero-title-line {display:block;}
 #research-top {scroll-margin-top:70px;}
 @media(min-width:1101px) {
   [data-testid="stMainBlockContainer"]:has(.st-key-research_rail) {
