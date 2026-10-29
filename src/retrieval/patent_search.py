@@ -26,8 +26,8 @@ SYSTEM_PROMPT = """
 한국어 및 영어 특허 검색어를 생성하세요.
 
 규칙:
-1. technology를 중심으로 기술 요소를 추출합니다.
-2. problem, customers, difference는 기술 맥락을 파악하는 데 활용합니다.
+1. technology와 technical_components를 중심으로 구체적인 기술 요소를 추출합니다.
+2. problem, difference는 기술 맥락과 해결 대상 파악에 활용합니다.
 3. revenue는 필요한 경우에만 참고합니다.
 4. 아이디어에 없는 새로운 기술을 임의로 추가하지 않습니다.
 5. 기술 요소는 2~5개 추출하되, 실제 기술적 구성 요소만 선정합니다.
@@ -84,8 +84,10 @@ def build_patent_queries(
 
     user_text = json.dumps(
         {
+            "title": idea.title,
             "problem": idea.problem,
             "technology": idea.technology,
+            "technical_components": idea.technical_components,
             "customers": idea.customers,
             "difference": idea.difference,
             "revenue": idea.revenue,

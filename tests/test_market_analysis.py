@@ -393,3 +393,159 @@ def test_run_market_research_reports_search_error(monkeypatch):
 
     assert report.status == "error"
     assert "index missing" in report.error_message
+
+
+def test_market_commercial_analysis_retains_only_known_citations():
+    from pydantic import ValidationError
+    from src.schemas import MarketCommercialAnalysis, MarketReport, MarketEvidence
+
+    evidence = MarketEvidence(
+        citation_id=1,
+        source_id="x",
+        source_type="news",
+        title="title",
+        publisher="pub",
+        quote="quote",
+        published_at=20261001,
+        reliability="medium",
+        recency="high",
+        directness="low",
+        evidence_nature="business_signal",
+    )
+    with pytest.raises(ValidationError, match="unknown citation"):
+        MarketReport(
+            status="completed",
+            evidence=[evidence],
+            search_scope="test",
+            commercial_analysis=MarketCommercialAnalysis(
+                buyer="미확인", citation_ids=[9]
+            ),
+        )
+
+
+def test_market_hypothesis_is_separate_and_rejects_unknown_citations():
+    from pydantic import ValidationError
+    from src.schemas import (
+        MarketAnalyticalHypothesis,
+        MarketCommercialAnalysis,
+        MarketEvidence,
+        MarketReport,
+    )
+
+    evidence = MarketEvidence(
+        citation_id=1,
+        source_id="x",
+        source_type="news",
+        title="title",
+        publisher="pub",
+        quote="quote",
+        published_at=20261001,
+        reliability="medium",
+        recency="high",
+        directness="low",
+        evidence_nature="business_signal",
+    )
+    hypothesis = MarketAnalyticalHypothesis(
+        question="누가 구매하는가?",
+        hypothesis="생산기술 조직이 검토자일 수 있음",
+        basis="뉴스는 산업 신호만 제공하고 구매 주체를 명시하지 않음",
+        citation_ids=[1],
+        validation_target="제조사 생산기술 담당자",
+        validation_method="구매 절차 인터뷰",
+        success_criterion="구매 결정자와 예산 부서 확인",
+    )
+    report = MarketReport(
+        status="completed",
+        evidence=[evidence],
+        search_scope="test",
+        commercial_analysis=MarketCommercialAnalysis(hypotheses=[hypothesis]),
+    )
+    assert report.commercial_analysis.hypotheses[0].citation_ids == [1]
+    with pytest.raises(ValidationError, match="hypothesis references unknown citation"):
+        MarketReport(
+            status="completed",
+            evidence=[evidence],
+            search_scope="test",
+            commercial_analysis=MarketCommercialAnalysis(
+                hypotheses=[hypothesis.model_copy(update={"citation_ids": [9]})]
+            ),
+        )
+
+
+def test_market_numeric_hypothesis_requires_basis():
+    from pydantic import ValidationError
+    from src.schemas import (
+        MarketAnalyticalHypothesis,
+        MarketCommercialAnalysis,
+        MarketEvidence,
+        MarketReport,
+    )
+
+    with pytest.raises(ValidationError, match="require a stated basis"):
+        MarketAnalyticalHypothesis(
+            question="가격?",
+            hypothesis="가설",
+            basis="근거 부족",
+            validation_target="구매자",
+            validation_method="인터뷰",
+            success_criterion="예산 확인",
+            numeric_value=100000,
+            numeric_unit="KRW",
+        )
+
+    value = MarketAnalyticalHypothesis(
+        question="가격?",
+        hypothesis="예시 수치",
+        basis="검색 자료에 나온 숫자를 검토용으로 옮김",
+        citation_ids=[1],
+        validation_target="구매자",
+        validation_method="인터뷰",
+        success_criterion="예산 확인",
+        numeric_value=1234,
+        numeric_unit="KRW",
+        numeric_basis="인용문에 표시된 값",
+    )
+    evidence = MarketEvidence(
+        citation_id=1,
+        source_id="x",
+        source_type="news",
+        title="title",
+        publisher="pub",
+        quote="자료에 예산 999원 표시",
+        published_at=20261001,
+        reliability="medium",
+        recency="high",
+        directness="low",
+        evidence_nature="business_signal",
+    )
+    with pytest.raises(ValidationError, match="must match a cited source value"):
+        MarketReport(
+            status="completed",
+            evidence=[evidence],
+            search_scope="test",
+            commercial_analysis=MarketCommercialAnalysis(hypotheses=[value]),
+        )
+
+
+def test_build_report_includes_business_approval_profile_and_citations():
+    profile = {
+        "commercial_analysis": {
+            "user": "현장 품질 담당자",
+            "buyer": "공장장",
+            "budget_owner": "생산기술 예산",
+            "use_case": "불량 검사 업무",
+            "current_alternative": "수작업 검사",
+            "switching_trigger": "검사 인력 부족",
+            "purchase_process": "미확인",
+            "adoption_requirements": ["기존 라인 연동"],
+            "pricing_hypothesis": "미확인",
+            "critical_assumptions": ["구매자 인터뷰 필요"],
+            "citation_ids": [1],
+            "unknowns": ["조달 기간"],
+        }
+    }
+    report = build_report(
+        IDEA, ASSESSED, "테스트 범위", AS_OF, fake_llm([VALID, profile])
+    )
+    assert report.commercial_analysis.buyer == "공장장"
+    assert report.commercial_analysis.citation_ids == [1]

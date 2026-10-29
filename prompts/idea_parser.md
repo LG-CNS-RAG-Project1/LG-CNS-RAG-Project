@@ -12,7 +12,7 @@
 ## 출력 형식
 
 ```json
-{"input_status": "ok", "title": "", "problem": "", "technology": "", "customers": "", "difference": "", "revenue": "", "current_alternative": "", "target_segment": "", "technical_components": [], "value_hypotheses": []}
+{"input_status": "ok", "title": "", "problem": "", "technology": "", "customers": "", "difference": "", "revenue": "", "field_sources": {"problem": "ai_hypothesis", "technology": "extracted", "customers": "ai_hypothesis", "difference": "ai_hypothesis", "revenue": "ai_hypothesis"}, "current_alternative": "", "target_segment": "", "technical_components": [], "value_hypotheses": []}
 ```
 
 ## 입력 판정 (`input_status`)
@@ -38,35 +38,36 @@
 
 ## 항목 추출 규칙 (`ok`일 때)
 
-1. 입력 문장에 적혀 있거나 문장에서 바로 읽히는 내용만 쓴다.
-2. 문장에 근거가 없는 항목은 빈 문자열 `""`로 둔다. 그럴듯한 내용을 추측해서 채우지 않는다.
-3. 입력에 없는 수치·기업명·제품명·시장 규모·업종, 문제의 원인이나 결과를 덧붙이지 않는다.
-4. difference는 기존 방식·경쟁 제품과 비교하는 표현(예: 턴키로, 라인 교체 없이, 기존보다 저렴하게)이 있을 때만 쓴다. 기술의 기능을 다시 설명한 문장은 차별점이 아니므로 비워 둔다.
-5. revenue에 돈을 받는 방식이 여러 개 적혀 있으면 모두 쓴다.
-6. current_alternative는 입력에 나온 현재 해결 방식만 쓴다. 없으면 빈 문자열이다.
-7. target_segment는 입력에 명시된 고객·산업·규모·공정·지역만 쓴다. 없으면 빈 문자열이다.
-8. technical_components는 입력에 명시되거나 기술 설명에서 직접 분리할 수 있는 핵심 장치·방법·데이터 흐름을 최대 7개로 나눈다. 새로운 기술 구성을 보충하지 않는다.
-9. value_hypotheses는 기술이 해결할 수 있는 가치를 검증 가설로 최대 3개 쓴다. 입력에 없는 효과 수치·실적은 쓰지 않는다.
-10. 각 값은 한국어 한 문장 이내로 쓰고, 사용자의 표현을 최대한 유지한다.
-11. title은 비워 두지 않는다. 입력 문장의 핵심 기술과 대상을 담아 짓는다.
-12. JSON 외의 설명·코드 블록 표시를 붙이지 않는다.
+1. 입력에서 확인되는 사실은 의미를 유지해 정리한다. 입력에서 바로 확인되지 않는 초안 제안은 `ai_hypothesis`로 표시하고 사실과 섞지 않는다.
+2. `technology`는 입력에서 직접 확인되는 내용만 쓰고, 모호하거나 빠졌으면 비워 사용자에게 확인한다. `problem`, `customers`, `difference`, `revenue`는 입력만으로 특정할 수 없더라도 제품·산업 아이디어 맥락상 합리적인 초안을 제안할 수 있다. 이때 사실인 것처럼 쓰지 말고 짧고 구체적인 검증 전 가설을 작성하며 `field_sources`에서 해당 항목을 `ai_hypothesis`로 표시한다.
+3. 직접 입력에서 확인한 값은 `field_sources`에 `extracted`로 표시한다. 비어 있는 항목은 `field_sources`에서 생략한다.
+4. 차별점 가설은 아이디어의 잠재적 차별 방향으로 표현하고, 기존 제품보다 우수하다고 단정하지 않는다. 수익모델은 장비 판매·설치비·구독·유지보수 등 가능한 초안을 제안하되 확정된 가격이나 구매 의사처럼 쓰지 않는다.
+5. 입력에 없는 수치·기업명·제품명·시장 규모·실적·구매 의사를 덧붙이지 않는다. 가설도 구체 수치를 만들지 않는다.
+6. difference는 입력에 직접 비교 표현이 없으면 기술 기능을 반복하지 말고, 검증할 차별 방향을 가설로 제안한다.
+7. revenue에 돈을 받는 방식이 여러 개 적혀 있으면 모두 쓴다. 입력에 없으면 아이디어에 맞는 과금 방식 초안을 가설로 제안한다.
+8. current_alternative는 입력에 나온 현재 해결 방식만 쓴다. 없으면 빈 문자열이다.
+9. target_segment는 입력에 명시된 고객·산업·규모·공정·지역만 쓴다. 없으면 빈 문자열이다.
+10. technical_components는 입력에 명시되거나 기술 설명에서 직접 분리할 수 있는 핵심 장치·방법·데이터 흐름을 최대 7개로 나눈다. 새로운 기술 구성을 보충하지 않는다.
+11. value_hypotheses는 기술이 해결할 수 있는 가치를 검증 가설로 최대 3개 쓴다. 입력에 없는 효과 수치·실적은 쓰지 않는다.
+12. 각 값은 한국어 한 문장 이내로 쓰고, 사용자의 표현을 최대한 유지한다.
+13. title은 비워 두지 않는다. 입력 문장의 핵심 기술과 대상을 담아 짓는다.
+14. JSON 외의 설명·코드 블록 표시를 붙이지 않는다.
 
 ## 예시
 
 입력: {"idea_text": "중소 부품 공장에 협동로봇과 비전 카메라를 묶어 턴키로 설치해 주고 월 구독료를 받는다"}
 
 출력:
-{"input_status": "ok", "title": "협동로봇+비전 턴키 자동화", "problem": "", "technology": "협동로봇과 비전 카메라를 묶은 자동화 설비", "customers": "중소 부품 공장", "difference": "턴키로 설치해 준다", "revenue": "월 구독료", "current_alternative": "", "target_segment": "중소 부품 공장", "technical_components": ["협동로봇", "비전 카메라", "턴키 설치"], "value_hypotheses": ["수작업 공정의 일부를 자동화할 수 있는지 검증"]}
+{"input_status": "ok", "title": "협동로봇+비전 턴키 자동화", "problem": "검사·적재 업무 부담을 줄일 수 있는지 검증", "technology": "협동로봇과 비전 카메라를 묶은 자동화 설비", "customers": "중소 부품 공장", "difference": "설비 통합·턴키 설치가 기존 공급 방식보다 편리한지 검증", "revenue": "월 구독료", "field_sources": {"problem": "ai_hypothesis", "technology": "extracted", "customers": "extracted", "difference": "ai_hypothesis", "revenue": "extracted"}, "current_alternative": "", "target_segment": "중소 부품 공장", "technical_components": ["협동로봇", "비전 카메라", "턴키 설치"], "value_hypotheses": ["수작업 공정의 일부를 자동화할 수 있는지 검증"]}
 
-- 문장에 현장 문제가 적혀 있지 않으므로 problem은 비워 둔다.
+- 문제는 직접 입력되지 않았으므로 검증 전 가설로 제안하고 `field_sources.problem`을 `ai_hypothesis`로 표시한다.
 
 입력: {"idea_text": "설비 소리를 AI로 분석해 이상을 감지하는 장치를 판매하고 분석 모델 업데이트 비용을 받는다"}
 
 출력:
-{"input_status": "ok", "title": "AI 설비 소리 이상 감지", "problem": "", "technology": "설비 소리를 AI로 분석하는 이상 감지 장치", "customers": "", "difference": "", "revenue": "장치 판매와 분석 모델 업데이트 비용"}
+{"input_status": "ok", "title": "AI 설비 소리 이상 감지", "problem": "설비 이상을 조기에 발견해 점검 부담을 줄일 수 있는지 검증", "technology": "설비 소리를 AI로 분석하는 이상 감지 장치", "customers": "설비 운영·보전 담당 제조사", "difference": "상태기반 점검이 정기 점검보다 유용한지 검증", "revenue": "장치 판매와 분석 모델 업데이트 비용", "field_sources": {"problem": "ai_hypothesis", "technology": "extracted", "customers": "ai_hypothesis", "difference": "ai_hypothesis", "revenue": "ai_hypothesis"}}
 
-- "AI로 이상을 감지한다"는 기능 설명이므로 difference는 비워 둔다.
-- 고객이 적혀 있지 않으므로 customers는 비워 둔다.
+- 입력에서 확인되지 않는 고객·차별점은 검증 전 가설로 표시하고, 수익모델은 직접 입력된 내용이므로 `extracted`로 표시한다.
 
 입력: {"idea_text": "주말에 갈 만한 맛집 추천해 줘"}
 

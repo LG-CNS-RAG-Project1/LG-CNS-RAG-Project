@@ -19,6 +19,9 @@ textarea,input{font-size:14px!important;line-height:1.7!important;}
 .st-key-brandbar button{border:none;background:transparent;color:var(--accent);font-size:22px;white-space:nowrap;padding-left:0;}
 .st-key-stepnav{padding:8px 0 22px;border-bottom:1px solid var(--line);margin-bottom:26px;}
 .st-key-stepnav button{font-size:12px;min-height:38px;}
+.st-key-open_analysis button{min-height:54px;font-size:16px;letter-spacing:.02em;}
+.st-key-toggle_examples button,.st-key-toggle_recent button{min-height:44px;}
+.st-key-patent_orbit_accessible button{border-color:#b8c9bd;background:#fffef8;}
 
 /* 종이의 색과 겹침으로 입력에서 보고서까지 같은 흐름을 유지한다. */
 :root{--ink:#203d3b;--muted:#6b817b;--line:#d9e2db;--accent:#146b61;}
@@ -66,6 +69,22 @@ textarea,input{font-size:14px!important;line-height:1.7!important;}
 @media(prefers-reduced-motion:reduce){[class*="st-key-sheet_"]::after{display:none!important;}}
 [data-testid="stMain"]{overflow-x:hidden;}
 html{scroll-behavior:smooth;}
+
+/* 각 단계는 실제 콘텐츠 높이를 따르는 독립된 종이로 보이게 한다. */
+[data-testid="stMainBlockContainer"]{padding-top:1.6rem;padding-bottom:1.2rem;}
+[class*="st-key-sheet_"]{height:auto;min-height:0;align-self:flex-start;padding:28px 30px 30px;margin:0 14px 18px 0;}
+[class*="st-key-sheet_1_"]{box-shadow:4px 5px 0 #d9e9df,8px 10px 0 #f1dfaa,0 15px 28px #2e504315;}
+[class*="st-key-sheet_2_"]{box-shadow:5px 6px 0 #dce9df,0 16px 30px #2e504318;}
+[class*="st-key-sheet_3_"]{box-shadow:4px 5px 0 #eee3c4,0 16px 30px #2e504318;}
+[class*="st-key-sheet_4_"]{box-shadow:5px 6px 0 #d7e2e9,0 19px 38px #243f4930;}
+[class*="st-key-sheet_"] [data-testid="stVerticalBlock"]{min-height:0;}
+[class*="st-key-sheet_"] .stElementContainer{min-height:0;}
+[data-testid="stDialog"] [data-testid="stVerticalBlockBorderWrapper"]{max-height:none;}
+@media(max-width:900px){
+  [data-testid="stMainBlockContainer"]{padding:1rem .8rem .6rem;}
+  [class*="st-key-sheet_"]{padding:20px 16px 22px;margin:0 7px 14px 0;}
+  .st-key-stepnav{padding-bottom:8px;margin-bottom:10px;}
+}
 
 /* 특허 도면과 시장 근거가 나란히 놓인 조사 문서의 표지. */
 .front-paper{padding:26px 23px;background:linear-gradient(95deg,#d4ccb614,transparent 12%),#fffdf4;border:1px solid #d7d9c7;}
