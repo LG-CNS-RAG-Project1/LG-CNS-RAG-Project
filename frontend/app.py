@@ -47,6 +47,7 @@ from frontend.workflow import WORKFLOW_JOBS, WORKFLOW_JOBS_LOCK
 from frontend.automatic import automatic_links
 from frontend.presentation import hero_parts, brand_style
 from frontend.workspace_view import report_payload, render_report, render_history
+from frontend.quick_nav import render_quick_nav
 
 st.set_page_config(page_title="IdeaLens · 빠른 조사", page_icon="▤", layout="wide")
 st.html("""<style>
@@ -1629,6 +1630,7 @@ def start_research():
     s.stage = 1
 
 
+st.html('<div id="research-top"></div>')
 with st.container(key="brandbar"):
     brand, intro, guide, records = st.columns([2.6, 1, 1, 1.1])
     brand.button("IdeaLens", key="home", on_click=open_page, args=("home",))
@@ -1719,7 +1721,7 @@ def step_button_label(number):
     return f"{marker} {number}  {short_names[number - 1]}{suffix}{state}"
 
 
-def review_navigation(number, label, column, key):
+def review_navigation(number, label, column, key, *, icon=None):
     if column.button(
         label,
         key=key,
@@ -1727,6 +1729,7 @@ def review_navigation(number, label, column, key):
         disabled=not can_visit(number)
         or (active_job is not None and s.stage == number),
         width="stretch",
+        icon=icon,
     ):
         if active_job is not None:
             s.workflow_preview_stage = number
@@ -1747,6 +1750,8 @@ if s.stage in (2, 3):
     a, b = st.columns(2)
     review_navigation(2, "특허 비교", a, "review_patent")
     review_navigation(3, "시장성 분석", b, "nav_3")
+
+render_quick_nav(review_navigation, open_page)
 
 
 preview_stage = s.get("workflow_preview_stage")

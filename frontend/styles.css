@@ -276,4 +276,106 @@ html{scroll-behavior:auto;}
 @media(max-width:500px){.st-key-hero_art .st-key-lens_start{width:285px!important;right:-8px;bottom:0;}.st-key-hero_art .st-key-lens_start button{width:285px;height:360px;}.st-key-hero_art .st-key-lens_start button:after{right:0;bottom:14px;font-size:12px;}}
 @media(prefers-reduced-motion:reduce){.st-key-hero_art .st-key-lens_start button:before{animation:none!important;transition:none!important;}}
 @media(min-width:901px) and (max-height:800px){.st-key-hero_art{max-width:490px;padding-bottom:45px;}.st-key-hero_art .paper-scene{aspect-ratio:1/1;}.st-key-hero_art .research-panels{margin-top:22px;}.st-key-hero_art .research-panel .research-drawing{height:105px;}.st-key-hero_art .st-key-lens_start{bottom:0;width:350px!important;}.st-key-hero_art .st-key-lens_start button{width:350px;height:435px;}.st-key-hero_art .st-key-lens_start button:after{bottom:15px;}}
+/* 조사 중에는 본문 밖의 작은 도구 모음에서 결과와 기록으로 이동한다. */
+.st-key-research_rail {
+  position:fixed;
+  right:24px;
+  top:50%;
+  transform:translateY(-50%);
+  width:82px!important;
+  max-height:calc(100dvh - 120px);
+  overflow-y:auto;
+  z-index:90;
+  gap:5px!important;
+  padding:13px 8px 9px;
+  border:1px solid #cddcd1;
+  border-radius:24px;
+  background:#fffef9f5;
+  box-shadow:0 8px 28px #244f4012;
+}
+.rail-caption {
+  color:#627b72;
+  font-size:10px;
+  letter-spacing:.06em;
+  text-align:center;
+  padding:1px 0 5px;
+}
+.st-key-research_rail button {
+  flex-direction:column;
+  gap:3px;
+  width:100%;
+  min-height:62px;
+  border:0!important;
+  border-radius:15px;
+  background:transparent;
+  color:#42675c;
+  padding:8px 3px;
+}
+.st-key-research_rail button>div {flex-direction:column;gap:3px!important;}
+.st-key-research_rail button [data-has-shortcut] {
+  flex-direction:column;
+  gap:3px;
+  white-space:nowrap;
+}
+.st-key-research_rail button p {font-size:11px!important;line-height:1.3;white-space:nowrap;}
+.st-key-research_rail button[kind="primary"] {background:#176b60;color:white;}
+.st-key-research_rail button:hover:not(:disabled) {
+  background:#e4eee5;
+  transform:none;
+  box-shadow:none;
+}
+.st-key-research_rail button[kind="primary"]:hover {background:#12584f;}
+.st-key-research_rail button:disabled {color:#9da9a2;opacity:.65;}
+.rail-divider {height:1px;background:#dce5dc;margin:4px 6px;}
+.rail-top {
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:1px;
+  min-height:52px;
+  border-radius:15px;
+  font-size:11px;
+  color:#42675c!important;
+  text-decoration:none!important;
+}
+.rail-top span {font-size:23px;line-height:1.1;}
+.rail-top:hover {background:#e4eee5;}
+.st-key-research_rail button:focus-visible,.rail-top:focus-visible {
+  outline:3px solid #b69b42;
+  outline-offset:2px;
+}
+#research-top {scroll-margin-top:70px;}
+@media(min-width:1101px) {
+  [data-testid="stMainBlockContainer"]:has(.st-key-research_rail) {
+    max-width:1560px;
+    padding-right:140px;
+  }
+}
+@media(max-width:1100px) {
+  .st-key-research_rail {
+    top:auto;
+    bottom:max(12px,env(safe-area-inset-bottom));
+    left:50%;
+    right:auto;
+    transform:translateX(-50%);
+    flex-direction:row!important;
+    align-items:center;
+    width:min(450px,calc(100% - 24px))!important;
+    max-height:none;
+    overflow:visible;
+    padding:6px;
+    gap:1px!important;
+    border-radius:22px;
+  }
+  .st-key-research_rail>[data-testid="stElementContainer"] {flex:1;min-width:0;}
+  .st-key-research_rail>[data-testid="stElementContainer"]:has(.rail-caption),
+  .st-key-research_rail>[data-testid="stElementContainer"]:has(.rail-divider) {display:none;}
+  .st-key-research_rail button {min-height:52px;border-radius:16px;padding:4px 1px;}
+  .st-key-research_rail button p,.rail-top {font-size:10px!important;white-space:nowrap;}
+  .rail-top {min-height:52px;}
+  [data-testid="stMainBlockContainer"]:has(.st-key-research_rail) {
+    padding-bottom:calc(110px + env(safe-area-inset-bottom));
+  }
+}
 </style>
