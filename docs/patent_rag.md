@@ -17,9 +17,9 @@ KIPRIS 검색 API는 `openapi/rest/patUtiModInfoSearchSevice/freeSearchInfo`의 
 
 `PatentClaim`은 `claim_number`, 원문 `text`, `claim_type`, `depends_on`, `version_id`를 담는다. 종속 관계는 원문이 명시한 `제N항에 있어서`와 항 범위 참조에서만 추출한다. 식별할 번호 표식이 없는 텍스트는 번호를 추측하지 않아 청구항 단위로 만들지 않는다.
 
-각 청구항은 `PatentChunk` 하나로 색인하며 `chunk_id`는 `{patent_id}_claim_{claim_number}` 형식이다. 공통 `SearchDocument`의 metadata와 `PatentEvidence`에는 청구항 번호·유형·상위항 참조·문헌 식별자·버전이 함께 연결된다. 이 범위에서는 원문 내 문자 오프셋을 API가 제공하지 않으므로 청구항 번호가 원문 위치의 기준이다.
+각 청구항은 `PatentChunk` 하나로 색인하며 `chunk_id`는 `{patent_id}_claim_{claim_number}` 형식이다. 공통 `SearchDocument`의 metadata와 `PatentEvidence`에는 청구항 번호·유형·상위항 참조·문헌 식별자·버전이 함께 연결된다. 수집 시각은 UTC ISO 8601 문자열로 문서와 색인 metadata에 보존한다. 이 범위에서는 원문 내 문자 오프셋을 API가 제공하지 않으므로 청구항 번호가 원문 위치의 기준이다.
 
-한 문헌에서 아이디어 기술 표현과 일치하는 청구항을 우선 최대 5개까지 인용한다. 보고서에는 최대 5개 문헌을 담되, 한 문헌의 독립항·종속항을 함께 인용할 수 있다.
+한 문헌에서 아이디어 기술 표현과 일치하는 청구항을 우선 최대 5개까지 검토 문맥으로 선택한다. 선택 시 종속항의 상위항을 함께 포함하고, 전체 청구항 원문을 약 1,800 토큰으로 추정한 예산 안에 둔다. 분석 프롬프트에는 특허별 문헌 수 균형을 고려해 모든 특허 근거를 합산 약 6,000 토큰까지 원문 단위로 전달하며, 예산을 넘는 근거는 청구항·독립항 우선으로 보존하고 제외한 citation ID를 `unknowns`에 기록한다. 두 예산은 공백 토큰 수와 문자 길이 기반 상한 중 큰 값으로 계산하므로 모델 토크나이저의 정확한 입력 토큰 수가 아닌 보수적 근사치다. 원문을 잘라 인용하지 않으며 상위항이 예산 때문에 제외되면 종속항도 제외한다. 이 문맥 예산은 특허 근거 텍스트에 적용되며 검색어 계획, 프롬프트, 보고서 출력 전체의 모델 입력 한도를 보장하지 않는다. 보고서에는 최대 5개 문헌을 담되, 한 문헌의 독립항·종속항을 함께 인용할 수 있다.
 
 ## 실행과 테스트
 
@@ -50,7 +50,11 @@ python -m pytest tests/test_patent_claims.py tests/test_patent_analysis_service.
 
 ## 특허 검색 품질 평가
 
-`evaluation/patent_cases.json`에는 샘플 아이디어에서 고정한 5개 질의가 있으며, 정답 문헌 라벨은 사람이 판정할 때까지 비어 있다. 특허 수집·색인 후 후보를 내보내 같은 문헌이 Dense·BM25·Hybrid에서 어떻게 검색되는지 검토한다.
+`evaluation/patent_cases.json`에는 샘플 아이디어에서 고정한 5개 질의가 있으며, 정답 문헌 라벨은 사람이 판정할 때까지 비어 있다. 특허 수집·색인 후 후보를 내보내 같은 문헌을 검토한다. 라벨링 CSV에는 검색 방식과 순위를 기록하지 않아 판정자가 시스템 순위를 보고 영향을 받지 않도록 한다. 구체적인 관련도 판정 기준은 [특허 평가 라벨링 가이드](../evaluation/patent_labeling.md)를 따른다.
+
+라벨 검토 전 `python -m evaluation.patent_preflight`로 질의와 후보 파일의 케이스별 분포, URL·중복·라벨 상태와 SHA-256을 검사할 수 있다. 이 사전 점검은 외부 API를 호출하지 않는다.
+
+`python -m evaluation.patent_review_context`는 기존 로컬 특허 처리 파일에서 초록·청구항·서지 정보를 후보와 연결해 Git 제외 경로에 JSONL로 만든다. 출원번호·발명의 명칭·후보 청구항 번호의 일치 통계를 출력하며 외부 API를 호출하지 않는다. 이 확인 결과는 기술적 관련도의 자동 판정이 아니다.
 
 ```bash
 python -m evaluation.patent_labeling export
@@ -59,7 +63,13 @@ python -m evaluation.patent_labeling import
 python -m evaluation.evaluate patent --mode dense --label baseline
 python -m evaluation.evaluate patent --mode bm25 --label baseline
 python -m evaluation.evaluate patent --mode hybrid --label baseline
-python -m evaluation.evaluate patent --mode hybrid --rerank --label baseline
+python -m evaluation.evaluate patent --mode hybrid --reranker bi-encoder --label baseline
+python -m evaluation.evaluate patent --mode hybrid --reranker cross-encoder --label baseline
+python -m evaluation.evaluate patent --mode hybrid --reranker cross-encoder --candidate-k 40 --label candidate40
 ```
 
-후보 CSV는 기본적으로 세 검색 방식의 상위 20건을 문헌 단위로 합친다. Cross-Encoder 후보도 라벨링하려면 `export --rerank`를 사용한다. 모든 후보를 판정한 질의만 Hit@K·Recall@K·Precision@K·MRR·nDCG@K에 포함하며, 라벨되지 않은 결과는 `unjudged`로 별도 집계한다. Dense·Hybrid 질의 임베딩은 OpenAI API를 호출하므로 키와 API 사용 비용이 필요하고, 현재 비용은 자동 집계하지 않는다. 평가셋 라벨링 전에는 특허 검색 성능 수치를 보고하지 않는다.
+후보 CSV는 기본적으로 세 검색 방식의 상위 20건을 문헌 단위로 합친다. 색인에 원문 URL이 없으면 출원번호로 KIPRIS 검색 링크를 생성하며, 라벨 검토자는 검색 결과의 출원번호와 발명의 명칭을 대조한다. 재정렬 후보도 라벨링하려면 `export --reranker bi-encoder` 또는 `export --reranker cross-encoder`를 사용한다. Bi-Encoder는 OpenAI 임베딩으로 질의와 후보 문헌을 다시 임베딩하므로 API 호출 비용이 추가되고, Cross-Encoder는 `sentence-transformers`와 모델 다운로드가 필요하다. 모든 후보를 판정한 질의만 Hit@K·Recall@K·Precision@K·MRR·nDCG@K에 포함하며, 라벨되지 않은 결과는 `unjudged`로 별도 집계한다. 비용은 자동 집계하지 않는다. 평가셋 라벨링 전에는 특허 검색 성능 수치를 보고하지 않는다.
+
+새 평가 CSV에는 실행 시각, Git 커밋과 작업 트리 상태, 평가 문항·라벨 데이터 해시, 색인 문서 수와 색인 내용·메타데이터 해시, Top-K·후보 수·RRF 상수, 임베딩·reranker 모델, BM25 설정을 함께 기록한다. 이전 결과 파일에는 이 지문이 없으므로 새 실행 결과와 직접 동등한 재현 기록으로 취급하지 않는다.
+
+`--candidate-k`는 재정렬 전에 보유할 후보 문헌 수이며 기본값 20은 평가 Top-5의 4배다. 후보 수를 비교할 때는 평가 질의·사람 라벨·색인 지문·Top-K·reranker를 고정하고 후보 수만 바꾼다. 라벨 후보 CSV는 출력할 상위 20건을 포함하므로, 다른 후보 수에서 새 문헌이 Top-K에 나타나 `unjudged`가 늘면 그 문헌을 추가 판정한 뒤 해당 비교를 다시 실행한다.

@@ -1,0 +1,21 @@
+# 네이버 검색어 트렌드 설정 (src/ingestion/trend_client.py, src/services/market_trend.py)
+# 검색 관심도는 시장 규모·고객 수요의 근거가 아니다. 보고서에는 관심도 흐름으로만 표시한다.
+api:
+  url: https://naverapihub.apigw.ntruss.com/search-trend/v1/search
+  time_unit: month
+  timeout_sec: 30
+
+# 플랫폼 전체 검색량 변화를 걸러 내기 위한 기준 주제어. 아이디어 주제어와 같은 요청으로 조회해
+# 월별 '주제어 ÷ 기준' 지수를 만든다. (2025-11~2026-10 시험: 스마트공장 -34%, 제조업 -30%)
+reference:
+  name: 스마트공장
+  keywords: [스마트공장, 스마트팩토리]
+
+months: 24  # 기준일 직전 달까지 조회할 개월 수
+recent_months: 6  # 최근 N개월과 직전 N개월의 지수 평균을 비교
+direction_threshold_pct: 10  # 변화율이 ±이 값 이상이면 상승·둔화, 그 사이는 유지
+# 주제어 평균 검색량(요청 안 최댓값 100 기준)이 이 값보다 작거나, 최근 12개월 중 값이 없는 달이
+# max_missing_months보다 많으면 검색량 부족으로 판정한다. (시험: 공정제어·제조 AI 평균 0.3~0.7)
+min_average_ratio: 1.0
+max_missing_months: 2
+max_keywords: 3

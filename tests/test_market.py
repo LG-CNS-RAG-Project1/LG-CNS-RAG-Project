@@ -4,7 +4,9 @@ import pytest
 from pydantic import ValidationError
 
 from src.ingestion.market_processor import (
+    apply_keyword_config,
     build_documents,
+    current_keyword_ideas,
     group_duplicates,
     load_raw_news,
     merge_by_source_id,
@@ -191,6 +193,27 @@ def test_merge_by_source_id_unions_idea_ids():
     assert len(merged) == 1
     assert merged[0]["idea_ids"] == {"SF-01", "SF-02"}
     assert merged[0]["keyword_ids"] == {"cobot_adoption", "smart_factory"}
+
+
+def test_apply_keyword_config_uses_current_ideas_and_drops_legacy():
+    records = apply_keyword_config(
+        [
+            make_raw("news-a", "스마트공장 확산", keyword_id="smart_factory"),
+            make_raw("news-b", "생산현장 음성 AI", keyword_id="factory_voice_ai"),
+        ],
+        {"smart_factory": ["SF-01", "SF-05"]},
+    )
+
+    assert [r["source_id"] for r in records] == ["news-a"]
+    assert records[0]["idea_ids"] == ["SF-01", "SF-05"]
+
+
+def test_current_keyword_ideas_excludes_legacy_keywords():
+    keyword_ideas = current_keyword_ideas()
+
+    assert keyword_ideas["process_control_demand"] == ["SF-05"]
+    assert "SF-05" in keyword_ideas["smart_factory"]
+    assert "factory_voice_ai" not in keyword_ideas
 
 
 def test_group_duplicates_by_title_and_date():
