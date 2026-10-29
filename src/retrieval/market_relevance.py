@@ -79,6 +79,18 @@ NATURE_CUES = {
 STOCK_TITLE_RE = re.compile(
     r"관련주|특징주|테마주|주가|급등|상한가|하한가|목표주가|종목|증권가|시총|주식|순매수|매수세"
 )
+# 구매 신호로 판정된 기사가 실제 거래가 아니라 계획·발표를 다루는지 가리는 표현.
+# MOU·업무협약은 체결돼도 구매가 아니고, 계획 표현이 있으면서 완료 표현이 없으면 발표로 본다.
+# 제목이 거래(계약·수주·납품 등)를 알리고 계획 표현이 없으면 본문 계획 표현과 상관없이 유지한다.
+MOU_RE = re.compile(r"MOU|양해각서|업무협약|협약을 맺|협약 체결")
+PLAN_RE = re.compile(
+    r"계획|예정|방침|목표|추진|나선다|나섰다|나서|돌격|진출|공략|검토|하기로|한 뒤|한 후|청사진|로드맵"
+)
+DONE_RE = re.compile(
+    r"완료|준공|가동 중|가동에 들어|운영 중|운영하고|사용하고|계약을 체결|"
+    r"(?:도입|구축|공급|납품|체결|수주|적용|설치|투입|구매)(?:했|해|한 |하며|하고 있)"
+)
+TITLE_DEAL_RE = re.compile(r"계약|수주|납품|공급|구축|도입")
 
 
 def call_relevance_llm(
@@ -141,14 +153,29 @@ def checked_nature(nature: str, text: str) -> str:
     return nature if all(cue.search(text) for cue in cues) else "business_signal"
 
 
+def announced_only(title: str, text: str) -> bool:
+    """기사가 실제 거래가 아니라 MOU·계획·발표를 다루면 True (구매 신호에서 제외할 대상)."""
+    if MOU_RE.search(text):
+        return True
+    if TITLE_DEAL_RE.search(title) and not PLAN_RE.search(title):
+        return False
+    return bool(PLAN_RE.search(text)) and not DONE_RE.search(text)
+
+
 def judged_hit(hit: dict, raw: dict) -> dict:
     """검색 결과에 판정 필드를 붙인다. 뉴스는 근거 성격을 검사를 통과한 article_nature로 바꾼다.
 
-    제목이 주식·투자 기사(STOCK_TITLE_RE)이면 article_nature는 business_signal이다.
+    제목이 주식·투자 기사(STOCK_TITLE_RE)이면 article_nature는 business_signal이다. 구매 신호가
+    MOU·계획·발표 기사(announced_only)이면 business_signal로 낮춘다.
     """
     judged = {**hit, **parse_relevance(raw)}
     judged["article_nature"] = checked_nature(judged["article_nature"], hit["text"])
-    if STOCK_TITLE_RE.search(hit.get("title", "")):
+    title = hit.get("title", "")
+    if STOCK_TITLE_RE.search(title):
+        judged["article_nature"] = "business_signal"
+    if judged["article_nature"] == "purchase_signal" and announced_only(
+        title, hit["text"]
+    ):
         judged["article_nature"] = "business_signal"
     if hit.get("source_type") == "news":
         judged["evidence_nature"] = judged["article_nature"]
