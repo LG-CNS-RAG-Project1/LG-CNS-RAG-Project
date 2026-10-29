@@ -287,15 +287,20 @@ class BodyFetcher:
             except requests.RequestException:
                 status = "network_error"
                 continue
-            code = response.status_code
-            if code == 403:
-                return BodyResult("http_403", http_status=code, attempts=attempts)
-            if 400 <= code < 500:
-                return BodyResult("http_4xx", http_status=code, attempts=attempts)
-            if code >= 500:
-                status = "http_5xx"
-                continue
-            return self._read(response, snippet, attempts)
+            try:
+                code = response.status_code
+                if code == 403:
+                    return BodyResult("http_403", http_status=code, attempts=attempts)
+                if 400 <= code < 500:
+                    return BodyResult("http_4xx", http_status=code, attempts=attempts)
+                if code >= 500:
+                    status = "http_5xx"
+                    continue
+                return self._read(response, snippet, attempts)
+            finally:
+                close = getattr(response, "close", None)
+                if close:
+                    close()
         return BodyResult(status, attempts=attempts)
 
     def _read(self, response, snippet: str, attempts: int) -> BodyResult:
