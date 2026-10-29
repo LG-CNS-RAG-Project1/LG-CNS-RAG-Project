@@ -1357,6 +1357,12 @@ def render_market_report(market, draft=None, widget_suffix=""):
             "뉴스 제목·요약에서 함께 나온 단어의 관계이며 수요·인과·고객 유형을 뜻하지 않습니다."
         )
 
+    financials = getattr(market, "company_financials", None)
+    if financials is not None:
+        from frontend.market_financials_view import render_company_financials
+
+        render_company_financials(financials)
+
     observed_dimensions = [
         dimension
         for dimension in market.dimensions

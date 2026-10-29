@@ -270,6 +270,15 @@ flowchart TD
 - 샘플 결과(묶음 대표 명사): SF-01 자동화·도입·협동로봇 / 비용·중소·부담 / 중소기업·투자·무인공장, SF-02 검사·비전·외관검사 / 설비·예지보전·징후 / 분석·에이전트·손실, SF-04 공장·전력·공장에너지관리시스템 / 절감·전기료·피크·스케줄링 / 비용·LS일렉트릭·에이스침대, SF-05 최적화·데이터·실시간 / 자동화·제어·자율제조·장벽.
 - 한계: 같은 사건을 다룬 비슷한 기사가 여러 건이면(예: 반월시화 무인공장, LG전자 조력발전소 AI) 그 기사 표현이 한 묶음을 이룬다. 제목·요약만 쓰므로 본문의 연결은 반영하지 않는다.
 
+## 인접 기업 재무 현황
+
+시장 화면에서 아이디어와 같은 사업 범주로 검색한 기업이 어떤 규모·성장·수익 상태인지 보여 주기 위해 DART 사업보고서 주요 재무 계정을 표로 붙인다(`MarketReport.company_financials`). 기업 실적일 뿐 시장 규모·구매 수요의 근거가 아니며 차원별 판정에 쓰지 않는다.
+
+- 대상: 차원별 검색 결과에 들어온 DART 기업(`searched_dart_companies`, 최대 3곳). 기업명을 `configs/dart_companies.yaml`의 종목코드와 고유번호로 바꾼다.
+- 조회: OpenDART `fnlttSinglAcnt`(단일회사 주요계정, 사업보고서 `11011`)로 기준일 직전 사업연도를 조회하고, 공시가 없으면(상태 `013`) 그 전 사업연도를 쓴다. 한 번의 응답에 당기·전기·전전기 금액이 있어 3개 연도를 얻는다. 받은 계정은 `data/market/raw/dart/financials/{고유번호}_{연도}.json`에 캐시한다.
+- 정리: 연결재무제표(CFS)가 있으면 연결, 없으면 별도(OFS). 계정명은 공백과 '(손실)'을 빼고 매출액·영업이익·당기순이익만 쓴다. 표는 억원 단위로 3개 연도 매출액, 최근 연도의 전년 대비 매출 증감·영업이익·영업이익률·당기순이익을 보여 준다.
+- 한계: 회사 전체 실적이라 아이디어 관련 사업부만의 매출이 아니다. 합병·사업 양수 등으로 연도 간 매출이 크게 바뀔 수 있다.
+
 ## 단계별 코드 위치
 
 | 단계 | 위치 |
@@ -286,6 +295,7 @@ flowchart TD
 | 시장 조사 진입점 | `src/services/market_service.py` |
 | 검색 관심도 흐름 | `configs/search_trend.yaml`, `prompts/market_trend_terms.md`, `src/ingestion/trend_client.py` → `data/market/trends/`, `src/services/market_trend.py`, `frontend/market_trend_view.py` |
 | 키워드 동시 출현 네트워크 | `configs/keyword_network.yaml`, `src/services/market_network.py`, `frontend/market_network_view.py` |
+| 인접 기업 재무 현황 | `configs/dart_companies.yaml`, `src/ingestion/dart_client.py`(`fetch_major_accounts`) → `data/market/raw/dart/financials/`, `src/services/market_financials.py`, `frontend/market_financials_view.py` |
 | 보고서용 마크다운 섹션 | `src/generation/market_markdown.py` |
 | 연결 계약 (입력·출력·오류) | `docs/api_contract.md` |
 | 시장 분석 생성 규칙 | `prompts/market_analysis.md`, `src/generation/market_analysis.py` |

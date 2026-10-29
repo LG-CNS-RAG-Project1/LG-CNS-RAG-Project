@@ -56,6 +56,7 @@
 | `opportunity_review` | 목표 세그먼트·가치 가설·직접 수요 상태·시장 근거와 인용·미확인 사항·다음 고객 검증 행동 |
 | `search_trend` | 검색 관심도 흐름 (없으면 `null`). `status`(`completed`·`insufficient_volume` 검색량 부족·`error`)·`keywords`(주제어)·`reference_keywords`(기준 주제어)·`points[]`(`period` YYYY-MM, `theme_ratio`·`reference_ratio` 요청 안 최댓값 100 기준 상대값, `relative_index` 주제어÷기준×100)·`recent_change_pct`(최근 6개월 지수 평균의 직전 6개월 대비 %)·`direction`(`rising`·`stable`·`cooling`·`unknown`)·`note`·`error_message`. 검색 관심도이며 시장 규모·수요 근거가 아니어서 차원별 판정에 쓰지 않는다. 실패해도 보고서 `status`는 바뀌지 않는다 |
 | `keyword_network` | 키워드 동시 출현 네트워크 (없으면 `null`). `status`(`completed`·`insufficient` 기사·연결 부족·`error`)·`document_count`(분석 기사 수)·`nodes[]`(`term`·`document_count`·`cluster` 묶음 번호·`x`·`y` 배치 좌표 -1~1)·`edges[]`(`source`·`target`·`weight` 함께 나온 기사 수)·`clusters`(묶음별 명사, 인덱스 = `cluster`)·`note`·`error_message`. 같은 기사에 함께 나왔다는 뜻이며 수요·인과 근거가 아니다. 실패해도 보고서 `status`는 바뀌지 않는다 |
+| `company_financials` | 인접 기업 재무 현황 (없으면 `null`). `status`(`completed`·`no_companies` 검색한 DART 기업 없음·`error`)·`companies[]`(`company`·`stock_code`·`statement` `연결`/`별도`·`rcept_no` 사업보고서 접수번호·`years[]` 오래된 연도부터 `year`·`revenue` 매출액·`operating_income` 영업이익·`net_income` 당기순이익, 단위 원, 공시에 없으면 `null`)·`missing`(재무 계정을 찾지 못한 기업과 사유)·`note`·`error_message`. 기업 실적이며 시장 규모·수요 근거가 아니어서 차원별 판정에 쓰지 않는다. 실패해도 보고서 `status`는 바뀌지 않는다 |
 | `search_scope` · `data_as_of` | 검색 범위 설명, 분석 기준일(YYYYMMDD) |
 
 - 오류는 예외 대신 `status="error"` 보고서로 돌려준다(검색·판정·분석 생성 실패 모두).

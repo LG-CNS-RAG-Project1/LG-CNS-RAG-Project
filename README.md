@@ -231,6 +231,7 @@ python -m src.services.market_service --idea-id SF-01 --out data/samples/market_
 python -m src.services.market_service --idea-id SF-01 --idea-filter                           # 아이디어 연결 자료로 한정
 python -m src.services.market_service --idea-id SF-01 --no-trend                              # 검색 관심도 흐름 생략
 python -m src.services.market_service --idea-id SF-01 --no-network                            # 키워드 동시 출현 네트워크 생략
+python -m src.services.market_service --idea-id SF-01 --no-financials                         # 검색한 DART 기업 재무 현황 생략
 python -m src.ingestion.trend_client 예지보전 예측정비                                         # 주제어 검색 관심도 직접 조회
 ```
 
@@ -240,13 +241,14 @@ python -m src.ingestion.trend_client 예지보전 예측정비                  
 - 사실 문장은 인용 근거(`evidence`의 `citation_id`)가 있어야 하고, 인용 기사·아이디어 입력에 없는 숫자가 있거나 수치에 기준 연도가 없으면 재생성(최대 2회)하거나 해당 문장을 제거한다. 판정은 차원별 충분성 상태와 근거 성격으로 제한하고(근거 1건이거나 사업 신호뿐이면 최대 '신호만 확인'), 기대는 아이디어 항목이 모름이면 미확인으로 둔다(가격 ← 수익모델, 구매자 ← 고객). 뉴스의 근거 성격(구매 신호·간접 수요·사업 신호 등)은 관련성 판정과 같은 호출에서 정하고, 차원마다 확인되지 않은 이유(`limitation`)를 붙인다. DART 사업보고서를 인용한 문장은 "기업 사업보고서(FY연도)에 따르면"처럼 공시 기업을 밝힌다.
 - 검색 관심도 흐름(`MarketReport.search_trend`): 아이디어 5개 항목에서 LLM이 검색 주제어(대표 범주 + 같은 범주의 다른 이름, 최대 3개, `prompts/market_trend_terms.md`)를 고르고, 네이버 검색어 트렌드로 기준 주제어(스마트공장·스마트팩토리)와 함께 최근 24개월 월별 검색량을 조회한다(`src/ingestion/trend_client.py`, 설정 `configs/search_trend.yaml`). 월별 '주제어 ÷ 기준 × 100' 지수의 최근 6개월 평균을 직전 6개월과 비교해 ±10% 이상이면 상승·둔화, 그 사이는 유지로 표시하고, 평균 검색량이 적으면 판단하지 않는다(`src/services/market_trend.py`). 시장 화면에 월별 선 그래프로 나오며(`frontend/market_trend_view.py`), 차원별 판정에는 쓰지 않는다. 화면 통합 실행과 CLI에서만 붙고, 같은 요청은 그날 `data/market/trends/`에 캐시한다. `NAVER_TREND_CLIENT_ID`·`NAVER_TREND_CLIENT_SECRET`이 필요하다.
 - 키워드 동시 출현 네트워크(`MarketReport.keyword_network`): 아이디어 전체 문장과 가까운 뉴스 100건의 제목·요약에서 `kiwipiepy`로 명사를 뽑고(붙어 쓴 명사는 합침), 전체 뉴스보다 이 아이디어 주변에서 두드러진 명사 30개(lift ≥ 1.5, 기사 수 × ln(lift) 순)를 같은 기사에 함께 나온 기사 수로 잇는다. `networkx`로 키워드 묶음(가중 모듈성)과 배치를 계산해 시장 화면에 연결망 그림과 묶음 목록으로 보여 준다(`src/services/market_network.py`, 설정 `configs/keyword_network.yaml`, 화면 `frontend/market_network_view.py`). LLM 없이 질의 임베딩 1회만 쓰며, 함께 나온 것은 같은 기사에서 다뤄졌다는 뜻이라 차원별 판정에는 쓰지 않는다. 화면 통합 실행과 CLI에서만 붙는다.
+- 인접 기업 재무 현황(`MarketReport.company_financials`): 차원별 검색에서 고른 DART 기업(최대 3곳)의 기준일 직전 사업연도 사업보고서 주요 재무 계정(OpenDART `fnlttSinglAcnt`)을 조회해, 최근 3개 사업연도 매출액과 최근 연도의 전년 대비 매출 증감·영업이익·영업이익률·당기순이익을 억원 단위 표로 보여 준다(`src/services/market_financials.py`, 화면 `frontend/market_financials_view.py`). 연결재무제표가 없으면 별도재무제표를 쓰고, 직전 사업연도 공시가 아직 없으면 그 전 연도를 쓴다. 조회 결과는 `data/market/raw/dart/financials/`에 캐시한다. 기업 실적일 뿐 시장 규모·구매 수요의 근거가 아니어서 차원별 판정에는 쓰지 않는다. 화면 통합 실행과 CLI에서만 붙고 `DART_API_KEY`가 필요하다.
 - `data/samples/market_reports/`에는 SF-01~SF-05를 기본 실행(화면과 같은 전체 색인 검색)으로 만든 결과 예시가 있다. 로컬 수집 뉴스·DART 기준이므로 다시 수집하면 내용이 달라진다.
 
 ```bash
 python -m src.generation.market_markdown data/samples/market_reports/SF-01.json   # 종합 보고서용 마크다운 섹션 출력
 ```
 
-- `market_report_to_markdown(report)`는 `MarketReport`를 종합 보고서의 '시장 조사 및 분석 결과' 섹션(차원별 판정 요약 표, 차원별 문장·검증 과제, 검색 관심도 흐름, 키워드 동시 출현 묶음, 미확인 사항, 근거 목록)으로 바꾼다. LLM을 부르지 않으며, 인용은 UI와 같은 `M:{citation_id}`로 쓴다.
+- `market_report_to_markdown(report)`는 `MarketReport`를 종합 보고서의 '시장 조사 및 분석 결과' 섹션(차원별 판정 요약 표, 차원별 문장·검증 과제, 검색 관심도 흐름, 키워드 동시 출현 묶음, 인접 기업 재무 현황 표, 미확인 사항, 근거 목록)으로 바꾼다. LLM을 부르지 않으며, 인용은 UI와 같은 `M:{citation_id}`로 쓴다.
 - 아이디어 입력·시장 조사 진입점의 입력·출력·오류 처리 약속은 [docs/api_contract.md](docs/api_contract.md)에 정리한다.
 
 ### 아이디어 구조화

@@ -15,6 +15,7 @@ from urllib.parse import urlparse
 
 from src.retrieval.market_relevance import DIMENSION_LABELS
 from src.schemas import (
+    MarketCompanyFinancials,
     MarketEvidence,
     MarketKeywordNetwork,
     MarketReport,
@@ -98,6 +99,58 @@ def keyword_network_summary(network: MarketKeywordNetwork) -> str:
     return (
         f"아이디어와 가까운 뉴스 {network.document_count}건에서 두드러진 명사 "
         f"{len(network.nodes)}개가 {len(network.clusters)}개 묶음으로 나뉩니다."
+    )
+
+
+def _eok(amount: int | None) -> str:
+    """원 단위 금액을 억원 단위 문자열로 쓴다. 값이 없으면 '-'."""
+    return "-" if amount is None else f"{amount / 1e8:,.0f}"
+
+
+def _pct(numerator: int | None, denominator: int | None) -> str:
+    """비율(%)을 소수 첫째 자리로 쓴다. 분모가 없거나 0 이하면 '-'."""
+    if numerator is None or not denominator or denominator <= 0:
+        return "-"
+    return f"{numerator / denominator * 100:+.1f}%"
+
+
+def company_financial_rows(financials: MarketCompanyFinancials) -> list[dict]:
+    """기업 재무 현황을 표의 행 목록으로 만든다. 금액은 억원, 비율은 %.
+
+    열: 기업·재무제표, 연도별 매출액, 최근 연도의 전년 대비 매출 증감·영업이익·영업이익률·당기순이익.
+    """
+    rows = []
+    for company in financials.companies:
+        years = company.years
+        latest, previous = years[-1], years[-2] if len(years) > 1 else None
+        growth = (
+            _pct(latest.revenue - previous.revenue, previous.revenue)
+            if previous and latest.revenue is not None and previous.revenue
+            else "-"
+        )
+        row = {"기업": company.company, "재무제표": company.statement}
+        row.update({f"매출액 {y.year}": _eok(y.revenue) for y in years})
+        row.update(
+            {
+                "매출 증감(전년)": growth,
+                f"영업이익 {latest.year}": _eok(latest.operating_income),
+                "영업이익률": _pct(latest.operating_income, latest.revenue).lstrip("+"),
+                f"당기순이익 {latest.year}": _eok(latest.net_income),
+            }
+        )
+        rows.append(row)
+    return rows
+
+
+def company_financials_summary(financials: MarketCompanyFinancials) -> str:
+    """기업 재무 현황의 대상 기업 수를 한 문장으로 쓴다. 기업 없음·오류면 그 사유를 쓴다."""
+    if financials.status == "error":
+        return f"기업 재무 현황을 불러오지 못했습니다. ({financials.error_message or '사유 미확인'})"
+    if financials.status == "no_companies" or not financials.companies:
+        return "아이디어와 같은 사업 범주로 검색한 DART 기업의 재무 계정이 없습니다."
+    return (
+        f"아이디어와 같은 사업 범주로 검색한 DART 기업 {len(financials.companies)}곳의 "
+        "최근 3개 사업연도 실적입니다 (단위: 억원)."
     )
 
 
@@ -245,6 +298,30 @@ def market_report_to_markdown(report: MarketReport, heading_level: int = 2) -> s
             ]
         if network.note:
             lines += ["", f"> {cell(network.note)}"]
+
+    financials = report.company_financials
+    if financials:
+        lines += [
+            "",
+            f"{sub} 인접 기업 재무 현황",
+            "",
+            f"- {cell(company_financials_summary(financials))}",
+        ]
+        rows = company_financial_rows(financials)
+        if rows:
+            headers = list(rows[0])
+            lines += [
+                "",
+                "| " + " | ".join(headers) + " |",
+                "|" + "---|" * len(headers),
+            ]
+            lines += [
+                "| " + " | ".join(cell(str(r.get(h, "-"))) for h in headers) + " |"
+                for r in rows
+            ]
+        lines += [f"- 재무 계정 없음: {cell(m)}" for m in financials.missing]
+        if financials.note:
+            lines += ["", f"> {cell(financials.note)}"]
 
     if report.unknowns:
         lines += ["", f"{sub} 미확인 사항", ""]
