@@ -99,6 +99,69 @@ def test_patent_review_groups_citations_and_maps_each_idea_component():
     assert precheck.citation_ids == [1, 2]
 
 
+def test_component_review_bounds_total_evidence_and_reports_omitted_citations():
+    idea = StructuredIdea(
+        title="영상 검사",
+        problem="결함 검사",
+        technology="영상 기반 검사",
+        technical_components=["영상 분석"],
+    )
+    evidence = [
+        PatentEvidence(
+            citation_id=1,
+            patent_id="P1",
+            title="검사 특허",
+            section="abstract",
+            quote="초록 " + "가" * 18000,
+        ),
+        PatentEvidence(
+            citation_id=2,
+            patent_id="P1",
+            title="검사 특허",
+            section="claims",
+            quote="독립 청구항 " + "나" * 15000,
+            claim_number=1,
+            claim_type="independent",
+        ),
+    ]
+    captured = {}
+
+    def fake_llm(_prompt, user_text):
+        captured.update(json.loads(user_text))
+        return {
+            "patent_reviews": [
+                {
+                    "patent_id": "P1",
+                    "title": "검사 특허",
+                    "citation_ids": [2],
+                    "relevance": "medium",
+                    "relevance_reason": "청구항 근거로 검토",
+                    "component_comparisons": [
+                        {
+                            "component_id": "C1",
+                            "idea_component": "영상 분석",
+                            "status": "uncertain",
+                            "citation_ids": [2],
+                            "uncertainty": "구성 범위 추가 확인",
+                        }
+                    ],
+                    "overall_summary": "청구항 원문 검토 필요",
+                }
+            ],
+            "patentability_precheck": {
+                "status": "insufficient_evidence",
+                "summary": "예비 검토",
+                "citation_ids": [2],
+            },
+        }
+
+    reviews, _ = review_patents_by_component(idea, evidence, fake_llm)
+    request_citations = captured["required_citation_ids"]
+    assert request_citations == [2]
+    assert len(reviews[0].unknowns) == 1
+    assert "1" in reviews[0].unknowns[0]
+
+
 def test_priority_orders_cited_overlap_before_partial_and_low_relevance():
     high_overlap = PatentDocumentReview(
         patent_id="1",

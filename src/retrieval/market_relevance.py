@@ -66,6 +66,11 @@ NATURE_CUES = {
         re.compile(r"\d+(?:\.\d+)?\s*(?:%|퍼센트|개사|곳|명|건)"),
     ],
 }
+# 제목에 이 표현이 있는 주식·투자 기사는 공급·계약을 언급해도 주가 재료로 다룬 글이라
+# NATURE_CUES를 통과해도 business_signal로 둔다 (관련성 판정은 바꾸지 않는다).
+STOCK_TITLE_RE = re.compile(
+    r"관련주|특징주|테마주|주가|급등|상한가|하한가|목표주가|종목|증권가|시총|주식|순매수|매수세"
+)
 
 
 def call_relevance_llm(
@@ -129,9 +134,14 @@ def checked_nature(nature: str, text: str) -> str:
 
 
 def judged_hit(hit: dict, raw: dict) -> dict:
-    """검색 결과에 판정 필드를 붙인다. 뉴스는 근거 성격을 검사를 통과한 article_nature로 바꾼다."""
+    """검색 결과에 판정 필드를 붙인다. 뉴스는 근거 성격을 검사를 통과한 article_nature로 바꾼다.
+
+    제목이 주식·투자 기사(STOCK_TITLE_RE)이면 article_nature는 business_signal이다.
+    """
     judged = {**hit, **parse_relevance(raw)}
     judged["article_nature"] = checked_nature(judged["article_nature"], hit["text"])
+    if STOCK_TITLE_RE.search(hit.get("title", "")):
+        judged["article_nature"] = "business_signal"
     if hit.get("source_type") == "news":
         judged["evidence_nature"] = judged["article_nature"]
     return judged

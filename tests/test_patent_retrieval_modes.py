@@ -1,6 +1,7 @@
 ### PR충돌 때문에 따로 빼둠 추후에 test_patent.py에 병합예정
 
-from src.retrieval.patent_search import search_patents
+from src.retrieval.patent_search import bi_encoder_reranker, search_patents
+from src.retrieval.schemas import SearchDocument
 from src.retrieval.patent_store import build_index, get_collection
 from src.schemas import PatentChunk, PatentDocument
 
@@ -39,3 +40,39 @@ def test_patent_search_supports_bm25_and_hybrid(tmp_path):
 
     assert bm25[0].document.source_id == "P001"
     assert hybrid[0].rrf_score is not None
+
+
+def test_bi_encoder_reranker_sorts_by_query_document_cosine_similarity():
+    vectors = {
+        "질의": [1.0, 0.0],
+        "정답\n설명": [0.9, 0.1],
+        "무관\n설명": [0.0, 1.0],
+    }
+    calls = []
+
+    def embed(texts):
+        calls.extend(texts)
+        return [vectors[text] for text in texts]
+
+    score = bi_encoder_reranker(embed)
+    documents = [
+        SearchDocument(
+            chunk_id="1",
+            source_id="P1",
+            source_type="patent",
+            title="정답",
+            content="설명",
+        ),
+        SearchDocument(
+            chunk_id="2",
+            source_id="P2",
+            source_type="patent",
+            title="무관",
+            content="설명",
+        ),
+    ]
+
+    scores = score("질의", documents)
+
+    assert scores[0] > scores[1]
+    assert calls == ["질의", "정답\n설명", "무관\n설명"]

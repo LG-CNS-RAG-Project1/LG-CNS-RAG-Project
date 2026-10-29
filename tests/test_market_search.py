@@ -102,6 +102,29 @@ def test_build_index_reembeds_changed_text_and_updates_metadata(indexed):
     assert by_id["news-c#0"][0] == "예지보전 솔루션 가격"
 
 
+def test_build_index_removes_dropped_idea_flags(collection):
+    build_index(
+        [
+            make_document("news-a", "협동로봇", idea_ids=["SF-01", "SF-05"]),
+            make_document("news-b", "FEMS", idea_ids=["SF-04", "SF-05"]),
+        ],
+        collection,
+        embed_fn=fake_embed,
+    )
+    build_index(
+        [
+            make_document("news-a", "협동로봇", idea_ids=["SF-01"]),
+            make_document("news-b", "FEMS 가격", idea_ids=["SF-04"]),
+        ],
+        collection,
+        embed_fn=fake_embed,
+    )
+
+    assert collection.get(where={"idea_SF-05": True})["ids"] == []
+    assert sorted(collection.get(where={"idea_SF-01": True})["ids"]) == ["news-a#0"]
+    assert collection.get(ids=["news-b#0"])["metadatas"][0]["idea_ids"] == "SF-04"
+
+
 def test_build_index_prunes_stale_ids_after_upsert(indexed):
     def failing_embed(texts):
         raise RuntimeError("quota")

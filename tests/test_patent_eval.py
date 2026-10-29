@@ -2,7 +2,7 @@ import csv
 
 import pytest
 
-from evaluation.evaluate import evaluate_patents, summarize
+from evaluation.evaluate import attach_patent_run_metadata, evaluate_patents, summarize
 from evaluation.patent_labeling import (
     CSV_FIELDS,
     export_candidates,
@@ -65,6 +65,41 @@ def test_evaluate_patents_skips_unlabeled_cases():
     assert evaluate_patents(CASES, lambda query, top_k: []) == []
 
 
+def test_patent_run_metadata_records_selected_reranker():
+    rows = attach_patent_run_metadata(
+        [{"case_id": "case-1"}],
+        "hybrid",
+        True,
+        reranker_model="text-embedding-3-small (bi-encoder)",
+    )
+
+    assert rows[0]["reranker_model"] == "text-embedding-3-small (bi-encoder)"
+    assert rows[0]["model"] == "text-embedding-3-small (bi-encoder)"
+    assert rows[0]["mode"] == "hybrid+rerank"
+
+
+def test_default_patent_search_fn_passes_candidate_count_to_retriever(monkeypatch):
+    from evaluation import evaluate as module
+
+    class Collection:
+        def count(self):
+            return 100
+
+    captured = {}
+    monkeypatch.setattr(module, "get_patent_collection", lambda: Collection())
+
+    def search(*args, **kwargs):
+        captured.update(kwargs)
+        return []
+
+    monkeypatch.setattr(module, "search_patent_documents", search)
+    search_fn = module.default_patent_search_fn("hybrid", candidate_k=40)
+    search_fn("query", 5)
+
+    assert captured["retrieval_config"].candidate_k == 40
+    assert captured["retrieval_config"].top_k == 5
+
+
 def test_export_candidates_unions_modes_by_patent_source(tmp_path):
     modes = {
         "dense": lambda query: [result("p1", "Patent one", claim_number=2)],
@@ -82,10 +117,25 @@ def test_export_candidates_unions_modes_by_patent_source(tmp_path):
     with open(path, encoding="utf-8-sig", newline="") as file:
         rows = list(csv.DictReader(file))
     assert [row["source_id"] for row in rows] == ["p1", "p2"]
-    assert rows[0]["retrieved_by"] == "dense;bm25"
     assert rows[0]["claim_number"] == "2"
-    assert rows[1]["retrieved_by"] == "bm25;hybrid"
     assert set(rows[0]) == set(CSV_FIELDS)
+    assert not {"retrieved_by", "best_rank", "mode"} & set(rows[0])
+
+
+def test_export_candidates_builds_kipris_link_when_source_url_is_missing(tmp_path):
+    path = tmp_path / "patent_candidates.csv"
+
+    export_candidates(
+        CASES,
+        {"dense": lambda query: [result("1020200000001")]},
+        path,
+    )
+
+    with open(path, encoding="utf-8-sig", newline="") as file:
+        rows = list(csv.DictReader(file))
+    assert rows[0]["url"] == (
+        "https://www.kipris.or.kr/khome/search/searchResult.do?queryText=1020200000001"
+    )
 
 
 def test_import_labels_waits_until_every_candidate_is_judged(tmp_path):

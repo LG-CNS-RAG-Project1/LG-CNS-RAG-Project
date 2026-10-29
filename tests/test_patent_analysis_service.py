@@ -49,6 +49,7 @@ def result(patent_id, section="abstract", content="비전 검사 장치.", rank=
                 "application_number": patent_id,
                 "publication_number": f"KR{rank:05d}A",
                 "source_url": f"https://example.test/{patent_id}",
+                "collected_at": "2026-10-29T01:02:03+00:00",
             },
         ),
         dense_score=0.9 - rank / 100,
@@ -117,6 +118,9 @@ def test_analysis_limits_to_five_patents_and_keeps_claim_citations(monkeypatch):
     assert len(report.evidence) == 10
     assert all(
         item.section == "claims" and item.claim_number for item in report.evidence
+    )
+    assert all(
+        item.collected_at == "2026-10-29T01:02:03+00:00" for item in report.evidence
     )
     assert [item.citation_id for item in report.comparisons] == list(range(1, 11))
     assert len(fetched) == 5
