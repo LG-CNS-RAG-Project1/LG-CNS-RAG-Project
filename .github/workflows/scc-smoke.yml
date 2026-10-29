@@ -1,0 +1,73 @@
+name: SCC Smoke
+
+# main에 반영된 커밋이 Streamlit Community Cloud 앱에 배포되어 비밀번호 화면까지 뜨는지 브라우저로 확인한다.
+# push 실행은 화면의 버전이 방금 커밋과 같아질 때까지 기다린다. 수동 실행은 시연 전에 잠든 앱을 깨우는 데도 쓴다.
+# 앱 주소는 저장소 변수 SCC_APP_URL(https://<앱>.streamlit.app)에 둔다. 비밀번호는 쓰지 않는다.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: scc-smoke
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    name: SCC app smoke check
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      SCC_APP_URL: ${{ vars.SCC_APP_URL }}
+    steps:
+      - name: Check app URL
+        id: url
+        run: |
+          if [ -n "$SCC_APP_URL" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          elif [ "$GITHUB_EVENT_NAME" = "push" ]; then
+            echo "::warning::저장소 변수 SCC_APP_URL이 없어 배포 확인을 건너뜁니다. SCC 앱을 만든 뒤 설정하세요."
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "::error::저장소 변수 SCC_APP_URL을 먼저 설정하세요."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v7
+        if: steps.url.outputs.configured == 'true'
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@v7
+        if: steps.url.outputs.configured == 'true'
+        with:
+          python-version: "3.12"
+
+      - name: Install Playwright Chromium
+        if: steps.url.outputs.configured == 'true'
+        run: |
+          python -m pip install "playwright==1.64.1"
+          python -m playwright install --with-deps chromium
+
+      - name: Check deployed app
+        if: steps.url.outputs.configured == 'true'
+        env:
+          EXPECTED_SHA: ${{ github.event_name == 'push' && github.sha || '' }}
+          INITIAL_WAIT: ${{ github.event_name == 'push' && '60' || '0' }}
+        run: >-
+          python scripts/scc_smoke.py
+          --url "$SCC_APP_URL"
+          --expect-sha "$EXPECTED_SHA"
+          --initial-wait "$INITIAL_WAIT"
+          --screenshot scc-smoke.png
+
+      - name: Upload failure screenshot
+        if: failure() && steps.url.outputs.configured == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: scc-smoke-screenshot
+          path: scc-smoke.png
+          if-no-files-found: ignore
