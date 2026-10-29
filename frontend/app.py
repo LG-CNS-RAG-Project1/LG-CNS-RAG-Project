@@ -1297,6 +1297,10 @@ def render_market_report(market, draft=None, widget_suffix=""):
 
     render_search_trend(getattr(market, "search_trend", None), widget_suffix)
 
+    from frontend.market_network_view import render_keyword_network
+
+    render_keyword_network(getattr(market, "keyword_network", None), widget_suffix)
+
     if market.dimensions or market.evidence:
         from src.generation.market_markdown import market_report_to_markdown
 
