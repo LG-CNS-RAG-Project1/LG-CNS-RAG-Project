@@ -1,0 +1,102 @@
+{
+  "dataset_id": "patent-retrieval-synthetic-v1",
+  "dataset_type": "synthetic_pipeline_fixture",
+  "notice": "모든 문헌, 출원번호, 기술 설명, 질의, 관련도 판정은 파이프라인 재현용으로 만든 허구 자료다. 실제 특허 검색 품질의 평가나 성능 주장에 사용하지 않는다.",
+  "schema_version": 1,
+  "documents": [
+    {
+      "source_id": "SYN-PAT-001",
+      "application_number": "SYN-2026-0001",
+      "title": "조명 조건을 조절하는 표면 결함 검사 장치",
+      "abstract": "가상의 제조 검사 장치로, 카메라 영상의 밝기 편차를 측정하고 조명 출력을 조절해 금속 표면의 흠집을 검출한다.",
+      "sections": {"technical_field": "산업용 영상 검사", "problem": "반사 표면의 조명 편차로 결함 검출이 불안정함", "solution": "영상 밝기 피드백에 따라 조명 출력을 제어함", "effect": "촬영 조건의 편차를 줄임"},
+      "claims": [{"claim_number": 1, "depends_on": [], "text": "카메라, 조명부 및 영상 밝기에 기초해 조명 출력을 조절하는 제어부를 포함하는 표면 검사 장치."}],
+      "source_type": "synthetic_patent",
+      "version_id": "SYN-V1",
+      "source_url": ""
+    },
+    {
+      "source_id": "SYN-PAT-002",
+      "application_number": "SYN-2026-0002",
+      "title": "학습된 영상 특징을 이용한 제품 외관 이상 분류 방법",
+      "abstract": "가상의 분류 방법으로, 정상·불량 영상에서 학습한 특징 표현을 이용해 제품 외관 이상의 유형을 분류한다.",
+      "sections": {"technical_field": "산업용 영상 검사", "problem": "불량 유형별 수작업 판정이 일관되지 않음", "solution": "학습된 영상 특징과 분류기를 사용함", "effect": "외관 이상 유형을 자동 분류함"},
+      "claims": [{"claim_number": 1, "depends_on": [], "text": "입력 영상에서 학습 특징을 추출하고 추출된 특징에 따라 외관 이상 유형을 분류하는 방법."}],
+      "source_type": "synthetic_patent",
+      "version_id": "SYN-V1",
+      "source_url": ""
+    },
+    {
+      "source_id": "SYN-PAT-003",
+      "application_number": "SYN-2026-0003",
+      "title": "복수 센서 공정 변수의 연동 제어 시스템",
+      "abstract": "가상의 제어 시스템으로, 온도와 압력 센서 값을 함께 분석해 제조 장치의 설정값을 조정한다.",
+      "sections": {"technical_field": "제조 공정 제어", "problem": "단일 변수 제어로 공정 간 상호작용을 반영하기 어려움", "solution": "복수 센서 변수의 상관관계를 계산하고 설정값을 조정함", "effect": "공정 변수 간 연동 제어를 수행함"},
+      "claims": [{"claim_number": 1, "depends_on": [], "text": "온도 센서와 압력 센서의 측정값을 분석하고 두 측정값에 따라 공정 설정값을 변경하는 제어 시스템."}],
+      "source_type": "synthetic_patent",
+      "version_id": "SYN-V1",
+      "source_url": ""
+    },
+    {
+      "source_id": "SYN-PAT-004",
+      "application_number": "SYN-2026-0004",
+      "title": "공정 데이터 기반 설비 병목 예측 방법",
+      "abstract": "가상의 제조 분석 방법으로, 공정별 체류 시간과 대기열 데이터를 이용해 미래의 생산 병목을 예측한다.",
+      "sections": {"technical_field": "제조 데이터 분석", "problem": "병목 발생 후에야 생산 지연을 확인함", "solution": "체류 시간과 대기열 추세를 분석해 병목을 예측함", "effect": "예상 병목에 대한 사전 대응을 지원함"},
+      "claims": [{"claim_number": 1, "depends_on": [], "text": "공정 체류 시간 및 대기열 정보를 분석해 미래 병목 후보를 산출하는 방법."}],
+      "source_type": "synthetic_patent",
+      "version_id": "SYN-V1",
+      "source_url": ""
+    },
+    {
+      "source_id": "SYN-PAT-005",
+      "application_number": "SYN-2026-0005",
+      "title": "영상 결함 검출 결과를 이용한 검사 장치 보정",
+      "abstract": "가상의 검사 장치로, 검출된 결함 영역의 위치 오차를 이용해 카메라 좌표와 검사 기준을 보정한다.",
+      "sections": {"technical_field": "산업용 영상 검사", "problem": "장치 정렬 오차로 검사 위치가 달라짐", "solution": "결함 위치 오차에 따라 좌표 변환을 갱신함", "effect": "검사 좌표의 재현성을 개선함"},
+      "claims": [{"claim_number": 1, "depends_on": [], "text": "검출된 결함 영역과 기준 위치의 차이를 이용해 검사 좌표계를 보정하는 장치."}],
+      "source_type": "synthetic_patent",
+      "version_id": "SYN-V1",
+      "source_url": ""
+    },
+    {
+      "source_id": "SYN-PAT-006",
+      "application_number": "SYN-2026-0006",
+      "title": "제조 레시피 변경 이력 관리 방법",
+      "abstract": "가상의 생산 관리 방법으로, 작업자가 변경한 제조 레시피와 승인 상태를 저장하고 조회한다.",
+      "sections": {"technical_field": "생산 정보 관리", "problem": "레시피 변경의 승인 이력을 추적하기 어려움", "solution": "변경자, 변경값, 승인 상태를 기록함", "effect": "레시피 이력을 추적할 수 있음"},
+      "claims": [{"claim_number": 1, "depends_on": [], "text": "제조 레시피의 변경 정보와 승인 상태를 저장하는 관리 방법."}],
+      "source_type": "synthetic_patent",
+      "version_id": "SYN-V1",
+      "source_url": ""
+    },
+    {
+      "source_id": "SYN-PAT-007",
+      "application_number": "SYN-2026-0007",
+      "title": "작업자 안전 구역 접근 알림 시스템",
+      "abstract": "가상의 안전 설비로, 거리 센서가 작업자의 접근을 감지하면 경고 표시를 작동한다.",
+      "sections": {"technical_field": "산업 안전", "problem": "작업자와 설비 간 위험 접근을 놓칠 수 있음", "solution": "거리 임계값을 기준으로 경고를 출력함", "effect": "위험 구역 접근을 알림"},
+      "claims": [{"claim_number": 1, "depends_on": [], "text": "거리 센서와 경고 출력부를 포함하는 접근 알림 시스템."}],
+      "source_type": "synthetic_patent",
+      "version_id": "SYN-V1",
+      "source_url": ""
+    },
+    {
+      "source_id": "SYN-PAT-008",
+      "application_number": "SYN-2026-0008",
+      "title": "센서 편차에 따른 생산 설비 설정값 보정 장치",
+      "abstract": "가상의 공정 제어 장치로, 온도 센서 편차와 압력 변동을 반영해 설비의 목표 운전값을 보정한다.",
+      "sections": {"technical_field": "제조 공정 제어", "problem": "센서 편차가 누적되면 설정값 제어가 불안정함", "solution": "온도·압력 측정값을 함께 이용해 목표값을 보정함", "effect": "복합 변수 변화에 맞춰 설정값을 보정함"},
+      "claims": [{"claim_number": 1, "depends_on": [], "text": "온도 측정값의 편차와 압력 변동을 입력받아 설비 목표값을 갱신하는 제어 장치."}],
+      "source_type": "synthetic_patent",
+      "version_id": "SYN-V1",
+      "source_url": ""
+    }
+  ],
+  "queries": [
+    {"case_id": "SYN-Q-01", "technology_area_id": "SF-02", "technical_element": "조명 피드백 기반 표면 결함 검사", "query": "카메라 영상 밝기에 따라 조명을 조절하며 표면 결함을 검사", "relevant_source_ids": ["SYN-PAT-001", "SYN-PAT-005"], "judged_source_ids": ["SYN-PAT-001", "SYN-PAT-002", "SYN-PAT-005", "SYN-PAT-006", "SYN-PAT-007"]},
+    {"case_id": "SYN-Q-02", "technology_area_id": "SF-02", "technical_element": "학습 영상 특징 기반 불량 분류", "query": "학습 데이터로 영상 특징을 추출해 제품 외관 불량 유형 분류", "relevant_source_ids": ["SYN-PAT-002"], "judged_source_ids": ["SYN-PAT-001", "SYN-PAT-002", "SYN-PAT-005", "SYN-PAT-006", "SYN-PAT-007"]},
+    {"case_id": "SYN-Q-03", "technology_area_id": "SF-05", "technical_element": "센서 변수 연동 공정 제어", "query": "복수 센서의 온도 압력 상관관계로 공정 설정값 제어", "relevant_source_ids": ["SYN-PAT-003", "SYN-PAT-008"], "judged_source_ids": ["SYN-PAT-003", "SYN-PAT-004", "SYN-PAT-006", "SYN-PAT-007", "SYN-PAT-008"]},
+    {"case_id": "SYN-Q-04", "technology_area_id": "SF-05", "technical_element": "공정 체류·대기열 기반 병목 예측", "query": "제조 공정별 체류 시간과 대기열 추세를 분석해 병목 예측", "relevant_source_ids": ["SYN-PAT-004"], "judged_source_ids": ["SYN-PAT-003", "SYN-PAT-004", "SYN-PAT-006", "SYN-PAT-007", "SYN-PAT-008"]}
+  ]
+}

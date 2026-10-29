@@ -132,6 +132,7 @@ class PatentDocument(BaseModel):
 
     source: str = "KIPRIS Plus"
     source_url: str | None = None
+    collected_at: str | None = None
     technology_area_ids: list[str] = Field(default_factory=list)
 
 
@@ -166,6 +167,7 @@ class PatentEvidence(BaseModel):
     application_date: str | None = None
     publication_date: str | None = None
     registration_number: str | None = None
+    collected_at: str | None = None
     claim_number: int | None = Field(default=None, ge=1)
     claim_type: Literal["independent", "dependent", "unclassified"] | None = None
     depends_on: list[int] = Field(default_factory=list)

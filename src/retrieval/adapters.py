@@ -27,6 +27,7 @@ def patent_to_search_document(
             "application_date": patent.application_date,
             "publication_date": patent.publication_date,
             "source_url": patent.source_url,
+            "collected_at": patent.collected_at,
         },
     )
 

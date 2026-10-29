@@ -10,6 +10,7 @@ import json
 from pathlib import Path
 
 from evaluation.market_labeling import read_label_rows, write_label_rows
+from src.generation.patent_analysis import kipris_application_search_url
 from src.retrieval.patent_search import search_patents
 from src.retrieval.patent_store import get_collection
 
@@ -30,11 +31,8 @@ CSV_FIELDS = [
     "claim_number",
     "version_id",
     "url",
-    "retrieved_by",
-    "best_rank",
     "relevant",
     "note",
-    "mode",
 ]
 
 
@@ -73,11 +71,34 @@ def default_searchers(collection=None, top_k: int = TOP_K):
     }
 
 
-def add_reranked_searcher(searchers: dict, collection=None, top_k: int = TOP_K):
-    """선택된 BGE Cross-Encoder를 포함한 Hybrid 후보 검색기를 추가한다."""
+def add_reranked_searcher(
+    searchers: dict,
+    collection=None,
+    top_k: int = TOP_K,
+    reranker_type: str = "cross-encoder",
+):
+    """선택된 Bi-Encoder 또는 Cross-Encoder 후보 검색기를 추가한다."""
+    collection = collection or get_collection()
+    if reranker_type == "bi-encoder":
+        from src.retrieval.market_search import embed_texts
+        from src.retrieval.patent_search import bi_encoder_reranker
+
+        reranker = bi_encoder_reranker(embed_texts)
+        searchers["hybrid_bi_encoder"] = (
+            lambda query, technology_area_id=None: search_patents(
+                query,
+                collection=collection,
+                top_k=top_k,
+                retrieval_mode="hybrid",
+                reranker=reranker,
+                technology_area_id=technology_area_id,
+            )
+        )
+        return searchers
+    if reranker_type != "cross-encoder":
+        raise ValueError("reranker_type must be bi-encoder or cross-encoder")
     from src.retrieval.engine import bge_reranker
 
-    collection = collection or get_collection()
     reranker = bge_reranker()
     searchers["hybrid_rerank"] = lambda query, technology_area_id=None: search_patents(
         query,
@@ -101,9 +122,18 @@ def export_candidates(
                 hits = search_fn(case["query"], case.get("technology_area_id"))
             except TypeError:
                 hits = search_fn(case["query"])
-            for rank, hit in enumerate(hits, start=1):
+            for hit in hits:
                 document = hit.document
                 key = (case["case_id"], document.source_id)
+                source_url = document.metadata.get("source_url") or ""
+                if not source_url:
+                    source_url = (
+                        kipris_application_search_url(
+                            document.metadata.get("application_number")
+                            or document.source_id
+                        )
+                        or ""
+                    )
                 row = grouped.setdefault(
                     key,
                     {
@@ -116,24 +146,13 @@ def export_candidates(
                         "summary": document.content[:500],
                         "claim_number": document.metadata.get("claim_number", ""),
                         "version_id": document.metadata.get("version_id", ""),
-                        "url": document.metadata.get("source_url", ""),
-                        "retrieved_by": set(),
-                        "best_rank": rank,
+                        "url": source_url,
                         "relevant": "",
                         "note": "",
-                        "mode": "",
                     },
                 )
-                row["retrieved_by"].add(mode)
-                row["best_rank"] = min(row["best_rank"], rank)
 
-    rows = []
-    for _, row in sorted(grouped.items()):
-        row["retrieved_by"] = ";".join(
-            mode for mode in (*MODES, "hybrid_rerank") if mode in row["retrieved_by"]
-        )
-        row["mode"] = row["retrieved_by"]
-        rows.append(row)
+    rows = [row for _, row in sorted(grouped.items())]
     write_label_rows(rows, CSV_FIELDS, path)
     return len(rows)
 
@@ -182,16 +201,26 @@ def main() -> None:
     sub = parser.add_subparsers(dest="command", required=True)
     export = sub.add_parser("export", help="검색 결과 후보를 CSV로 내보냄")
     export.add_argument(
-        "--rerank", action="store_true", help="BGE reranker 후보도 포함"
+        "--rerank", action="store_true", help="기존 호환용 Cross-Encoder 후보 포함"
+    )
+    export.add_argument(
+        "--reranker",
+        choices=["bi-encoder", "cross-encoder"],
+        help="재정렬 실험의 후보도 라벨 후보에 포함",
     )
     sub.add_parser("import", help="작성한 CSV 라벨을 평가 질의에 반영")
     args = parser.parse_args()
 
     cases = load_cases()
     if args.command == "export":
+        if args.rerank and args.reranker == "bi-encoder":
+            raise SystemExit(
+                "--rerank와 --reranker bi-encoder를 함께 지정할 수 없습니다"
+            )
         searchers = default_searchers()
-        if args.rerank:
-            add_reranked_searcher(searchers)
+        if args.rerank or args.reranker:
+            reranker_type = args.reranker or "cross-encoder"
+            add_reranked_searcher(searchers, reranker_type=reranker_type)
         count = export_candidates(cases, searchers)
         print(f"{count} patent candidates -> {CANDIDATES_PATH}")
         return

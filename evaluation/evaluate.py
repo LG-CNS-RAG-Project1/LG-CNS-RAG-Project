@@ -20,10 +20,13 @@
 
 import argparse
 import csv
+import hashlib
+import json
 import math
 import time
 import subprocess
 from collections import Counter
+from datetime import datetime, timezone
 from functools import partial
 from pathlib import Path
 
@@ -46,6 +49,7 @@ from src.retrieval.patent_search import search_patents as search_patent_document
 from src.retrieval.patent_store import get_collection as get_patent_collection
 from evaluation.market_relevance_eval import evaluate_relevance
 from src.retrieval.market_relevance import RELEVANCE_MODEL, call_relevance_llm
+from src.retrieval.engine import RetrievalConfig
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 RESULTS_DIR = ROOT_DIR / "evaluation" / "results"
@@ -70,6 +74,21 @@ RESULT_FIELDS = [
     "model",
     "prompt",
     "commit",
+]
+PATENT_RESULT_FIELDS = [
+    *RESULT_FIELDS,
+    "embedding_model",
+    "reranker_model",
+    "run_at_utc",
+    "working_tree_dirty",
+    "evaluation_data_sha256",
+    "index_documents",
+    "index_snapshot_sha256",
+    "top_k",
+    "candidate_k",
+    "rrf_k",
+    "bm25_k1",
+    "bm25_b",
 ]
 
 
@@ -192,8 +211,14 @@ def evaluate_patents(cases: list[dict], search_fn, k: int = K) -> list[dict]:
     return rows
 
 
-def default_patent_search_fn(retrieval_mode: str = "dense", reranker=None):
+def default_patent_search_fn(
+    retrieval_mode: str = "dense",
+    reranker=None,
+    candidate_k: int | None = None,
+):
     """특허 Chroma 색인을 지정한 검색 모드로 평가하는 함수를 만든다."""
+    if candidate_k is not None and candidate_k < K:
+        raise ValueError(f"candidate_k must be at least top_k={K}")
     collection = get_patent_collection()
     if collection.count() == 0:
         raise RuntimeError(
@@ -219,6 +244,11 @@ def default_patent_search_fn(retrieval_mode: str = "dense", reranker=None):
             top_k=top_k,
             retrieval_mode=retrieval_mode,
             reranker=timed_reranker,
+            retrieval_config=RetrievalConfig(
+                candidate_k=candidate_k or max(top_k * 4, top_k),
+                top_k=top_k,
+                deduplicate_by_source=True,
+            ),
             technology_area_id=technology_area_id,
         )
         rerank_ms = rerank_times[0] if rerank_times else 0.0
@@ -227,6 +257,7 @@ def default_patent_search_fn(retrieval_mode: str = "dense", reranker=None):
             for hit in hits
         ]
 
+    search.collection = collection
     return search
 
 
@@ -275,10 +306,31 @@ def save_patent_results(rows: list[dict], label: str, results_dir: Path = RESULT
     results_dir.mkdir(parents=True, exist_ok=True)
     path = results_dir / f"patent_retrieval_{label}.csv"
     with open(path, "w", encoding="utf-8-sig", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=RESULT_FIELDS)
+        writer = csv.DictWriter(f, fieldnames=PATENT_RESULT_FIELDS)
         writer.writeheader()
         writer.writerows(rows)
     return path
+
+
+def index_snapshot(collection) -> dict:
+    """색인 문서·메타데이터의 순서 독립적인 SHA-256 요약과 문서 수를 반환한다."""
+    snapshot = collection.get(include=["documents", "metadatas"])
+    entries = sorted(
+        zip(snapshot["ids"], snapshot["documents"], snapshot["metadatas"]),
+        key=lambda item: item[0],
+    )
+    payload = {
+        "name": getattr(collection, "name", ""),
+        "metadata": getattr(collection, "metadata", None),
+        "documents": entries,
+    }
+    serialized = json.dumps(
+        payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+    ).encode("utf-8")
+    return {
+        "index_documents": len(entries),
+        "index_snapshot_sha256": hashlib.sha256(serialized).hexdigest(),
+    }
 
 
 def attach_run_metadata(rows: list[dict], mode: str, rerank: bool) -> list[dict]:
@@ -297,6 +349,73 @@ def attach_run_metadata(rows: list[dict], mode: str, rerank: bool) -> list[dict]
             model=model,
             prompt="n/a · retrieval",
             commit=commit,
+        )
+    return rows
+
+
+def attach_patent_run_metadata(
+    rows: list[dict],
+    mode: str,
+    rerank: bool,
+    *,
+    evaluation_data=None,
+    index_metadata: dict | None = None,
+    top_k: int = K,
+    candidate_k: int | None = None,
+    rrf_k: int | None = None,
+    reranker_model: str | None = None,
+) -> list[dict]:
+    """검색 결과에 데이터·색인 지문과 검색 설정을 함께 기록한다."""
+    commit = subprocess.run(
+        ["git", "rev-parse", "HEAD"], capture_output=True, text=True, check=False
+    ).stdout.strip()
+    dirty = bool(
+        subprocess.run(
+            ["git", "status", "--porcelain"],
+            capture_output=True,
+            text=True,
+            check=False,
+        ).stdout.strip()
+    )
+    model = reranker_model or (
+        "BAAI/bge-reranker-v2-m3"
+        if rerank
+        else ("text-embedding-3-small" if mode in {"dense", "hybrid"} else "BM25")
+    )
+    evaluation_sha256 = ""
+    if evaluation_data is not None:
+        serialized = json.dumps(
+            evaluation_data,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+        evaluation_sha256 = hashlib.sha256(serialized).hexdigest()
+    index_metadata = index_metadata or {}
+    config = RetrievalConfig()
+    run_at_utc = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    for row in rows:
+        row.update(
+            mode=mode + ("+rerank" if rerank else ""),
+            model=model,
+            embedding_model=(
+                "text-embedding-3-small" if mode in {"dense", "hybrid"} else "n/a"
+            ),
+            reranker_model=(
+                reranker_model or ("BAAI/bge-reranker-v2-m3" if rerank else "none")
+            ),
+            prompt="n/a · retrieval",
+            commit=commit,
+            run_at_utc=run_at_utc,
+            working_tree_dirty=dirty,
+            evaluation_data_sha256=evaluation_sha256,
+            index_documents=index_metadata.get("index_documents", ""),
+            index_snapshot_sha256=index_metadata.get("index_snapshot_sha256", ""),
+            top_k=top_k,
+            candidate_k=candidate_k or max(top_k * 4, top_k),
+            rrf_k=rrf_k or config.rrf_k,
+            bm25_k1=1.5,
+            bm25_b=0.75,
         )
     return rows
 
@@ -371,7 +490,18 @@ def main() -> None:
     patent.add_argument(
         "--rerank",
         action="store_true",
-        help="BGE reranker 사용 (sentence-transformers 필요)",
+        help="BGE Cross-Encoder reranker 사용 (sentence-transformers 필요)",
+    )
+    patent.add_argument(
+        "--reranker",
+        choices=["bi-encoder", "cross-encoder"],
+        help="특허 검색 후보 재정렬 모델 (bi-encoder는 임베딩 API 호출)",
+    )
+    patent.add_argument(
+        "--candidate-k",
+        type=int,
+        default=20,
+        help="reranking 전 평가 후보 문헌 수 (기본 20 = Top-5의 4배)",
     )
     relevance = sub.add_parser("relevance", help="시장 관련성 필터 평가")
     relevance.add_argument(
@@ -389,8 +519,27 @@ def main() -> None:
         run_guardrail(args.label)
         return
 
+    if args.command == "patent" and args.candidate_k < K:
+        raise SystemExit(f"--candidate-k must be at least {K}")
+
     reranker = None
-    if args.rerank:
+    patent_reranker_model = None
+    use_rerank = args.rerank
+    if args.command == "patent" and args.reranker:
+        if args.rerank and args.reranker != "cross-encoder":
+            raise SystemExit(
+                "--rerank와 --reranker bi-encoder를 함께 지정할 수 없습니다"
+            )
+        use_rerank = True
+        if args.reranker == "bi-encoder":
+            from src.retrieval.patent_search import bi_encoder_reranker
+            from src.retrieval.market_search import embed_texts
+
+            reranker = bi_encoder_reranker(embed_texts)
+            patent_reranker_model = "text-embedding-3-small (bi-encoder)"
+        else:
+            patent_reranker_model = "BAAI/bge-reranker-v2-m3 (cross-encoder)"
+    if args.rerank or (args.command == "patent" and args.reranker == "cross-encoder"):
         from src.retrieval.engine import bge_reranker
 
         reranker = bge_reranker()
@@ -420,13 +569,21 @@ def main() -> None:
                 "no labeled patent cases; run python -m evaluation.patent_labeling export, "
                 "fill relevant=0/1, then run python -m evaluation.patent_labeling import"
             )
-        rows = evaluate_patents(
-            cases,
-            default_patent_search_fn(args.mode, reranker=reranker),
+        search_fn = default_patent_search_fn(
+            args.mode, reranker=reranker, candidate_k=args.candidate_k
         )
-        attach_run_metadata(rows, args.mode, args.rerank)
+        rows = evaluate_patents(cases, search_fn)
+        attach_patent_run_metadata(
+            rows,
+            args.mode,
+            use_rerank,
+            evaluation_data=cases,
+            index_metadata=index_snapshot(search_fn.collection),
+            candidate_k=args.candidate_k,
+            reranker_model=patent_reranker_model,
+        )
         result_path = save_patent_results(
-            rows, f"{args.mode}_{'rerank_' if args.rerank else ''}{args.label}"
+            rows, f"{args.mode}_{'rerank_' if use_rerank else ''}{args.label}"
         )
     if not rows:
         label_command = (

@@ -318,6 +318,58 @@ def review_patents_by_component(
             limitations=["검색 결과 없음은 관련 특허가 없다는 뜻이 아닙니다."],
         )
 
+    from src.services.patent_service import _estimate_text_tokens
+
+    evidence_by_patent: dict[str, list[PatentEvidence]] = {}
+    for item in evidence:
+        evidence_by_patent.setdefault(item.patent_id, []).append(item)
+
+    # Bound aggregate evidence across the model request. Preserve full citation
+    # records and omit whole passages rather than truncating quoted text.
+    max_evidence_tokens = 6000
+    bounded_evidence: list[PatentEvidence] = []
+    omitted_by_patent: dict[str, list[int]] = {}
+    per_patent_budget = max(1, max_evidence_tokens // len(evidence_by_patent))
+    for patent_id, records in evidence_by_patent.items():
+        used = 0
+        kept = []
+        scored = sorted(
+            records,
+            key=lambda item: (
+                item.section == "claims",
+                item.claim_type == "independent",
+                -(item.claim_number or 0),
+            ),
+            reverse=True,
+        )
+        for item in scored:
+            tokens = _estimate_text_tokens(item.quote)
+            if tokens > per_patent_budget:
+                omitted_by_patent.setdefault(patent_id, []).append(item.citation_id)
+            elif used + tokens <= per_patent_budget:
+                kept.append(item)
+                used += tokens
+            else:
+                omitted_by_patent.setdefault(patent_id, []).append(item.citation_id)
+        if not kept and records:
+            smallest = min(records, key=lambda item: _estimate_text_tokens(item.quote))
+            if _estimate_text_tokens(smallest.quote) <= per_patent_budget:
+                kept = [smallest]
+                omitted = omitted_by_patent.setdefault(patent_id, [])
+                if smallest.citation_id in omitted:
+                    omitted.remove(smallest.citation_id)
+        bounded_evidence.extend(kept)
+
+    evidence = bounded_evidence
+    if not evidence:
+        return [], PatentabilityPrecheck(
+            status="insufficient_evidence",
+            summary="청구항 근거가 분석 문맥 예산을 초과해 비교를 보류했습니다.",
+            limitations=[
+                "원문은 잘라 인용하지 않으며, 예산 내 근거가 없어 판단을 보류했습니다."
+            ],
+        )
+
     components = [
         {"component_id": f"C{index}", "text": component}
         for index, component in enumerate(idea.technical_components, 1)
@@ -377,7 +429,18 @@ def review_patents_by_component(
             for review in reviews:
                 review.unknowns = list(
                     dict.fromkeys(
-                        review.unknowns + recommendation_notes.get(review.patent_id, [])
+                        review.unknowns
+                        + recommendation_notes.get(review.patent_id, [])
+                        + (
+                            [
+                                "LLM 입력 문맥 예산을 위해 다음 근거를 원문 단위로 제외함: "
+                                + ", ".join(
+                                    map(str, omitted_by_patent[review.patent_id])
+                                )
+                            ]
+                            if omitted_by_patent.get(review.patent_id)
+                            else []
+                        )
                     )
                 )
             assessment = PatentabilityPrecheck.model_validate(
