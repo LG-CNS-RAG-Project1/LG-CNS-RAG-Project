@@ -865,6 +865,70 @@ def render_patent_report(patent, *, widget_suffix="", preview=False):
 
     evidence_by_id = {item.citation_id: item for item in patent.evidence}
     reviews_by_patent = {item.patent_id: item for item in patent.patent_reviews}
+    design_analysis = patent.design_analysis
+    if design_analysis:
+        st.subheader("특허 기반 설계 대안")
+        status_labels = {
+            "success": "근거를 바탕으로 대안을 구성했습니다.",
+            "partial": "일부 정보가 부족해 제한적으로 제안합니다.",
+            "insufficient_evidence": "설계 대안을 뒷받침할 근거가 부족합니다.",
+            "failed": "대안 생성이 완료되지 않았습니다. 기존 특허 근거는 아래에서 확인할 수 있습니다.",
+        }
+        st.caption(status_labels[design_analysis.status])
+        if design_analysis.evidence_level == "abstract_only":
+            st.warning("청구항 원문이 없어 초록 수준의 근거로만 분석했습니다.")
+        for component in design_analysis.technical_components:
+            st.caption(f"{component.id} · {component.name} — {component.description}")
+        for index, proposal in enumerate(design_analysis.proposals, 1):
+            with st.expander(f"대안 {index} · {proposal.title}", expanded=index == 1):
+                st.markdown(f"**현재 문제**\n\n{proposal.problem}")
+                st.markdown(
+                    f"**변경 대상**\n\n{', '.join(proposal.target_component_ids)}"
+                )
+                st.markdown(f"**설계 변경**\n\n{proposal.proposed_change}")
+                st.markdown("**구현 접근**")
+                for step in proposal.implementation_approach:
+                    st.markdown(f"- {step}")
+                st.markdown(f"**기술적 차이**\n\n{proposal.technical_difference}")
+                if proposal.expected_benefits:
+                    st.markdown(
+                        "**기대효과**\n\n" + " · ".join(proposal.expected_benefits)
+                    )
+                if proposal.limitations:
+                    st.markdown("**제약**\n\n" + " · ".join(proposal.limitations))
+                st.caption(
+                    f"기술 구현 가능성: {proposal.feasibility} · 근거 상태: {proposal.evidence_status}"
+                )
+                if proposal.citation_ids:
+                    st.markdown("**연결된 특허 근거**")
+                    for citation_id in proposal.citation_ids:
+                        source = evidence_by_id.get(citation_id)
+                        if source:
+                            claim = (
+                                f" · 청구항 {source.claim_number}"
+                                if source.claim_number
+                                else ""
+                            )
+                            st.caption(f"P:{citation_id} · {source.title}{claim}")
+                            st.text(source.quote)
+                st.markdown(f"**검증 계획**\n\n{proposal.verification_plan.method}")
+                if proposal.verification_plan.metrics:
+                    st.caption(
+                        "측정 항목: " + " · ".join(proposal.verification_plan.metrics)
+                    )
+                st.caption("성공 기준: " + proposal.verification_plan.success_criteria)
+                st.caption(
+                    "추가 특허 확인 필요"
+                    if proposal.patent_verification_required
+                    else "특허 확인 표시 없음"
+                )
+        for item in design_analysis.missing_information:
+            st.warning(item)
+        for item in design_analysis.limitations:
+            st.caption("한계: " + item)
+        st.caption(
+            "기술 검토용 의사결정 지원이며 침해·특허성·실시 자유에 대한 법률 의견이 아닙니다."
+        )
     documents = []
     for evidence in patent.evidence:
         if evidence.patent_id not in {item["patent_id"] for item in documents}:

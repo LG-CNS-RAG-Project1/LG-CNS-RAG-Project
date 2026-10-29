@@ -4,12 +4,14 @@ from collections import defaultdict
 from typing import Callable
 
 from src.generation.patent_analysis import review_patents_by_component
+from src.generation.patent_design import generate_patent_design_analysis
 from src.ingestion.kipris_client import KiprisAPIError, fetch_patent_claims
 from src.retrieval.patent_search import build_patent_queries, search_patents
 from src.retrieval.patent_relevance import judge_patent_candidates
 from src.retrieval.schemas import RetrievalResult, SearchDocument
 from src.schemas import (
     PatentComparison,
+    PatentDesignAnalysis,
     PatentClaim,
     PatentEvidence,
     PatentReport,
@@ -230,6 +232,7 @@ def analyze_patents(
         Callable[[object, list[PatentEvidence]], list[PatentComparison]] | None
     ) = None,
     patent_review_fn: Callable | None = None,
+    design_proposal_fn: Callable | None = None,
     relevance_fn: Callable | None = None,
     candidate_k: int = 20,
 ) -> PatentReport:
@@ -542,6 +545,7 @@ def analyze_patents(
         comparisons = []
         patent_reviews = []
         patentability_precheck = None
+        design_analysis = None
         if comparison_fn is not None:
             try:
                 comparisons = comparison_fn(request.idea, evidence)
@@ -567,12 +571,56 @@ def analyze_patents(
             )(request.idea, evidence)
             for review in patent_reviews:
                 unknowns.extend(f"{review.title}: {item}" for item in review.unknowns)
+        try:
+            if not patent_reviews and design_proposal_fn is None:
+                design_analysis = PatentDesignAnalysis(
+                    status="insufficient_evidence",
+                    evidence_level=(
+                        "claims_and_abstract"
+                        if any(item.section == "claims" for item in evidence)
+                        and any(item.section == "abstract" for item in evidence)
+                        else (
+                            "claims_only"
+                            if any(item.section == "claims" for item in evidence)
+                            else "abstract_only"
+                        )
+                    ),
+                    missing_information=[
+                        "문헌별 기술 구성요소 비교가 없어 설계 대안을 생성하지 않았습니다."
+                    ],
+                )
+            else:
+                design_analysis = (
+                    design_proposal_fn or generate_patent_design_analysis
+                )(request.idea, evidence, patent_reviews, patentability_precheck)
+            if design_analysis.status in {"partial", "insufficient_evidence"}:
+                unknowns.extend(design_analysis.missing_information)
+        except Exception as design_error:
+            design_analysis = PatentDesignAnalysis(
+                status="failed",
+                evidence_level=(
+                    "claims_and_abstract"
+                    if any(item.section == "claims" for item in evidence)
+                    and any(item.section == "abstract" for item in evidence)
+                    else (
+                        "claims_only"
+                        if any(item.section == "claims" for item in evidence)
+                        else "abstract_only"
+                    )
+                ),
+                missing_information=["설계 대안 분석을 완료하지 못했습니다."],
+                limitations=[f"대안 생성 단계 오류: {type(design_error).__name__}"],
+            )
+            unknowns.append(
+                "설계 대안 생성에 실패했지만 특허 검색 근거와 기존 비교 결과는 보존했습니다."
+            )
         return PatentReport(
             status="completed",
             evidence=evidence,
             comparisons=comparisons,
             patent_reviews=patent_reviews,
             patentability_precheck=patentability_precheck,
+            design_analysis=design_analysis,
             unknowns=unknowns,
             search_scope=(
                 "아이디어 기술 요소별 Dense 후보 검색·LLM 관련성 판정"
