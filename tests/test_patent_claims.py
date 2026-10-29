@@ -199,3 +199,64 @@ def test_select_claims_keeps_dependent_claim_for_explicit_parent_warning():
         limit=5,
     )
     assert [claim.claim_number for claim in selected] == [1, 3]
+
+
+def test_patent_context_builder_keeps_claim_chain_within_budget():
+    from types import SimpleNamespace
+
+    from src.ingestion.patent_processor import structure_claims
+    from src.services.patent_service import _build_patent_context
+
+    claims = structure_claims(
+        [
+            {"claim_number": 1, "text": "센서와 제어기를 포함하는 검사 장치."},
+            {"claim_number": 2, "text": "제1항에 있어서, 영상을 분석하는 장치."},
+            {"claim_number": 3, "text": "제2항에 있어서, 이상을 분류하는 장치."},
+        ]
+    )
+    idea = SimpleNamespace(
+        technical_components=["영상을 분석하고 이상을 분류"], technology="", problem=""
+    )
+
+    selected, estimated_tokens, notes = _build_patent_context(
+        idea, claims, max_tokens=200, max_claims=5
+    )
+
+    assert [claim.claim_number for claim in selected] == [1, 2, 3]
+    assert estimated_tokens <= 200
+    assert notes == []
+
+
+def test_patent_context_builder_drops_dependent_chain_when_parent_exceeds_budget():
+    from types import SimpleNamespace
+
+    from src.ingestion.patent_processor import structure_claims
+    from src.services.patent_service import _build_patent_context
+
+    claims = structure_claims(
+        [
+            {
+                "claim_number": 1,
+                "text": "센서와 제어기를 포함하는 검사 장치." + "구성" * 300,
+            },
+            {"claim_number": 2, "text": "제1항에 있어서, 영상을 분석하는 장치."},
+        ]
+    )
+    idea = SimpleNamespace(
+        technical_components=["영상을 분석"], technology="", problem=""
+    )
+
+    selected, estimated_tokens, notes = _build_patent_context(
+        idea, claims, max_tokens=80, max_claims=5
+    )
+
+    assert selected == []
+    assert estimated_tokens == 0
+    assert any("문맥 토큰 예산을 초과해 제외" in note for note in notes)
+
+
+def test_estimated_patent_context_token_count_handles_mixed_language():
+    from src.services.patent_service import _estimate_text_tokens
+
+    assert _estimate_text_tokens("  vision   검사 device ") >= 3
+    assert _estimate_text_tokens(" ") == 0
