@@ -28,11 +28,19 @@ from typing import Callable
 
 from dotenv import load_dotenv
 
-from src.retrieval.market_search import EmbedFn, embed_texts, search_by_dimensions
+from src.retrieval.market_search import (
+    DART_COMPANY_K,
+    EmbedFn,
+    embed_texts,
+    get_collection,
+    search_by_dimensions,
+)
 from src.schemas import IDEA_FIELDS, MarketSearchRequest, StructuredIdea
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 PROMPT_PATH = ROOT_DIR / "prompts" / "market_label_judge.md"
+COMPANY_PROMPT_PATH = ROOT_DIR / "prompts" / "market_dart_companies.md"
+DART_PUBLISHER_SUFFIX = " (DART 사업보고서)"
 IDEAS_PATH = ROOT_DIR / "data" / "samples" / "ideas.json"
 RELEVANCE_MODEL = "gpt-4o-mini"
 MIN_SUFFICIENT = 2
@@ -234,6 +242,55 @@ def assess_dimensions(
     return assessed
 
 
+def dart_company_profiles(collection, idea_id: str | None = None) -> dict[str, str]:
+    """색인에 사업보고서 발췌가 있는 기업의 {기업명: 주요 사업}. 사업 설명은 configs/dart_companies.yaml의 reason."""
+    from src.ingestion.dart_client import load_dart_config
+
+    reasons = {c["name"]: c["reason"] for c in load_dart_config()["companies"]}
+    where = {"source_type": "dart"}
+    if idea_id:
+        where = {"$and": [where, {f"idea_{idea_id}": True}]}
+    metadatas = collection.get(where=where, include=["metadatas"])["metadatas"]
+    names = sorted(
+        {m["publisher"].removesuffix(DART_PUBLISHER_SUFFIX) for m in metadatas}
+    )
+    return {name: reasons.get(name, "") for name in names}
+
+
+def choose_dart_companies(
+    request: MarketSearchRequest,
+    collection,
+    judge_fn: JudgeFn = call_relevance_llm,
+    idea_id: str | None = None,
+) -> list[str] | None:
+    """LLM이 아이디어와 같은 제품·공정 범주의 DART 기업을 최대 DART_COMPANY_K곳 고른다.
+
+    반환은 색인 발행처 이름("기업명 (DART 사업보고서)") 목록이며, 맞는 기업이 없으면 빈 목록이다.
+    DART 문서가 없거나 응답이 형식에 맞지 않거나 호출이 실패하면 None을 돌려, 호출한 쪽이
+    아이디어 문장 임베딩으로 기업을 고르게 한다. 아이디어 문장 임베딩만으로는 기업 간 거리 차가
+    작아(SF-05 상위 9곳 0.50~0.56) 협동로봇 제조사가 공정제어 아이디어의 1순위로 뽑혔다.
+    """
+    try:
+        profiles = dart_company_profiles(collection, idea_id)
+        if not profiles:
+            return None
+        payload = {
+            "idea": request.idea.model_dump(include={"title", *IDEA_FIELDS}),
+            "companies": [{"name": n, "business": b} for n, b in profiles.items()],
+        }
+        raw = judge_fn(
+            COMPANY_PROMPT_PATH.read_text(encoding="utf-8"),
+            json.dumps(payload, ensure_ascii=False),
+        )
+        chosen = raw.get("companies")
+        if not isinstance(chosen, list):
+            return None
+    except Exception:  # 선택 실패는 임베딩 기반 선택으로 대신한다
+        return None
+    names = [n for n in dict.fromkeys(str(c).strip() for c in chosen) if n in profiles]
+    return [n + DART_PUBLISHER_SUFFIX for n in names[:DART_COMPANY_K]]
+
+
 def search_with_relevance(
     request: MarketSearchRequest,
     idea_id: str | None = None,
@@ -244,12 +301,17 @@ def search_with_relevance(
 ) -> dict[str, dict]:
     """차원별로 검색한 뒤 관련성을 판정해 충분성 상태와 함께 반환한다 (에이전트용 툴).
 
-    dart_companies는 search_by_dimensions에 그대로 전달한다 (없으면 아이디어로 기업을 고른다).
+    dart_companies가 없으면 judge_fn으로 DART 기업을 고르고(choose_dart_companies), 그것도
+    실패하면 search_by_dimensions가 아이디어 문장 임베딩으로 고른다. 출처를 지정한 요청
+    (request.source_types)은 기업을 고르지 않는다.
 
     반환: {차원: {"status", "relevant_count", "hits"}}. hits의 각 항목은 search_market 반환 형식에
     relevant·relevance_confidence·relevance_reason·article_nature가 추가되고, 뉴스는
     evidence_nature가 article_nature로 바뀐다.
     """
+    collection = collection or get_collection()
+    if dart_companies is None and not request.source_types:
+        dart_companies = choose_dart_companies(request, collection, judge_fn, idea_id)
     results = search_by_dimensions(
         request,
         idea_id=idea_id,
