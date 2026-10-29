@@ -691,7 +691,7 @@ def current_workflow_job():
 
 
 @st.fragment(run_every=1)
-def workflow_progress_fragment():
+def workflow_progress_fragment(compact=False):
     job_id = s.get("analysis_workflow_id")
     if not job_id:
         return
@@ -750,21 +750,22 @@ def workflow_progress_fragment():
         ),
         ("보고서 작성", final_state),
     ]
-    with st.container(border=True):
-        columns = st.columns(4)
-        for index, (column, (name, state)) in enumerate(zip(columns, steps), 1):
-            column.caption(name)
-            active = (
-                (index == 2 and phase == "patent" and not patent_ready)
-                or (index == 3 and phase == "market" and not market_ready)
-                or (index == 4 and phase == "final_report" and final_result is None)
-            )
-            marker = (
-                '<span class="workflow-spinner" aria-label="분석 중"></span> '
-                if active
-                else ""
-            )
-            column.markdown(f"{marker}**{state}**", unsafe_allow_html=True)
+    if not compact:
+        with st.container(border=True):
+            columns = st.columns(4)
+            for index, (column, (name, state)) in enumerate(zip(columns, steps), 1):
+                column.caption(name)
+                active = (
+                    (index == 2 and phase == "patent" and not patent_ready)
+                    or (index == 3 and phase == "market" and not market_ready)
+                    or (index == 4 and phase == "final_report" and final_result is None)
+                )
+                marker = (
+                    '<span class="workflow-spinner" aria-label="분석 중"></span> '
+                    if active
+                    else ""
+                )
+                column.markdown(f"{marker}**{state}**", unsafe_allow_html=True)
 
     if snapshot.get("error"):
         s.pipeline_error = snapshot["error"]
@@ -789,6 +790,20 @@ def workflow_progress_fragment():
         s.workflow_ready_key = ready_key
         s.pipeline_result = partial_workflow_result(snapshot)
         st.rerun(scope="app")
+
+    if compact:
+        phase_label = {
+            "patent": "특허 조사",
+            "market": "시장 분석",
+            "final_report": "보고서 작성",
+        }.get(phase, "분석")
+        st.info(f"{phase_label} 진행 중 · 다른 화면을 둘러보셔도 분석은 계속됩니다.")
+        st.button(
+            "진행 중인 조사로 돌아가기",
+            key="return_running_research",
+            on_click=resume_research,
+        )
+        return
 
     if not snapshot.get("done"):
         messages = {
@@ -1702,6 +1717,9 @@ def open_page(page):
 
 
 def start_research():
+    if s.get("analysis_workflow_id"):
+        resume_research()
+        return
     s.page = "workspace"
     s.app_view = "analysis"
     s.stage = 1
@@ -1778,6 +1796,15 @@ with st.container(key="brandbar"):
     intro.button("서비스 소개", on_click=open_page, args=("about",))
     guide.button("왜 IdeaLens인가", on_click=open_page, args=("difference",))
     records.button("내 기록", on_click=open_page, args=("history",))
+
+if s.page != "workspace":
+    if s.get("analysis_workflow_id"):
+        workflow_progress_fragment(compact=True)
+    elif s.get("pipeline_result") is not None or s.get("pipeline_error"):
+        st.info("조사가 종료되었습니다. 조사 화면에서 결과와 처리 상태를 확인하세요.")
+        st.button(
+            "조사 결과 확인", key="return_completed_research", on_click=resume_research
+        )
 
 if s.page == "home":
     with st.container(key="landing"):
