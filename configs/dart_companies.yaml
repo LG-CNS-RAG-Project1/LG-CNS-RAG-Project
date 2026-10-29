@@ -12,9 +12,6 @@ report:
     - 매출
     - 주요계약
     - 기타 참고사항
-  # 이 키워드가 제목에 있는 섹션은 판매 실적·주요 매출처 공시라 구매 신호로 본다
-  purchase_sections:
-    - 매출
   chunk_size: 800
   chunk_overlap: 150
 
