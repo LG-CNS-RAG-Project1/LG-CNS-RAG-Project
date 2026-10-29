@@ -284,7 +284,12 @@ def build_executive_review(
 
 
 def executive_report_markdown(
-    title: str, review: ExecutiveReview, *, analyzed_on: int | None = None
+    title: str,
+    review: ExecutiveReview,
+    *,
+    analyzed_on: int | None = None,
+    cost_estimate=None,
+    cost_totals=None,
 ) -> str:
     """독립된 최종 실행 검토 문서. 근거 원문은 영역별 상세 화면에 둔다."""
     from datetime import datetime
@@ -325,6 +330,41 @@ def executive_report_markdown(
         ]
     lines += ["", "## 다음 실행 순서", ""]
     lines.extend(f"- {escape_md(item)}" for item in review.next_actions)
+    if cost_estimate is not None:
+        lines += ["", "## 구현비용·사업성 가설", ""]
+        if cost_estimate.status == "estimated" and cost_totals is not None:
+            lines.append(
+                f"- 초기 구축비 범위: {cost_totals.initial_low:,.0f}–{cost_totals.initial_high:,.0f} {cost_estimate.unit} (기준 {cost_totals.initial_base:,.0f})"
+            )
+            lines.append(
+                f"- 월 반복비 범위: {cost_totals.recurring_monthly_low:,.0f}–{cost_totals.recurring_monthly_high:,.0f} {cost_estimate.unit} (기준 {cost_totals.recurring_monthly_base:,.0f})"
+            )
+            lines.append(
+                f"- 손익분기 판매량: {cost_totals.break_even_units_base if cost_totals.break_even_units_base is not None else '계산 불가'} · {cost_totals.calculation_note}"
+            )
+            lines.append(
+                "- 비용은 LLM이 제안한 가설이며 외부 견적 확인 전 예산·ROI로 사용할 수 없습니다."
+            )
+            for item in cost_estimate.items[:6]:
+                refs = (
+                    f" [M:{', M:'.join(map(str, item.citation_ids))}]"
+                    if item.citation_ids
+                    else " (출처 없는 검증 전 가설)"
+                )
+                lines.append(
+                    f"- {escape_md(item.name)}: {item.quantity:g} {escape_md(item.unit)} × "
+                    f"{item.low_unit_cost:,.0f}–{item.high_unit_cost:,.0f} {escape_md(cost_estimate.unit)} "
+                    f"({escape_md(item.cost_type)}, 기준 {item.base_unit_cost:,.0f}) — "
+                    f"{escape_md(item.basis)}{refs}"
+                )
+            lines.extend(
+                f"- 가정: {escape_md(item)}" for item in cost_estimate.assumptions[:2]
+            )
+        else:
+            lines.append("- 근거·입력 부족으로 비용 범위를 산정하지 않았습니다.")
+        lines.extend(
+            f"- 미확인: {escape_md(item)}" for item in cost_estimate.unknowns[:3]
+        )
     lines += ["", "## 판단 한계", ""]
     lines.extend(f"- {escape_md(item)}" for item in review.limitations)
     lines += [

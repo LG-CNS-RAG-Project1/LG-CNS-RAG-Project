@@ -1,10 +1,37 @@
 from src.generation.market_markdown import SECTION_TITLE, market_report_to_markdown
 from src.schemas import (
     MarketClaim,
+    MarketAnalyticalHypothesis,
+    MarketCommercialAnalysis,
     MarketDimensionResult,
     MarketEvidence,
     MarketReport,
 )
+
+
+def test_market_hypotheses_remain_labeled_as_unverified_in_markdown():
+    report = MarketReport(
+        status="completed",
+        search_scope="test",
+        evidence=[make_evidence(1)],
+        commercial_analysis=MarketCommercialAnalysis(
+            hypotheses=[
+                MarketAnalyticalHypothesis(
+                    question="누가 구매하는가?",
+                    hypothesis="생산기술 조직이 먼저 검토할 가능성",
+                    basis="산업 기사에서 도입 사례는 보이나 구매 역할은 확인되지 않음",
+                    citation_ids=[1],
+                    validation_target="제조사 생산기술 담당자",
+                    validation_method="구매 역할 인터뷰",
+                    success_criterion="결정권자와 예산 주체 확인",
+                )
+            ]
+        ),
+    )
+    markdown = market_report_to_markdown(report)
+    assert "LLM 검증 전 가설" in markdown
+    assert "확인된 사실·구매 의사가 아님" in markdown
+    assert "M:1" in markdown
 
 
 def make_evidence(citation_id, title="협동로봇 도입 기사", url="https://example.com/a"):

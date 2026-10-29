@@ -30,6 +30,7 @@ from src.schemas import (
     MarketEvidence,
     MarketOpportunityFinding,
     MarketOpportunityReview,
+    MarketCommercialAnalysis,
     MarketReport,
     MarketValidationAction,
     StructuredIdea,
@@ -583,6 +584,41 @@ def opportunity_review(
     )
 
 
+def generate_commercial_analysis(
+    idea: StructuredIdea, evidence: list[MarketEvidence], llm_fn: LLMFn
+) -> MarketCommercialAnalysis:
+    """사업 승인자가 볼 구매 구조를 별도 출력 계약으로 분석한다."""
+    prompt = (ROOT_DIR / "prompts" / "market_commercial_review.md").read_text(
+        encoding="utf-8"
+    )
+    payload = {
+        "idea": idea.model_dump(include=MARKET_IDEA_FIELDS),
+        "evidence": [item.model_dump() for item in evidence],
+    }
+    raw = llm_fn(prompt, json.dumps(payload, ensure_ascii=False))
+    result = MarketCommercialAnalysis.model_validate(
+        raw.get("commercial_analysis", raw)
+    )
+    allowed = {item.citation_id for item in evidence}
+    if not set(result.citation_ids) <= allowed:
+        raise ValueError("사업 승인 분석이 제공되지 않은 citation ID를 참조합니다")
+    for hypothesis in result.hypotheses:
+        if not set(hypothesis.citation_ids) <= allowed:
+            raise ValueError("시장 가설이 제공되지 않은 citation ID를 참조합니다")
+        if hypothesis.numeric_value is not None:
+            token = f"{hypothesis.numeric_value:g}"
+            if not hypothesis.citation_ids or not any(
+                re.search(
+                    rf"(?<!\d){re.escape(token.replace(',', ''))}(?!\d)",
+                    re.sub(r"(?<=\d),(?=\d)", "", item.quote).replace(" ", ""),
+                )
+                for item in evidence
+                if item.citation_id in hypothesis.citation_ids
+            ):
+                raise ValueError("시장 수치 가설이 인용 원문과 일치하지 않습니다")
+    return result
+
+
 def build_report(
     idea: StructuredIdea,
     assessed: dict[str, dict],
@@ -616,12 +652,21 @@ def build_report(
             opportunity_review=opportunity_review(idea, [], evidence),
             unknowns=report_unknowns(idea, []),
         )
+    commercial = None
+    commercial_unknowns = []
+    try:
+        commercial = generate_commercial_analysis(idea, evidence, llm_fn)
+    except Exception as exc:
+        commercial_unknowns.append(
+            f"사업 승인 관점 분석 미생성({type(exc).__name__}); 구매 구조는 미확인입니다."
+        )
     return MarketReport(
         status="completed",
         dimensions=dimensions,
+        commercial_analysis=commercial,
         evidence=evidence,
         opportunity_review=opportunity_review(idea, dimensions, evidence),
-        unknowns=report_unknowns(idea, dimensions),
+        unknowns=report_unknowns(idea, dimensions) + commercial_unknowns,
         search_scope=search_scope,
         data_as_of=data_as_of,
     )

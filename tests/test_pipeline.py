@@ -178,6 +178,10 @@ def test_prepare_sources_counts_local_index_and_area(tmp_path, monkeypatch):
     assert readiness.patent_mode == "local_only"
     assert market_collection is not None and patent_collection is not None
 
+    readiness, _, _ = prepare_sources("SF-03", dotenv_path=None)
+    assert readiness.patent_mode == "local_only"
+    assert any("전체 특허 색인으로 검색" in item for item in readiness.reasons)
+
 
 def test_remote_heartbeat_failure_is_reported_without_creating_dirs(
     tmp_path, monkeypatch
@@ -258,6 +262,38 @@ def test_not_ready_areas_are_skipped_without_calls(monkeypatch):
         complete_draft(), readiness=ready(market=False, patent_mode="none")
     )
     assert result.market_run.state == result.patent_run.state == "skipped"
+
+
+def test_empty_selected_area_searches_existing_global_patent_index(monkeypatch):
+    captured = []
+    state = IndexState(
+        location="local",
+        collection="patents",
+        count=4,
+        area_counts={"SF-02": 0, "SF-05": 4},
+    )
+    readiness = Readiness(
+        keys={"OPENAI_API_KEY": True},
+        chroma="local",
+        market_index=IndexState(location="local", collection="news", count=0),
+        patent_index=state,
+        market_runnable=False,
+        patent_mode="local_only",
+    )
+
+    def capture_request(request, **kwargs):
+        captured.append(request.technology_area_id)
+        return PatentReport(status="no_results", search_scope="test")
+
+    monkeypatch.setattr(pipeline, "analyze_patents", capture_request)
+    analyze_sources(
+        complete_draft(),
+        technology_area_id="SF-02",
+        readiness=readiness,
+        patent_kwargs={"collection": object()},
+        parallel=False,
+    )
+    assert captured == [None]
 
 
 def test_parallel_and_serial_give_same_reports(monkeypatch):
