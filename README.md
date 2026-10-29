@@ -197,7 +197,7 @@ python -m src.ingestion.patent_processor --field-id SF-05 --limit 20 --include-c
 - KIPRIS 검색·청구항 API 원본 XML과 키를 제외한 요청 메타데이터는 `data/patents/raw/`에 저장한다. 해당 폴더는 로컬 전용이며 Git 추적 대상에서 제외된다.
 - 색인 시 문서 임베딩 API 호출이 필요하다(`OPENAI_API_KEY`). 이후 문서 벡터는 로컬 Chroma에서 재사용한다. Dense/Hybrid 검색의 질의 임베딩은 검색 때 별도로 생성된다.
 - `PatentSearchRequest.technology_area_id`를 지정하면 검색 결과를 해당 분야로 제한한다. 원문 JSONL과 Chroma DB는 로컬에 저장되고 Git에는 포함되지 않는다.
-- 기존 SF-05 시장 평가 샘플·라벨은 현장 작업자용 LLM 음성 어시스턴트 기준이다. 과거 검색어는 `legacy_market_keywords`에 기록하며 신규 뉴스 수집에는 사용하지 않는다. 새 SF-05 시장 성능을 평가하려면 아이디어 샘플을 갱신하고 자료를 다시 수집·라벨링해야 한다.
+- `data/samples/ideas.json`의 SF-05와 시장 뉴스·DART 기업 연결은 지능형 공정제어 기준이다. 이전 SF-05(현장 작업자용 LLM 음성 어시스턴트)의 검색어는 `legacy_market_keywords`에 기록만 하며, 그 검색어로 수집한 기사는 정제 단계(`market_processor`)에서 제외한다. 시장 평가 라벨은 아직 이전 SF-05 기준이라 새 SF-05 시장 성능을 평가하려면 다시 라벨링해야 한다.
 
 ### 시장 근거 색인·검색
 
