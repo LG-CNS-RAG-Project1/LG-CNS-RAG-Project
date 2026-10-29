@@ -6,18 +6,23 @@
       "verdict": "signal_only",
       "claims": [
         {
-          "statement": "중소 제조사에서 협동로봇과 자동화 솔루션 도입을 지원하는 방안이 주요 과제로 떠올랐다.",
+          "statement": "중소 제조사는 협동조합을 통해 기술 도입과 현장 검증을 지원받고 있으며, 이는 자동화 솔루션에 대한 수요를 반영한다.",
           "claim_type": "fact",
           "citation_ids": [
             1
           ]
         },
         {
-          "statement": "레인보우로보틱스 사업보고서(FY2025)에 따르면 협동로봇 시장은 초기 시장 형성 단계로 여러 업체가 시장을 확보하기 위해 노력하고 있다.",
+          "statement": "레인보우로보틱스 사업보고서(FY2025)에 따르면 협동로봇 시장은 초기 시장 형성 단계로 여러 업체가 시장 확대를 위해 노력하고 있다.",
           "claim_type": "fact",
           "citation_ids": [
             2
           ]
+        },
+        {
+          "statement": "로봇을 활용한 자동화 솔루션은 경기 침체기에 기업의 효율화 전략으로 부각되고 있다.",
+          "claim_type": "ai_hypothesis",
+          "citation_ids": []
         }
       ],
       "next_check": null,
@@ -30,18 +35,23 @@
       "verdict": "signal_only",
       "claims": [
         {
-          "statement": "레인보우로보틱스 사업보고서(FY2025)에 따르면 협동로봇 시장은 여러 업체가 초기 시장을 확보하기 위해 경쟁하고 있으며, 정부의 시장 활성화 노력이 있다.",
+          "statement": "레인보우로보틱스 사업보고서(FY2025)에 따르면 협동로봇 시장은 여러 업체가 초기 시장을 확보하기 위해 경쟁하고 있으며, 정부의 지원도 이루어지고 있다.",
           "claim_type": "fact",
           "citation_ids": [
             2
           ]
         },
         {
-          "statement": "중소 제조사들이 자동화 수요에 대응하기 위해 AI 비전검사와 로봇을 연계한 시스템을 도입하고 있다.",
+          "statement": "중소 제조업체들은 자동화 수요에 대응하기 위해 통합 솔루션을 개발하고 있다.",
           "claim_type": "fact",
           "citation_ids": [
-            5
+            6
           ]
+        },
+        {
+          "statement": "협동로봇 시장은 다양한 애플리케이션 개발을 위한 노력이 필요할 가능성이 있다.",
+          "claim_type": "ai_hypothesis",
+          "citation_ids": []
         }
       ],
       "next_check": null,
@@ -54,7 +64,7 @@
       "verdict": "signal_only",
       "claims": [
         {
-          "statement": "협동로봇 도입 시 초기 구매가격과 총소유비용(TCO)이 중요한 판단 기준이 된다.",
+          "statement": "협동로봇 도입 시 초기 구매가격과 총소유비용(TCO)이 중요한 판단 기준으로 작용한다.",
           "claim_type": "fact",
           "citation_ids": [
             10
@@ -66,6 +76,11 @@
           "citation_ids": [
             11
           ]
+        },
+        {
+          "statement": "가격민감도가 높은 고객층이 존재할 가능성이 있다.",
+          "claim_type": "ai_hypothesis",
+          "citation_ids": []
         }
       ],
       "next_check": null,
@@ -75,38 +90,57 @@
     },
     {
       "dimension": "buyer",
-      "verdict": "unverified",
+      "verdict": "confirmed",
       "claims": [
         {
-          "statement": "협동로봇의 평균 가격이 2천∼3천만원이라는 점이 언급되었다.",
+          "statement": "협동로봇 한 대의 가격이 평균 2천∼3천만원으로, 대규모 수주가 예상된다.",
           "claim_type": "fact",
           "citation_ids": [
             12
           ]
+        },
+        {
+          "statement": "삼성SDS는 430여개 제조 고객사에 로봇 자동화를 지원하고 있다.",
+          "claim_type": "fact",
+          "citation_ids": [
+            13
+          ]
+        },
+        {
+          "statement": "뉴로메카 사업보고서(FY2025)에 따르면 중소 제조공정부터 대기업의 양산공정까지 폭넓은 고객층을 대상으로 하고 있다.",
+          "claim_type": "fact",
+          "citation_ids": [
+            3
+          ]
         }
       ],
-      "next_check": "구매자 세그먼트(중소 제조사 등)를 정한 뒤, 해당 고객사와의 인터뷰를 통해 구매 의향 확인",
+      "next_check": null,
       "evidence_status": "sufficient",
       "relevant_count": 4,
-      "limitation": "구매·조사 근거가 있으나 분석 단계에서 판단에 충분하지 않다고 봄"
+      "limitation": null
     },
     {
       "dimension": "adoption_barrier",
       "verdict": "signal_only",
       "claims": [
         {
-          "statement": "로봇 도입 시 초기 구매가격과 유지보수 부담이 중요한 도입장벽으로 작용하고 있다.",
+          "statement": "로봇 도입 시 초기 구매가격과 유지보수 부담이 중요한 도입장벽으로 작용할 수 있다.",
           "claim_type": "fact",
           "citation_ids": [
             15
           ]
         },
         {
-          "statement": "숙련 인력 확보의 어려움이 자동화 및 로봇 시스템 도입의 주요 요인으로 작용하고 있다.",
+          "statement": "숙련 인력 확보의 어려움이 자동화 및 로봇 시스템 도입에 영향을 미치고 있다.",
           "claim_type": "fact",
           "citation_ids": [
             7
           ]
+        },
+        {
+          "statement": "기존 제조공정에 로봇을 투입하려면 생산라인과의 연계가 필요할 가능성이 있다.",
+          "claim_type": "ai_hypothesis",
+          "citation_ids": []
         }
       ],
       "next_check": null,
@@ -407,7 +441,7 @@
         "statement": "경쟁·대체재 판단은 signal_only이며, 현재 확정 아이디어의 고객·문제 범위 안에서 해석해야 합니다.",
         "citation_ids": [
           2,
-          5
+          6
         ]
       },
       {
@@ -420,9 +454,11 @@
       },
       {
         "topic": "구매자",
-        "statement": "구매자 판단은 unverified이며, 현재 확정 아이디어의 고객·문제 범위 안에서 해석해야 합니다.",
+        "statement": "구매자 판단은 confirmed이며, 현재 확정 아이디어의 고객·문제 범위 안에서 해석해야 합니다.",
         "citation_ids": [
-          12
+          12,
+          13,
+          3
         ]
       },
       {
@@ -437,8 +473,7 @@
     "unknowns": [
       "고객의 현재 해결 방식과 대체재",
       "고객 인터뷰·구매 검토·파일럿 등 직접 수요 증거",
-      "고객 가치와 ROI를 계산할 측정 변수",
-      "buyer 차원 추가 근거"
+      "고객 가치와 ROI를 계산할 측정 변수"
     ],
     "validation_actions": [
       {
@@ -462,8 +497,8 @@
     "buyer": "미확인",
     "budget_owner": "미확인",
     "use_case": "조립·검사 공정 자동화",
-    "current_alternative": "기존 산업용 로봇",
-    "switching_trigger": "숙련 인력 부족 및 인건비 상승",
+    "current_alternative": "미확인",
+    "switching_trigger": "숙련 인력 부족",
     "purchase_process": "미확인",
     "adoption_requirements": [],
     "pricing_hypothesis": "협동로봇의 가격은 평균 2천∼3천만원으로 예상됨",
@@ -485,12 +520,38 @@
       {
         "question": "누가 구매를 승인하는가?",
         "hypothesis": "중소 제조사의 경영진 또는 자동화 담당자가 구매를 승인할 가능성이 높음.",
-        "basis": "중소 제조사가 자동화 솔루션을 도입하려는 이유는 숙련 인력 부족과 인건비 상승 때문이며, 이로 인해 경영진이 자동화 솔루션의 필요성을 인식하고 있을 것으로 추정됨.",
+        "basis": "중소 제조사가 자동화 솔루션을 도입하려는 의지가 있으나, 구매 결정 과정에 대한 정보가 부족함.",
         "assumptions": [],
         "citation_ids": [],
-        "validation_target": "중소 제조사의 경영진 또는 자동화 담당자",
+        "validation_target": "중소 제조사의 경영진 및 자동화 담당자",
         "validation_method": "인터뷰·조달 문서 확인 등",
         "success_criterion": "구매 승인 절차 및 관련자 확인",
+        "numeric_value": null,
+        "numeric_unit": "",
+        "numeric_basis": ""
+      },
+      {
+        "question": "현재 대안은 무엇인가?",
+        "hypothesis": "기존의 수작업 공정 또는 비효율적인 자동화 시스템이 대안으로 존재할 가능성이 있음.",
+        "basis": "중소 제조사들이 자동화 도입을 고려하고 있으나, 현재 대안에 대한 정보가 부족함.",
+        "assumptions": [],
+        "citation_ids": [],
+        "validation_target": "중소 제조사에서 사용 중인 현재 시스템",
+        "validation_method": "인터뷰·시장 조사",
+        "success_criterion": "현재 사용 중인 시스템의 확인",
+        "numeric_value": null,
+        "numeric_unit": "",
+        "numeric_basis": ""
+      },
+      {
+        "question": "구매·조달 절차는 어떻게 되는가?",
+        "hypothesis": "구매·조달 절차는 중소 제조사마다 상이할 수 있으며, 일반적으로 경영진의 승인 후 진행될 가능성이 높음.",
+        "basis": "구매 절차에 대한 정보가 부족하여 가설로 제시됨.",
+        "assumptions": [],
+        "citation_ids": [],
+        "validation_target": "중소 제조사의 구매·조달 절차",
+        "validation_method": "인터뷰·조달 문서 확인",
+        "success_criterion": "구매 절차의 확인",
         "numeric_value": null,
         "numeric_unit": "",
         "numeric_basis": ""
@@ -658,9 +719,870 @@
     "note": "네이버 검색 관심도를 기준 주제어 검색량 대비 지수로 나타낸 것이며, 시장 규모나 고객 수요의 근거가 아닙니다.",
     "error_message": null
   },
-  "unknowns": [
-    "구매자 근거 미확인: 구매·조사 근거가 있으나 분석 단계에서 판단에 충분하지 않다고 봄"
-  ],
+  "keyword_network": {
+    "status": "completed",
+    "document_count": 100,
+    "nodes": [
+      {
+        "term": "자동화",
+        "document_count": 60,
+        "cluster": 0,
+        "x": -0.0934,
+        "y": 0.2172
+      },
+      {
+        "term": "도입",
+        "document_count": 55,
+        "cluster": 0,
+        "x": 0.1238,
+        "y": 0.2403
+      },
+      {
+        "term": "협동로봇",
+        "document_count": 52,
+        "cluster": 0,
+        "x": -0.0056,
+        "y": 0.4172
+      },
+      {
+        "term": "비용",
+        "document_count": 29,
+        "cluster": 1,
+        "x": 0.1017,
+        "y": 0.023
+      },
+      {
+        "term": "중소기업",
+        "document_count": 25,
+        "cluster": 2,
+        "x": -0.1253,
+        "y": -0.2171
+      },
+      {
+        "term": "중소",
+        "document_count": 24,
+        "cluster": 1,
+        "x": 0.3098,
+        "y": 0.1258
+      },
+      {
+        "term": "비전",
+        "document_count": 16,
+        "cluster": 0,
+        "x": -0.4002,
+        "y": 0.3745
+      },
+      {
+        "term": "작업",
+        "document_count": 16,
+        "cluster": 0,
+        "x": -0.1258,
+        "y": 0.0013
+      },
+      {
+        "term": "피지컬",
+        "document_count": 16,
+        "cluster": 0,
+        "x": -0.2127,
+        "y": 0.4864
+      },
+      {
+        "term": "투자",
+        "document_count": 15,
+        "cluster": 2,
+        "x": 0.0236,
+        "y": -0.3768
+      },
+      {
+        "term": "물류",
+        "document_count": 13,
+        "cluster": 0,
+        "x": 0.1686,
+        "y": 0.5489
+      },
+      {
+        "term": "휴머노이드",
+        "document_count": 13,
+        "cluster": 0,
+        "x": -0.2977,
+        "y": 0.14
+      },
+      {
+        "term": "어려움",
+        "document_count": 12,
+        "cluster": 0,
+        "x": -0.1879,
+        "y": 0.7034
+      },
+      {
+        "term": "제조기업",
+        "document_count": 12,
+        "cluster": 1,
+        "x": 0.2976,
+        "y": 0.3726
+      },
+      {
+        "term": "검증",
+        "document_count": 11,
+        "cluster": 0,
+        "x": 0.2625,
+        "y": -0.1248
+      },
+      {
+        "term": "생산성",
+        "document_count": 11,
+        "cluster": 0,
+        "x": 0.03,
+        "y": 0.7176
+      },
+      {
+        "term": "부담",
+        "document_count": 10,
+        "cluster": 1,
+        "x": 0.4842,
+        "y": 0.2592
+      },
+      {
+        "term": "인력",
+        "document_count": 10,
+        "cluster": 1,
+        "x": 0.4783,
+        "y": 0.4952
+      },
+      {
+        "term": "위험",
+        "document_count": 8,
+        "cluster": 0,
+        "x": -0.5136,
+        "y": 0.1878
+      },
+      {
+        "term": "생산라인",
+        "document_count": 6,
+        "cluster": 0,
+        "x": 0.3492,
+        "y": 0.6717
+      },
+      {
+        "term": "개별",
+        "document_count": 5,
+        "cluster": 2,
+        "x": 0.2545,
+        "y": -0.6065
+      },
+      {
+        "term": "라인",
+        "document_count": 5,
+        "cluster": 0,
+        "x": -0.091,
+        "y": 0.9096
+      },
+      {
+        "term": "인력난",
+        "document_count": 5,
+        "cluster": 0,
+        "x": 0.5375,
+        "y": 0.0474
+      },
+      {
+        "term": "무인공장",
+        "document_count": 4,
+        "cluster": 2,
+        "x": -0.1976,
+        "y": -0.7149
+      },
+      {
+        "term": "업종",
+        "document_count": 4,
+        "cluster": 2,
+        "x": -0.3871,
+        "y": -0.6062
+      },
+      {
+        "term": "완전자동화",
+        "document_count": 4,
+        "cluster": 2,
+        "x": 0.0018,
+        "y": -0.8039
+      },
+      {
+        "term": "AI공장",
+        "document_count": 3,
+        "cluster": 2,
+        "x": -0.3427,
+        "y": -0.8971
+      },
+      {
+        "term": "반월시화",
+        "document_count": 3,
+        "cluster": 2,
+        "x": -0.5638,
+        "y": -0.7344
+      },
+      {
+        "term": "반월시화형",
+        "document_count": 3,
+        "cluster": 2,
+        "x": -0.0947,
+        "y": -1.0
+      },
+      {
+        "term": "성공모델",
+        "document_count": 3,
+        "cluster": 2,
+        "x": 0.2159,
+        "y": -0.8573
+      }
+    ],
+    "edges": [
+      {
+        "source": "도입",
+        "target": "협동로봇",
+        "weight": 34
+      },
+      {
+        "source": "도입",
+        "target": "자동화",
+        "weight": 32
+      },
+      {
+        "source": "자동화",
+        "target": "협동로봇",
+        "weight": 28
+      },
+      {
+        "source": "도입",
+        "target": "비용",
+        "weight": 19
+      },
+      {
+        "source": "도입",
+        "target": "중소",
+        "weight": 17
+      },
+      {
+        "source": "자동화",
+        "target": "중소",
+        "weight": 17
+      },
+      {
+        "source": "비용",
+        "target": "자동화",
+        "weight": 15
+      },
+      {
+        "source": "비전",
+        "target": "자동화",
+        "weight": 14
+      },
+      {
+        "source": "도입",
+        "target": "중소기업",
+        "weight": 13
+      },
+      {
+        "source": "자동화",
+        "target": "작업",
+        "weight": 13
+      },
+      {
+        "source": "중소",
+        "target": "협동로봇",
+        "weight": 13
+      },
+      {
+        "source": "비용",
+        "target": "중소",
+        "weight": 12
+      },
+      {
+        "source": "비용",
+        "target": "중소기업",
+        "weight": 12
+      },
+      {
+        "source": "비용",
+        "target": "협동로봇",
+        "weight": 12
+      },
+      {
+        "source": "물류",
+        "target": "자동화",
+        "weight": 11
+      },
+      {
+        "source": "비용",
+        "target": "투자",
+        "weight": 11
+      },
+      {
+        "source": "자동화",
+        "target": "중소기업",
+        "weight": 11
+      },
+      {
+        "source": "작업",
+        "target": "협동로봇",
+        "weight": 11
+      },
+      {
+        "source": "제조기업",
+        "target": "중소",
+        "weight": 11
+      },
+      {
+        "source": "자동화",
+        "target": "피지컬",
+        "weight": 10
+      },
+      {
+        "source": "중소기업",
+        "target": "투자",
+        "weight": 10
+      },
+      {
+        "source": "도입",
+        "target": "물류",
+        "weight": 9
+      },
+      {
+        "source": "도입",
+        "target": "어려움",
+        "weight": 9
+      },
+      {
+        "source": "도입",
+        "target": "제조기업",
+        "weight": 9
+      },
+      {
+        "source": "도입",
+        "target": "휴머노이드",
+        "weight": 9
+      },
+      {
+        "source": "부담",
+        "target": "비용",
+        "weight": 9
+      },
+      {
+        "source": "생산성",
+        "target": "자동화",
+        "weight": 9
+      },
+      {
+        "source": "어려움",
+        "target": "협동로봇",
+        "weight": 9
+      },
+      {
+        "source": "자동화",
+        "target": "제조기업",
+        "weight": 9
+      },
+      {
+        "source": "중소기업",
+        "target": "협동로봇",
+        "weight": 9
+      },
+      {
+        "source": "협동로봇",
+        "target": "휴머노이드",
+        "weight": 9
+      },
+      {
+        "source": "비전",
+        "target": "협동로봇",
+        "weight": 8
+      },
+      {
+        "source": "자동화",
+        "target": "투자",
+        "weight": 8
+      },
+      {
+        "source": "도입",
+        "target": "부담",
+        "weight": 7
+      },
+      {
+        "source": "도입",
+        "target": "생산성",
+        "weight": 7
+      },
+      {
+        "source": "도입",
+        "target": "인력",
+        "weight": 7
+      },
+      {
+        "source": "도입",
+        "target": "작업",
+        "weight": 7
+      },
+      {
+        "source": "부담",
+        "target": "자동화",
+        "weight": 7
+      },
+      {
+        "source": "부담",
+        "target": "중소",
+        "weight": 7
+      },
+      {
+        "source": "비용",
+        "target": "인력",
+        "weight": 7
+      },
+      {
+        "source": "어려움",
+        "target": "자동화",
+        "weight": 7
+      },
+      {
+        "source": "인력",
+        "target": "자동화",
+        "weight": 7
+      },
+      {
+        "source": "자동화",
+        "target": "휴머노이드",
+        "weight": 7
+      },
+      {
+        "source": "제조기업",
+        "target": "협동로봇",
+        "weight": 7
+      },
+      {
+        "source": "도입",
+        "target": "피지컬",
+        "weight": 6
+      },
+      {
+        "source": "물류",
+        "target": "협동로봇",
+        "weight": 6
+      },
+      {
+        "source": "비용",
+        "target": "제조기업",
+        "weight": 6
+      },
+      {
+        "source": "생산성",
+        "target": "어려움",
+        "weight": 6
+      },
+      {
+        "source": "중소",
+        "target": "투자",
+        "weight": 6
+      },
+      {
+        "source": "피지컬",
+        "target": "협동로봇",
+        "weight": 6
+      },
+      {
+        "source": "검증",
+        "target": "도입",
+        "weight": 5
+      },
+      {
+        "source": "검증",
+        "target": "비용",
+        "weight": 5
+      },
+      {
+        "source": "검증",
+        "target": "작업",
+        "weight": 5
+      },
+      {
+        "source": "도입",
+        "target": "위험",
+        "weight": 5
+      },
+      {
+        "source": "도입",
+        "target": "투자",
+        "weight": 5
+      },
+      {
+        "source": "물류",
+        "target": "중소",
+        "weight": 5
+      },
+      {
+        "source": "부담",
+        "target": "인력",
+        "weight": 5
+      },
+      {
+        "source": "비용",
+        "target": "피지컬",
+        "weight": 5
+      },
+      {
+        "source": "비전",
+        "target": "작업",
+        "weight": 5
+      },
+      {
+        "source": "비전",
+        "target": "피지컬",
+        "weight": 5
+      },
+      {
+        "source": "생산성",
+        "target": "협동로봇",
+        "weight": 5
+      },
+      {
+        "source": "위험",
+        "target": "협동로봇",
+        "weight": 5
+      },
+      {
+        "source": "인력",
+        "target": "협동로봇",
+        "weight": 5
+      },
+      {
+        "source": "인력난",
+        "target": "협동로봇",
+        "weight": 5
+      },
+      {
+        "source": "개별",
+        "target": "중소기업",
+        "weight": 4
+      },
+      {
+        "source": "검증",
+        "target": "자동화",
+        "weight": 4
+      },
+      {
+        "source": "검증",
+        "target": "투자",
+        "weight": 4
+      },
+      {
+        "source": "도입",
+        "target": "비전",
+        "weight": 4
+      },
+      {
+        "source": "도입",
+        "target": "생산라인",
+        "weight": 4
+      },
+      {
+        "source": "도입",
+        "target": "인력난",
+        "weight": 4
+      },
+      {
+        "source": "라인",
+        "target": "자동화",
+        "weight": 4
+      },
+      {
+        "source": "무인공장",
+        "target": "완전자동화",
+        "weight": 4
+      },
+      {
+        "source": "무인공장",
+        "target": "중소기업",
+        "weight": 4
+      },
+      {
+        "source": "무인공장",
+        "target": "투자",
+        "weight": 4
+      },
+      {
+        "source": "물류",
+        "target": "비용",
+        "weight": 4
+      },
+      {
+        "source": "생산라인",
+        "target": "자동화",
+        "weight": 4
+      },
+      {
+        "source": "생산라인",
+        "target": "협동로봇",
+        "weight": 4
+      },
+      {
+        "source": "업종",
+        "target": "중소기업",
+        "weight": 4
+      },
+      {
+        "source": "완전자동화",
+        "target": "중소기업",
+        "weight": 4
+      },
+      {
+        "source": "완전자동화",
+        "target": "투자",
+        "weight": 4
+      },
+      {
+        "source": "인력난",
+        "target": "자동화",
+        "weight": 4
+      },
+      {
+        "source": "중소기업",
+        "target": "휴머노이드",
+        "weight": 4
+      },
+      {
+        "source": "AI공장",
+        "target": "무인공장",
+        "weight": 3
+      },
+      {
+        "source": "AI공장",
+        "target": "반월시화형",
+        "weight": 3
+      },
+      {
+        "source": "AI공장",
+        "target": "완전자동화",
+        "weight": 3
+      },
+      {
+        "source": "AI공장",
+        "target": "중소기업",
+        "weight": 3
+      },
+      {
+        "source": "AI공장",
+        "target": "투자",
+        "weight": 3
+      },
+      {
+        "source": "개별",
+        "target": "무인공장",
+        "weight": 3
+      },
+      {
+        "source": "개별",
+        "target": "비용",
+        "weight": 3
+      },
+      {
+        "source": "개별",
+        "target": "성공모델",
+        "weight": 3
+      },
+      {
+        "source": "개별",
+        "target": "완전자동화",
+        "weight": 3
+      },
+      {
+        "source": "도입",
+        "target": "라인",
+        "weight": 3
+      },
+      {
+        "source": "무인공장",
+        "target": "반월시화",
+        "weight": 3
+      },
+      {
+        "source": "무인공장",
+        "target": "반월시화형",
+        "weight": 3
+      },
+      {
+        "source": "무인공장",
+        "target": "성공모델",
+        "weight": 3
+      },
+      {
+        "source": "무인공장",
+        "target": "업종",
+        "weight": 3
+      },
+      {
+        "source": "물류",
+        "target": "생산성",
+        "weight": 3
+      },
+      {
+        "source": "반월시화",
+        "target": "완전자동화",
+        "weight": 3
+      },
+      {
+        "source": "반월시화",
+        "target": "중소기업",
+        "weight": 3
+      },
+      {
+        "source": "반월시화",
+        "target": "투자",
+        "weight": 3
+      },
+      {
+        "source": "반월시화형",
+        "target": "완전자동화",
+        "weight": 3
+      },
+      {
+        "source": "반월시화형",
+        "target": "중소기업",
+        "weight": 3
+      },
+      {
+        "source": "반월시화형",
+        "target": "투자",
+        "weight": 3
+      },
+      {
+        "source": "비용",
+        "target": "생산라인",
+        "weight": 3
+      },
+      {
+        "source": "비용",
+        "target": "휴머노이드",
+        "weight": 3
+      },
+      {
+        "source": "비전",
+        "target": "어려움",
+        "weight": 3
+      },
+      {
+        "source": "비전",
+        "target": "위험",
+        "weight": 3
+      },
+      {
+        "source": "성공모델",
+        "target": "완전자동화",
+        "weight": 3
+      },
+      {
+        "source": "성공모델",
+        "target": "중소기업",
+        "weight": 3
+      },
+      {
+        "source": "성공모델",
+        "target": "투자",
+        "weight": 3
+      },
+      {
+        "source": "업종",
+        "target": "완전자동화",
+        "weight": 3
+      },
+      {
+        "source": "업종",
+        "target": "투자",
+        "weight": 3
+      },
+      {
+        "source": "위험",
+        "target": "자동화",
+        "weight": 3
+      },
+      {
+        "source": "위험",
+        "target": "중소기업",
+        "weight": 3
+      },
+      {
+        "source": "AI공장",
+        "target": "반월시화",
+        "weight": 2
+      },
+      {
+        "source": "AI공장",
+        "target": "업종",
+        "weight": 2
+      },
+      {
+        "source": "검증",
+        "target": "인력난",
+        "weight": 2
+      },
+      {
+        "source": "라인",
+        "target": "생산성",
+        "weight": 2
+      },
+      {
+        "source": "라인",
+        "target": "협동로봇",
+        "weight": 2
+      },
+      {
+        "source": "비용",
+        "target": "인력난",
+        "weight": 2
+      },
+      {
+        "source": "생산라인",
+        "target": "인력",
+        "weight": 2
+      }
+    ],
+    "clusters": [
+      [
+        "자동화",
+        "도입",
+        "협동로봇",
+        "비전",
+        "작업",
+        "피지컬",
+        "물류",
+        "휴머노이드",
+        "어려움",
+        "검증",
+        "생산성",
+        "위험",
+        "생산라인",
+        "라인",
+        "인력난"
+      ],
+      [
+        "비용",
+        "중소",
+        "제조기업",
+        "부담",
+        "인력"
+      ],
+      [
+        "중소기업",
+        "투자",
+        "개별",
+        "무인공장",
+        "업종",
+        "완전자동화",
+        "AI공장",
+        "반월시화",
+        "반월시화형",
+        "성공모델"
+      ]
+    ],
+    "note": "아이디어와 가까운 뉴스 제목·요약에서 같은 기사에 함께 나온 명사를 이은 것이며, 시장 수요나 인과관계의 근거가 아닙니다.",
+    "error_message": null
+  },
+  "unknowns": [],
   "search_scope": "네이버 뉴스 검색 API로 사전 수집한 스마트팩토리 기사 1976건(제목·요약, 발행일 20240102~20261029) · DART 사업보고서 '사업의 내용' 발췌 348건(기업 14곳, FY2025), 전체 수집 범위 · 아이디어와 가까워 검색한 DART 기업: 레인보우로보틱스, 뉴로메카, 두산로보틱스",
   "data_as_of": 20261029,
   "error_message": null
