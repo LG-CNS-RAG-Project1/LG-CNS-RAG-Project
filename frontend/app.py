@@ -717,6 +717,8 @@ def workflow_progress_fragment():
                 return "근거 부족"
             if report.status == "completed":
                 return "완료"
+            if report.status == "partial":
+                return "부분 완료"
             if report.status == "error" or (run and run.state in {"error", "timeout"}):
                 return "실패"
             return "근거 부족"
@@ -811,7 +813,7 @@ def workflow_progress_fragment():
 
 
 def render_patent_report(patent, *, widget_suffix="", preview=False):
-    """최대 5개 특허를 궤도에 배치하고 호버 요약과 종합 근거를 제공한다."""
+    """최대 8개 특허를 궤도에 배치하고 호버 요약과 종합 근거를 제공한다."""
     import math
 
     from src.generation.patent_analysis import (
@@ -841,6 +843,17 @@ def render_patent_report(patent, *, widget_suffix="", preview=False):
             from src.pipeline import redact
 
             with st.expander("오류 상세"):
+                st.code(redact(patent.error_message))
+    elif patent.status == "partial":
+        st.warning("특허 원문은 확보했지만 비교 분석을 완료하지 못했습니다.")
+        st.info(f"원문 근거 {len(patent.evidence)}건을 보존했습니다.")
+        st.caption(
+            "아래 문헌과 원문은 확인할 수 있지만, 구성요소별 비교와 설계 대안은 미완료입니다."
+        )
+        if patent.error_message:
+            from src.pipeline import redact
+
+            with st.expander("비교 생성 오류 상세"):
                 st.code(redact(patent.error_message))
     elif patent.status == "no_results":
         st.warning(
@@ -944,8 +957,9 @@ def render_patent_report(patent, *, widget_suffix="", preview=False):
         next(item for item in documents if item["patent_id"] == evidence.patent_id)[
             "evidence"
         ].append(evidence)
-    documents = documents[:5]
+    documents = documents[:8]
     if documents:
+        st.caption(f"비교 문헌 {len(documents)}건 · 최대 8건")
         orbit_reviews = []
         for document in documents:
             review = reviews_by_patent.get(document["patent_id"])
@@ -1182,7 +1196,7 @@ def render_patent_report(patent, *, widget_suffix="", preview=False):
             if precheck.limitations:
                 st.caption("검토 한계: " + " · ".join(precheck.limitations))
     else:
-        if patent.status == "error":
+        if patent.status in {"error", "partial"}:
             st.info("검색이 완료되지 않아 특허 부재 여부를 판단할 수 없습니다.")
         else:
             st.info(
@@ -2208,8 +2222,12 @@ with st.container(key=f"workspace_{1 if s.stage == 1 else 3 if s.stage == 4 else
                         f"특허 검색: {PATENT_MODE_LABELS.get(result.readiness.patent_mode, result.readiness.patent_mode)}"
                     )
                 render_patent_report(patent)
-                if patent.status == "error" and not s.get("analysis_workflow_id"):
-                    st.caption("이전 특허 조사에 오류가 있어 다시 조사가 필요합니다.")
+                if patent.status in {"error", "partial"} and not s.get(
+                    "analysis_workflow_id"
+                ):
+                    st.caption(
+                        "특허 비교가 완료되지 않아 다시 조사할 수 있습니다. 재실행은 API 비용이 발생할 수 있습니다."
+                    )
                     if st.button(
                         "특허·시장 근거 다시 조사 · API 비용 발생",
                         key="retry_source_analysis",
@@ -2332,7 +2350,7 @@ with st.container(key=f"workspace_{1 if s.stage == 1 else 3 if s.stage == 4 else
                 start_report_workflow()
                 st.rerun()
         if (
-            s.pipeline_result.patent.status == "error"
+            s.pipeline_result.patent.status in {"error", "partial"}
             or s.pipeline_result.market.status == "error"
         ):
             st.warning(

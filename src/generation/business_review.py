@@ -70,7 +70,7 @@ def build_business_review(
         )
     )
     market_failed = market.status in {"error", "no_results"}
-    patent_failed = patent.status in {"error", "no_results"}
+    patent_failed = patent.status in {"error", "partial", "no_results"}
     missing_business_fields = [
         label
         for field, label in (

@@ -372,7 +372,7 @@ python -m evaluation.patent_labeling export              # SF-02/SF-05 특허 �
 
 ### 특허 청구항 분석
 
-특허 분석 입력은 `PatentSearchRequest`, 반환 계약은 `PatentReport`이며 `src.services.patent_service.analyze_patents()`에서 호출한다. 문헌별 청구항 원문·버전·번호·종속항 참조와 UTC 수집 시각을 인용 근거 및 색인에 보존한다. 비교 문맥은 상위항 관계와 문헌당 약 1,800 토큰, 보고서 분석 전체 약 6,000 토큰의 보수적 추정 예산을 고려해 구성한다. KIPRIS 청구항 조회가 비어 있거나 실패하면 초록 근거와 미확인 상태를 반환한다. 구현 흐름과 Mock 통합 예제는 [docs/patent_rag.md](docs/patent_rag.md)를 참고한다.
+특허 분석 입력은 `PatentSearchRequest`, 반환 계약은 `PatentReport`이며 `src.services.patent_service.analyze_patents()`에서 호출한다. 기본적으로 관련 특허 문헌을 최대 8건까지 비교하고 화면에도 선택된 8건을 표시한다. 문헌별 청구항 원문·버전·번호·종속항 참조와 UTC 수집 시각을 인용 근거 및 색인에 보존한다. 비교 문맥은 상위항 관계와 문헌당 약 1,800 토큰, 보고서 분석 전체 약 6,000 토큰의 보수적 추정 예산을 고려해 구성한다. 원문 확보 후 비교 생성만 실패하면 `partial` 상태로 원문과 오류를 보존하며, KIPRIS 청구항 조회가 비거나 실패하면 초록 근거와 미확인 상태를 반환한다. 구현 흐름과 Mock 통합 예제는 [docs/patent_rag.md](docs/patent_rag.md)를 참고한다.
 
 특허 비교 뒤에는 `PatentDesignAnalysis`가 사용자 기술 구성요소와 기존 문헌별 비교 결과를 받아 최대 3개의 구체적 설계 대안을 생성한다. 각 대안에는 변경 대상, 구현 접근, 기술적 차이, 장점·제약, 정성적 실현 가능성, 검증 계획과 확인 가능한 인용 ID가 포함된다. 청구항을 확보하지 못하면 초록 기반으로 제한됨을 표시하며, 제안 생성이 실패해도 검색 근거와 기존 비교 결과는 보존한다. 결과는 기술 검토용이며 특허 침해·등록 가능성·실시 자유의 법률 판단을 제공하지 않는다. 상세 계약과 테스트 안내는 [docs/patent_rag.md](docs/patent_rag.md)를 참고한다.
 
