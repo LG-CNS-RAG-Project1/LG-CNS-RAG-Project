@@ -15,7 +15,7 @@ import unicodedata
 
 from src.planner.schemas import Anchor, Entity, Evidence
 
-RULE_VERSION = "planner-rules-v3"
+RULE_VERSION = "planner-rules-v4"
 
 NEGATION_RE = re.compile(
     r"않는다|않았다|않아|않고|않는|않을|못한다|못했|못하|아니다|아닌|어렵다|어려운|"
@@ -339,16 +339,29 @@ def relation_type(clause: str) -> str:
     return ""
 
 
+GENERIC_LATIN = {"ai", "sw", "it", "iot", "plc", "mes", "2d", "3d", "ict"}
+
+
 def product_name(product_text: str, sentence: str) -> str:
-    """제품명 승인: 문장에 그대로 있고, 따옴표 안이거나 일반 명사만으로 이뤄지지 않을 때."""
+    """제품명 승인: 문장에 그대로 있고, 따옴표 안이거나 브랜드형 영문·숫자 표기가 있을 때.
+
+    나열(와·과·,)이나 잘린 구절이 섞인 설명형 이름, 'AI' 같은 일반 영문만 있는 이름은 쓰지 않는다.
+    """
     name = " ".join((product_text or "").split()).strip("'\"‘’“”「」")
-    if not name or not align(sentence, name):
+    if not name or not align(sentence, name) or len(name) > 30:
+        return ""
+    if re.search(r"(?:와|과)\s|,|\.\.\.|…", name):
         return ""
     quoted = re.search(
         r"['‘\"“「『]\s*" + re.escape(name) + r"\s*['’\"”」』]", sentence
     )
+    brand = [
+        token
+        for token in re.findall(r"[A-Za-z0-9][A-Za-z0-9.\-]*", name)
+        if token.lower() not in GENERIC_LATIN
+    ]
     words = {w.lower() for w in re.split(r"[\s·]+", name) if w}
-    if quoted or not words <= GENERIC_PRODUCT_WORDS:
+    if (quoted or brand) and not words <= GENERIC_PRODUCT_WORDS:
         return name
     return ""
 
@@ -417,6 +430,18 @@ def _layer(span) -> str:
     return "reviewed_body" if span.layer == "reviewed_body" else "stored_snippet"
 
 
+def lead_suppliers(anchors: list[Anchor]) -> dict[str, set[str]]:
+    """기사별로 제목 첫머리·인터뷰 대표 패턴으로 나온 기업(기사의 중심 기업 후보)."""
+    leads: dict[str, set[str]] = {}
+    for anchor in anchors:
+        if anchor.kind == "mention" and set(anchor.features) & {
+            "headline_lead",
+            "spokesperson",
+        }:
+            leads.setdefault(anchor.source_id, set()).add(anchor.entity_id)
+    return leads
+
+
 def approve_suppliers(anchors: list[Anchor]) -> tuple[dict, dict, list[Evidence]]:
     """기사별 승인 공급사와 엔터티 목록, 공급사 근거를 만든다."""
     approved_in: dict[str, set[str]] = {}
@@ -482,8 +507,14 @@ def approve_suppliers(anchors: list[Anchor]) -> tuple[dict, dict, list[Evidence]
     return approved_in, entities, evidence
 
 
-def evaluate_claim(anchor: Anchor, approved_in: dict) -> Evidence:
-    """주장 근거: 주체가 그 기사의 승인 공급사로 확인돼야 승인한다."""
+def evaluate_claim(
+    anchor: Anchor, approved_in: dict, leads: dict | None = None
+) -> Evidence:
+    """주장 근거: 주체가 그 기사의 승인 공급사로 확인돼야 승인한다.
+
+    주체 이름이 없으면 기사의 승인 공급사가 하나일 때만 연결한다. 그 공급사가 제목 첫머리·인터뷰
+    대표로 나온 기사의 중심 기업이면 근거를 single_supplier_article_lead로 구분한다.
+    """
     suppliers = approved_in.get(anchor.source_id, set())
     reasons, supplier, basis = [], "", ""
     if anchor.owner_entity_id:
@@ -492,7 +523,9 @@ def evaluate_claim(anchor: Anchor, approved_in: dict) -> Evidence:
         else:
             reasons.append("owner_not_approved_supplier")
     elif len(suppliers) == 1 and "other_subject" not in anchor.features:
-        supplier, basis = next(iter(suppliers)), "single_supplier_in_article"
+        supplier = next(iter(suppliers))
+        lead = supplier in (leads or {}).get(anchor.source_id, set())
+        basis = "single_supplier_article_lead" if lead else "single_supplier_in_article"
     else:
         reasons.append("owner_unconfirmed")
     return Evidence(
@@ -662,6 +695,7 @@ def evaluate_evidence(
     """Anchor 전체를 판정한다. 공급사 검토를 먼저 반영한 뒤 주장·관계·수치를 판정한다."""
     reviews = reviews or []
     _, entities, supplier_evidence = approve_suppliers(anchors)
+    leads = lead_suppliers(anchors)
     supplier_evidence = apply_reviews(supplier_evidence, reviews)
     approved_in = supplier_index(supplier_evidence)
     approved_ids = {eid for ids in approved_in.values() for eid in ids}
@@ -672,7 +706,7 @@ def evaluate_evidence(
     evidence = list(supplier_evidence)
     for anchor in anchors:
         if anchor.kind == "claim":
-            evidence.append(evaluate_claim(anchor, approved_in))
+            evidence.append(evaluate_claim(anchor, approved_in, leads))
         elif anchor.kind == "relation":
             evidence.append(evaluate_relation(anchor, approved_in, approved_ids))
         elif anchor.kind == "metric":

@@ -224,3 +224,53 @@ def test_loosely_related_idea_text_gets_scope_definition_insight():
     site = next(i for i in table["insights"] if i.criterion_id == "site_customization")
     assert "관련된 표현만" in site.text and site.next_question_ids == ["E2", "C4"]
     assert "단독 차별점" not in site.text
+
+
+def test_product_names_need_quotes_or_brand_tokens():
+    from src.planner.rules import product_name
+
+    assert (
+        product_name("Inspector83x", "가상의 Inspector83x는 셋업이 쉽다")
+        == "Inspector83x"
+    )
+    assert product_name("젠가드", "솔루션 '젠가드'를 출시했다") == "젠가드"
+    assert (
+        product_name("모듈형 AI 비전 플랫폼", "모듈형 AI 비전 플랫폼은 구성된다") == ""
+    )
+    sentence = "향후 비전 AI 광학 장비와 소프트웨어 솔..."
+    assert product_name("비전 AI 광학 장비와 소프트웨어 솔", sentence) == ""
+
+
+def test_unnamed_claims_count_only_in_articles_led_by_the_supplier():
+    from tests.planner_fixtures import article
+
+    column = article(
+        "C1X",
+        "[칼럼] 준지도학습, 비전검사 분야서 각광",
+        "가상다겸은 비전검사 솔루션을 개발한다. 학습에 필요한 레이블 데이터 수를 줄인 준지도학습이 주목받는다.",
+        candidates={
+            "mentions": [("가상다겸", "supplier")],
+            "claims": [
+                {
+                    "exact_text": "학습에 필요한 레이블 데이터 수를 줄인 준지도학습이 주목받는다",
+                    "owner_text": "",
+                    "product_text": "",
+                }
+            ],
+        },
+    )
+    result, table = matrix(processed([column] + WORLD))
+    cell_column = cell(table, "가상다겸", "defect_data_preparation")
+    assert (
+        cell_column.status == "partial"
+        and "owner_by_article_only" in cell_column.reasons
+    )
+    led = next(
+        e
+        for e in result["evidence"]
+        if e.kind == "claim"
+        and e.source_id == source_id("A1")
+        and "site_customization" in e.criteria
+    )
+    assert "owner_basis:single_supplier_article_lead" in led.reasons
+    assert cell(table, "가나비전", "site_customization").status == "explicit"
