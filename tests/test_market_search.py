@@ -81,6 +81,50 @@ def test_build_index_skips_existing(indexed):
     assert indexed.count() == 4
 
 
+def test_build_index_reembeds_changed_text_and_updates_metadata(indexed):
+    added = build_index(
+        [
+            make_document("news-a", "협동로봇 도입 확대", reliability="high"),
+            make_document("news-c", "예지보전 솔루션 가격", idea_ids=["SF-03"]),
+        ],
+        indexed,
+        embed_fn=fake_embed,
+    )
+    stored = indexed.get(
+        ids=["news-a#0", "news-c#0"], include=["documents", "metadatas"]
+    )
+    by_id = dict(zip(stored["ids"], zip(stored["documents"], stored["metadatas"])))
+
+    assert added == 1
+    assert by_id["news-a#0"][1]["reliability"] == "high"
+    assert by_id["news-c#0"][0] == "예지보전 솔루션 가격"
+
+
+def test_build_index_prunes_stale_ids_after_upsert(indexed):
+    def failing_embed(texts):
+        raise RuntimeError("quota")
+
+    with pytest.raises(RuntimeError):
+        build_index(
+            [make_document("news-new", "FEMS")],
+            indexed,
+            embed_fn=failing_embed,
+            prune=True,
+        )
+    assert indexed.count() == 4
+
+    build_index(
+        [
+            make_document("news-a", "협동로봇 도입 확대"),
+            make_document("news-new", "FEMS"),
+        ],
+        indexed,
+        embed_fn=fake_embed,
+        prune=True,
+    )
+    assert sorted(indexed.get(include=[])["ids"]) == ["news-a#0", "news-new#0"]
+
+
 def test_build_where():
     assert build_where() is None
     assert build_where(idea_id="SF-01") == {"idea_SF-01": True}

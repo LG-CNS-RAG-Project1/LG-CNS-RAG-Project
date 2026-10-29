@@ -123,15 +123,31 @@ def build_index(
     collection,
     embed_fn: EmbedFn = embed_texts,
     rebuild: bool = False,
+    prune: bool = False,
 ) -> int:
     """문서를 컬렉션에 upsert하고 새로 임베딩한 건수를 반환한다.
 
-    rebuild=False이면 이미 색인된 ID는 임베딩하지 않는다.
+    rebuild=False이면 이미 같은 텍스트로 색인된 ID는 임베딩하지 않고 메타데이터만 갱신한다.
+    prune=True이면 upsert가 모두 끝난 뒤 documents에 없는 ID를 컬렉션에서 지운다
+    (documents가 전체 문서일 때만 쓴다). 임베딩이 중간에 실패해도 기존 색인은 지워지지 않는다.
     """
-    records = [to_chroma_record(d) for d in documents]
+    all_records = [to_chroma_record(d) for d in documents]
+    records = all_records
     if not rebuild and records:
-        existing = set(collection.get(ids=[r[0] for r in records], include=[])["ids"])
-        records = [r for r in records if r[0] not in existing]
+        texts = {r[0]: r[1] for r in records}
+        stored = collection.get(ids=list(texts), include=["documents"])
+        same_text = {
+            record_id
+            for record_id, text in zip(stored["ids"], stored["documents"])
+            if text == texts[record_id]
+        }
+        unchanged = [r for r in records if r[0] in same_text]
+        for start in range(0, len(unchanged), EMBED_BATCH_SIZE):
+            batch = unchanged[start : start + EMBED_BATCH_SIZE]
+            collection.update(
+                ids=[r[0] for r in batch], metadatas=[r[2] for r in batch]
+            )
+        records = [r for r in records if r[0] not in same_text]
 
     for start in range(0, len(records), EMBED_BATCH_SIZE):
         batch = records[start : start + EMBED_BATCH_SIZE]
@@ -141,6 +157,11 @@ def build_index(
             metadatas=[r[2] for r in batch],
             embeddings=embed_fn([r[1] for r in batch]),
         )
+    if prune:
+        keep = {r[0] for r in all_records}
+        stale = [i for i in collection.get(include=[])["ids"] if i not in keep]
+        if stale:
+            collection.delete(ids=stale)
     return len(records)
 
 
@@ -331,6 +352,9 @@ def main() -> None:
     sub = parser.add_subparsers(dest="command", required=True)
     build = sub.add_parser("build", help="market_docs.jsonl·dart_docs.jsonl 색인")
     build.add_argument("--rebuild", action="store_true", help="기존 ID도 다시 임베딩")
+    build.add_argument(
+        "--prune", action="store_true", help="색인 후 정제 문서에 없는 ID 삭제"
+    )
     search = sub.add_parser("search", help="질의 검색")
     search.add_argument("query")
     search.add_argument("--idea-id")
@@ -339,7 +363,9 @@ def main() -> None:
 
     collection = get_collection()
     if args.command == "build":
-        added = build_index(load_all_documents(), collection, rebuild=args.rebuild)
+        added = build_index(
+            load_all_documents(), collection, rebuild=args.rebuild, prune=args.prune
+        )
         print(f"embedded {added} documents -> collection size {collection.count()}")
     else:
         hits = search_market(
