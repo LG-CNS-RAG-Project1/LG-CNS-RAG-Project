@@ -197,49 +197,9 @@ def render_report(s, payload, archived=False):
         "종합 보고서 / "
         + ("시연용 가상 자료" if payload["demo"] else "실제 조사 결과 · 원문 검토 필요")
     )
-    overview, trace, full, costs = st.tabs(
-        ["한눈에 보기", "판단 근거 따라보기", "보고서 원문", "비용 · 메모"]
-    )
-    with trace:
-        if payload.get("decision_trace"):
-            from frontend.decision_trace import render_decision_trace
+    summary, original = st.tabs(["보고서 요약", "보고서 원문"])
 
-            render_decision_trace(payload["decision_trace"])
-        else:
-            st.info(
-                "이 기록에는 판단별 원문 연결이 없습니다. 보고서 원문을 확인하세요."
-            )
-    cost_rows = s.cost_rows
-    with costs:
-        if not archived and s.real_mode and s.pipeline_result:
-            from frontend.cost_view import render_cost_estimate
-
-            cost_report = render_cost_estimate(s.pipeline_result)
-            if cost_report:
-                st.markdown(cost_report)
-        st.caption(
-            "비용은 직접 입력한 보조 자료입니다. 금액 누락을 0으로 확정하지 않습니다."
-        )
-        if archived:
-            st.markdown(payload.get("appendix", "") or "저장된 부록이 없습니다.")
-        else:
-            cost_rows = cost_rows_list(
-                st.data_editor(
-                    s.cost_rows,
-                    num_rows="dynamic",
-                    use_container_width=True,
-                    key="real_cost_rows",
-                )
-            )
-            total = cost_summary(cost_rows)
-            st.metric("입력 항목 소계 (만원)", f"{total['total']:,.1f}")
-            if total["missing"]:
-                st.caption("금액 미입력: " + ", ".join(total["missing"]))
-            if total["errors"]:
-                st.warning("유효하지 않은 비용 입력: " + ", ".join(total["errors"]))
-            st.text_area("검토 메모", key="report_note", value=s.saved_memo)
-            s.saved_memo = s.get("report_note", "")
-    with overview:
+    with summary:
         if payload.get("dashboard"):
             from frontend.report_overview import render_dashboard
 
@@ -271,16 +231,58 @@ def render_report(s, payload, archived=False):
                 )
                 with st.container(height=140, border=True):
                     st.write(payload["rows"][selected_question]["기존 분석 결과"])
-            st.caption("보고서 원문에서 인용 근거와 판단 과정을 확인하세요.")
-    appendix = (
-        payload.get("appendix", "")
-        if archived
-        else cost_markdown(cost_rows) + "\n\n## 검토 메모\n" + s.saved_memo
-    )
-    markdown = payload["markdown"] + ("" if payload.get("dashboard") else appendix)
-    with full:
+
+    with original:
+        if payload.get("decision_trace"):
+            from frontend.decision_trace import render_decision_trace
+
+            with st.expander("판단 근거와 원문 인용 따라가기", expanded=False):
+                render_decision_trace(payload["decision_trace"])
+        else:
+            st.info("이 기록에는 판단별 원문 연결이 없습니다.")
+
+        cost_rows = s.cost_rows
+        if not archived and s.real_mode and s.pipeline_result:
+            from frontend.cost_view import render_cost_estimate
+
+            cost_report = render_cost_estimate(s.pipeline_result)
+            if cost_report:
+                with st.expander("구현 비용 분석", expanded=False):
+                    st.markdown(cost_report)
+
+        if archived:
+            appendix = payload.get("appendix", "")
+            st.markdown(appendix or "저장된 비용·메모 부록이 없습니다.")
+        else:
+            with st.expander("비용 메모", expanded=False):
+                st.caption(
+                    "비용은 직접 입력한 보조 자료입니다. 금액 누락을 0으로 확정하지 않습니다."
+                )
+                cost_rows = cost_rows_list(
+                    st.data_editor(
+                        s.cost_rows,
+                        num_rows="dynamic",
+                        use_container_width=True,
+                        key="real_cost_rows",
+                    )
+                )
+                total = cost_summary(cost_rows)
+                st.metric("입력 항목 소계 (만원)", f"{total['total']:,.1f}")
+                if total["missing"]:
+                    st.caption("금액 미입력: " + ", ".join(total["missing"]))
+                if total["errors"]:
+                    st.warning("유효하지 않은 비용 입력: " + ", ".join(total["errors"]))
+                st.text_area("검토 메모", key="report_note", value=s.saved_memo)
+                s.saved_memo = s.get("report_note", "")
+            appendix = cost_markdown(cost_rows)
+            if s.saved_memo:
+                appendix += "\n\n## 검토 메모\n" + s.saved_memo
+
+        markdown = payload["markdown"] + ("\n\n" + appendix if appendix else "")
+        st.subheader("보고서 본문")
         with st.container(height=520, border=True):
             st.markdown(markdown)
+
     with st.container(key="report_actions"):
         pdf, md, keep = st.columns(3)
         with pdf:

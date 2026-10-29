@@ -1849,11 +1849,7 @@ def settle_navigation():
 
 st.html('<div id="research-top"></div>')
 with st.container(key="brandbar"):
-    brand, intro, guide, records = st.columns([2.6, 1, 1, 1.1])
-    brand.button("IdeaLens", key="home", on_click=open_page, args=("home",))
-    intro.button("서비스 소개", on_click=open_page, args=("about",))
-    guide.button("왜 IdeaLens인가", on_click=open_page, args=("difference",))
-    records.button("내 기록", on_click=open_page, args=("history",))
+    st.button("IdeaLens", key="home", on_click=open_page, args=("home",))
 
 if s.page != "workspace":
     if s.get("analysis_workflow_id"):
@@ -1914,52 +1910,13 @@ steps = [
 active_job = current_workflow_job() if s.get("analysis_workflow_id") else None
 
 
-def step_button_label(number):
-    if active_job is None:
-        return f"{number}  {steps[number - 1]}"
-    phase = active_job.get("phase")
-    report = {
-        2: active_job.get("patent_report"),
-        3: active_job.get("market_report"),
-    }.get(number)
-    final_result = active_job.get("result") if number == 4 else None
-    completed = (
-        s.idea_draft is not None
-        if number == 1
-        else (report is not None if number in (2, 3) else final_result is not None)
-    )
-    current = {
-        2: phase == "patent",
-        3: phase == "market",
-        4: phase == "final_report",
-    }.get(number, False)
-    if report is not None and report.status != "completed":
-        marker = "⚠"
-        state = " 근거 부족" if report.status == "no_results" else " 일부 실패"
-    elif final_result is not None and final_result.status != "completed":
-        marker = "⚠"
-        state = " 일부 실패"
-    elif completed:
-        marker = "✓"
-        state = ""
-    elif current:
-        marker = "◌"
-        state = ""
-    else:
-        marker = "·"
-        state = ""
-    short_names = ["아이디어", "특허 비교", "시장성", "최종 검토"]
-    suffix = " 분석 중" if current else ""
-    return f"{marker} {number}  {short_names[number - 1]}{suffix}{state}"
-
-
 def review_navigation(number, label, column, key, *, icon=None):
     if column.button(
         label,
         key=key,
         type=(
             "primary"
-            if s.stage == number or (key == "nav_2" and s.stage == 3)
+            if s.stage == number or (key == "rail_2" and s.stage == 3)
             else "secondary"
         ),
         disabled=not can_visit(number)
@@ -1974,18 +1931,6 @@ def review_navigation(number, label, column, key, *, icon=None):
             navigate(number)
             st.rerun(scope="app")
 
-
-with st.container(key="stepnav"):
-    for number, label, column in zip(
-        [1, 2, 4],
-        ["1 아이디어 구체화", "2 특허·시장 검토", "3 종합 보고서"],
-        st.columns(3),
-    ):
-        review_navigation(number, label, column, f"nav_{number}")
-if s.stage in (2, 3):
-    a, b = st.columns(2)
-    review_navigation(2, "특허 비교", a, "review_patent")
-    review_navigation(3, "시장성 분석", b, "nav_3")
 
 render_quick_nav(review_navigation, open_page)
 

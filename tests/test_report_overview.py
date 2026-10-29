@@ -128,6 +128,11 @@ def test_dashboard_uses_market_and_patent_specific_next_checks():
         "고객 견적과 예산 주체를 확인합니다.",
         "독립 청구항을 전문가와 확인합니다.",
     ]
+    assert [item["label"] for item in data["domain_summaries"]] == [
+        "특허 근거",
+        "시장 근거",
+    ]
+    assert data["domain_summaries"][0]["citations"] == "P:1"
 
 
 def test_patent_trend_statistics_are_transferred_to_integrated_report():
@@ -219,7 +224,9 @@ render_dashboard(st.session_state.data)
     app.session_state.data = data
     app.run()
     assert not app.exception
-    assert not any("특허·시장 영역별 근거" in item.value for item in app.subheader)
+    assert any("특허·시장 교차 확인" in item.value for item in app.subheader)
+    assert any("검색 결과 없음" in item.value for item in app.caption)
+    assert any("시간 초과" in item.value for item in app.caption)
 
 
 def test_dashboard_renders_real_market_context_without_treating_it_as_demand():

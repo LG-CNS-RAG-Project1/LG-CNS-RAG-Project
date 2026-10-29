@@ -154,6 +154,29 @@ def dashboard_data(result):
             )
             for x in conclusions
         ]
+        domain_labels = {"patent": "특허 근거", "market": "시장 근거"}
+        domain_status_labels = {
+            "completed": "조사 완료",
+            "partial": "일부 완료",
+            "no_results": "검색 결과 없음",
+            "error": "조사 오류",
+            "skipped": "미실행",
+            "timeout": "시간 초과",
+        }
+        data.domain_summaries = [
+            Finding(
+                label=domain_labels[summary.domain],
+                judgment=summary.finding,
+                implication=(
+                    f"범위: {summary.evidence_scope} · 문헌·자료 {summary.evidence_count}건"
+                    + (f" · 기준일 {summary.data_as_of}" if summary.data_as_of else "")
+                ),
+                kind=domain_status_labels[summary.status],
+                citations=", ".join(summary.evidence_ids),
+                limitation=" · ".join(summary.limitations[:2]),
+            )
+            for summary in executive.domain_summaries
+        ]
         data.actions = [
             Finding(
                 label=f"확인 {index}",
@@ -536,8 +559,27 @@ def render_dashboard(raw):
         st.subheader("종합 결론")
         st.markdown(f"**{data.conclusion}**")
         st.write(data.summary)
+    if data.domain_summaries:
+        st.subheader("특허·시장 교차 확인")
+        columns = st.columns(2)
+        summaries = {item.label: item for item in data.domain_summaries}
+        for column, label in zip(columns, ("특허 근거", "시장 근거")):
+            with column.container(border=True):
+                item = summaries.get(label)
+                st.markdown(f"**{label}**")
+                if item is None:
+                    st.info("이 영역 결과가 제공되지 않았습니다.")
+                    continue
+                st.caption(item.kind)
+                st.write(item.judgment)
+                if item.implication:
+                    st.caption(item.implication)
+                if item.citations:
+                    st.caption(f"근거 ID: {item.citations}")
+                if item.limitation:
+                    st.caption("한계: " + item.limitation)
     if data.findings:
-        st.subheader("양쪽 근거로 연결된 판단")
+        st.subheader("교차 분석 결과")
         for finding in data.findings[:2]:
             st.markdown(f"**{finding.label}**")
             st.write(finding.judgment)
