@@ -36,7 +36,7 @@
 - `idea_id`는 평가·시연용 샘플 아이디어(`data/samples/ideas.json`)의 수집 범위로 검색을 좁힐 때만 준다. 사용자가 새로 입력한 아이디어는 `None`.
 - `trend_fn`(`src.services.market_trend.build_search_trend`)을 주면 `search_trend`를 붙인다. 통합 실행(`src/pipeline.py`)과 CLI는 기본으로 넘기고, 평가·테스트는 넘기지 않는다. 주제어 선정 gpt-4o-mini 1회와 검색어 트렌드 API 1회가 추가된다.
 - `network_fn`(`src.services.market_network.build_keyword_network`)을 주면 같은 컬렉션·임베딩 함수로 `keyword_network`를 붙인다. 통합 실행과 CLI는 기본으로 넘긴다. 질의 임베딩 1회가 추가되고, 프로세스에서 처음 실행할 때 전체 뉴스 명사 분석(수 초)을 한 번 한다.
-- 소요 시간: 아이디어 1건당 약 13~20초 (관련성 판정 gpt-4o-mini 25회 + 분석 gpt-4o-mini 1~3회). 특허 조사와 입력·저장소가 독립적이라 병렬로 부를 수 있다(스레드 병렬 실행은 아직 검증하지 않음).
+- 소요 시간: 아이디어 1건당 약 13~20초 (DART 기업 선택 gpt-4o-mini 1회 + 관련성 판정 gpt-4o-mini 차원별 뉴스 5건·DART 최대 3건 + 분석 gpt-4o-mini 1~3회). 특허 조사와 입력·저장소가 독립적이라 병렬로 부를 수 있다(스레드 병렬 실행은 아직 검증하지 않음).
 - 로컬 색인 `data/market/chroma/`와 `OPENAI_API_KEY`가 필요하다.
 - 결과 예시: `data/samples/market_reports/SF-0{1..5}.json`
 

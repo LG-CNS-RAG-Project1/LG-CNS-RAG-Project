@@ -28,11 +28,19 @@ from typing import Callable
 
 from dotenv import load_dotenv
 
-from src.retrieval.market_search import EmbedFn, embed_texts, search_by_dimensions
+from src.retrieval.market_search import (
+    DART_COMPANY_K,
+    EmbedFn,
+    embed_texts,
+    get_collection,
+    search_by_dimensions,
+)
 from src.schemas import IDEA_FIELDS, MarketSearchRequest, StructuredIdea
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 PROMPT_PATH = ROOT_DIR / "prompts" / "market_label_judge.md"
+COMPANY_PROMPT_PATH = ROOT_DIR / "prompts" / "market_dart_companies.md"
+DART_PUBLISHER_SUFFIX = " (DART 사업보고서)"
 IDEAS_PATH = ROOT_DIR / "data" / "samples" / "ideas.json"
 RELEVANCE_MODEL = "gpt-4o-mini"
 MIN_SUFFICIENT = 2
@@ -74,6 +82,7 @@ STOCK_TITLE_RE = re.compile(
 # 구매 신호로 판정된 기사가 실제 거래가 아니라 계획·발표를 다루는지 가리는 표현.
 # MOU·업무협약은 체결돼도 구매가 아니고, 계획 표현이 있으면서 완료 표현이 없으면 발표로 본다.
 # 제목이 거래(계약·수주·납품 등)를 알리고 계획 표현이 없으면 본문 계획 표현과 상관없이 유지한다.
+# 계획 표현이 없어도 제목이 현재형 동사로 앞으로 할 일을 알리면(future_headline) 발표로 본다.
 MOU_RE = re.compile(r"MOU|양해각서|업무협약|협약을 맺|협약 체결")
 PLAN_RE = re.compile(
     r"계획|예정|방침|목표|추진|나선다|나섰다|나서|돌격|진출|공략|검토|하기로|한 뒤|한 후|청사진|로드맵"
@@ -82,7 +91,10 @@ DONE_RE = re.compile(
     r"완료|준공|가동 중|가동에 들어|운영 중|운영하고|사용하고|계약을 체결|"
     r"(?:도입|구축|공급|납품|체결|수주|적용|설치|투입|구매)(?:했|해|한 |하며|하고 있)"
 )
-TITLE_DEAL_RE = re.compile(r"계약|수주|납품|공급|구축|도입")
+TITLE_DEAL_RE = re.compile(r"계약|수주|납품|공급|구축|도입|적용")
+# 기사 제목 구절 구분자. 한국어 기사 제목은 '…'·쉼표로 구절을 잇는다.
+HEADLINE_CLAUSE_RE = re.compile(r"…|\.\.\.|,|\|")
+HEADLINE_TRAIL = " \"'“”‘’)]>」』!?."
 
 
 def call_relevance_llm(
@@ -145,9 +157,31 @@ def checked_nature(nature: str, text: str) -> str:
     return nature if all(cue.search(text) for cue in cues) else "business_signal"
 
 
+def _ends_present_verb(clause: str) -> bool:
+    """구절이 받침 ㄴ + '다'로 끝나는 현재형 동사(한다·심는다·선보인다·된다)인지."""
+    if len(clause) < 2 or not clause.endswith("다"):
+        return False
+    prev = clause[-2]
+    return "가" <= prev <= "힣" and (ord(prev) - 0xAC00) % 28 == 4
+
+
+def future_headline(title: str) -> bool:
+    """제목이 앞으로 할 일을 현재형 동사로 알리는 발표형인지 (예: 'AI 두뇌' 심는다, 솔루션 선보인다).
+
+    기사 제목에서 이미 한 거래는 '구축'·'공급'처럼 명사나 과거형으로 끝나므로, 거래 명사로 끝나는
+    구절이 하나라도 있으면 발표형으로 보지 않는다.
+    """
+    clauses = [c.strip(HEADLINE_TRAIL) for c in HEADLINE_CLAUSE_RE.split(title)]
+    if any(TITLE_DEAL_RE.search(c) and not _ends_present_verb(c) for c in clauses):
+        return False
+    return any(_ends_present_verb(c) for c in clauses)
+
+
 def announced_only(title: str, text: str) -> bool:
     """기사가 실제 거래가 아니라 MOU·계획·발표를 다루면 True (구매 신호에서 제외할 대상)."""
     if MOU_RE.search(text):
+        return True
+    if future_headline(title) and not DONE_RE.search(text):
         return True
     if TITLE_DEAL_RE.search(title) and not PLAN_RE.search(title):
         return False
@@ -234,6 +268,55 @@ def assess_dimensions(
     return assessed
 
 
+def dart_company_profiles(collection, idea_id: str | None = None) -> dict[str, str]:
+    """색인에 사업보고서 발췌가 있는 기업의 {기업명: 주요 사업}. 사업 설명은 configs/dart_companies.yaml의 reason."""
+    from src.ingestion.dart_client import load_dart_config
+
+    reasons = {c["name"]: c["reason"] for c in load_dart_config()["companies"]}
+    where = {"source_type": "dart"}
+    if idea_id:
+        where = {"$and": [where, {f"idea_{idea_id}": True}]}
+    metadatas = collection.get(where=where, include=["metadatas"])["metadatas"]
+    names = sorted(
+        {m["publisher"].removesuffix(DART_PUBLISHER_SUFFIX) for m in metadatas}
+    )
+    return {name: reasons.get(name, "") for name in names}
+
+
+def choose_dart_companies(
+    request: MarketSearchRequest,
+    collection,
+    judge_fn: JudgeFn = call_relevance_llm,
+    idea_id: str | None = None,
+) -> list[str] | None:
+    """LLM이 아이디어와 같은 제품·공정 범주의 DART 기업을 최대 DART_COMPANY_K곳 고른다.
+
+    반환은 색인 발행처 이름("기업명 (DART 사업보고서)") 목록이며, 맞는 기업이 없으면 빈 목록이다.
+    DART 문서가 없거나 응답이 형식에 맞지 않거나 호출이 실패하면 None을 돌려, 호출한 쪽이
+    아이디어 문장 임베딩으로 기업을 고르게 한다. 아이디어 문장 임베딩만으로는 기업 간 거리 차가
+    작아(SF-05 상위 9곳 0.50~0.56) 협동로봇 제조사가 공정제어 아이디어의 1순위로 뽑혔다.
+    """
+    try:
+        profiles = dart_company_profiles(collection, idea_id)
+        if not profiles:
+            return None
+        payload = {
+            "idea": request.idea.model_dump(include={"title", *IDEA_FIELDS}),
+            "companies": [{"name": n, "business": b} for n, b in profiles.items()],
+        }
+        raw = judge_fn(
+            COMPANY_PROMPT_PATH.read_text(encoding="utf-8"),
+            json.dumps(payload, ensure_ascii=False),
+        )
+        chosen = raw.get("companies")
+        if not isinstance(chosen, list):
+            return None
+    except Exception:  # 선택 실패는 임베딩 기반 선택으로 대신한다
+        return None
+    names = [n for n in dict.fromkeys(str(c).strip() for c in chosen) if n in profiles]
+    return [n + DART_PUBLISHER_SUFFIX for n in names[:DART_COMPANY_K]]
+
+
 def search_with_relevance(
     request: MarketSearchRequest,
     idea_id: str | None = None,
@@ -244,12 +327,17 @@ def search_with_relevance(
 ) -> dict[str, dict]:
     """차원별로 검색한 뒤 관련성을 판정해 충분성 상태와 함께 반환한다 (에이전트용 툴).
 
-    dart_companies는 search_by_dimensions에 그대로 전달한다 (없으면 아이디어로 기업을 고른다).
+    dart_companies가 없으면 judge_fn으로 DART 기업을 고르고(choose_dart_companies), 그것도
+    실패하면 search_by_dimensions가 아이디어 문장 임베딩으로 고른다. 출처를 지정한 요청
+    (request.source_types)은 기업을 고르지 않는다.
 
     반환: {차원: {"status", "relevant_count", "hits"}}. hits의 각 항목은 search_market 반환 형식에
     relevant·relevance_confidence·relevance_reason·article_nature가 추가되고, 뉴스는
     evidence_nature가 article_nature로 바뀐다.
     """
+    collection = collection or get_collection()
+    if dart_companies is None and not request.source_types:
+        dart_companies = choose_dart_companies(request, collection, judge_fn, idea_id)
     results = search_by_dimensions(
         request,
         idea_id=idea_id,

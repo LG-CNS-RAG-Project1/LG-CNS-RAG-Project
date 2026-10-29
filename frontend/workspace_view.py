@@ -137,6 +137,8 @@ def report_payload(s):
     """가공·추가 요약 없이 기존 분석과 시연 보고서를 문서 화면 계약으로 맞춘다."""
     if s.real_mode and s.pipeline_result:
         r = s.pipeline_result
+        from frontend.decision_trace import decision_trace
+
         rows = [
             {
                 "질문": x.question_id,
@@ -154,6 +156,7 @@ def report_payload(s):
             "market_count": len(r.market.evidence),
             "demo": False,
             "dashboard": dashboard_data(r),
+            "decision_trace": decision_trace(r),
         }
     snap = s.report_snapshot
     if not snap:
@@ -194,7 +197,18 @@ def render_report(s, payload, archived=False):
         "종합 보고서 / "
         + ("시연용 가상 자료" if payload["demo"] else "실제 조사 결과 · 원문 검토 필요")
     )
-    overview, full, costs = st.tabs(["한눈에 보기", "보고서 원문", "비용 · 메모"])
+    overview, trace, full, costs = st.tabs(
+        ["한눈에 보기", "판단 근거 따라보기", "보고서 원문", "비용 · 메모"]
+    )
+    with trace:
+        if payload.get("decision_trace"):
+            from frontend.decision_trace import render_decision_trace
+
+            render_decision_trace(payload["decision_trace"])
+        else:
+            st.info(
+                "이 기록에는 판단별 원문 연결이 없습니다. 보고서 원문을 확인하세요."
+            )
     cost_rows = s.cost_rows
     with costs:
         if not archived and s.real_mode and s.pipeline_result:
@@ -324,6 +338,12 @@ def validate_records(raw):
             from frontend.report_overview import Dashboard
 
             item["dashboard"] = Dashboard.model_validate(item["dashboard"]).model_dump()
+        if "decision_trace" in item:
+            from frontend.decision_trace import DecisionTrace
+
+            item["decision_trace"] = DecisionTrace.model_validate(
+                item["decision_trace"]
+            ).model_dump()
         for name in ["title", "raw", "markdown", "appendix", "saved_at", "id"]:
             if not isinstance(item.get(name), str):
                 raise ValueError("기록의 필수 항목이 없습니다.")
@@ -346,8 +366,11 @@ def validate_records(raw):
 def render_history(s):
     st.title("내 조사 기록")
     st.caption(
-        "현재 브라우저 세션에서 최대 20개를 보관합니다. 새로고침·연결 종료 시 사라질 수 있으므로 파일로 보관하세요. 계정별 영구 저장은 아직 연결하지 않았습니다."
+        "현재 세션의 기록은 최대 20개입니다. 다음에도 보려면 이 브라우저에 저장하거나 JSON 파일로 보관하세요. 계정별 서버 저장은 하지 않습니다."
     )
+    from frontend.browser_records import render_browser_records
+
+    render_browser_records(s, validate_records)
     controls, detail = st.columns([1, 2.4], gap="large")
     with controls:
         st.download_button(
@@ -369,6 +392,11 @@ def render_history(s):
                 st.error(
                     "기록을 읽지 못했습니다. IdeaLens에서 내보낸 5MB 이하 JSON 파일을 선택해 주세요."
                 )
+        if s.records and st.button(
+            "현재 세션 기록 모두 지우기", key="clear_session_records"
+        ):
+            s.records = []
+            st.rerun()
         if not s.records:
             st.info("보고서에서 ‘내 기록에 보관’을 눌러 기록을 남겨보세요.")
             return

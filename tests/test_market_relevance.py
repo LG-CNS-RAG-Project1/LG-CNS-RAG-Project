@@ -173,6 +173,46 @@ def test_judged_hit_downgrades_announced_purchase_signals(title, summary, expect
     assert judged["evidence_nature"] == expected
 
 
+@pytest.mark.parametrize(
+    "title, summary, expected",
+    [
+        (
+            "LG전자, 시화조력발전소에 ‘AI 두뇌’ 심는다",
+            "AI 에이전트를 도입한다.",
+            "business_signal",
+        ),
+        (
+            '"아이티공간, 혁신적 AI 예지보전 솔루션 선보인다"',
+            "전시회에서 공개한다.",
+            "business_signal",
+        ),
+        ("A사, B공장에 FEMS 공급한다", "내달부터 공급한다.", "business_signal"),
+        (
+            "디플리, 소리로 로봇 고장 잡는다…다축 로봇 예지보전 공급",
+            "부품 제조사에 리슨 AI를 공급한다.",
+            "purchase_signal",
+        ),
+        (
+            "팔도, 나주공장에 '피지컬 AI' 적용…라면 생산이 스스로 최적화된다",
+            "생산 라인에 AI를 적용한다.",
+            "purchase_signal",
+        ),
+        (
+            "LS일렉트릭, 태양광+FEMS 연계해 에이스침대 공장 에너지효율 높인다",
+            "FEMS 구축을 완료했다.",
+            "purchase_signal",
+        ),
+    ],
+)
+def test_judged_hit_treats_present_tense_headlines_as_announcements(
+    title, summary, expected
+):
+    raw = {"label": 1, "confidence": "high", "evidence_nature": "purchase_signal"}
+    news = {**make_hit("a", title, summary), "source_type": "news"}
+
+    assert judged_hit(news, raw)["evidence_nature"] == expected
+
+
 def test_judge_hits_keeps_search_order():
     hits = [make_hit("a", "관련1"), make_hit("b", "무관"), make_hit("c", "관련2")]
 
