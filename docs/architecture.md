@@ -21,6 +21,7 @@ flowchart LR
     ingestion["src/ingestion/<br/>수집·전처리"]
     retrieval["src/retrieval/<br/>색인·검색"]
     generation["src/generation/<br/>근거 검증·보고서"]
+    planner["src/planner/<br/>사업기획 근거 자료집·규칙"]
     prompts["prompts/<br/>프롬프트"]
     evaluation["evaluation/<br/>검색·답변 평가"]
     runtime["configs/ · requirements<br/>Dockerfile · compose.yaml"]
@@ -31,6 +32,7 @@ flowchart LR
   kipris["KIPRIS Plus API"]
   dart["DART OpenAPI"]
   openai["OpenAI API<br/>임베딩·생성"]
+  media["뉴스 매체 원문 페이지"]
 
   user --> frontend
   frontend --> pipeline
@@ -45,6 +47,11 @@ flowchart LR
   retrieval --> openai
   generation --> prompts
   generation --> openai
+  services --> planner
+  planner --> datastore
+  planner --> openai
+  planner --> media
+  planner --> prompts
   evaluation -.-> retrieval
   evaluation -.-> generation
 
@@ -57,6 +64,7 @@ flowchart LR
   %% map src/retrieval/ retrieval
   %% map scripts/build_patent_index.py retrieval
   %% map src/generation/ generation
+  %% map src/planner/ planner
   %% map prompts/ prompts
   %% map evaluation/ evaluation
   %% map configs/ runtime
@@ -79,7 +87,8 @@ flowchart LR
 IdeaLens/
 │
 ├── configs/
-│   └── settings.py              # 공통 환경변수·설정
+│   ├── settings.py              # 공통 환경변수·설정
+│   └── planner/                 # 사업기획 근거 프로필(SF-02.yaml)·질문 은행
 │
 ├── data/
 │   ├── patents/
@@ -89,7 +98,8 @@ IdeaLens/
 │   ├── market/
 │   │   ├── raw/                 # 시장 원본 자료
 │   │   ├── processed/           # 정제된 시장 근거
-│   │   └── chroma/              # 시장 근거 벡터 DB
+│   │   ├── chroma/              # 시장 근거 벡터 DB
+│   │   └── runs/                # 사업기획 근거 자료집 실행 폴더(Git 제외)
 │   └── samples/
 │       └── ideas.json           # 시연용 아이디어 5개
 │
@@ -97,7 +107,8 @@ IdeaLens/
 │   ├── architecture.md          # 전체 시스템 설계
 │   ├── api_contract.md          # 공통 API 명세
 │   ├── patent_rag.md            # 특허 RAG 설계
-│   └── market_research.md       # 시장 조사 설계
+│   ├── market_research.md       # 시장 조사 설계
+│   └── planner-insights.md      # 사업기획 근거 자료집·시각화 설계
 │
 ├── evaluation/
 │   ├── patent_cases.json        # 특허 검색 평가 사례
@@ -108,6 +119,7 @@ IdeaLens/
 │   ├── idea_parser.md           # 아이디어 구조화
 │   ├── patent_analysis.md       # 특허 비교
 │   ├── market_analysis.md       # 시장 근거 분석
+│   ├── planner_extraction.md    # 사업기획 근거 구절 후보 추출
 │   └── report_generation.md     # 최종 보고서
 │
 ├── reports/
@@ -145,13 +157,17 @@ IdeaLens/
 │   │   ├── market_markdown.py   # 시장 결과 마크다운 섹션
 │   │   └── report_builder.py    # 최종 보고서 구성
 │   │
+│   ├── planner/                 # 사업기획 근거: 수집·본문·추출·규칙·비교표·관계·가격·재현
+│   │
 │   └── services/
 │       ├── __init__.py
 │       ├── patent_service.py    # 특허 RAG 진입점
-│       └── market_service.py    # 시장 조사 진입점
+│       ├── market_service.py    # 시장 조사 진입점
+│       └── planner_service.py   # 사업기획 근거 자료집 refresh·replay·review
 │
 ├── frontend/
-│   └── app.py                   # Streamlit
+│   ├── app.py                   # Streamlit
+│   └── planner_view.py          # 사업기획 근거 비교 화면
 │
 ├── tests/
 │   ├── test_patent.py

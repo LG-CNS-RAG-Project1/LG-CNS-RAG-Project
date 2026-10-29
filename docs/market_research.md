@@ -330,3 +330,8 @@ SF-05 라벨은 이전 아이디어(현장 작업자용 LLM 음성 어시스턴�
 - 판정기와 사람의 일치율은 0.67(kappa 0.24)로 낮다. 판정기는 사람이 partial·unsupported로 본 11건 중 7건을 supported로 판정해 실제보다 관대하다. 그래서 Citation Accuracy는 판정기 라벨별 사람 supported 비율로 보정한 값을 쓴다 (`agreement` 하위 명령, 표본: 판정기가 supported가 아니라고 본 문장 전부 + supported 문장 무작위).
 - 한계: 1회 실행 결과이며 사람 검토 표본이 방식당 15문장이다. 문장 판정은 기사 제목·요약 기준이라 기사 본문 내용은 확인하지 않았다. 관련성 판정·분석은 실행마다 조금씩 달라진다.
 - 결과: `evaluation/results/market_answer_{,claims_,summary_}baseline.csv`, `market_answer_agreement_baseline.json`, `market_answer_reports_baseline.json`, 사람 검토 `evaluation/labels/market_answer_review_baseline.csv`
+
+## 사업기획 근거 자료집
+
+5개 차원 `MarketReport`와 별도로, 아이디어별 뉴스 근거 자료집을 만들어 기획자의 차별 주장·공급 형태·판매 경로·가격 조건·다음 조사 결정을 지원한다. 아이디어 1건의 고유 기사 총량(기본 80건) 안에서 결정 영역별 질의로 수집하고 본문을 자동 수집하며, gpt-4o-mini는 기사당 1회 원문 구절 후보 추출에만 쓴다. 판정·집계·정렬·다음 질문은 코드 규칙이고, 저장 자료로 외부 호출 없이 재계산(replay)한다. 설계와 규칙은 [docs/planner-insights.md](planner-insights.md)에 정리한다.
+

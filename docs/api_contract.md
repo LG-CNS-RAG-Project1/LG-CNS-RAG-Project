@@ -101,3 +101,11 @@
 - 특허 후보 라벨링: `python -m evaluation.patent_labeling export` → `evaluation/labels/patent_candidates.csv`에서 사람 판단 `relevant=0/1` → `python -m evaluation.patent_labeling import` → `python -m evaluation.evaluate patent --mode {dense,bm25,hybrid} --label <name>`. 다섯 문항에는 아직 사람 정답이 없으므로 라벨 전에는 성능 수치를 만들지 않는다.
 - 답변 평가: `python -m evaluation.answer_eval --limit 5`는 같은 질문에서 LLM 단독과 검색 근거가 있는 답변을 만들고 LLM 평가자에게 인용 정확성·근거 충실성·사실 정확성(각 1~5)과 오류 유형을 기록한다. 사람 판정 점수가 아닌 탐색적 LLM 평가다.
 - 검색 결과 CSV는 mode, 모델, prompt 적용 여부, 현재 커밋 ID를 포함한다. 답변 결과는 두 prompt의 SHA-256, 생성/평가 모델, 지연, 토큰 사용량을 보존한다. API 키와 비용이 필요하다.
+
+## 5. 사업기획 근거 자료집
+
+- 진입점: `src/services/planner_service.py` — `refresh(idea: StructuredIdea, area_id, *, root=None, search_fn, http_get, llm_fn, parent=None, body=True, progress=None, cancelled=None) -> Path`, `replay(path, revision=None) -> dict`, `review(path, decisions=None, price=None, note="") -> (revision, hash)`, `reanalyze(path, *, root=None, llm_fn=None) -> Path`.
+- 반환 계약: 실행 폴더의 `semantic/{revision}.json`이 `SemanticResult`(`src/planner/schemas.py`)다. 비교표(`rows`·`cells`·`insights`), 관계(`nodes`·`edges`·`relation_counts`), 가정(`assumptions`), 질문 판정(`questions`), 추가 도표 요건(`followup_charts`), 가격 조건(`price`), 출처(`sources`), 건수(`counts`), 버전(`versions`)을 담는다.
+- replay 결과: `match`(저장 해시와 재계산 해시 일치), `rule_drift`(현재 규칙·프로필과 다른 버전), `missing_optional`(지워진 본문·원응답), `diff`(부모 실행 대비 변화: 신규 근거·삭제/수집 실패·판정 수정·입력 변경·규칙 변경).
+- 오류 처리: refresh가 실패·취소되면 실행을 게시하지 않는다. 파일 해시가 manifest와 다르면 `RunIntegrityError`. 검토 결정은 `approve`·`reject`와 사유가 필요하며, 주체가 확인되지 않은 후보는 승인으로 바꾸지 않는다(`approval_not_applicable`).
+- 외부 호출: refresh만 NAVER 검색·기사 원문 페이지·OpenAI(gpt-4o-mini)를 부른다. replay·review·화면은 호출하지 않는다.

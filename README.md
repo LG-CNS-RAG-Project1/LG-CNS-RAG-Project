@@ -31,13 +31,13 @@
 ├── .vscode/                 # 저장 시 black 적용 등 공용 편집기 설정
 ├── .streamlit/              # 화면 테마 설정, 호스팅 Secrets 형식 예시(secrets.toml.example)
 ├── AGENTS.md                # 팀 공용 Git·GitHub 및 코딩 에이전트 작업 규칙
-├── configs/                 # 산업별 검색어·분류·검색 설정
+├── configs/                 # 산업별 검색어·분류·검색 설정, 사업기획 근거 프로필·질문 은행(planner/)
 ├── data/
 │   ├── raw/                 # 수집한 원문
 │   ├── processed/           # 정규화 문서와 검색 청크
 │   ├── indexes/             # 검색 색인
 │   ├── patents/             # 특허 원문·정제 데이터·Chroma 벡터 저장소
-│   ├── market/              # 시장 자료 원문·정제 데이터
+│   ├── market/              # 시장 자료 원문·정제 데이터, 사업기획 근거 자료집 실행 폴더(runs/, Git 제외)
 │   └── samples/             # 시연용 샘플 아이디어·시장 결과(MarketReport) 예시
 ├── deploy/                  # 공용 Chroma·HTTPS 중계·개인 키 인증 배포 설정
 ├── docs/                    # 기획·설계·개발 환경 문서, 프로젝트 목표·PR 분석 안내서(review-baseline.md)
@@ -57,7 +57,8 @@
 │   ├── ingestion/           # 자료 수집·전처리·청크 생성
 │   ├── retrieval/           # 공통 Dense·BM25·Hybrid 검색·색인 구축
 │   ├── generation/          # 근거 검증·역할별 보고서 생성
-│   └── services/            # 특허·시장 분석 진입점
+│   ├── planner/             # 사업기획 근거 자료집: 예산 수집·본문·구절 추출·규칙 판정·비교표·관계·가격 조건·재현
+│   └── services/            # 특허·시장 분석·사업기획 근거 자료집 진입점
 ├── tests/                   # pytest 테스트
 ├── Dockerfile · compose.yaml · Makefile  # Docker 개발 환경과 공용 명령
 ├── pyproject.toml           # black·pytest 설정
@@ -151,7 +152,9 @@ make patent-index ARGS="--field-id SF-02"
 
 PDF·Markdown 다운로드와 현재 세션 최대 20개 기록 보관, JSON 내보내기·불러오기를 제공한다. PDF는 ReportLab과 포함된 Nanum Gothic OFL 글꼴을 사용한다. 구조화된 시각화도 기록에 보관하지만 계정별 영구 DB 기록은 연결하지 않았다. 세션이 종료될 수 있으므로 개인 기록 파일로 보관한다. PDF는 인용과 표를 포함한 보고서 원문·비용·메모를 내보내며 화면 차트 이미지는 포함하지 않는다. 키는 기록이나 다운로드에 포함하지 않는다.
 
-화면은 `frontend/app.py`, 홈 연출은 `frontend/landing_motion.py`, 소개는 `frontend/introduction.py`, 보고서·기록은 `frontend/workspace_view.py`, 시각화는 `frontend/report_overview.py`, PDF는 `frontend/report_export.py`, 백그라운드 상태는 `frontend/workflow.py`에서 관리한다. [실행·시연 가이드](docs/ui-guide.md)와 [분석 계약](docs/idea-business-review.md)을 참고한다. `python scripts/idealens.py ui`로 실행하고 `.env` 변경은 `ui --recreate`로 반영한다. 실제 분석은 API 비용이 발생하며 시연 자료는 가상임을 표시한다.
+시장성 화면 아래 '사업기획 근거 비교' 영역은 저장된 사업기획 근거 자료집을 다시 계산해 구매 기준별 경쟁 주장 비교표, 확정 공급 관계도, 사업 가정→근거→영향받는 선택→다음 질문, 사용자 입력 기반 가격 조건 차트, 자료 범위·재현 정보를 보여준다. 화면에서 LLM을 다시 부르지 않으며, 새 자료집 만들기는 `IDEALENS_PLANNER_REFRESH=1`과 키가 있는 로컬 실행에서만 켠다.
+
+화면은 `frontend/app.py`, 홈 연출은 `frontend/landing_motion.py`, 소개는 `frontend/introduction.py`, 보고서·기록은 `frontend/workspace_view.py`, 시각화는 `frontend/report_overview.py`, 사업기획 근거 비교는 `frontend/planner_view.py`, PDF는 `frontend/report_export.py`, 백그라운드 상태는 `frontend/workflow.py`에서 관리한다. [실행·시연 가이드](docs/ui-guide.md)와 [분석 계약](docs/idea-business-review.md)을 참고한다. `python scripts/idealens.py ui`로 실행하고 `.env` 변경은 `ui --recreate`로 반영한다. 실제 분석은 API 비용이 발생하며 시연 자료는 가상임을 표시한다.
 
 ### 시장 뉴스 수집·정제
 
@@ -238,6 +241,21 @@ python -m src.generation.market_markdown data/samples/market_reports/SF-01.json 
 - `market_report_to_markdown(report)`는 `MarketReport`를 종합 보고서의 '시장 조사 및 분석 결과' 섹션(차원별 판정 요약 표, 차원별 문장·검증 과제, 미확인 사항, 근거 목록)으로 바꾼다. LLM을 부르지 않으며, 인용은 UI와 같은 `M:{citation_id}`로 쓴다.
 - 아이디어 입력·시장 조사 진입점의 입력·출력·오류 처리 약속은 [docs/api_contract.md](docs/api_contract.md)에 정리한다.
 
+### 사업기획 근거 자료집 (refresh · replay)
+
+```bash
+python -m src.services.planner_service refresh --idea-id SF-02   # NAVER 검색·본문 수집·gpt-4o-mini 추출(비용 발생)
+python -m src.services.planner_service replay <run_id>           # 저장 결과 재계산·해시 대조(외부 호출 없음)
+python -m src.services.planner_service list --area SF-02         # 저장된 실행 목록
+python -m src.services.planner_service reanalyze <run_id>        # 같은 기사로 현재 규칙 재적용(새 실행)
+python -m src.services.planner_service review <run_id> --reject <evidence_id> --reason "사유"
+```
+
+- 아이디어 1건의 고유 기사 총량(기본 80건: 초기 50 + 후속 10×3)과 검색 요청·후보·재시도·본문·LLM 호출 상한을 `configs/planner/SF-02.yaml`에서 관리한다. 무관한 기사로 배분량을 채우지 않는다.
+- LLM은 기사당 1회 원문 구절 후보만 추출하고, 위치 검증·역할·단계·셀 상태·집계·다음 질문 분기는 코드 규칙으로 처리한다. 규칙을 통과하지 못한 후보는 사유와 함께 후보로 남긴다.
+- 실행은 `data/market/runs/{분야}/{아이디어 해시}/{run_id}/`에 한 번만 쓰고 덮어쓰지 않는다. replay는 검색·LLM·Chroma를 호출하지 않는다. 실행 폴더는 기사 본문을 담으므로 커밋하지 않는다.
+- 설계·규칙·한계·기업 효용 평가 설계는 [docs/planner-insights.md](docs/planner-insights.md).
+
 ### 아이디어 구조화
 
 ```bash
@@ -279,6 +297,8 @@ docker compose run --rm app python -m src.pipeline run --idea-id SF-02 --out rep
 | `IDEALENS_SERIAL` | (선택) `1`이면 시장·특허 조사를 순차 실행 |
 | `IDEALENS_APP_PASSWORD` | (호스팅 배포) 접속 비밀번호. 비어 있으면 비밀번호 화면을 띄우지 않는다(로컬 실행) |
 | `CHROMA_HOST`·`CHROMA_PORT`·`CHROMA_SSL`·`CHROMA_API_KEY` | (선택) 팀 공용 Chroma 접속. 비우면 로컬 Chroma. HTTPS 키 접속은 `443`·`true` |
+| `IDEALENS_PLANNER_REFRESH` | (선택) `1`이면 로컬 화면에 사업기획 근거 '새 자료집 만들기' 버튼 표시(NAVER·OpenAI 호출). 배포 환경은 비워 둔다 |
+| `IDEALENS_PLANNER_RUNS_DIR` | (선택) 사업기획 근거 자료집 실행 폴더 위치. 비우면 `data/market/runs` |
 
 PR 분석 자동화용 `CODEX_AUTH_JSON`(ChatGPT 구독 로그인, `make review-codex-login`으로 등록)·`CODEX_AUTH_WRITE_TOKEN`·`NOTION_REVIEW_TOKEN`은 `.env`가 아니라 develop에서만 열리는 GitHub Environment `pr-analysis`에 저장한다([docs/development.md](docs/development.md#pr-자동-분석-githubworkflowspr-analysisyml)).
 
