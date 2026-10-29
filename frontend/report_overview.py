@@ -83,6 +83,7 @@ def dashboard_data(result):
     from src.generation.executive_review import (
         RECOMMENDATION_LABELS,
         cross_domain_findings,
+        executive_next_checks,
     )
     from src.retrieval.market_relevance import DIMENSION_LABELS
 
@@ -132,7 +133,7 @@ def dashboard_data(result):
                 label=f"확인 {index}",
                 judgment=action,
             )
-            for index, action in enumerate(executive.next_actions[:2], 1)
+            for index, action in enumerate(executive_next_checks(executive), 1)
         ]
         data.unknowns = list(executive.limitations[:2])
     elif business:

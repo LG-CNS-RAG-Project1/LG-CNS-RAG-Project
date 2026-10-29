@@ -510,6 +510,20 @@ def cross_domain_findings(review: ExecutiveReview) -> list[IntegratedFinding]:
     return findings[:2]
 
 
+def executive_next_checks(review: ExecutiveReview) -> list[str]:
+    """시장 차원별 확인 과제와 특허 전문가 질문을 최종 확인 항목에 반영한다."""
+    summaries = {item.domain: item for item in review.domain_summaries}
+    market_checks = summaries.get("market")
+    patent_checks = summaries.get("patent")
+    candidates = []
+    if market_checks:
+        candidates.extend(market_checks.next_check[:1])
+    if patent_checks:
+        candidates.extend(patent_checks.next_check[:1])
+    candidates.extend(review.next_actions)
+    return _unique_text(candidates, limit=2)
+
+
 def executive_report_markdown(
     title: str,
     review: ExecutiveReview,
@@ -566,7 +580,7 @@ def executive_report_markdown(
     if not review.limitations:
         lines.append("- 상세 특허·시장 보고서의 검색 범위와 근거 한계를 따릅니다.")
     lines += ["", "## 다음 확인", ""]
-    lines.extend(f"- {escape_md(item)}" for item in review.next_actions[:2])
+    lines.extend(f"- {escape_md(item)}" for item in executive_next_checks(review))
     lines += [
         "",
         "> 사업 검토용 예비 정리이며 법률 의견이나 사업 성공 보장이 아닙니다.",

@@ -91,6 +91,33 @@ def test_market_limitations_are_preserved_in_dashboard_and_export():
     assert "미제공" in market_verification_markdown(r.market)
 
 
+def test_dashboard_uses_market_and_patent_specific_next_checks():
+    r = result()
+    r.executive_review.domain_summaries = [
+        DomainEvidenceSummary(
+            domain="patent",
+            status="completed",
+            finding="청구항 추가 확인 필요",
+            evidence_ids=["P:1"],
+            evidence_scope="최종 비교 문헌",
+            next_check=["독립 청구항을 전문가와 확인합니다."],
+        ),
+        DomainEvidenceSummary(
+            domain="market",
+            status="completed",
+            finding="가격 근거 부족",
+            evidence_ids=["M:1"],
+            evidence_scope="시장 검색 근거",
+            next_check=["고객 견적과 예산 주체를 확인합니다."],
+        ),
+    ]
+    data = dashboard_data(r)
+    assert [item["judgment"] for item in data["actions"]] == [
+        "고객 견적과 예산 주체를 확인합니다.",
+        "독립 청구항을 전문가와 확인합니다.",
+    ]
+
+
 def test_final_dashboard_renders_concise_result_without_market_detail_chart():
     data = dashboard_data(result())
     app = AppTest.from_string("""

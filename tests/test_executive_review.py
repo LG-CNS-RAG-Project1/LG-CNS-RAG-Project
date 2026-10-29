@@ -116,6 +116,15 @@ def sample_reports():
                 }
             ],
             unknowns=["예산 주체"],
+            validation_actions=[
+                {
+                    "title": "구매 조건 확인",
+                    "target": "정비 담당자",
+                    "method": "예산 주체와 견적을 확인합니다.",
+                    "success_signal": "구매 절차와 예산이 확인됩니다.",
+                    "citation_ids": [1],
+                }
+            ],
         ),
     )
     return draft, patent, market
@@ -123,6 +132,9 @@ def sample_reports():
 
 def test_executive_report_shows_only_concise_cross_domain_conclusions():
     draft, patent, market = sample_reports()
+    patent.patentability_precheck.expert_questions = [
+        "우선 독립 청구항을 변리사와 대조합니다."
+    ]
     business = build_business_review(draft, patent, market)
     review = build_executive_review(draft, patent, market, business)
     markdown = executive_report_markdown("설비 이상 예측", review, analyzed_on=20261028)
@@ -141,6 +153,8 @@ def test_executive_report_shows_only_concise_cross_domain_conclusions():
     assert "## 판단 한계" in markdown
     assert "## 다음 확인" in markdown
     assert "M:1" in markdown and "P:1" in markdown
+    assert "예산 주체와 견적을 확인합니다." in markdown
+    assert "우선 독립 청구항을 변리사와 대조합니다." in markdown
     assert "영역별 근거 요약" not in markdown
     assert "승인 전에 통과할 확인사항" not in markdown
     assert "진동 분석 장치" not in markdown  # 상세 보고서의 문헌 반복을 피한다
