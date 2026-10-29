@@ -120,7 +120,9 @@ def run_market_research(
         )
     companies = searched_dart_companies(assessed)
     if companies:
-        scope += f" · 아이디어와 가까워 검색한 DART 기업: {', '.join(companies)}"
+        scope += (
+            f" · 검색한 DART 기업(아이디어와 같은 사업 범주): {', '.join(companies)}"
+        )
     report = build_report(request.idea, assessed, scope, data_as_of, llm_fn)
     if trend_fn is not None:
         try:
