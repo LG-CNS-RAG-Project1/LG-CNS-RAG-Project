@@ -634,6 +634,33 @@ class MarketSearchTrend(BaseModel):
     error_message: str | None = None
 
 
+class MarketKeywordNode(BaseModel):
+    term: str
+    document_count: int  # 이 명사가 나온 기사 수
+    cluster: int  # 키워드 묶음 번호 (0부터, 큰 묶음 순)
+    x: float  # 화면 배치 좌표 (-1~1)
+    y: float
+
+
+class MarketKeywordEdge(BaseModel):
+    source: str
+    target: str
+    weight: int  # 두 명사가 함께 나온 기사 수
+
+
+class MarketKeywordNetwork(BaseModel):
+    """아이디어와 가까운 뉴스 제목·요약에서 함께 나온 명사의 연결망 (시장 수요·인과 근거가 아님)."""
+
+    status: Literal["completed", "insufficient", "error"]
+    document_count: int = 0  # 분석한 기사 수
+    nodes: list[MarketKeywordNode] = Field(default_factory=list)
+    edges: list[MarketKeywordEdge] = Field(default_factory=list)
+    # 묶음별 대표 명사 (자주 나온 순, 묶음 번호 순)
+    clusters: list[list[str]] = Field(default_factory=list)
+    note: str = ""
+    error_message: str | None = None
+
+
 # 14. 최종 시장 근거 결과
 class MarketReport(BaseModel):
     status: Literal["completed", "no_results", "error"]
@@ -643,6 +670,7 @@ class MarketReport(BaseModel):
     opportunity_review: MarketOpportunityReview | None = None
     commercial_analysis: MarketCommercialAnalysis | None = None
     search_trend: MarketSearchTrend | None = None
+    keyword_network: MarketKeywordNetwork | None = None
     unknowns: list[str] = Field(default_factory=list)
 
     search_scope: str

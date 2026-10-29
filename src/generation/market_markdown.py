@@ -14,7 +14,12 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 from src.retrieval.market_relevance import DIMENSION_LABELS
-from src.schemas import MarketEvidence, MarketReport, MarketSearchTrend
+from src.schemas import (
+    MarketEvidence,
+    MarketKeywordNetwork,
+    MarketReport,
+    MarketSearchTrend,
+)
 
 SECTION_TITLE = "시장 조사 및 분석 결과"
 
@@ -79,6 +84,21 @@ def safe_url(value: str | None) -> str | None:
     if parsed.scheme not in ("http", "https") or not parsed.netloc or parsed.username:
         return None
     return value.replace("(", "%28").replace(")", "%29").replace(" ", "%20")
+
+
+def keyword_network_summary(network: MarketKeywordNetwork) -> str:
+    """키워드 동시 출현 네트워크의 분석 기사 수·명사·묶음 수를 한 문장으로 쓴다. 부족·오류면 그 사유를 쓴다."""
+    if network.status == "error":
+        return f"키워드 동시 출현을 분석하지 못했습니다. ({network.error_message or '사유 미확인'})"
+    if network.status == "insufficient":
+        return (
+            f"아이디어와 가까운 뉴스 {network.document_count}건에서 함께 나온 명사가 적어 "
+            "네트워크를 만들지 않았습니다."
+        )
+    return (
+        f"아이디어와 가까운 뉴스 {network.document_count}건에서 두드러진 명사 "
+        f"{len(network.nodes)}개가 {len(network.clusters)}개 묶음으로 나뉩니다."
+    )
 
 
 def search_trend_summary(trend: MarketSearchTrend) -> str:
@@ -209,6 +229,22 @@ def market_report_to_markdown(report: MarketReport, heading_level: int = 2) -> s
             )
         if trend.note:
             lines += ["", f"> {cell(trend.note)}"]
+
+    network = report.keyword_network
+    if network:
+        lines += [
+            "",
+            f"{sub} 키워드 동시 출현",
+            "",
+            f"- {cell(keyword_network_summary(network))}",
+        ]
+        if network.status == "completed":
+            lines += [
+                f"- 묶음 {i + 1}: {' · '.join(cell(t) for t in group)}"
+                for i, group in enumerate(network.clusters)
+            ]
+        if network.note:
+            lines += ["", f"> {cell(network.note)}"]
 
     if report.unknowns:
         lines += ["", f"{sub} 미확인 사항", ""]
