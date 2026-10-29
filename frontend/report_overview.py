@@ -74,6 +74,7 @@ class Dashboard(BaseModel):
     scope: str = ""
     confidence: str = ""
     findings: list[Finding] = Field(default_factory=list, max_length=30)
+    domain_summaries: list[Finding] = Field(default_factory=list, max_length=2)
     dimensions: list[Finding] = Field(default_factory=list, max_length=10)
     actions: list[Finding] = Field(default_factory=list, max_length=20)
     unknowns: list[str] = Field(default_factory=list, max_length=100)
@@ -116,6 +117,32 @@ def dashboard_data(result):
                 citations=", ".join(x.evidence_ids),
             )
             for x in executive.integrated_findings[:30]
+        ]
+        data.domain_summaries = [
+            Finding(
+                label="특허" if x.domain == "patent" else "시장",
+                judgment=x.finding,
+                implication=(
+                    f"범위: {x.evidence_scope} · 자료 {x.evidence_count}건"
+                    + (f" · 기준일 {x.data_as_of}" if x.data_as_of else "")
+                    + (
+                        f" · 다음 확인: {'; '.join(x.next_check[:2])}"
+                        if x.next_check
+                        else ""
+                    )
+                ),
+                kind={
+                    "completed": "완료",
+                    "partial": "부분 완료",
+                    "no_results": "근거 없음",
+                    "error": "실패",
+                    "skipped": "미실행",
+                    "timeout": "시간 초과",
+                }[x.status],
+                citations=", ".join(x.evidence_ids),
+                limitation="; ".join(x.limitations[:2]),
+            )
+            for x in executive.domain_summaries
         ]
         data.actions = [
             Finding(
@@ -182,6 +209,19 @@ def render_dashboard(raw):
             st.caption(
                 f"분석의 확신 수준: {data.confidence} · 생성된 검토 결과의 판단이며 성공 확률이 아닙니다."
             )
+    if data.domain_summaries:
+        st.subheader("특허·시장 영역별 근거")
+        for column, summary in zip(
+            st.columns(len(data.domain_summaries)), data.domain_summaries
+        ):
+            with column.container(border=True):
+                st.caption(summary.kind)
+                st.markdown(f"**{summary.label}**")
+                st.write(summary.judgment)
+                st.caption(summary.implication)
+                if summary.limitation:
+                    st.caption(f"한계: {summary.limitation}")
+                st.caption(f"근거: {summary.citations or '인용 근거 없음'}")
     if data.findings:
         st.subheader("특허 × 시장 · 연결된 판단")
         for column, finding in zip(

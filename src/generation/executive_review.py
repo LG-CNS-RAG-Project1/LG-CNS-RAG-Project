@@ -1,8 +1,9 @@
 """특허와 시장의 상호작용을 사업 의사결정으로 바꾸는 최종 검토 보고서."""
 
+from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from src.generation.business_review import BusinessReview
 from src.generation.report_builder import escape_md
@@ -25,15 +26,48 @@ class ApprovalGate(BaseModel):
     evidence_ids: list[str] = Field(default_factory=list)
 
 
+class DomainEvidenceSummary(BaseModel):
+    """영역별 원본 보고서를 공통 형식으로 보여주는 읽기 전용 요약."""
+
+    domain: Literal["patent", "market"]
+    status: Literal["completed", "partial", "no_results", "error", "skipped", "timeout"]
+    finding: str
+    evidence_ids: list[str] = Field(default_factory=list)
+    evidence_scope: str
+    evidence_count: int = Field(default=0, ge=0)
+    data_as_of: str | None = None
+    limitations: list[str] = Field(default_factory=list)
+    next_check: list[str] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def validate_evidence_ids(self):
+        prefix = "P:" if self.domain == "patent" else "M:"
+        if any(not value.startswith(prefix) for value in self.evidence_ids):
+            raise ValueError(f"{self.domain} summary has a foreign evidence ID")
+        if len(self.evidence_ids) != len(set(self.evidence_ids)):
+            raise ValueError("Domain evidence IDs must be unique")
+        return self
+
+
 class ExecutiveReview(BaseModel):
     recommendation: str
     scope: str
     confidence: str
     decision_summary: str
+    domain_summaries: list[DomainEvidenceSummary] = Field(
+        default_factory=list, max_length=2
+    )
     integrated_findings: list[IntegratedFinding] = Field(default_factory=list)
     approval_gates: list[ApprovalGate] = Field(default_factory=list, max_length=3)
     next_actions: list[str] = Field(default_factory=list, max_length=3)
     limitations: list[str] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def validate_domain_summaries(self):
+        domains = [summary.domain for summary in self.domain_summaries]
+        if len(domains) != len(set(domains)):
+            raise ValueError("Executive review has duplicate domain summaries")
+        return self
 
 
 RECOMMENDATION_LABELS = {
@@ -54,11 +88,164 @@ def _refs(values: list[str | int]) -> list[str]:
     return list(dict.fromkeys(str(value) for value in values))
 
 
+def _unique_text(values: list[str], limit: int = 3) -> list[str]:
+    return list(dict.fromkeys(" ".join(value.split()) for value in values if value))[
+        :limit
+    ]
+
+
+def _patent_domain_summary(
+    patent: PatentReport, run_state: str | None = None
+) -> DomainEvidenceSummary:
+    precheck = patent.patentability_precheck
+    references = _refs([f"P:{item.citation_id}" for item in patent.evidence])
+    document_count = len({item.patent_id for item in patent.evidence})
+    status = run_state or patent.status
+    if status == "skipped":
+        finding = "특허 조사를 실행하지 않았습니다."
+    elif status == "timeout":
+        finding = "특허 조사 제한 시간이 지나 완료되지 않았습니다."
+    elif status == "error":
+        finding = "특허 조사가 완료되지 않아 비교 결론을 제시할 수 없습니다."
+    elif patent.status == "no_results":
+        finding = "현재 검색 범위에서 비교 근거를 확보하지 못했습니다. 특허 위험이 없다는 뜻은 아닙니다."
+    elif patent.status == "partial":
+        finding = "특허 원문 일부는 확보했지만 비교 분석이 완료되지 않았습니다."
+    elif precheck and precheck.citation_ids:
+        finding = precheck.summary
+    elif patent.evidence:
+        finding = (
+            "특허 근거는 확보했으나 인용으로 뒷받침되는 종합 예비 판단은 없습니다."
+        )
+    else:
+        finding = "인용 가능한 특허 비교 결과가 없습니다."
+
+    limitations = _unique_text(patent.unknowns)
+    limitations = _unique_text(
+        limitations + ["검색 결과는 특허성·침해·실시 자유에 대한 법률 판단이 아닙니다."]
+    )
+    expert_questions = precheck.expert_questions if precheck else []
+    next_checks = expert_questions or patent.unknowns
+    if not next_checks and patent.status == "no_results":
+        next_checks = [
+            "검색어와 특허 수집 범위를 확인하고 추가 검색 필요성을 검토합니다."
+        ]
+    return DomainEvidenceSummary(
+        domain="patent",
+        status=status,
+        finding=finding,
+        evidence_ids=references,
+        evidence_scope=(
+            f"{patent.search_scope} · 비교 문헌 {document_count}건 · 인용 근거 {len(patent.evidence)}건"
+        ),
+        evidence_count=len(patent.evidence),
+        limitations=limitations,
+        next_check=_unique_text(next_checks),
+    )
+
+
+def _market_domain_summary(
+    market: MarketReport, run_state: str | None = None
+) -> DomainEvidenceSummary:
+    review = market.opportunity_review
+    status_labels = {
+        "validated_demand": "직접 고객 검증 자료가 제출되었습니다.",
+        "buyer_signals": "구매자 관련 공개 신호가 있으나 직접 구매 검증은 아닙니다.",
+        "indirect_signals": "간접 산업 신호가 있으며 구매 의사는 확인되지 않았습니다.",
+        "insufficient_evidence": "아이디어별 판단에 충분한 시장 근거가 없습니다.",
+    }
+    verdict_labels = {
+        "confirmed": "근거 확인",
+        "signal_only": "신호만 확인",
+        "unverified": "미확인",
+    }
+    status = run_state or market.status
+    if status == "skipped":
+        finding = "시장 조사를 실행하지 않았습니다."
+    elif status == "timeout":
+        finding = "시장 조사 제한 시간이 지나 완료되지 않았습니다."
+    elif status == "error":
+        finding = "시장 조사가 완료되지 않았습니다."
+    elif market.status == "no_results":
+        finding = "현재 검색 범위에서 시장 근거를 확보하지 못했습니다. 수요가 없다는 뜻은 아닙니다."
+    elif review:
+        finding = status_labels[review.status]
+        if review.target_segment:
+            finding += f" 목표 고객: {review.target_segment}."
+    else:
+        dimension_findings = [
+            f"{item.dimension}: {verdict_labels[item.verdict]}"
+            for item in market.dimensions
+        ]
+        finding = (
+            "차원별 상태: " + " · ".join(dimension_findings[:4])
+            if dimension_findings
+            else "구조화된 시장 판단 결과가 없습니다."
+        )
+
+    references = [
+        f"M:{citation_id}"
+        for reason in (review.reasons if review else [])
+        for citation_id in reason.citation_ids
+    ]
+    references.extend(
+        f"M:{citation_id}"
+        for dimension in market.dimensions
+        for claim in dimension.claims
+        for citation_id in claim.citation_ids
+    )
+    references.extend(
+        f"M:{citation_id}"
+        for action in (review.validation_actions if review else [])
+        for citation_id in action.citation_ids
+    )
+    references.extend(
+        f"M:{item.citation_id}"
+        for item in market.evidence
+        if item.evidence_nature == "direct_demand"
+    )
+    references = _refs(references)
+
+    limitations = list(market.unknowns)
+    if review:
+        limitations.extend(review.unknowns)
+    limitations.extend(
+        dimension.limitation for dimension in market.dimensions if dimension.limitation
+    )
+    next_checks = [
+        action.method for action in (review.validation_actions if review else [])
+    ]
+    next_checks.extend(
+        dimension.next_check
+        for dimension in market.dimensions
+        if dimension.verdict == "unverified" and dimension.next_check
+    )
+    data_as_of = None
+    if market.data_as_of:
+        data_as_of = datetime.strptime(str(market.data_as_of), "%Y%m%d").strftime(
+            "%Y-%m-%d"
+        )
+    return DomainEvidenceSummary(
+        domain="market",
+        status=status,
+        finding=finding,
+        evidence_ids=references,
+        evidence_scope=(f"{market.search_scope} · 검색 근거 {len(market.evidence)}건"),
+        evidence_count=len(market.evidence),
+        data_as_of=data_as_of,
+        limitations=_unique_text(limitations),
+        next_check=_unique_text(next_checks),
+    )
+
+
 def build_executive_review(
     draft: IdeaDraft,
     patent: PatentReport,
     market: MarketReport,
     business: BusinessReview,
+    *,
+    patent_run_state: str | None = None,
+    market_run_state: str | None = None,
 ) -> ExecutiveReview:
     """두 분석의 결합 결과, 승인 전 게이트와 순서가 있는 다음 결정을 만든다."""
     precheck = patent.patentability_precheck
@@ -276,6 +463,10 @@ def build_executive_review(
             if recommendation in {"validate_demand", "research_more"}
             else business.summary
         ),
+        domain_summaries=[
+            _patent_domain_summary(patent, patent_run_state),
+            _market_domain_summary(market, market_run_state),
+        ],
         integrated_findings=findings[:3],
         approval_gates=gates[:3],
         next_actions=actions[:3],
@@ -314,9 +505,37 @@ def executive_report_markdown(
         f"- **진행 범위:** {escape_md(review.scope)}",
         f"- **판단:** {escape_md(review.decision_summary)}",
         "",
-        "## 기회와 제약을 함께 본 판단",
-        "",
     ]
+    if review.domain_summaries:
+        lines += ["## 영역별 근거 요약", ""]
+        for summary in review.domain_summaries:
+            domain_label = "특허" if summary.domain == "patent" else "시장"
+            status_label = {
+                "completed": "완료",
+                "partial": "부분 완료",
+                "no_results": "근거 없음",
+                "error": "실패",
+                "skipped": "미실행",
+                "timeout": "시간 초과",
+            }[summary.status]
+            ids = ", ".join(summary.evidence_ids[:6]) or "인용 근거 없음"
+            if len(summary.evidence_ids) > 6:
+                ids += f" 외 {len(summary.evidence_ids) - 6}건"
+            scope = f"범위: {summary.evidence_scope} · 자료 {summary.evidence_count}건"
+            if summary.data_as_of:
+                scope += f" · 기준일 {summary.data_as_of}"
+            detail = (
+                f"- **{domain_label} · {status_label}:** {escape_md(summary.finding)}"
+            )
+            detail += f"\n  - {escape_md(scope)} · 근거 {escape_md(ids)}"
+            if summary.limitations:
+                detail += f"\n  - 한계: {escape_md('; '.join(summary.limitations[:2]))}"
+            if summary.next_check:
+                detail += (
+                    f"\n  - 다음 확인: {escape_md('; '.join(summary.next_check[:2]))}"
+                )
+            lines.extend([detail, ""])
+    lines += ["## 기회와 제약을 함께 본 판단", ""]
     for finding in review.integrated_findings:
         lines += [
             f"- **{escape_md(finding.label)} · {finding.kind}:** {escape_md(finding.judgment)}{refs(finding.evidence_ids)} 사업상 의미: {escape_md(finding.business_implication)}",
