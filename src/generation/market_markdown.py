@@ -182,15 +182,23 @@ def procurement_rows(
 
 
 def search_trend_summary(trend: MarketSearchTrend) -> str:
-    """검색 관심도 흐름의 주제어·판정·변화율을 한 문장으로 쓴다. 검색량 부족·오류면 그 사유를 쓴다."""
+    """검색 관심도 흐름의 주제어·판정·변화율을 한 문장으로 쓴다. 검색량 부족·오류면 그 사유를 쓴다.
+
+    상위 범주 주제어로 다시 조회했으면 원래 주제어를 앞에 밝힌다.
+    """
     keywords = ", ".join(trend.keywords) or "주제어 없음"
     reference = ", ".join(trend.reference_keywords) or "기준 주제어"
     if trend.status == "error":
         return f"검색 관심도를 불러오지 못했습니다. ({trend.error_message or '사유 미확인'})"
+    fallback = (
+        f"'{', '.join(trend.fallback_from)}'는 검색량이 적어 상위 범주로 조회했습니다. "
+        if trend.fallback_from
+        else ""
+    )
     if trend.status == "insufficient_volume":
-        return f"'{keywords}'는 네이버 검색량이 적어 관심도 흐름을 판단하지 않습니다."
+        return f"{fallback}'{keywords}'는 네이버 검색량이 적어 관심도 흐름을 판단하지 않습니다."
     return (
-        f"'{keywords}' 검색 관심도는 {reference} 대비 "
+        f"{fallback}'{keywords}' 검색 관심도는 {reference} 대비 "
         f"{TREND_DIRECTION_LABELS[trend.direction]}입니다 (최근 6개월 평균, 직전 6개월 대비 "
         f"{trend.recent_change_pct:+.1f}%)."
     )

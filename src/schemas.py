@@ -725,6 +725,8 @@ class MarketSearchTrend(BaseModel):
 
     status: Literal["completed", "insufficient_volume", "error"]
     keywords: list[str] = Field(default_factory=list)
+    # 검색량이 적어 상위 범주 주제어(keywords)로 다시 조회했을 때의 원래 주제어
+    fallback_from: list[str] = Field(default_factory=list)
     reference_keywords: list[str] = Field(default_factory=list)
     points: list[MarketTrendPoint] = Field(default_factory=list)
     # 최근 N개월 평균 relative_index의 직전 N개월 대비 변화율(%)

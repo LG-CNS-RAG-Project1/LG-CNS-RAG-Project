@@ -26,6 +26,7 @@ from pathlib import Path
 from typing import Callable
 
 from src.generation.idea_parser import FIELD_LABELS
+from src.generation.market_markdown import VERDICT_LABELS
 from src.retrieval.market_relevance import DIMENSION_LABELS, call_relevance_llm
 from src.schemas import (
     ALL_DIMENSIONS,
@@ -740,7 +741,8 @@ def opportunity_review(
                 MarketOpportunityFinding(
                     topic=labels[dimension.dimension],
                     statement=(
-                        f"{labels[dimension.dimension]} 판단은 {dimension.verdict}이며, "
+                        f"{labels[dimension.dimension]} 판단: "
+                        f"{VERDICT_LABELS[dimension.verdict]}. "
                         f"현재 확정 아이디어의 고객·문제 범위 안에서 해석해야 합니다."
                     ),
                     citation_ids=cited,
