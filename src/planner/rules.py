@@ -159,8 +159,12 @@ RELATIVE_DATE_RE = re.compile(
 METRIC_RE = re.compile(
     r"(\d+(?:[.,]\d+)?)\s*(%|퍼센트|시간|분|초|배|억\s?원|만\s?원|원|건|대|개사|곳)"
 )
-CONDITION_RE = re.compile(r"조건|기준으로|대비|테스트에서|시험에서|측정|환경에서")
+CONDITION_RE = re.compile(
+    r"조건에서|조건으로|기준으로|대비|테스트에서|시험에서|측정 결과|측정한 결과|"
+    r"실험에서|환경에서|평가에서"
+)
 SALES_UNIT_RE = re.compile(r"대당|1대|한 대|라인|프로젝트|시스템|계약|세트|연간")
+PRICE_SCOPE_RE = re.compile(r"설치|유지보수|라이선스|보증|포함|구독|임대|리스")
 LEGAL_RE = re.compile(
     r"\(주\)|㈜|주식회사|\(유\)|유한회사|\(사\)|사단법인|재단법인|"
     r"\bCo\.,?\s*Ltd\.?|\bInc\.?|\bCorp\.?",
@@ -477,6 +481,13 @@ def evaluate_metric(anchor: Anchor, approved_in: dict) -> Evidence:
     suppliers = approved_in.get(anchor.source_id, set())
     owner = anchor.owner_entity_id if anchor.owner_entity_id in suppliers else ""
     reasons = [] if anchor.metric_value and anchor.unit else ["no_value_or_unit"]
+    features = [
+        f
+        for f in anchor.features
+        if f == "price" or f.startswith(("sales_unit", "price_"))
+    ]
+    if anchor.measurement_conditions != "unknown":
+        features.append("conditions_stated")
     return Evidence(
         evidence_id=f"ev:{anchor.anchor_id}",
         anchor_id=anchor.anchor_id,
@@ -488,7 +499,7 @@ def evaluate_metric(anchor: Anchor, approved_in: dict) -> Evidence:
         review_status="candidate" if reasons else "approved",
         reasons=reasons,
         supplier_id=owner,
-        markers=list(anchor.markers),
+        markers=list(anchor.markers) + features,
     )
 
 

@@ -207,6 +207,8 @@ def build_anchors(
             sales = rules.SALES_UNIT_RE.search(sentence.text)
             if sales:
                 features.append(f"sales_unit:{sales.group(0)}")
+            if rules.PRICE_SCOPE_RE.search(sentence.text):
+                features.append("price_scope")
         owner = next(
             (
                 rules.entity_id(name)
