@@ -147,15 +147,20 @@ def default_search_fn(
         raise RuntimeError(
             "market Chroma index is empty; ingest and index market documents before evaluation"
         )
-    return lambda query, top_k, idea_id: search_market(
-        query,
-        collection=collection,
-        top_k=top_k,
-        idea_id=idea_id,
-        source_types=source_types,
-        retrieval_mode=retrieval_mode,
-        reranker=reranker,
-    )
+
+    def search(query, top_k, idea_id):
+        return search_market(
+            query,
+            collection=collection,
+            top_k=top_k,
+            idea_id=idea_id,
+            source_types=source_types,
+            retrieval_mode=retrieval_mode,
+            reranker=reranker,
+        )
+
+    search.collection = collection
+    return search
 
 
 def collect_candidates(case: dict, ideas: dict[str, dict], search_fn: SearchFn):

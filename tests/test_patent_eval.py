@@ -87,6 +87,22 @@ def test_export_candidates_unions_modes_by_patent_source(tmp_path):
     assert not {"retrieved_by", "best_rank", "mode"} & set(rows[0])
 
 
+def test_export_candidates_builds_kipris_link_when_source_url_is_missing(tmp_path):
+    path = tmp_path / "patent_candidates.csv"
+
+    export_candidates(
+        CASES,
+        {"dense": lambda query: [result("1020200000001")]},
+        path,
+    )
+
+    with open(path, encoding="utf-8-sig", newline="") as file:
+        rows = list(csv.DictReader(file))
+    assert rows[0]["url"] == (
+        "https://www.kipris.or.kr/khome/search/searchResult.do?queryText=1020200000001"
+    )
+
+
 def test_import_labels_waits_until_every_candidate_is_judged(tmp_path):
     path = tmp_path / "candidates.csv"
     rows = [

@@ -13,7 +13,7 @@
 ## 편향을 줄이는 절차
 
 1. `python -m evaluation.patent_labeling export`로 후보를 만든다.
-2. `evaluation/labels/patent_candidates.csv`의 제목·요약·청구항 번호·원문 링크를 확인한다.
+2. `evaluation/labels/patent_candidates.csv`의 제목·요약·청구항 번호·KIPRIS 검색 링크를 확인한다. 원문 URL이 색인에 없으면 출원번호로 KIPRIS 검색 주소를 만든다. 검색 결과에서 출원번호와 발명의 명칭이 후보 행과 맞는지 확인한다.
 3. `relevant`에 `0` 또는 `1`을 기록하고, 경계 사례는 `note`에 짧은 근거를 적는다.
 4. 후보 라벨을 저장한 뒤 `python -m evaluation.patent_labeling import`로 평가 문항에 반영한다.
 

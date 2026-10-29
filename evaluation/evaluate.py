@@ -20,10 +20,13 @@
 
 import argparse
 import csv
+import hashlib
+import json
 import math
 import time
 import subprocess
 from collections import Counter
+from datetime import datetime, timezone
 from functools import partial
 from pathlib import Path
 
@@ -46,6 +49,7 @@ from src.retrieval.patent_search import search_patents as search_patent_document
 from src.retrieval.patent_store import get_collection as get_patent_collection
 from evaluation.market_relevance_eval import evaluate_relevance
 from src.retrieval.market_relevance import RELEVANCE_MODEL, call_relevance_llm
+from src.retrieval.engine import RetrievalConfig
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 RESULTS_DIR = ROOT_DIR / "evaluation" / "results"
@@ -68,8 +72,20 @@ RESULT_FIELDS = [
     "retrieved",
     "mode",
     "model",
+    "embedding_model",
+    "reranker_model",
     "prompt",
     "commit",
+    "run_at_utc",
+    "working_tree_dirty",
+    "evaluation_data_sha256",
+    "index_documents",
+    "index_snapshot_sha256",
+    "top_k",
+    "candidate_k",
+    "rrf_k",
+    "bm25_k1",
+    "bm25_b",
 ]
 
 
@@ -227,6 +243,7 @@ def default_patent_search_fn(retrieval_mode: str = "dense", reranker=None):
             for hit in hits
         ]
 
+    search.collection = collection
     return search
 
 
@@ -281,22 +298,87 @@ def save_patent_results(rows: list[dict], label: str, results_dir: Path = RESULT
     return path
 
 
-def attach_run_metadata(rows: list[dict], mode: str, rerank: bool) -> list[dict]:
-    """검색 평가 결과에 재현에 필요한 모드·모델·프롬프트·커밋 정보를 붙인다."""
+def index_snapshot(collection) -> dict:
+    """색인 문서·메타데이터의 순서 독립적인 SHA-256 요약과 문서 수를 반환한다."""
+    snapshot = collection.get(include=["documents", "metadatas"])
+    entries = sorted(
+        zip(snapshot["ids"], snapshot["documents"], snapshot["metadatas"]),
+        key=lambda item: item[0],
+    )
+    payload = {
+        "name": getattr(collection, "name", ""),
+        "metadata": getattr(collection, "metadata", None),
+        "documents": entries,
+    }
+    serialized = json.dumps(
+        payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+    ).encode("utf-8")
+    return {
+        "index_documents": len(entries),
+        "index_snapshot_sha256": hashlib.sha256(serialized).hexdigest(),
+    }
+
+
+def attach_run_metadata(
+    rows: list[dict],
+    mode: str,
+    rerank: bool,
+    *,
+    evaluation_data=None,
+    index_metadata: dict | None = None,
+    top_k: int = K,
+    candidate_k: int | None = None,
+    rrf_k: int | None = None,
+) -> list[dict]:
+    """검색 결과에 데이터·색인 지문과 검색 설정을 함께 기록한다."""
     commit = subprocess.run(
         ["git", "rev-parse", "HEAD"], capture_output=True, text=True, check=False
     ).stdout.strip()
+    dirty = bool(
+        subprocess.run(
+            ["git", "status", "--porcelain"],
+            capture_output=True,
+            text=True,
+            check=False,
+        ).stdout.strip()
+    )
     model = (
         "BAAI/bge-reranker-v2-m3"
         if rerank
         else ("text-embedding-3-small" if mode in {"dense", "hybrid"} else "BM25")
     )
+    evaluation_sha256 = ""
+    if evaluation_data is not None:
+        serialized = json.dumps(
+            evaluation_data,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+        evaluation_sha256 = hashlib.sha256(serialized).hexdigest()
+    index_metadata = index_metadata or {}
+    config = RetrievalConfig()
+    run_at_utc = datetime.now(timezone.utc).isoformat(timespec="seconds")
     for row in rows:
         row.update(
             mode=mode + ("+rerank" if rerank else ""),
             model=model,
+            embedding_model=(
+                "text-embedding-3-small" if mode in {"dense", "hybrid"} else "n/a"
+            ),
+            reranker_model=("BAAI/bge-reranker-v2-m3" if rerank else "none"),
             prompt="n/a · retrieval",
             commit=commit,
+            run_at_utc=run_at_utc,
+            working_tree_dirty=dirty,
+            evaluation_data_sha256=evaluation_sha256,
+            index_documents=index_metadata.get("index_documents", ""),
+            index_snapshot_sha256=index_metadata.get("index_snapshot_sha256", ""),
+            top_k=top_k,
+            candidate_k=candidate_k or max(top_k * 4, top_k),
+            rrf_k=rrf_k or config.rrf_k,
+            bm25_k1=1.5,
+            bm25_b=0.75,
         )
     return rows
 
@@ -401,13 +483,25 @@ def main() -> None:
             market_cases = [
                 case for case in market_cases if case["idea_id"] in included
             ]
+        ideas = load_ideas()
+        search_fn = default_search_fn(args.mode, reranker=reranker)
         rows = evaluate_market(
             market_cases,
-            load_ideas(),
-            default_search_fn(args.mode, reranker=reranker),
+            ideas,
+            search_fn,
             idea_filter=not args.no_idea_filter,
         )
-        attach_run_metadata(rows, args.mode, args.rerank)
+        attach_run_metadata(
+            rows,
+            args.mode,
+            args.rerank,
+            evaluation_data={
+                "cases": market_cases,
+                "ideas": ideas,
+                "idea_filter": not args.no_idea_filter,
+            },
+            index_metadata=index_snapshot(search_fn.collection),
+        )
         result_path = save_results(
             rows, f"{args.mode}_{'rerank_' if args.rerank else ''}{args.label}"
         )
@@ -420,11 +514,15 @@ def main() -> None:
                 "no labeled patent cases; run python -m evaluation.patent_labeling export, "
                 "fill relevant=0/1, then run python -m evaluation.patent_labeling import"
             )
-        rows = evaluate_patents(
-            cases,
-            default_patent_search_fn(args.mode, reranker=reranker),
+        search_fn = default_patent_search_fn(args.mode, reranker=reranker)
+        rows = evaluate_patents(cases, search_fn)
+        attach_run_metadata(
+            rows,
+            args.mode,
+            args.rerank,
+            evaluation_data=cases,
+            index_metadata=index_snapshot(search_fn.collection),
         )
-        attach_run_metadata(rows, args.mode, args.rerank)
         result_path = save_patent_results(
             rows, f"{args.mode}_{'rerank_' if args.rerank else ''}{args.label}"
         )

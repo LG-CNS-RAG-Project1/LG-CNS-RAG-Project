@@ -10,6 +10,7 @@ import json
 from pathlib import Path
 
 from evaluation.market_labeling import read_label_rows, write_label_rows
+from src.generation.patent_analysis import kipris_application_search_url
 from src.retrieval.patent_search import search_patents
 from src.retrieval.patent_store import get_collection
 
@@ -101,6 +102,15 @@ def export_candidates(
             for hit in hits:
                 document = hit.document
                 key = (case["case_id"], document.source_id)
+                source_url = document.metadata.get("source_url") or ""
+                if not source_url:
+                    source_url = (
+                        kipris_application_search_url(
+                            document.metadata.get("application_number")
+                            or document.source_id
+                        )
+                        or ""
+                    )
                 row = grouped.setdefault(
                     key,
                     {
@@ -113,7 +123,7 @@ def export_candidates(
                         "summary": document.content[:500],
                         "claim_number": document.metadata.get("claim_number", ""),
                         "version_id": document.metadata.get("version_id", ""),
-                        "url": document.metadata.get("source_url", ""),
+                        "url": source_url,
                         "relevant": "",
                         "note": "",
                     },
