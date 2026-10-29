@@ -768,6 +768,8 @@ class DartFinancialYear(BaseModel):
     revenue: int | None = None  # 매출액
     operating_income: int | None = None  # 영업이익
     net_income: int | None = None  # 당기순이익
+    # 사업보고서 연구개발활동 표의 연구개발비용 합계 (정부보조금 차감 전 총액 우선)
+    rnd_expense: int | None = None
 
 
 class DartCompanyFinancials(BaseModel):
@@ -778,6 +780,8 @@ class DartCompanyFinancials(BaseModel):
     statement: Literal["연결", "별도"]  # 연결재무제표가 없으면 별도재무제표
     rcept_no: str  # 재무 계정을 가져온 사업보고서 접수번호
     years: list[DartFinancialYear] = Field(default_factory=list)  # 오래된 연도부터
+    # 연구개발비용을 뽑은 표의 행 이름·단위. 찾지 못하면 그 사유
+    rnd_basis: str = ""
 
 
 class MarketCompanyFinancials(BaseModel):

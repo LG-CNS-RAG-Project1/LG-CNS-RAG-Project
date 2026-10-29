@@ -117,7 +117,8 @@ def _pct(numerator: int | None, denominator: int | None) -> str:
 def company_financial_rows(financials: MarketCompanyFinancials) -> list[dict]:
     """기업 재무 현황을 표의 행 목록으로 만든다. 금액은 억원, 비율은 %.
 
-    열: 기업·재무제표, 연도별 매출액, 최근 연도의 전년 대비 매출 증감·영업이익·영업이익률·당기순이익.
+    열: 기업·재무제표, 연도별 매출액, 최근 연도의 전년 대비 매출 증감·영업이익·영업이익률·당기순이익·
+    연구개발비·연구개발비 비율(연구개발비 ÷ 매출액, 회사 공시 비율 대신 같은 기준으로 계산).
     """
     rows = []
     for company in financials.companies:
@@ -136,6 +137,8 @@ def company_financial_rows(financials: MarketCompanyFinancials) -> list[dict]:
                 f"영업이익 {latest.year}": _eok(latest.operating_income),
                 "영업이익률": _pct(latest.operating_income, latest.revenue).lstrip("+"),
                 f"당기순이익 {latest.year}": _eok(latest.net_income),
+                f"연구개발비 {latest.year}": _eok(latest.rnd_expense),
+                "연구개발비 비율": _pct(latest.rnd_expense, latest.revenue).lstrip("+"),
             }
         )
         rows.append(row)
@@ -150,7 +153,8 @@ def company_financials_summary(financials: MarketCompanyFinancials) -> str:
         return "아이디어와 같은 사업 범주로 검색한 DART 기업의 재무 계정이 없습니다."
     return (
         f"아이디어와 같은 사업 범주로 검색한 DART 기업 {len(financials.companies)}곳의 "
-        "최근 3개 사업연도 실적입니다 (단위: 억원)."
+        "최근 3개 사업연도 실적입니다 (단위: 억원). 연구개발비는 사업보고서 연구개발활동 표의 "
+        "정부보조금 차감 전 총액을 우선하며, 비율은 같은 해 매출액으로 나눈 값입니다."
     )
 
 
@@ -320,6 +324,11 @@ def market_report_to_markdown(report: MarketReport, heading_level: int = 2) -> s
                 for r in rows
             ]
         lines += [f"- 재무 계정 없음: {cell(m)}" for m in financials.missing]
+        lines += [
+            f"- 연구개발비 근거({cell(c.company)}): {cell(c.rnd_basis)}"
+            for c in financials.companies
+            if c.rnd_basis
+        ]
         if financials.note:
             lines += ["", f"> {cell(financials.note)}"]
 

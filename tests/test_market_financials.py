@@ -4,6 +4,7 @@ from src.generation.market_markdown import (
     market_report_to_markdown,
 )
 from src.ingestion.dart_client import fetch_major_accounts
+from src.ingestion.dart_processor import extract_rnd_expense
 from src.schemas import MarketReport, MarketSearchRequest, StructuredIdea
 from src.services import market_service
 from src.services.market_financials import (
@@ -26,11 +27,11 @@ CORP_CODES = {
 }
 
 
-def account(fs_div, name, current, previous, before):
+def account(fs_div, name, current, previous, before, rcept_no="20260310000001"):
     return {
         "fs_div": fs_div,
         "account_nm": name,
-        "rcept_no": "20260310000001",
+        "rcept_no": rcept_no,
         "thstrm_amount": current,
         "frmtrm_amount": previous,
         "bfefrmtrm_amount": before,
@@ -43,10 +44,80 @@ DOOSAN = [
     account("OFS", "매출액", "1", "1", "1"),
 ]
 SEPARATE_ONLY = [
-    account("OFS", "매출액", "25,620,442,016", "20,000,000,000", ""),
-    account("OFS", "영업이익", "2,562,044,201", "1,000,000,000", ""),
-    account("OFS", "당기순이익(손실)", "1,000,000,000", "", ""),
+    account("OFS", "매출액", "25,620,442,016", "20,000,000,000", "", "2"),
+    account("OFS", "영업이익", "2,562,044,201", "1,000,000,000", "", "2"),
+    account("OFS", "당기순이익(손실)", "1,000,000,000", "", "", "2"),
 ]
+
+
+def table(*rows):
+    return (
+        "<TABLE>"
+        + "".join(
+            "<TR>" + "".join(f"<TD>{cell}</TD>" for cell in row) + "</TR>"
+            for row in rows
+        )
+        + "</TABLE>"
+    )
+
+
+def rnd_section(body):
+    return (
+        "<SECTION-1><TITLE>II. 사업의 내용</TITLE>"
+        "<SECTION-2><TITLE>6. 주요계약 및 연구개발활동</TITLE>"
+        f"{body}</SECTION-2></SECTION-1>"
+    )
+
+
+# 주요계약 표가 먼저 나오고, 단위는 단위만 적은 작은 표에 있으며, 차감 전 총계와 차감 후 계가 함께 있다.
+GROSS_AND_NET_XML = rnd_section(
+    table(["계약 상대방", "계약금액"], ["합계", "1,000"], ["", "2,000"], ["", "3,000"])
+    + table(["합계", "1,000", "2,000", "3,000"])
+    + "<P>[최근 3개 사업연도 연구개발 비용 현황]</P>"
+    + table(["(단위 : 백만원, %)"])
+    + table(
+        ["구분", "2025년 (제16기)", "2024년 (제15기)", "2023년 (제14기)"],
+        ["연구개발비용 총계", "12,445", "12,714", "9,298"],
+        ["(정부보조금)", "(3,937)", "(1,985)", "(1,675)"],
+        ["연구개발비용 계", "8,508", "10,729", "7,623"],
+        ["연구개발비 / 매출액 비율", "6%", "6%", "83%"],
+    )
+)
+# 표 안에는 '연구개발'이 없고 바로 위 제목에만 있으며, 합계 칸에 비율이 함께 적혀 있다.
+HEADING_ONLY_XML = rnd_section(
+    "<P>(2) 연구개발비용 (단위:천원)</P>"
+    + table(
+        ["구 분", "제21기", "제20기", "제19기"],
+        ["판관비", "1,016,506", "2,009,210", "1,548,313"],
+        [
+            "합 계 (매출액 대비 비율)",
+            "1,016,506(4.0%)",
+            "2,009,210(6.8%)",
+            "1,548,313(6.4%)",
+        ],
+    )
+)
+NO_UNIT_XML = rnd_section(table(["연구개발비용 계", "1", "2", "3"]))
+DOCUMENTS = {"20260310000001": GROSS_AND_NET_XML, "2": "<SECTION-1></SECTION-1>"}
+
+
+def test_extract_rnd_expense_prefers_gross_total_and_converts_units():
+    amounts, basis = extract_rnd_expense(GROSS_AND_NET_XML, 2025)
+    heading_only = extract_rnd_expense(HEADING_ONLY_XML, 2025)
+
+    assert amounts == {
+        2025: 12_445_000_000,
+        2024: 12_714_000_000,
+        2023: 9_298_000_000,
+    }
+    assert basis == "사업보고서 연구개발활동 표 '연구개발비용총계' (백만원)"
+    assert heading_only[0] == {
+        2025: 1_016_506_000,
+        2024: 2_009_210_000,
+        2023: 1_548_313_000,
+    }
+    assert extract_rnd_expense(NO_UNIT_XML, 2025) is None
+    assert extract_rnd_expense("<SECTION-1></SECTION-1>", 2025) is None
 
 
 def test_parse_amount_handles_commas_signs_and_blanks():
@@ -88,6 +159,7 @@ def test_build_company_financials_falls_back_to_previous_year_and_reports_missin
         fetch_fn=fake_fetch,
         config=CONFIG,
         corp_codes=CORP_CODES,
+        document_fn=DOCUMENTS.get,
     )
 
     assert result.status == "completed"
@@ -121,6 +193,7 @@ def test_rows_markdown_and_summary():
         lambda corp, year: {"001": DOOSAN, "002": SEPARATE_ONLY}[corp],
         CONFIG,
         CORP_CODES,
+        DOCUMENTS.get,
     )
 
     rows = company_financial_rows(financials)
@@ -135,7 +208,14 @@ def test_rows_markdown_and_summary():
         "영업이익 2025": "-595",
         "영업이익률": "-180.3%",
         "당기순이익 2025": "-",
+        "연구개발비 2025": "124",
+        "연구개발비 비율": "37.7%",
     }
+    assert rows[1]["연구개발비 2025"] == "-"
+    assert (
+        financials.companies[1].rnd_basis
+        == "사업보고서에서 연구개발비용 표를 찾지 못함"
+    )
     assert rows[1]["매출액 2023"] == "-"
     assert rows[1]["매출 증감(전년)"] == "+28.1%"
     assert rows[1]["영업이익률"] == "10.0%"
@@ -147,6 +227,7 @@ def test_rows_markdown_and_summary():
         )
     )
     assert "### 인접 기업 재무 현황" in markdown
+    assert "- 연구개발비 근거(두산로보틱스): 사업보고서 연구개발활동 표" in markdown
     assert "| 두산로보틱스 | 연결 | 530 | 468 | 330 | -29.6% | -595 |" in markdown
 
 
@@ -235,6 +316,7 @@ def test_financial_chart_rows_and_chart():
         lambda corp, year: {"001": DOOSAN, "002": SEPARATE_ONLY}[corp],
         CONFIG,
         CORP_CODES,
+        DOCUMENTS.get,
     )
 
     rows = financial_chart_rows(financials)
@@ -255,3 +337,18 @@ def test_financial_chart_rows_and_chart():
     spec = financial_chart(financials, "dark").to_dict()
     assert spec["resolve"]["scale"]["y"] == "independent"
     assert financial_chart(build_company_financials([], 20261029)) is None
+
+
+def test_rnd_lookup_failure_keeps_financial_accounts():
+    def broken(rcept_no):
+        raise RuntimeError("OpenDART document.xml HTTP 500")
+
+    result = build_company_financials(
+        ["두산로보틱스"], 20261029, lambda c, y: DOOSAN, CONFIG, CORP_CODES, broken
+    )
+
+    company = result.companies[0]
+    assert result.status == "completed"
+    assert company.years[-1].revenue == 32978338354
+    assert company.years[-1].rnd_expense is None
+    assert company.rnd_basis.startswith("사업보고서 본문 조회 실패")

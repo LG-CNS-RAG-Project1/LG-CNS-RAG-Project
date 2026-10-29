@@ -7,6 +7,7 @@
 - 저장: data/market/raw/dart/{rcept_no}.xml (본문) + {rcept_no}.json (기업·보고서 메타데이터)
 - '사업의 내용' 추출·청크·MarketDocument 변환은 dart_processor에서 수행한다.
 - 사업보고서 주요 재무 계정(fetch_major_accounts)은 data/market/raw/dart/financials/에 캐시한다.
+- 재무 현황의 연구개발비용 추출에 쓰는 본문(fetch_report_document)은 수집 원본과 같은 {rcept_no}.xml을 쓴다.
 
 OpenDART는 인증키를 URL 파라미터로 받으므로, 오류 메시지에 요청 URL을 넣지 않는다.
 
@@ -175,6 +176,17 @@ def download_document(rcept_no: str) -> str:
         else max(names, key=lambda n: archive.getinfo(n).file_size)
     )
     return archive.read(main).decode("utf-8", errors="replace")
+
+
+def fetch_report_document(rcept_no: str, raw_dir: Path = RAW_DIR) -> str:
+    """사업보고서 본문 XML을 반환한다. {rcept_no}.xml이 이미 있으면 그 파일을 쓰고, 없으면 내려받아 저장한다."""
+    path = raw_dir / f"{rcept_no}.xml"
+    if path.exists():
+        return path.read_text(encoding="utf-8")
+    xml = download_document(rcept_no)
+    raw_dir.mkdir(parents=True, exist_ok=True)
+    path.write_text(xml, encoding="utf-8")
+    return xml
 
 
 def fetch_major_accounts(

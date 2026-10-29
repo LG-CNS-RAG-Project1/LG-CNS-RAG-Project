@@ -4,6 +4,8 @@
 2. 기준일 직전 사업연도 사업보고서의 주요 재무 계정(OpenDART fnlttSinglAcnt)을 조회하고, 아직
    공시되지 않았으면 그 전 사업연도를 쓴다 (src/ingestion/dart_client.py).
 3. 연결재무제표가 있으면 연결, 없으면 별도재무제표의 매출액·영업이익·당기순이익을 3개 연도로 정리한다.
+4. 같은 사업보고서 본문의 '연구개발활동' 표에서 연도별 연구개발비용을 붙인다
+   (src/ingestion/dart_processor.py extract_rnd_expense). 찾지 못해도 재무 계정은 그대로 쓴다.
 
 기업 매출은 그 기업의 실적일 뿐 시장 규모·구매 수요의 근거가 아니며, 차원별 판정에 쓰지 않는다.
 """
@@ -12,9 +14,11 @@ from typing import Callable
 
 from src.ingestion.dart_client import (
     fetch_major_accounts,
+    fetch_report_document,
     load_corp_codes,
     load_dart_config,
 )
+from src.ingestion.dart_processor import extract_rnd_expense
 from src.schemas import (
     DartCompanyFinancials,
     DartFinancialYear,
@@ -34,6 +38,7 @@ ACCOUNTS = {
 PERIOD_FIELDS = [("bfefrmtrm_amount", 2), ("frmtrm_amount", 1), ("thstrm_amount", 0)]
 
 FetchFn = Callable[[str, int], list[dict]]
+DocumentFn = Callable[[str], str]  # 접수번호 → 사업보고서 본문 XML
 
 
 def parse_amount(value) -> int | None:
@@ -78,16 +83,36 @@ def summarize_accounts(
     return None
 
 
+def attach_rnd_expense(
+    years: list[DartFinancialYear], rcept_no: str, document_fn: DocumentFn
+) -> str:
+    """사업보고서 본문의 연구개발비용을 같은 연도 실적에 넣고 근거 설명을 반환한다. 실패면 그 사유."""
+    if not rcept_no:
+        return "사업보고서 접수번호 없음"
+    try:
+        extracted = extract_rnd_expense(document_fn(rcept_no), years[-1].year)
+    except Exception as exc:  # 본문 조회 실패는 재무 계정 표시를 막지 않는다
+        return f"사업보고서 본문 조회 실패: {exc}"
+    if extracted is None:
+        return "사업보고서에서 연구개발비용 표를 찾지 못함"
+    amounts, basis = extracted
+    for year in years:
+        year.rnd_expense = amounts.get(year.year)
+    return basis
+
+
 def build_company_financials(
     companies: list[str],
     data_as_of: int,
     fetch_fn: FetchFn = fetch_major_accounts,
     config: dict | None = None,
     corp_codes: dict | None = None,
+    document_fn: DocumentFn = fetch_report_document,
 ) -> MarketCompanyFinancials:
     """DART 기업명 목록의 재무 현황을 만든다. 기업이 없으면 no_companies, 조회 실패는 error다.
 
-    설정에 없는 기업이나 공시를 찾지 못한 기업은 missing에 사유와 함께 남긴다.
+    설정에 없는 기업이나 공시를 찾지 못한 기업은 missing에 사유와 함께 남긴다. 연구개발비용 표를
+    찾지 못하거나 본문 조회가 실패하면 그 기업의 rnd_basis에 사유만 남긴다.
     """
     if not companies:
         return MarketCompanyFinancials(status="no_companies", note=NOTE)
@@ -112,6 +137,7 @@ def build_company_financials(
                 missing.append(f"{name}: 최근 사업보고서 재무 계정 없음")
                 continue
             statement, rcept_no, years = summary
+            rnd_basis = attach_rnd_expense(years, rcept_no, document_fn)
             results.append(
                 DartCompanyFinancials(
                     company=name,
@@ -119,6 +145,7 @@ def build_company_financials(
                     statement=statement,
                     rcept_no=rcept_no,
                     years=years,
+                    rnd_basis=rnd_basis,
                 )
             )
     except Exception as exc:  # 재무 조회 실패는 시장 보고서 전체를 막지 않는다

@@ -122,5 +122,8 @@ def render_company_financials(financials) -> None:
         st.dataframe(rows, hide_index=True, width="stretch")
     for item in financials.missing:
         st.caption(f"재무 계정 없음: {item}")
+    bases = [f"{c.company}: {c.rnd_basis}" for c in financials.companies if c.rnd_basis]
+    if bases:
+        st.caption("연구개발비 근거 · " + " / ".join(bases))
     if financials.note:
         st.caption(financials.note)
