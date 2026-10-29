@@ -21,6 +21,7 @@ from src.planner.schemas import RunManifest
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 RUNS_DIR = ROOT_DIR / "data" / "market" / "runs"
+RUNS_ENV = "IDEALENS_PLANNER_RUNS_DIR"
 OPTIONAL_PREFIXES = ("bodies/", "raw_responses/")
 REQUIRED_FILES = (
     "idea.json",
@@ -38,6 +39,11 @@ REQUIRED_FILES = (
 
 class RunIntegrityError(RuntimeError):
     """실행 폴더의 파일이 manifest 기록과 다르거나 필수 파일이 없다."""
+
+
+def runs_root() -> Path:
+    """실행 폴더 위치. IDEALENS_PLANNER_RUNS_DIR가 있으면 그 경로를 쓴다."""
+    return Path(os.getenv(RUNS_ENV) or RUNS_DIR)
 
 
 def _default(value):
@@ -217,9 +223,9 @@ def write_semantic(target, revision: int, payload: dict, semantic) -> str:
     return digest
 
 
-def list_runs(root: Path = RUNS_DIR, area_id: str | None = None) -> list[dict]:
+def list_runs(root: Path | None = None, area_id: str | None = None) -> list[dict]:
     """게시된 실행의 manifest 요약을 최신순으로 반환한다. 읽을 수 없는 폴더는 건너뛴다."""
-    root = Path(root)
+    root = Path(root) if root else runs_root()
     if not root.exists():
         return []
     pattern = f"{area_id}/*/*/manifest.json" if area_id else "*/*/*/manifest.json"
@@ -233,7 +239,7 @@ def list_runs(root: Path = RUNS_DIR, area_id: str | None = None) -> list[dict]:
     return sorted(runs, key=lambda r: r["manifest"].run_id, reverse=True)
 
 
-def find_run(root: Path, run_ref: str) -> Path:
+def find_run(root: Path | None, run_ref: str) -> Path:
     """실행 경로나 run_id로 실행 폴더를 찾는다."""
     candidate = Path(run_ref)
     if (candidate / "manifest.json").exists():

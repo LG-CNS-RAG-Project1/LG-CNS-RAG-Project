@@ -32,7 +32,9 @@ def main() -> int:
         return 1
 
     import frontend.live  # noqa: F401
+    import frontend.planner_view  # noqa: F401
     import src.pipeline  # noqa: F401
+    import src.services.planner_service  # noqa: F401
 
     print("SCC 의존성 점검 통과")
     return 0

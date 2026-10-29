@@ -177,7 +177,7 @@ def refresh(
     idea: StructuredIdea,
     area_id: str,
     *,
-    root: Path = store.RUNS_DIR,
+    root: Path | None = None,
     search_fn=default_search,
     http_get=None,
     llm_fn=call_extraction_llm,
@@ -196,7 +196,7 @@ def refresh(
     digest = store.idea_hash(idea, area_id)
     as_of = clock().strftime("%Y%m%d")
     run_id = store.new_run_id(as_of)
-    staging = store.Staging(root, area_id, digest, run_id)
+    staging = store.Staging(root or store.runs_root(), area_id, digest, run_id)
     try:
         collection = Collection(
             profile, search_fn, clock=clock, sleep=sleep, cancelled=cancelled
@@ -538,7 +538,7 @@ def review(
 def reanalyze(
     path: Path,
     *,
-    root: Path = store.RUNS_DIR,
+    root: Path | None = None,
     llm_fn=None,
     clock: Callable = now_kst,
 ) -> Path:
@@ -596,7 +596,7 @@ def reanalyze(
     )
     as_of = clock().strftime("%Y%m%d")
     run_id = store.new_run_id(as_of)
-    staging = store.Staging(root, area_id, digest, run_id)
+    staging = store.Staging(root or store.runs_root(), area_id, digest, run_id)
     try:
         plan = store.read_json(path / "query_plan.json")
         plan["collection"] = collection
@@ -673,7 +673,7 @@ def main() -> None:
 
     if args.command == "refresh":
         area = args.area or args.idea_id
-        parent = store.find_run(store.RUNS_DIR, args.parent) if args.parent else None
+        parent = store.find_run(None, args.parent) if args.parent else None
 
         def show(stage, done, total):
             print(f"  {stage} {done}/{total}", flush=True)
@@ -692,7 +692,7 @@ def main() -> None:
         print(f"  calls {json.dumps(log, ensure_ascii=False)}")
         print(f"  replay hash match: {report['match']}")
     elif args.command == "replay":
-        report = replay(store.find_run(store.RUNS_DIR, args.run), args.revision)
+        report = replay(store.find_run(None, args.run), args.revision)
         print(
             json.dumps(
                 {
@@ -709,7 +709,7 @@ def main() -> None:
             )
         )
     elif args.command == "reanalyze":
-        source = store.find_run(store.RUNS_DIR, args.run)
+        source = store.find_run(None, args.run)
         path = reanalyze(source, llm_fn=call_extraction_llm if args.allow_llm else None)
         print(f"published {path}")
     elif args.command == "review":
@@ -720,10 +720,10 @@ def main() -> None:
             {"evidence_id": e, "decision": "reject", "reason": args.reason}
             for e in args.reject
         ]
-        rev, digest = review(store.find_run(store.RUNS_DIR, args.run), decisions)
+        rev, digest = review(store.find_run(None, args.run), decisions)
         print(f"revision {rev} {digest}")
     else:
-        for run in store.list_runs(store.RUNS_DIR, args.area):
+        for run in store.list_runs(None, args.area):
             m = run["manifest"]
             print(f"{m.run_id}\t{m.mode}\t{m.area_id}\t{m.idea_title}\t{run['path']}")
 

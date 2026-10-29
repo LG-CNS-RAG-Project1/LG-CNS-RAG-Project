@@ -29,3 +29,10 @@ def local_chroma_by_default(monkeypatch):
     monkeypatch.setenv("CHROMA_PORT", "8000")
     monkeypatch.setenv("CHROMA_SSL", "false")
     monkeypatch.setenv("CHROMA_API_KEY", "")
+
+
+@pytest.fixture(autouse=True)
+def isolated_planner_runs(monkeypatch, tmp_path):
+    """사업기획 자료집 화면·명령이 개발자의 실제 실행 폴더를 읽지 않게 한다."""
+    monkeypatch.setenv("IDEALENS_PLANNER_RUNS_DIR", str(tmp_path / "planner-runs"))
+    monkeypatch.setenv("IDEALENS_PLANNER_REFRESH", "")

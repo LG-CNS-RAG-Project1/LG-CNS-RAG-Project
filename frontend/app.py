@@ -2114,6 +2114,10 @@ with st.container(key=f"workspace_{1 if s.stage == 1 else 3 if s.stage == 4 else
         elif s.real_mode and s.pipeline_result:
             market = s.pipeline_result.market
             render_market_report(market, s.idea_draft)
+            from frontend.planner_view import render_planner_section
+
+            st.divider()
+            render_planner_section(s.technology_area_id, s.idea_draft)
             if s.get("analysis_workflow_id"):
                 st.caption(
                     "최종 실행 검토를 작성 중입니다. 완료되면 종합 보고서에서 확인하세요."
