@@ -19,6 +19,7 @@ def test_landing_preserves_home_and_enters_compact_analysis():
     app = AppTest.from_file(str(APP)).run()
     assert app.button(key="lens_start").label == "돋보기로 조사 시작"
     assert "hero-copy" in "\n".join(item.value for item in app.html)
+    assert not any((button.key or "").startswith("rail_") for button in app.button)
     click(app, "돋보기로 조사 시작")
     assert app.text_area(key="raw_input")
     assert app.button(key="create_idea_draft")
@@ -28,6 +29,28 @@ def test_landing_preserves_home_and_enters_compact_analysis():
         "2",
         "3",
     ]
+    assert not app.button(key="rail_1").disabled
+    assert all(app.button(key=f"rail_{i}").disabled for i in (2, 3, 4))
+    assert any('href="#research-top"' in item.value for item in app.html)
+
+
+def test_quick_history_preserves_input_and_returns_without_reanalysis():
+    app = AppTest.from_file(str(APP)).run()
+    click(app, "돋보기로 조사 시작")
+    text = "공장 설비의 진동 데이터를 분석하는 새로운 서비스"
+    app.text_area(key="raw_input").set_value(text).run()
+    app.session_state.saved_memo = "검토 중인 메모"
+    app.button(key="rail_history").click().run()
+    assert not app.exception
+    assert app.session_state.page == "history"
+    assert app.session_state.raw_input == text
+    assert app.session_state.saved_memo == "검토 중인 메모"
+    assert not any((button.key or "").startswith("rail_") for button in app.button)
+    app.button(key="home").click().run()
+    click(app, "돋보기로 조사 시작")
+    assert app.text_area(key="raw_input").value == text
+    assert app.session_state.idea_draft is None
+    assert app.session_state.pipeline_result is None
 
 
 def test_example_and_recent_are_separate_controls():
