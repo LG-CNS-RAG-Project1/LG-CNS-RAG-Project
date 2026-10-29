@@ -1,0 +1,90 @@
+# DART 사업보고서 수집 설정 (src/ingestion/dart_client.py, src/ingestion/dart_processor.py)
+# 기업마다 관련 아이디어(idea_ids)와 선정 이유(reason)를 적는다. 선정 이유는 사업보고서
+# '사업의 내용'에서 확인한 사업 범위이며, 기업 매출은 시장 규모·구매 수요의 증거가 아니다.
+report:
+  detail_type: A001  # 정기공시 > 사업보고서
+  date_from: 20250101  # 이 날짜 이후 접수된 보고서 중 최신 사업연도
+  request_interval_sec: 0.3
+  # '사업의 내용' 하위 섹션 중 수집할 섹션의 제목 키워드 (원재료·위험관리 등은 제외)
+  sections:
+    - 사업의 개요
+    - 주요 제품
+    - 매출
+    - 주요계약
+    - 기타 참고사항
+  # 이 키워드가 제목에 있는 섹션은 판매 실적·주요 매출처 공시라 구매 신호로 본다
+  purchase_sections:
+    - 매출
+  chunk_size: 800
+  chunk_overlap: 150
+
+# 기업을 아이디어에 연결하려면 '사업의 내용' 본문에 이 용어가 1회 이상 나와야 한다.
+# 나오지 않으면 그 아이디어 연결을 빼고 dart_selection.json에 사유를 남긴다.
+idea_terms:
+  SF-01: [협동로봇]
+  SF-02: [비전, 외관검사, 외관 검사]
+  SF-03: [예지보전, 고장을 예지, 고장 예측, 예측정비, 상태감시, 예방진단]
+  SF-04: [FEMS, 에너지관리, 에너지 관리]
+  SF-05: [음성, 생성형 AI, LLM, 공정제어]
+
+companies:
+  - name: 두산로보틱스
+    stock_code: "454910"
+    idea_ids: [SF-01]
+    reason: 협동로봇 제조·자동화 솔루션 사업
+  - name: 레인보우로보틱스
+    stock_code: "277810"
+    idea_ids: [SF-01]
+    reason: 협동로봇 제조 사업
+  - name: 뉴로메카
+    stock_code: "348340"
+    idea_ids: [SF-01]
+    reason: 협동로봇·자동화 솔루션 사업
+  - name: 고영
+    stock_code: "098460"
+    idea_ids: [SF-02]
+    reason: 3D 검사장비 사업
+  - name: 라온피플
+    stock_code: "300120"
+    idea_ids: [SF-02]
+    reason: AI 머신비전 검사 사업
+  - name: 인텍플러스
+    stock_code: "064290"
+    idea_ids: [SF-02]
+    reason: 반도체·2차전지 외관검사 장비 사업
+  - name: 뷰웍스
+    stock_code: "100120"
+    idea_ids: [SF-02]
+    reason: 산업용 머신비전 카메라 사업
+  - name: 엠아이큐브솔루션
+    stock_code: "373170"
+    idea_ids: [SF-03, SF-05]
+    reason: 스마트팩토리 MES·설비 예지보전·제조 AI 솔루션 사업
+  - name: 이삭엔지니어링
+    stock_code: "351330"
+    idea_ids: [SF-03]
+    reason: 설비 상태감시·예방진단 솔루션 사업
+  - name: 엘에스일렉트릭
+    stock_code: "010120"
+    idea_ids: [SF-04]
+    reason: 전력·자동화 기기와 공장 에너지관리 사업
+  - name: HD현대일렉트릭
+    stock_code: "267260"
+    idea_ids: [SF-04]
+    reason: 전력기기·에너지관리 솔루션 사업
+  - name: 그리드위즈
+    stock_code: "453450"
+    idea_ids: [SF-04]
+    reason: 수요관리·에너지 관리 플랫폼 사업
+  - name: 포스코DX
+    stock_code: "022100"
+    idea_ids: [SF-05]
+    reason: 제조 IT·산업 자동화·생성형 AI 사업
+  - name: LG씨엔에스
+    stock_code: "064400"
+    idea_ids: [SF-05]
+    reason: 스마트팩토리·생성형 AI 플랫폼 사업
+  - name: 삼성에스디에스
+    stock_code: "018260"
+    idea_ids: [SF-05]
+    reason: 제조 IT·생성형 AI 서비스 사업
