@@ -82,6 +82,7 @@ STOCK_TITLE_RE = re.compile(
 # 구매 신호로 판정된 기사가 실제 거래가 아니라 계획·발표를 다루는지 가리는 표현.
 # MOU·업무협약은 체결돼도 구매가 아니고, 계획 표현이 있으면서 완료 표현이 없으면 발표로 본다.
 # 제목이 거래(계약·수주·납품 등)를 알리고 계획 표현이 없으면 본문 계획 표현과 상관없이 유지한다.
+# 계획 표현이 없어도 제목이 현재형 동사로 앞으로 할 일을 알리면(future_headline) 발표로 본다.
 MOU_RE = re.compile(r"MOU|양해각서|업무협약|협약을 맺|협약 체결")
 PLAN_RE = re.compile(
     r"계획|예정|방침|목표|추진|나선다|나섰다|나서|돌격|진출|공략|검토|하기로|한 뒤|한 후|청사진|로드맵"
@@ -90,7 +91,10 @@ DONE_RE = re.compile(
     r"완료|준공|가동 중|가동에 들어|운영 중|운영하고|사용하고|계약을 체결|"
     r"(?:도입|구축|공급|납품|체결|수주|적용|설치|투입|구매)(?:했|해|한 |하며|하고 있)"
 )
-TITLE_DEAL_RE = re.compile(r"계약|수주|납품|공급|구축|도입")
+TITLE_DEAL_RE = re.compile(r"계약|수주|납품|공급|구축|도입|적용")
+# 기사 제목 구절 구분자. 한국어 기사 제목은 '…'·쉼표로 구절을 잇는다.
+HEADLINE_CLAUSE_RE = re.compile(r"…|\.\.\.|,|\|")
+HEADLINE_TRAIL = " \"'“”‘’)]>」』!?."
 
 
 def call_relevance_llm(
@@ -153,9 +157,31 @@ def checked_nature(nature: str, text: str) -> str:
     return nature if all(cue.search(text) for cue in cues) else "business_signal"
 
 
+def _ends_present_verb(clause: str) -> bool:
+    """구절이 받침 ㄴ + '다'로 끝나는 현재형 동사(한다·심는다·선보인다·된다)인지."""
+    if len(clause) < 2 or not clause.endswith("다"):
+        return False
+    prev = clause[-2]
+    return "가" <= prev <= "힣" and (ord(prev) - 0xAC00) % 28 == 4
+
+
+def future_headline(title: str) -> bool:
+    """제목이 앞으로 할 일을 현재형 동사로 알리는 발표형인지 (예: 'AI 두뇌' 심는다, 솔루션 선보인다).
+
+    기사 제목에서 이미 한 거래는 '구축'·'공급'처럼 명사나 과거형으로 끝나므로, 거래 명사로 끝나는
+    구절이 하나라도 있으면 발표형으로 보지 않는다.
+    """
+    clauses = [c.strip(HEADLINE_TRAIL) for c in HEADLINE_CLAUSE_RE.split(title)]
+    if any(TITLE_DEAL_RE.search(c) and not _ends_present_verb(c) for c in clauses):
+        return False
+    return any(_ends_present_verb(c) for c in clauses)
+
+
 def announced_only(title: str, text: str) -> bool:
     """기사가 실제 거래가 아니라 MOU·계획·발표를 다루면 True (구매 신호에서 제외할 대상)."""
     if MOU_RE.search(text):
+        return True
+    if future_headline(title) and not DONE_RE.search(text):
         return True
     if TITLE_DEAL_RE.search(title) and not PLAN_RE.search(title):
         return False
