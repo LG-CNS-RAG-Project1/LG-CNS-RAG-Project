@@ -48,6 +48,7 @@ pre-commit run --all-files            # 전체 파일 검사 (make precommit)
 | `test` | `python -m pytest`. 수집된 테스트가 없으면(종료 코드 5) 통과 처리 |
 | `scripts` | `node --test "scripts/**/*.test.mjs"` — Notion·리뷰어·PR 분석 자동화 테스트 |
 | `docker` | `docker compose config` 검증과 `app` 이미지 빌드 |
+| `scc-deps` | Streamlit Community Cloud와 같은 Debian 11(`python:3.12-slim-bullseye`) 컨테이너에서 `frontend/requirements.txt`로 설치한 뒤 `scripts/check_scc_deps.py`(thin client 여부·full chromadb 혼입·앱 모듈 import)와 비밀번호 화면·Chroma 연결·의존성 동기화·버전 표시 테스트 실행 |
 
 ## PR 리뷰어 자동 지정 (`.github/workflows/assign-reviewer.yml`)
 
@@ -56,6 +57,32 @@ pre-commit run --all-files            # 전체 파일 검사 (make precommit)
 - 후보 기본값은 저장소 협업자 GitHub ID 목록이며, 저장소 **Settings → Secrets and variables → Actions → Variables**에 `REVIEWER_POOL`(쉼표 구분)을 만들면 그 값을 우선한다.
 - 후보 전원에게 요청이 실패하면 job이 실패로 표시된다.
 - `pull_request_target`으로 실행되며 PR 코드가 아닌 base 브랜치의 `scripts/github/`만 체크아웃한다.
+
+## main 승격 PR (`.github/workflows/promote-main.yml`)
+
+- develop에 push된 커밋의 CI가 성공하면(`workflow_run`) develop → main **배포 승격 PR**을 열거나 본문을 갱신한다. develop에서 수동 실행(Run workflow)도 할 수 있다.
+- 본문에는 develop 커밋, 통과한 CI 링크, 커밋별 연결 PR로 모은 포함 PR 목록이 들어간다. 병합 방식(Create a merge commit)과 배포 영향도 적는다.
+- 요청된 리뷰어가 없고 유효한 승인도 없으면 리뷰어 1명을 요청한다. develop이 바뀌어 무효화된 승인의 리뷰어를 먼저 고르고, 후보는 `REVIEWER_POOL`을 따른다. 봇이 연 PR에는 리뷰어 자동 지정 워크플로가 돌지 않기 때문이다.
+- 사람이 연 develop → main PR이 있으면 본문과 리뷰어를 바꾸지 않는다.
+- 저장소 설정 "Allow GitHub Actions to create and approve pull requests"가 켜져 있어야 PR을 만들 수 있다.
+- PR 병합(= 배포)은 사람이 승인한다. 설정과 병합 규칙은 [배포 안내](deploy-streamlit-cloud.md)를 따른다.
+- 로직은 `scripts/github/promote_main.mjs`, 테스트는 `promote_main.test.mjs`다.
+
+## SCC 배포 스모크 (`.github/workflows/scc-smoke.yml`)
+
+- main push와 수동 실행 때 `scripts/scc_smoke.py`가 Playwright(Chromium)로 저장소 변수 `SCC_APP_URL`의 앱을 연다.
+- 판정은 다음과 같다.
+  - 성공: 비밀번호 화면과 화면의 `버전 xxxxxxx`가 방금 커밋과 같다.
+  - 경고와 함께 성공: 버전 표시가 없다.
+  - 실패: 오류 화면, 비밀번호 화면 없음(`IDEALENS_APP_PASSWORD` 누락), 15분 안에 새 버전이 안 보임.
+  - 실패 화면은 artifact로 남긴다.
+- 잠든 앱은 깨우기 버튼을 누르고 기다린다. 시연 전 깨우기에도 쓴다.
+- `SCC_APP_URL`이 없으면 push 실행은 경고 후 통과하고, 수동 실행은 실패한다.
+- 로컬 확인 방법:
+  1. `pip install playwright==1.64.1 && python -m playwright install chromium`
+  2. `make ui`
+  3. `python scripts/scc_smoke.py --url http://127.0.0.1:8505 --expect-sha $(git rev-parse HEAD)`
+  4. 비밀번호 화면을 보려면 `.env`에 `IDEALENS_APP_PASSWORD`를 넣는다.
 
 ## PR 자동 분석 (`.github/workflows/pr-analysis.yml`)
 

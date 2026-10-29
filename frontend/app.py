@@ -21,6 +21,7 @@ from frontend.live import (
     RUN_LOCK,
     analysis_key,
     app_password,
+    build_version,
     cost_markdown,
     cost_rows_list,
     friendly_error,
@@ -116,6 +117,9 @@ def password_gate():
     with st.form("password_form"):
         entered = st.text_input("비밀번호", type="password", key="app_password")
         submitted = st.form_submit_button("들어가기")
+    version = build_version(Path(__file__).resolve().parents[1])
+    if version:
+        st.caption(f"버전 {version}")
     if submitted:
         if password_matches(entered, expected):
             s.authenticated = True

@@ -1,0 +1,44 @@
+name: Promote develop to main
+
+# develop에 push된 커밋의 CI가 성공하면 develop → main 배포 승격 PR을 열거나 본문을 갱신한다.
+# 병합(= Streamlit Community Cloud 배포)은 사람이 승인한다. PR을 만들려면 저장소 Settings → Actions →
+# General → Workflow permissions의 "Allow GitHub Actions to create and approve pull requests"가 켜져 있어야 한다.
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [develop]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: promote-main
+  cancel-in-progress: false
+
+jobs:
+  promote:
+    if: >-
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/develop') ||
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.conclusion == 'success')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out trusted default branch scripts
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          sparse-checkout: scripts/github
+
+      - name: Open or update promotion pull request
+        uses: actions/github-script@v9
+        env:
+          REVIEWER_POOL: ${{ vars.REVIEWER_POOL || 'Ryu-Jemu, hyunmin990513-stack, 5aro, gabihyun' }}
+          CI_RUN_URL: ${{ github.event.workflow_run.html_url }}
+        with:
+          script: |
+            const { run } = await import(`${process.env.GITHUB_WORKSPACE}/scripts/github/promote_main.mjs`);
+            await run({ github, context, core });

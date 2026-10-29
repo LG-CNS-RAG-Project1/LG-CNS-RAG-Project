@@ -1,4 +1,4 @@
-"""실제 분석 화면의 보조 규칙: 접속 비밀번호, 실행 가능 여부, 분석 캐시 키, 동시 실행 제한, 오류·표시 문구.
+"""실제 분석 화면의 보조 규칙: 접속 비밀번호, 배포 버전 표시, 실행 가능 여부, 분석 캐시 키, 동시 실행 제한, 오류·표시 문구.
 
 무거운 분석 모듈(src.pipeline 등)은 함수 안에서 불러 첫 화면 로딩을 가볍게 유지한다.
 """
@@ -7,7 +7,9 @@ import hashlib
 import hmac
 import json
 import os
+import re
 import threading
+from pathlib import Path
 
 RUN_LOCK = threading.Lock()  # 프로세스 전체에서 실분석은 한 번에 1건
 MAX_PASSWORD_FAILURES = 5
@@ -55,6 +57,36 @@ def app_password() -> str:
 def password_matches(entered: str, expected: str) -> bool:
     """시간 차이로 값이 드러나지 않게 비교한다."""
     return hmac.compare_digest(entered.strip().encode(), expected.encode())
+
+
+def build_version(root: Path) -> str:
+    """저장소에 체크아웃된 커밋의 앞 7자리. 배포 뒤 스모크 검사가 새 커밋 반영 여부를 확인하는 데 쓴다.
+
+    git 명령 없이 .git의 HEAD·ref·packed-refs 파일만 읽는다. .git이 없거나 읽을 수 없으면 빈 문자열이다.
+    """
+    git_dir = root / ".git"
+    try:
+        head = (git_dir / "HEAD").read_text(encoding="utf-8").strip()
+        if not head.startswith("ref: "):
+            sha = head
+        else:
+            ref = head.removeprefix("ref: ").strip()
+            ref_file = git_dir / ref
+            if ref_file.is_file():
+                sha = ref_file.read_text(encoding="utf-8").strip()
+            else:
+                packed = (git_dir / "packed-refs").read_text(encoding="utf-8")
+                sha = next(
+                    (
+                        parts[0]
+                        for parts in (line.split() for line in packed.splitlines())
+                        if len(parts) == 2 and parts[1] == ref
+                    ),
+                    "",
+                )
+    except OSError:
+        return ""
+    return sha[:7] if re.fullmatch(r"[0-9a-f]{40,64}", sha) else ""
 
 
 def live_available() -> bool:

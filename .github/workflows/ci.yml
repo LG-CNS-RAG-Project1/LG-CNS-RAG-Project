@@ -63,6 +63,36 @@ jobs:
           fi
           exit "$status"
 
+  scc-deps:
+    name: SCC dependency check
+    runs-on: ubuntu-latest
+    # Streamlit Community Cloud와 같은 Debian 11(SQLite 3.34)에서 SCC 전용 의존성으로 앱을 불러온다.
+    container: python:3.12-slim-bullseye
+    env:
+      PIP_DISABLE_PIP_VERSION_CHECK: "1"
+      PIP_ROOT_USER_ACTION: ignore
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Show SQLite version
+        run: python -c "import sqlite3; print('SQLite', sqlite3.sqlite_version)"
+
+      - name: Install SCC dependencies
+        run: python -m pip install -r frontend/requirements.txt "$(grep -E '^pytest==' requirements-dev.txt)"
+
+      - name: Check thin client imports
+        run: python scripts/check_scc_deps.py
+
+      - name: Run SCC related tests
+        run: >-
+          python -m pytest
+          tests/test_password_gate.py
+          tests/test_chroma_client.py
+          tests/test_requirements_sync.py
+          tests/test_build_version.py
+
   scripts:
     name: Automation script tests
     runs-on: ubuntu-latest
