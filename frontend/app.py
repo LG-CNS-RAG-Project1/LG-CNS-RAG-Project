@@ -47,6 +47,7 @@ from frontend.workflow import WORKFLOW_JOBS, WORKFLOW_JOBS_LOCK
 from frontend.automatic import automatic_links
 from frontend.presentation import hero_parts, brand_style
 from frontend.workspace_view import report_payload, render_report, render_history
+from frontend.quick_nav import render_page_nav, render_quick_nav
 
 st.set_page_config(page_title="IdeaLens · 빠른 조사", page_icon="▤", layout="wide")
 st.html("""<style>
@@ -149,6 +150,7 @@ def enter_analysis():
 def open_example_draft(text, title):
     """예시 입력만 설정해 다음 화면 실행에서 LLM 초안을 생성한다."""
     s.raw_input = text
+    s.idea_input_buffer = text
     s.raw = text
     input_changed()
     s.title_input = title
@@ -1612,6 +1614,7 @@ def load(text, title=""):
     s.app_view = "analysis"
     input_changed()
     s.raw_input = text
+    s.idea_input_buffer = text
     s.raw = text
     s.title_input = title
     s.idea_page_view = "input"
@@ -1688,15 +1691,83 @@ def drop_link(qid):
 
 
 def open_page(page):
+    if s.page == "workspace" and s.idea_page_view == "input":
+        s.idea_input_buffer = s.get("raw_input", s.raw)
     s.page = page
+    s.scroll_to_top = True
 
 
 def start_research():
     s.page = "workspace"
     s.app_view = "analysis"
     s.stage = 1
+    s.scroll_to_top = True
 
 
+def resume_research():
+    """입력과 결과를 초기화하지 않고 마지막에 보던 조사로 돌아간다."""
+    s.page = "workspace"
+    s.app_view = "analysis"
+    s.scroll_to_top = True
+    if s.idea_page_view == "input":
+        s.raw_input = s.get("idea_input_buffer", s.raw)
+
+
+has_research = bool(
+    s.get("raw_input")
+    or s.get("idea_input_buffer")
+    or s.raw
+    or s.idea_draft
+    or s.get("analysis_workflow_id")
+)
+play_intro = s.page == "home" and not s.get("home_intro_played", False)
+if play_intro:
+    from frontend.landing_motion import intro_styles
+
+    st.html(intro_styles())
+
+
+def settle_navigation():
+    """페이지 렌더링 후 이전 화면의 스크롤 위치를 제거한다."""
+    if not s.pop("scroll_to_top", False):
+        return
+    st.html(
+        """<script>(() => {
+        const navigationId = 'NAVIGATION_ID';
+        const until = performance.now() + 650;
+        const main = document.querySelector('[data-testid="stMain"]');
+        if (!main) return;
+        const previousAnchor = main.style.overflowAnchor;
+        main.style.overflowAnchor = 'none';
+        main.dataset.navigationId = navigationId;
+        const heading = main.querySelector('h1');
+        if (heading) {
+            heading.setAttribute('tabindex','-1');
+            heading.focus({preventScroll:true});
+        }
+        const controller = new AbortController();
+        let stopped = false;
+        const stop = () => {
+            stopped = true;
+            main.style.overflowAnchor = previousAnchor;
+            controller.abort();
+        };
+        for (const event of ['wheel','touchstart','keydown']) {
+            window.addEventListener(event, stop, {once:true,passive:true,signal:controller.signal});
+        }
+        function alignPage() {
+            if (stopped) return;
+            main.scrollTo({top:0,behavior:'instant'});
+            if (performance.now() < until) requestAnimationFrame(alignPage);
+            else stop();
+        }
+        requestAnimationFrame(alignPage);
+        })();</script>""".replace("NAVIGATION_ID", uuid4().hex),
+        unsafe_allow_javascript=True,
+    )
+
+
+st.html('<div id="research-top"></div>')
 with st.container(key="brandbar"):
     brand, intro, guide, records = st.columns([2.6, 1, 1, 1.1])
     brand.button("IdeaLens", key="home", on_click=open_page, args=("home",))
@@ -1705,14 +1776,15 @@ with st.container(key="brandbar"):
     records.button("내 기록", on_click=open_page, args=("history",))
 
 if s.page == "home":
-    play_intro = not s.get("home_intro_played", False)
     with st.container(key="landing"):
         copy_markup, art_markup = hero_parts()
         copy_column, art_column = st.columns(
             [1, 1.08], gap="large", vertical_alignment="center"
         )
         with copy_column:
-            st.html(copy_markup)
+            from frontend.landing_motion import intro_styles
+
+            st.html((intro_styles() if play_intro else "") + copy_markup)
         with art_column:
             with st.container(key="hero_art"):
                 st.html(art_markup)
@@ -1728,15 +1800,20 @@ if s.page == "home":
 
         st.html(intro_markup(), unsafe_allow_javascript=True)
         s.home_intro_played = True
+    render_page_nav(s.page, open_page, resume_research, has_research=has_research)
+    settle_navigation()
     st.stop()
 if s.page in ("about", "difference"):
     from frontend.introduction import render_introduction
 
     render_introduction(s.page)
-    st.button("홈에서 살펴보기 ↗", on_click=open_page, args=("home",))
+    render_page_nav(s.page, open_page, resume_research, has_research=has_research)
+    settle_navigation()
     st.stop()
 if s.page == "history":
     render_history(s)
+    render_page_nav(s.page, open_page, resume_research, has_research=has_research)
+    settle_navigation()
     st.stop()
 
 steps = [
@@ -1787,14 +1864,19 @@ def step_button_label(number):
     return f"{marker} {number}  {short_names[number - 1]}{suffix}{state}"
 
 
-def review_navigation(number, label, column, key):
+def review_navigation(number, label, column, key, *, icon=None):
     if column.button(
         label,
         key=key,
-        type="primary" if s.stage == number else "secondary",
+        type=(
+            "primary"
+            if s.stage == number or (key == "nav_2" and s.stage == 3)
+            else "secondary"
+        ),
         disabled=not can_visit(number)
         or (active_job is not None and s.stage == number),
         width="stretch",
+        icon=icon,
     ):
         if active_job is not None:
             s.workflow_preview_stage = number
@@ -1815,6 +1897,8 @@ if s.stage in (2, 3):
     a, b = st.columns(2)
     review_navigation(2, "특허 비교", a, "review_patent")
     review_navigation(3, "시장성 분석", b, "nav_3")
+
+render_quick_nav(review_navigation, open_page)
 
 
 preview_stage = s.get("workflow_preview_stage")
@@ -1865,7 +1949,7 @@ with st.container(key=f"workspace_{1 if s.stage == 1 else 3 if s.stage == 4 else
         if s.idea_page_view == "input":
             st.title("어떤 아이디어를 조사할까요?")
             st.caption("한두 문장으로 적어 주세요. AI가 분석용 초안을 만들어 드립니다.")
-            s.setdefault("raw_input", s.raw)
+            s.setdefault("raw_input", s.get("idea_input_buffer", s.raw))
             raw = st.text_area(
                 "아이디어",
                 height=150,
@@ -2269,15 +2353,5 @@ with st.container(key=f"workspace_{1 if s.stage == 1 else 3 if s.stage == 4 else
         render_report(s, report_payload(s))
 
 if previous_stage != s.stage:
-    st.html(
-        """<script>(() => {
-        const until = performance.now() + 650;
-        function alignPage() {
-            const main = document.querySelector('[data-testid="stMain"]');
-            if (main) main.scrollTo({top: 0, behavior: 'instant'});
-            if (performance.now() < until) requestAnimationFrame(alignPage);
-        }
-        requestAnimationFrame(alignPage);
-        })();</script>""",
-        unsafe_allow_javascript=True,
-    )
+    s.scroll_to_top = True
+settle_navigation()

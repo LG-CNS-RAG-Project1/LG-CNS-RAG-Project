@@ -1,47 +1,116 @@
-"""첫 홈 방문의 문구 이동과 순차 등장 연출. 축소 동작 설정에서는 즉시 표시한다."""
+"""실제 제목의 이동과 문서·돋보기의 순차 등장을 한 타임라인으로 연결한다."""
+
+
+def intro_styles():
+    """홈 마크업보다 먼저 적용해 완성 화면이 먼저 번쩍이는 현상을 막는다."""
+    return """<style>
+    @keyframes introFallback {to {opacity:1;visibility:visible;pointer-events:auto;}}
+    @keyframes introFade {from {opacity:0;} to {opacity:1;}}
+    @keyframes introReveal {
+      from {opacity:0;transform:translateY(10px);}
+      to {opacity:1;transform:translateY(0);}
+    }
+    .st-key-brandbar {opacity:0;visibility:hidden;animation:introFallback 0s 4.8s forwards;}
+    [data-testid="stMainBlockContainer"]:has(.st-key-landing[data-intro-state="playing"]) .st-key-brandbar {visibility:visible;animation:introReveal .4s 2.55s both;}
+    [data-testid="stMainBlockContainer"]:has(.st-key-landing[data-intro-state="done"]) .st-key-brandbar {opacity:1;visibility:visible;animation:none;}
+    .st-key-landing:not([data-intro-state="done"]) .hero-copy h1,
+    .st-key-landing:not([data-intro-state="done"]) .hero-copy>.eyebrow,
+    .st-key-landing:not([data-intro-state="done"]) .hero-copy>p,
+    .st-key-landing:not([data-intro-state="done"]) .hero-note,
+    .st-key-landing:not([data-intro-state="done"]) .paper-scene,
+    .st-key-landing:not([data-intro-state="done"]) .st-key-lens_start {
+      opacity:0;animation:introFallback 0s 4.8s forwards;
+    }
+    .st-key-landing:not([data-intro-state="done"]) .st-key-lens_start {visibility:hidden;}
+    .st-key-landing[data-intro-state="playing"] .hero-copy h1 {animation:none;will-change:transform,opacity;}
+    .st-key-landing[data-intro-state="playing"] .hero-title-line:first-child {animation:introReveal .35s .05s both;}
+    .st-key-landing[data-intro-state="playing"] .hero-title-line:last-child {animation:introReveal .35s .38s both;}
+    .st-key-landing[data-intro-state="playing"] .hero-copy>.eyebrow,
+    .st-key-landing[data-intro-state="playing"] .hero-copy>p,
+    .st-key-landing[data-intro-state="playing"] .hero-note {animation:introReveal .5s 2.7s both;}
+    .st-key-landing[data-intro-state="playing"] .paper-scene {animation:introReveal .6s 2.9s both;}
+    .st-key-landing[data-intro-state="playing"] .st-key-lens_start {visibility:visible;animation:introReveal .5s 3.4s both;}
+    .st-key-landing:not([data-intro-state="done"]) .st-key-lens_start button:before {animation-play-state:paused;}
+    [data-testid="stMainBlockContainer"]:has(.st-key-landing:not([data-intro-state="done"])) .st-key-research_rail {opacity:0;animation:introFallback 0s 4.8s forwards;pointer-events:none;}
+    [data-testid="stMainBlockContainer"]:has(.st-key-landing[data-intro-state="playing"]) .st-key-research_rail {animation:introFade .35s 3.7s both;}
+    @media(prefers-reduced-motion:reduce) {
+      .st-key-brandbar,.st-key-landing .hero-title-line,
+      .st-key-landing .hero-copy h1,.st-key-landing .hero-copy>.eyebrow,
+      .st-key-landing .hero-copy>p,.st-key-landing .hero-note,
+      .st-key-landing .paper-scene,.st-key-landing .st-key-lens_start,
+      [data-testid="stMainBlockContainer"]:has(.st-key-landing) .st-key-research_rail {
+        animation:none!important;opacity:1!important;visibility:visible!important;transform:none!important;pointer-events:auto!important;
+      }
+    }
+    </style>"""
 
 
 def intro_markup():
-    return """<style>
-    @keyframes landingReveal{from{opacity:0;visibility:hidden;transform:translateY(14px)}to{opacity:1;visibility:visible;transform:translateY(0)}}
-    @keyframes landingTitleReveal{from{opacity:0}to{opacity:1}}
-    .st-key-landing .hero-copy h1{opacity:0;animation:landingTitleReveal .16s ease 1.8s forwards;}
-    .st-key-brandbar{opacity:0;animation:landingReveal .45s ease 1.55s forwards;}
-    .st-key-landing .hero-copy>.eyebrow,.st-key-landing .hero-copy>p,.st-key-landing .hero-note{opacity:0;animation:landingReveal .55s ease 1.95s forwards;}
-    .st-key-hero_art .paper-scene{opacity:0;animation:landingReveal .65s ease 2.15s forwards;}
-    .st-key-hero_art .st-key-lens_start{opacity:0;visibility:hidden;animation:landingReveal .65s ease 2.8s forwards;}
-    @media(prefers-reduced-motion:reduce){.st-key-brandbar,.st-key-landing .hero-copy h1,.st-key-landing .hero-copy>.eyebrow,.st-key-landing .hero-copy>p,.st-key-landing .hero-note,.st-key-hero_art .paper-scene,.st-key-hero_art .st-key-lens_start{animation:none!important;opacity:1!important;visibility:visible!important;transform:none!important;}}
-    </style><script>(() => {
-        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-        document.querySelectorAll('[data-idealens-intro]').forEach(el => el.remove());
-        const start = () => {
-            const title = document.querySelector('.st-key-landing .hero-copy h1');
-            if (!title) return false;
-            const rect = title.getBoundingClientRect();
-            if (!rect.width || !rect.height) return false;
-            const styles = getComputedStyle(title);
-            const ghost = title.cloneNode(true);
-            ghost.querySelectorAll('a').forEach(el => el.remove());
-            ghost.setAttribute('aria-hidden', 'true');
-            ghost.setAttribute('data-idealens-intro', '');
-            ghost.removeAttribute('id');
-            Object.assign(ghost.style, {position:'fixed',left:rect.left+'px',top:rect.top+'px',width:rect.width+'px',height:'auto',margin:'0',padding:'0',font:styles.font,letterSpacing:styles.letterSpacing,lineHeight:styles.lineHeight,color:styles.color,opacity:'1',zIndex:'100',pointerEvents:'none',transformOrigin:'center center',animation:'none'});
-            ghost.style.setProperty('font-size', styles.fontSize, 'important');
-            ghost.style.setProperty('font-weight', styles.fontWeight, 'important');
-            ghost.style.setProperty('line-height', styles.lineHeight, 'important');
-            document.body.appendChild(ghost);
-            const scale = Math.max(1, Math.min(1.7, (innerWidth - 40) / rect.width));
-            const dx = innerWidth / 2 - (rect.left + rect.width / 2);
-            const dy = innerHeight * .43 - (rect.top + rect.height / 2);
-            const opening = `translate(${dx}px,${dy}px) scale(${scale})`;
-            const animation = ghost.animate([{transform:opening,offset:0},{transform:opening,offset:.32},{transform:'translate(0,0) scale(1)',offset:1}], {duration:1800,easing:'cubic-bezier(.22,.7,.2,1)',fill:'forwards'});
-            animation.onfinish = () => ghost.remove();
-            setTimeout(() => ghost.remove(), 2300);
-            return true;
-        };
-        if (!start()) {
-            const observer = new MutationObserver(() => {if (start()) observer.disconnect();});
-            observer.observe(document.body, {childList:true,subtree:true});
-            setTimeout(() => observer.disconnect(), 1200);
+    """레이아웃을 기다린 뒤 제목 자체를 움직이고 중단 시 즉시 최종 배치를 복원한다."""
+    return """<script>(() => {
+      let root, titleAnimation, revealTimer, waitTimer, pendingObserver, removalObserver;
+      let finished = false;
+      const events = new AbortController();
+      const finish = () => {
+        if (finished) return;
+        finished = true;
+        if (root) root.dataset.introState = 'done';
+        titleAnimation?.cancel();
+        clearTimeout(revealTimer);
+        clearTimeout(waitTimer);
+        pendingObserver?.disconnect();
+        removalObserver?.disconnect();
+        events.abort();
+      };
+      const frame = () => new Promise(resolve => requestAnimationFrame(resolve));
+      const start = async () => {
+        root = document.querySelector('.st-key-landing');
+        const title = root?.querySelector('.hero-copy h1');
+        const lens = root?.querySelector('.st-key-lens_start button');
+        if (!title || !lens) return false;
+        pendingObserver?.disconnect();
+        clearTimeout(waitTimer);
+        if (root.dataset.introState) return true;
+        root.dataset.introState = 'preparing';
+        if (matchMedia('(prefers-reduced-motion: reduce)').matches ||
+            document.querySelector('[data-testid="stMain"]').scrollTop > 50) {
+          finish();return true;
         }
+        for (const event of ['resize','pointerdown','keydown','wheel','touchstart']) {
+          window.addEventListener(event, finish, {once:true,passive:true,signal:events.signal});
+        }
+        removalObserver = new MutationObserver(() => {if (!root.isConnected) finish();});
+        removalObserver.observe(document.body,{childList:true,subtree:true});
+        try {
+          await Promise.race([
+            Promise.allSettled([
+              document.fonts.ready,
+              ...[...root.querySelectorAll('img')].map(image => image.decode()),
+            ]),
+            new Promise(resolve => setTimeout(resolve,300)),
+          ]);
+          await frame();await frame();
+          if (finished || !root.isConnected) {finish();return true;}
+          const rect = title.getBoundingClientRect();
+          if (!rect.width || !rect.height) {finish();return true;}
+          const scale = Math.max(1,Math.min(innerWidth < 700 ? 1.08 : 1.45,(innerWidth-48)/rect.width));
+          const dx = innerWidth/2 - (rect.left+rect.width/2);
+          const dy = innerHeight*.43 - (rect.top+rect.height/2);
+          const opening = `translate(${dx}px,${dy}px) scale(${scale})`;
+          root.dataset.introState = 'playing';
+          titleAnimation = title.animate([
+            {opacity:1,transform:opening,offset:0},
+            {opacity:1,transform:opening,offset:.68,easing:'cubic-bezier(.22,.7,.2,1)'},
+            {opacity:1,transform:'translate(0,0) scale(1)',offset:1},
+          ],{duration:2800,easing:'linear',fill:'both'});
+          revealTimer = setTimeout(finish,4100);
+        } catch {finish();}
+        return true;
+      };
+      start().then(started => {
+        if (started || finished) return;
+        pendingObserver = new MutationObserver(() => {start();});
+        pendingObserver.observe(document.body,{childList:true,subtree:true});
+        waitTimer = setTimeout(finish,1000);
+      });
     })();</script>"""
