@@ -166,7 +166,7 @@ python -m src.ingestion.market_processor                                        
 
 - 시장·특허 공통 기술 분야, 분야별 검색어 및 시장 수집 기준은 `configs/technology_areas.yaml`에서 관리한다. 공통 시장 키워드는 `shared_market_keywords`, 분야별 시장 키워드와 특허 키워드는 각 `technology_areas` 항목에 둔다.
 - NAVER API HUB 뉴스 검색 API의 제목·요약·링크·발행일만 `data/market/raw/news_{keyword_id}_{수집일}.json`에 저장한다.
-- 정제 단계는 같은 URL 기사를 합치고, 제목 유사도 0.8 초과·발행일 3일 이내 기사를 같은 `dup_group`으로 묶어 대표 1건만 `data/market/processed/market_docs.jsonl`에 저장한다.
+- 정제 단계는 기사의 아이디어 연결(`idea_ids`)을 수집 당시 값이 아니라 현재 `configs/technology_areas.yaml`의 키워드 설정으로 정하고, 설정에 없는 키워드로 수집한 기사는 제외한다(원본 파일은 유지). 같은 URL 기사를 합치고, 제목 유사도 0.8 초과·발행일 3일 이내 기사를 같은 `dup_group`으로 묶어 대표 1건만 `data/market/processed/market_docs.jsonl`에 저장한다.
 
 ### DART 사업보고서 수집·정제
 
