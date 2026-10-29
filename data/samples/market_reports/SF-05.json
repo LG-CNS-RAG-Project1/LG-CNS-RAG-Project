@@ -3,32 +3,39 @@
   "dimensions": [
     {
       "dimension": "demand",
-      "verdict": "unverified",
-      "claims": [
-        {
-          "statement": "제조 현장에서 AI 도입이 증가하고 있는 것으로 보인다.",
-          "claim_type": "ai_hypothesis",
-          "citation_ids": []
-        }
-      ],
-      "next_check": "목표 고객사 5곳 인터뷰로 현재 해결 방식과 도입 의향 확인",
-      "evidence_status": "sufficient",
-      "relevant_count": 2,
-      "limitation": "수요 확인에는 고객 검증 자료(인터뷰·설문·파일럿·LOI)가 필요하며 기사로는 확인할 수 없음"
-    },
-    {
-      "dimension": "competition",
       "verdict": "signal_only",
       "claims": [
         {
-          "statement": "현대차그룹의 AI 어시스턴트와 동부건설의 AI 챗봇 어시스턴트가 현장 업무 방식을 변화시키고 있다.",
+          "statement": "현대차그룹은 현장에 AI를 도입하여 업무 방식을 변화시키고 있다.",
           "claim_type": "fact",
           "citation_ids": [
             1
           ]
         },
         {
-          "statement": "AI 기반의 다양한 어시스턴트가 경쟁하고 있는 시장일 가능성이 있다.",
+          "statement": "제조 현장에서 AI 기반의 작업 지원 솔루션에 대한 수요가 있을 가능성이 있다.",
+          "claim_type": "ai_hypothesis",
+          "citation_ids": []
+        }
+      ],
+      "next_check": null,
+      "evidence_status": "limited",
+      "relevant_count": 1,
+      "limitation": "관련 자료가 1건뿐이라 확인할 수 없음 (최대 신호 수준)"
+    },
+    {
+      "dimension": "competition",
+      "verdict": "signal_only",
+      "claims": [
+        {
+          "statement": "동부건설은 AI 챗봇 어시스턴트를 통해 품질 기준과 하자 사례를 신속하게 제공하고 있다.",
+          "claim_type": "fact",
+          "citation_ids": [
+            2
+          ]
+        },
+        {
+          "statement": "AI 기반의 작업 지원 솔루션 시장에서 경쟁이 치열할 가능성이 있다.",
           "claim_type": "ai_hypothesis",
           "citation_ids": []
         }
@@ -36,7 +43,7 @@
       "next_check": null,
       "evidence_status": "sufficient",
       "relevant_count": 3,
-      "limitation": "관련 기사 3건이 모두 사업 신호·기업 주장·추정치라 확인할 수 없음"
+      "limitation": "관련 자료 3건이 모두 사업 신호·기업 주장·추정치라 확인할 수 없음"
     },
     {
       "dimension": "price",
@@ -45,30 +52,21 @@
       "next_check": "수익모델(판매·구독 등)을 정한 뒤 공급사 견적으로 가격대 확인",
       "evidence_status": "insufficient",
       "relevant_count": 0,
-      "limitation": "검색된 기사 5건이 모두 이 차원과 무관하다고 판정됨"
+      "limitation": "검색된 자료 7건이 모두 이 차원과 무관하다고 판정됨"
     },
     {
       "dimension": "buyer",
-      "verdict": "unverified",
-      "claims": [],
-      "next_check": "제조 현장 작업자와 생산 관리자 5명 인터뷰로 구매 의사 확인",
-      "evidence_status": "insufficient",
-      "relevant_count": 0,
-      "limitation": "검색된 기사 5건이 모두 이 차원과 무관하다고 판정됨"
-    },
-    {
-      "dimension": "adoption_barrier",
       "verdict": "signal_only",
       "claims": [
         {
-          "statement": "AI 도입 초기 비용과 기술적 부담이 중소·중견기업의 진입 장벽으로 작용하고 있다.",
+          "statement": "엠아이큐브솔루션은 삼성전기와 삼성SDI 등 대형 고객을 대상으로 영업을 진행하고 있다.",
           "claim_type": "fact",
           "citation_ids": [
-            5
+            4
           ]
         },
         {
-          "statement": "제조 현장에서 AI 도입에 대한 기술적 부담이 존재할 가능성이 있다.",
+          "statement": "제조업체들이 AI 기반 솔루션을 도입할 가능성이 있다.",
           "claim_type": "ai_hypothesis",
           "citation_ids": []
         }
@@ -76,7 +74,29 @@
       "next_check": null,
       "evidence_status": "limited",
       "relevant_count": 1,
-      "limitation": "관련 기사가 1건뿐이라 확인할 수 없음 (최대 신호 수준)"
+      "limitation": "관련 자료가 1건뿐이라 확인할 수 없음 (최대 신호 수준)"
+    },
+    {
+      "dimension": "adoption_barrier",
+      "verdict": "signal_only",
+      "claims": [
+        {
+          "statement": "AI 도입 초기 비용과 기술적 부담이 중소기업의 진입 장벽으로 작용하고 있다.",
+          "claim_type": "fact",
+          "citation_ids": [
+            5
+          ]
+        },
+        {
+          "statement": "제조 현장에서 AI 솔루션 도입에 대한 장벽이 존재할 가능성이 있다.",
+          "claim_type": "ai_hypothesis",
+          "citation_ids": []
+        }
+      ],
+      "next_check": null,
+      "evidence_status": "limited",
+      "relevant_count": 1,
+      "limitation": "관련 자료가 1건뿐이라 확인할 수 없음 (최대 신호 수준)"
     }
   ],
   "evidence": [
@@ -99,23 +119,6 @@
     },
     {
       "citation_id": 2,
-      "source_id": "news-9fee97947131",
-      "source_type": "news",
-      "title": "윤진식 무협 회장 \"美 비자 개선·AX 전환 지원 강화\"…부울경 수출기업...",
-      "publisher": "etoday.co.kr",
-      "quote": "통상·공급망 애로 해소에 나섰다. 미국 E-2 비자 발급 제한과 물류비 부담, 제조업 디지털 전환 지연 등 현장... 무역협회 부산지역본부 조사에 따르면 부울경 스마트공장 도입 기업의 63.0%는 단순 바코드 스캔 수준의 기초...",
-      "section": "title+description",
-      "url": "https://www.etoday.co.kr/news/view/2605782",
-      "published_at": 20260722,
-      "period": null,
-      "reliability": "medium",
-      "recency": "high",
-      "directness": "medium",
-      "evidence_nature": "indirect_demand",
-      "similarity": 0.43920000000000003
-    },
-    {
-      "citation_id": 3,
       "source_id": "news-101d572a6de1",
       "source_type": "news",
       "title": "AI 통번역부터 품질 챗봇까지…동부건설, 스마트 건설기술 고도화",
@@ -132,7 +135,7 @@
       "similarity": 0.37760000000000005
     },
     {
-      "citation_id": 4,
+      "citation_id": 3,
       "source_id": "news-60d08c0d35bf",
       "source_type": "news",
       "title": "동부건설, 현장 무인 드론·AI로 건설현장 안전관리 고도화",
@@ -147,6 +150,23 @@
       "directness": "medium",
       "evidence_nature": "business_signal",
       "similarity": 0.37729999999999997
+    },
+    {
+      "citation_id": 4,
+      "source_id": "dart-20260320000616-3-0",
+      "source_type": "dart",
+      "title": "엠아이큐브솔루션 사업보고서(FY2025) 4. 매출 및 수주상황",
+      "publisher": "엠아이큐브솔루션 (DART 사업보고서)",
+      "quote": "가. 매출실적\n나. 판매조직\n당사의 영업 조직은 각 사업부 내의 별도의 영업부서를 운영하고 있습니다. S&S사업부 내 영업팀은 당사의 주요 고객인 삼성전기, 삼성SDI 등 대형 고객들의 SI 프로젝트의 영업을 담당하고 있습니다. 그 외 사업부는 당사의 솔루션을 기반으로 B2B 및 B2G 영업 업무를 담당하며 LE사업부 영업팀, SMB사업부 영업팀, AM사업부 영업팀으로 구성됩니다. LE사업부 영업팀은 대기업 등의 신규 및 잠재고객 발굴, 영업 전략 수립, 솔루션 영업등 당사의 수주 및 판매와 관련된 업무를 수행하고 있으며, SMB사업부 영업팀은 Cloud MES 솔루션을 기반으로 식품업종 고객 및 중소기업의 신규 및 잠재고객 발굴을 중점적으로 수행하고 있습니다. AM사업부 영업팀은 AI/DT 솔루션을 기반으로 신규 및 잠재 고객 발굴 및 대외 네트워킹을 통한 과제 기획 등의 업무를 수행하고 있습니다. 최근에는 남부(영호남) 지역의 영업력 확대 및 빠른 고객 대응을 위하여 남부 지역을 전담할 수 있는 인력을 운영하고 있습니다.\n다. 판매경로\n라. 판매전략\n당사는 전기/전자, 반도체, 식품, 제철, 2차 전지, 항공우주 등 폭넓은 제조 산업군에 대하여 제조 현장의 디지털화, 지능화를 목표로 전통적인 스마트공장 솔루션인 MES, EES 등의 시스템 공급 및 구축/운영 서비스를 제공하고 하고 있습니다.",
+      "section": "II. 사업의 내용 > 4. 매출 및 수주상황 (본문, 표 제외)",
+      "url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260320000616",
+      "published_at": 20260320,
+      "period": "FY2025",
+      "reliability": "high",
+      "recency": "high",
+      "directness": "high",
+      "evidence_nature": "purchase_signal",
+      "similarity": 0.3932
     },
     {
       "citation_id": 5,
@@ -167,15 +187,29 @@
     }
   ],
   "opportunity_review": {
-    "status": "indirect_signals",
+    "status": "buyer_signals",
     "target_segment": "제조 현장 작업자와 생산 관리자",
     "value_hypotheses": [],
     "reasons": [
       {
+        "topic": "수요",
+        "statement": "수요 판단은 signal_only이며, 현재 확정 아이디어의 고객·문제 범위 안에서 해석해야 합니다.",
+        "citation_ids": [
+          1
+        ]
+      },
+      {
         "topic": "경쟁·대체재",
         "statement": "경쟁·대체재 판단은 signal_only이며, 현재 확정 아이디어의 고객·문제 범위 안에서 해석해야 합니다.",
         "citation_ids": [
-          1
+          2
+        ]
+      },
+      {
+        "topic": "구매자",
+        "statement": "구매자 판단은 signal_only이며, 현재 확정 아이디어의 고객·문제 범위 안에서 해석해야 합니다.",
+        "citation_ids": [
+          4
         ]
       },
       {
@@ -190,9 +224,7 @@
       "고객의 현재 해결 방식과 대체재",
       "고객 인터뷰·구매 검토·파일럿 등 직접 수요 증거",
       "고객 가치와 ROI를 계산할 측정 변수",
-      "demand 차원 추가 근거",
-      "price 차원 추가 근거",
-      "buyer 차원 추가 근거"
+      "price 차원 추가 근거"
     ],
     "validation_actions": [
       {
@@ -211,12 +243,58 @@
       }
     ]
   },
+  "commercial_analysis": {
+    "user": "제조 현장 작업자와 생산 관리자",
+    "buyer": "미확인",
+    "budget_owner": "미확인",
+    "use_case": "현장 작업자가 작업 표준서·설비 매뉴얼을 찾는 데 도움을 주는 음성 어시스턴트",
+    "current_alternative": "기존 문서 검색 방식",
+    "switching_trigger": "작업 지연 문제 해결 필요성",
+    "purchase_process": "미확인",
+    "adoption_requirements": [],
+    "pricing_hypothesis": "사용자 수 기준 월 구독료",
+    "critical_assumptions": [],
+    "citation_ids": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "unknowns": [],
+    "hypotheses": [
+      {
+        "question": "누가 구매를 승인하는가?",
+        "hypothesis": "구매 결정자는 제조업체의 생산 관리자일 가능성이 높다.",
+        "basis": "제조 현장 작업자와 생산 관리자가 고객으로 명시되어 있으나, 구매 결정자에 대한 정보는 부족하다.",
+        "assumptions": [],
+        "citation_ids": [],
+        "validation_target": "제조업체의 생산 관리자",
+        "validation_method": "인터뷰·조달 문서 확인 등",
+        "success_criterion": "구매 승인 권한이 있는 사람의 확인",
+        "numeric_value": null,
+        "numeric_unit": "",
+        "numeric_basis": ""
+      },
+      {
+        "question": "예산 보유자는 누구인가?",
+        "hypothesis": "예산 보유자는 제조업체의 재무 부서일 가능성이 있다.",
+        "basis": "예산 보유자에 대한 정보가 제공되지 않음.",
+        "assumptions": [],
+        "citation_ids": [],
+        "validation_target": "제조업체의 재무 부서",
+        "validation_method": "인터뷰·조달 문서 확인 등",
+        "success_criterion": "예산 승인 권한이 있는 사람의 확인",
+        "numeric_value": null,
+        "numeric_unit": "",
+        "numeric_basis": ""
+      }
+    ]
+  },
   "unknowns": [
-    "수요 근거 미확인: 수요 확인에는 고객 검증 자료(인터뷰·설문·파일럿·LOI)가 필요하며 기사로는 확인할 수 없음",
-    "가격 근거 미확인: 검색된 기사 5건이 모두 이 차원과 무관하다고 판정됨",
-    "구매자 근거 미확인: 검색된 기사 5건이 모두 이 차원과 무관하다고 판정됨"
+    "가격 근거 미확인: 검색된 자료 7건이 모두 이 차원과 무관하다고 판정됨"
   ],
-  "search_scope": "네이버 뉴스 검색 API로 사전 수집한 스마트팩토리 기사 1895건(제목·요약, 발행일 20240102~20261023), 아이디어 SF-05 수집 키워드 범위",
+  "search_scope": "네이버 뉴스 검색 API로 사전 수집한 스마트팩토리 기사 677건(제목·요약, 발행일 20240102~20261023) · DART 사업보고서 '사업의 내용' 발췌 98건(기업 4곳, FY2025), 아이디어 SF-05 연결 자료 범위",
   "data_as_of": 20261029,
   "error_message": null
 }
