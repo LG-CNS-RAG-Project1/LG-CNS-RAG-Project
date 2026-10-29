@@ -4,6 +4,7 @@
 - 선정은 코드 규칙만 쓴다: 같은 URL → 날짜 → 범위 사전 → 전재(제목 유사) 순으로 제외 사유를 남긴다.
 - 전재 후보는 대표 1건만 예산을 쓰고, 나머지는 같은 dup_group의 재게재로 기록한다(독립 확인이 아님).
 - 배분량을 채우지 못하면 부족분(shortfall)을 기록하며 무관한 기사로 채우지 않는다.
+- 같은 질의를 다음 라운드에 다시 쓰면 첫 페이지부터 다시 받지 않고 이어서 받는다.
 """
 
 import time
@@ -101,6 +102,8 @@ class Collection:
         self.query_plan: list[dict] = []
         self.stops: list[str] = []
         self._urls: set[str] = set()
+        self._next_start: dict[str, int] = {}
+        self._exhausted_queries: set[str] = set()
 
     # 상한 ------------------------------------------------------------------
     def remaining_articles(self) -> int:
@@ -246,7 +249,14 @@ class Collection:
         """질의 목록을 돌아가며 quota건까지 채택한다. 페이지는 질의당 max_pages_per_query까지."""
         quota = min(quota, self.remaining_articles())
         cursors = [
-            {"meta": q, "buffer": [], "start": 1, "pages": 0, "done": False, "rank": 0}
+            {
+                "meta": q,
+                "buffer": [],
+                "start": self._next_start.get(q["query"], 1),
+                "pages": 0,
+                "done": q["query"] in self._exhausted_queries,
+                "rank": 0,
+            }
             for q in queries
         ]
         self.query_plan.extend(queries)
@@ -272,6 +282,11 @@ class Collection:
                         self.retained.append(record)
                         taken.append(record)
                         took += 1
+        for cursor in cursors:
+            query = cursor["meta"]["query"]
+            self._next_start[query] = cursor["start"] - len(cursor["buffer"])
+            if cursor.get("end"):
+                self._exhausted_queries.add(query)
         if len(taken) < quota:
             self.shortfalls.append(
                 {"label": label, "wanted": quota, "retained": len(taken)}
@@ -288,11 +303,13 @@ class Collection:
         items = (data or {}).get("items") or []
         if not items:
             cursor["done"] = True
+            cursor["end"] = data is not None
             return False
         cursor["buffer"].extend(items)
         cursor["start"] += len(items)
         if cursor["start"] > min(int((data or {}).get("total", 0)), 1000):
             cursor["pages"] = self.budget.max_pages_per_query
+            cursor["end"] = True
         return True
 
 

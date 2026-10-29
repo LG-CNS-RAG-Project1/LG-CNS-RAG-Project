@@ -168,3 +168,16 @@ def test_followup_round_uses_batch_and_remaining_budget():
     assert len(c.retained) == 80
     assert collect_followup(c, picks, 4) == []
     assert "budget_exhausted" in c.stops
+
+
+def test_repeated_query_continues_from_next_unread_item():
+    search = FakeSearch(per_query=60)
+    c = collection(search)
+    query = [
+        {"query_id": "q", "question_id": "C1", "query": "x", "group": "g", "round": 1}
+    ]
+    first = c.collect(query, 5, "r1")
+    second = c.collect([query[0] | {"query_id": "q2", "round": 2}], 5, "r2")
+    assert len(first) == len(second) == 5
+    assert not any(row["reason"] == "duplicate_url" for row in c.selection)
+    assert [call[2] for call in search.calls] == [1, 6]

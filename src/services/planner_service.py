@@ -60,6 +60,16 @@ from src.schemas import StructuredIdea
 ROOT_DIR = Path(__file__).resolve().parents[2]
 IDEAS_PATH = ROOT_DIR / "data" / "samples" / "ideas.json"
 BUDGET_STOPS = {"budget_exhausted", "request_cap_reached", "candidate_cap_reached"}
+# 후속 라운드에서 질문별 새 근거로 세는 근거 종류(질문 ID 첫 글자 기준)
+GAIN_KINDS = {
+    "C": {"claim", "supplier"},
+    "G": {"relation"},
+    "D": {"relation"},
+    "M": {"relation", "supplier"},
+    "T": {"relation"},
+    "R": {"adverse", "relation"},
+    "E": {"metric"},
+}
 
 
 def git_commit() -> str:
@@ -275,10 +285,13 @@ def refresh(
                 sources = {
                     r["source_id"] for r in new if r["question_id"] == pick.question_id
                 }
+                kinds = GAIN_KINDS.get(pick.question_id[0], set())
                 gained[pick.question_id] = sum(
                     1
                     for e in after.evidence
-                    if e.source_id in sources and e.review_status == "approved"
+                    if e.source_id in sources
+                    and e.review_status == "approved"
+                    and e.kind in kinds
                 )
                 if not gained[pick.question_id]:
                     exhausted.add(pick.question_id)
