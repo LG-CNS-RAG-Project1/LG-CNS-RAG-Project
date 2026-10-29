@@ -215,8 +215,13 @@ def test_direct_input_runs_followup_and_reaches_report(live):
     )
     app.session_state.stage = 2
     app.run()
-    assert any("등록 가능성 예비 신호" in item.value for item in app.subheader)
+    assert any("특허 비교 신호" in item.value for item in app.subheader)
     assert any("특허 비교 궤도" in item.value for item in app.subheader)
+    assert {item.label for item in app.get("expander")} >= {
+        "1. 특허 비교 궤도",
+        "2. 주의점",
+        "3. 개선 제안 · 설계 대안",
+    }
     charts = app.get("vega_lite_chart")
     assert len(charts) == 1
     assert json.loads(charts[0].proto.spec)["padding"] == {
@@ -249,7 +254,8 @@ def test_direct_input_runs_followup_and_reaches_report(live):
     click(app, "최종 실행 검토 →")
     assert app.session_state.stage == 4
     text = "\n".join(m.value for m in app.markdown)
-    assert "검토일" in text and "P:1" in text
+    assert "추가 확인 후 결정" in text
+    assert "통합 결론을 보류합니다" in text
     assert "시연용 가상 자료" not in text
     previous = app.session_state.pipeline_result
     previous_calls = dict(live)
@@ -344,7 +350,7 @@ def test_partial_patent_comparison_keeps_eight_sources_visible(live):
         "원문은 확보했지만 비교 분석을 완료하지 못했습니다" in item.value
         for item in app.warning
     )
-    assert any("비교 문헌 8건 · 최대 8건" in item.value for item in app.caption)
+    assert any("최종 비교 문헌 8건 · 목표 5~8건" in item.value for item in app.caption)
 
 
 def test_four_report_stages_use_one_analysis_run(live):

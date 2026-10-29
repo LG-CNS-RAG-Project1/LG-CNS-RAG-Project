@@ -121,7 +121,7 @@ def sample_reports():
     return draft, patent, market
 
 
-def test_executive_report_synthesizes_patent_and_market_into_gates():
+def test_executive_report_shows_only_concise_cross_domain_conclusions():
     draft, patent, market = sample_reports()
     business = build_business_review(draft, patent, market)
     review = build_executive_review(draft, patent, market, business)
@@ -136,14 +136,34 @@ def test_executive_report_synthesizes_patent_and_market_into_gates():
     )
     assert {"P:1", "M:1"}.issubset(set(market_finding.evidence_ids))
     assert "유사 청구항 우려를 낮추지는 않습니다" in market_finding.business_implication
-    assert "## 기회와 제약을 함께 본 판단" in markdown
-    assert "## 영역별 근거 요약" in markdown
-    assert "특허 · 완료" in markdown
-    assert "시장 · 완료" in markdown
+    assert "## 종합 결론" in markdown
+    assert "## 결론 근거" in markdown
+    assert "## 판단 한계" in markdown
+    assert "## 다음 확인" in markdown
     assert "M:1" in markdown and "P:1" in markdown
-    assert "## 승인 전에 통과할 확인사항" in markdown
+    assert "영역별 근거 요약" not in markdown
+    assert "승인 전에 통과할 확인사항" not in markdown
     assert "진동 분석 장치" not in markdown  # 상세 보고서의 문헌 반복을 피한다
     assert len(markdown.splitlines()) < 55
+
+
+def test_executive_report_holds_if_either_domain_is_not_completed():
+    from src.generation.executive_review import cross_domain_findings
+
+    draft, patent, market = sample_reports()
+    review = build_executive_review(
+        draft,
+        patent,
+        market,
+        build_business_review(draft, patent, market),
+        market_run_state="skipped",
+    )
+    markdown = executive_report_markdown("설비 이상 예측", review, analyzed_on=20261028)
+
+    assert cross_domain_findings(review) == []
+    assert "추가 확인 후 결정" in markdown
+    assert "통합 결론을 보류합니다" in markdown
+    assert "P:1" not in markdown and "M:1" not in markdown
 
 
 def test_market_industry_signal_is_not_recast_as_direct_purchase():

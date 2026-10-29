@@ -214,7 +214,9 @@ def render_report(s, payload, archived=False):
         if not archived and s.real_mode and s.pipeline_result:
             from frontend.cost_view import render_cost_estimate
 
-            payload["markdown"] = render_cost_estimate(s.pipeline_result)
+            cost_report = render_cost_estimate(s.pipeline_result)
+            if cost_report:
+                st.markdown(cost_report)
         st.caption(
             "비용은 직접 입력한 보조 자료입니다. 금액 누락을 0으로 확정하지 않습니다."
         )
@@ -242,44 +244,40 @@ def render_report(s, payload, archived=False):
             from frontend.report_overview import render_dashboard
 
             render_dashboard(payload["dashboard"])
-            st.divider()
-        a, b, c = st.columns(3)
-        a.metric("특허 근거", f"{payload['patent_count']}건")
-        b.metric("시장 근거", f"{payload['market_count']}건")
-        c.metric("검토 질문", f"{len(payload['rows'])}개")
-        st.caption(
-            "건수는 이번 분석이 인용한 근거 수입니다. 품질·시장성 점수가 아닙니다."
-        )
-        st.subheader("질문별 결과")
-        st.dataframe(
-            [
-                {"질문": row["질문"], "연결 상태": row["연결 상태"]}
-                for row in payload["rows"]
-            ],
-            hide_index=True,
-            use_container_width=True,
-            height=150,
-        )
-        if payload["rows"]:
-            selected_question = st.selectbox(
-                "질문별 상세 결과",
-                range(len(payload["rows"])),
-                format_func=lambda i: payload["rows"][i]["질문"],
-                key="report_question",
+        else:
+            a, b, c = st.columns(3)
+            a.metric("특허 근거", f"{payload['patent_count']}건")
+            b.metric("시장 근거", f"{payload['market_count']}건")
+            c.metric("검토 질문", f"{len(payload['rows'])}개")
+            st.caption(
+                "건수는 이번 분석이 인용한 근거 수입니다. 품질·시장성 점수가 아닙니다."
             )
-            with st.container(height=140, border=True):
-                st.write(payload["rows"][selected_question]["기존 분석 결과"])
-        st.caption("보고서 원문에서 인용 근거와 판단 과정을 확인하세요.")
+            st.subheader("질문별 결과")
+            st.dataframe(
+                [
+                    {"질문": row["질문"], "연결 상태": row["연결 상태"]}
+                    for row in payload["rows"]
+                ],
+                hide_index=True,
+                use_container_width=True,
+                height=150,
+            )
+            if payload["rows"]:
+                selected_question = st.selectbox(
+                    "질문별 상세 결과",
+                    range(len(payload["rows"])),
+                    format_func=lambda i: payload["rows"][i]["질문"],
+                    key="report_question",
+                )
+                with st.container(height=140, border=True):
+                    st.write(payload["rows"][selected_question]["기존 분석 결과"])
+            st.caption("보고서 원문에서 인용 근거와 판단 과정을 확인하세요.")
     appendix = (
         payload.get("appendix", "")
         if archived
         else cost_markdown(cost_rows) + "\n\n## 검토 메모\n" + s.saved_memo
     )
-    if not archived and s.real_mode and s.pipeline_result:
-        from frontend.report_overview import market_verification_markdown
-
-        payload["markdown"] += market_verification_markdown(s.pipeline_result.market)
-    markdown = payload["markdown"] + appendix
+    markdown = payload["markdown"] + ("" if payload.get("dashboard") else appendix)
     with full:
         with st.container(height=520, border=True):
             st.markdown(markdown)

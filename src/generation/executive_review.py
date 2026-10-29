@@ -305,6 +305,12 @@ def build_executive_review(
             for reason in market_review.reasons
             for cid in reason.citation_ids
         ]
+        market_refs.extend(
+            f"M:{item.citation_id}"
+            for item in market.evidence
+            if item.source_type == "customer_validation"
+            and item.evidence_nature == "direct_demand"
+        )
         cited_patent_refs = (
             [f"P:{cid}" for cid in precheck.citation_ids]
             if precheck and precheck.citation_ids
@@ -474,6 +480,36 @@ def build_executive_review(
     )
 
 
+def cross_domain_findings(review: ExecutiveReview) -> list[IntegratedFinding]:
+    """완료된 양쪽 영역의 근거 ID가 함께 연결된 판단만 반환한다."""
+    if review.domain_summaries:
+        summaries = {item.domain: item for item in review.domain_summaries}
+        if any(
+            domain not in summaries or summaries[domain].status != "completed"
+            for domain in ("patent", "market")
+        ):
+            return []
+        patent_ids = set(summaries["patent"].evidence_ids)
+        market_ids = set(summaries["market"].evidence_ids)
+    else:
+        patent_ids = None
+        market_ids = None
+
+    findings = []
+    for finding in review.integrated_findings:
+        references = set(finding.evidence_ids)
+        patent_references = {value for value in references if value.startswith("P:")}
+        market_references = {value for value in references if value.startswith("M:")}
+        if not patent_references or not market_references or finding.kind == "unknown":
+            continue
+        if patent_ids is not None and not patent_references <= patent_ids:
+            continue
+        if market_ids is not None and not market_references <= market_ids:
+            continue
+        findings.append(finding)
+    return findings[:2]
+
+
 def executive_report_markdown(
     title: str,
     review: ExecutiveReview,
@@ -482,7 +518,7 @@ def executive_report_markdown(
     cost_estimate=None,
     cost_totals=None,
 ) -> str:
-    """독립된 최종 실행 검토 문서. 근거 원문은 영역별 상세 화면에 둔다."""
+    """특허·시장 교차 결론과 다음 확인만 담은 간결한 최종 검토 문서."""
     from datetime import datetime
 
     date_label = (
@@ -491,104 +527,49 @@ def executive_report_markdown(
         else datetime.now().strftime("%Y-%m-%d")
     )
 
-    def refs(ids):
-        return f" ({', '.join(ids)})" if ids else " (근거 없음·미확인)"
-
+    findings = cross_domain_findings(review)
+    combined = bool(findings)
+    recommendation = (
+        RECOMMENDATION_LABELS.get(review.recommendation, review.recommendation)
+        if combined
+        else "추가 확인 후 결정"
+    )
+    decision = (
+        review.decision_summary
+        if combined
+        else "특허와 시장 양쪽 근거가 함께 확인될 때까지 통합 결론을 보류합니다."
+    )
     lines = [
-        f"# 최종 실행 검토 | {escape_md(title) or '아이디어'}",
+        f"# 종합 검토 | {escape_md(title) or '아이디어'}",
         "",
-        f"> 검토일 {date_label} · 신뢰도 {escape_md(review.confidence)} · 근거는 각 단계의 상세 화면에서 확인",
+        f"> 검토일 {date_label}",
         "",
-        "## 의사결정 요약",
+        "## 종합 결론",
         "",
-        f"- **권고: {RECOMMENDATION_LABELS[review.recommendation]}**",
-        f"- **진행 범위:** {escape_md(review.scope)}",
-        f"- **판단:** {escape_md(review.decision_summary)}",
+        f"- **판단:** {recommendation}",
+        f"- {escape_md(decision)}",
+        "",
+        "## 결론 근거",
         "",
     ]
-    if review.domain_summaries:
-        lines += ["## 영역별 근거 요약", ""]
-        for summary in review.domain_summaries:
-            domain_label = "특허" if summary.domain == "patent" else "시장"
-            status_label = {
-                "completed": "완료",
-                "partial": "부분 완료",
-                "no_results": "근거 없음",
-                "error": "실패",
-                "skipped": "미실행",
-                "timeout": "시간 초과",
-            }[summary.status]
-            ids = ", ".join(summary.evidence_ids[:6]) or "인용 근거 없음"
-            if len(summary.evidence_ids) > 6:
-                ids += f" 외 {len(summary.evidence_ids) - 6}건"
-            scope = f"범위: {summary.evidence_scope} · 자료 {summary.evidence_count}건"
-            if summary.data_as_of:
-                scope += f" · 기준일 {summary.data_as_of}"
-            detail = (
-                f"- **{domain_label} · {status_label}:** {escape_md(summary.finding)}"
-            )
-            detail += f"\n  - {escape_md(scope)} · 근거 {escape_md(ids)}"
-            if summary.limitations:
-                detail += f"\n  - 한계: {escape_md('; '.join(summary.limitations[:2]))}"
-            if summary.next_check:
-                detail += (
-                    f"\n  - 다음 확인: {escape_md('; '.join(summary.next_check[:2]))}"
-                )
-            lines.extend([detail, ""])
-    lines += ["## 기회와 제약을 함께 본 판단", ""]
-    for finding in review.integrated_findings:
-        lines += [
-            f"- **{escape_md(finding.label)} · {finding.kind}:** {escape_md(finding.judgment)}{refs(finding.evidence_ids)} 사업상 의미: {escape_md(finding.business_implication)}",
-            "",
-        ]
-    lines += ["## 승인 전에 통과할 확인사항", ""]
-    for index, gate in enumerate(review.approval_gates, 1):
-        lines += [
-            f"{index}. **{escape_md(gate.question)}**{refs(gate.evidence_ids)}",
-            f"   - 담당: {escape_md(gate.owner)} · 확인: {escape_md(gate.proof_needed)} · 미확인 시: {escape_md(gate.consequence)}",
-        ]
-    lines += ["", "## 다음 실행 순서", ""]
-    lines.extend(f"- {escape_md(item)}" for item in review.next_actions)
-    if cost_estimate is not None:
-        lines += ["", "## 구현비용·사업성 가설", ""]
-        if cost_estimate.status == "estimated" and cost_totals is not None:
+    if findings:
+        for finding in findings:
+            references = ", ".join(finding.evidence_ids)
             lines.append(
-                f"- 초기 구축비 범위: {cost_totals.initial_low:,.0f}–{cost_totals.initial_high:,.0f} {cost_estimate.unit} (기준 {cost_totals.initial_base:,.0f})"
+                f"- **{escape_md(finding.label)}:** {escape_md(finding.judgment)} "
+                f"— {escape_md(finding.business_implication)} ({escape_md(references)})"
             )
-            lines.append(
-                f"- 월 반복비 범위: {cost_totals.recurring_monthly_low:,.0f}–{cost_totals.recurring_monthly_high:,.0f} {cost_estimate.unit} (기준 {cost_totals.recurring_monthly_base:,.0f})"
-            )
-            lines.append(
-                f"- 손익분기 판매량: {cost_totals.break_even_units_base if cost_totals.break_even_units_base is not None else '계산 불가'} · {cost_totals.calculation_note}"
-            )
-            lines.append(
-                "- 비용은 LLM이 제안한 가설이며 외부 견적 확인 전 예산·ROI로 사용할 수 없습니다."
-            )
-            for item in cost_estimate.items[:6]:
-                refs = (
-                    f" [M:{', M:'.join(map(str, item.citation_ids))}]"
-                    if item.citation_ids
-                    else " (출처 없는 검증 전 가설)"
-                )
-                lines.append(
-                    f"- {escape_md(item.name)}: {item.quantity:g} {escape_md(item.unit)} × "
-                    f"{item.low_unit_cost:,.0f}–{item.high_unit_cost:,.0f} {escape_md(cost_estimate.unit)} "
-                    f"({escape_md(item.cost_type)}, 기준 {item.base_unit_cost:,.0f}) — "
-                    f"{escape_md(item.basis)}{refs}"
-                )
-            lines.extend(
-                f"- 가정: {escape_md(item)}" for item in cost_estimate.assumptions[:2]
-            )
-        else:
-            lines.append("- 근거·입력 부족으로 비용 범위를 산정하지 않았습니다.")
-        lines.extend(
-            f"- 미확인: {escape_md(item)}" for item in cost_estimate.unknowns[:3]
-        )
+    else:
+        lines += ["- 특허와 시장 근거 ID가 함께 연결된 결론이 없어 판단을 보류합니다."]
     lines += ["", "## 판단 한계", ""]
-    lines.extend(f"- {escape_md(item)}" for item in review.limitations)
+    lines.extend(f"- {escape_md(item)}" for item in review.limitations[:2])
+    if not review.limitations:
+        lines.append("- 상세 특허·시장 보고서의 검색 범위와 근거 한계를 따릅니다.")
+    lines += ["", "## 다음 확인", ""]
+    lines.extend(f"- {escape_md(item)}" for item in review.next_actions[:2])
     lines += [
         "",
-        "> 권고는 다음 검증 단계의 선택을 돕기 위한 것이며 사업 성공·투자·특허 등록을 보장하지 않습니다.",
+        "> 사업 검토용 예비 정리이며 법률 의견이나 사업 성공 보장이 아닙니다.",
         "",
     ]
     return "\n".join(lines)

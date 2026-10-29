@@ -58,7 +58,7 @@ def result():
 def test_dashboard_preserves_verdict_and_citations_without_filling_missing_dimensions():
     data = dashboard_data(result())
     assert data["conclusion"] == "추가 확인 후 결정"
-    assert data["findings"][0]["citations"] == "M:1"
+    assert data["findings"] == []
     assert data["dimensions"] == [
         {
             "label": "가격",
@@ -91,7 +91,7 @@ def test_market_limitations_are_preserved_in_dashboard_and_export():
     assert "미제공" in market_verification_markdown(r.market)
 
 
-def test_final_dashboard_renders_existing_data_and_chart_without_api():
+def test_final_dashboard_renders_concise_result_without_market_detail_chart():
     data = dashboard_data(result())
     app = AppTest.from_string("""
 from frontend.report_overview import render_dashboard
@@ -101,12 +101,12 @@ render_dashboard(st.session_state.data)
     app.session_state.data = data
     app.run()
     assert not app.exception
-    assert app.get("vega_lite_chart")
-    assert any("사업성 점수가 아닙니다" in item.value for item in app.caption)
-    assert any("구매 담당자 인터뷰" in item.value for item in app.markdown)
+    assert not app.get("vega_lite_chart")
+    assert any("종합 결론" in item.value for item in app.subheader)
+    assert not any("가격" in item.value for item in app.subheader)
 
 
-def test_dashboard_projects_domain_summaries_and_renders_missing_status():
+def test_dashboard_holds_cross_conclusion_when_domain_is_incomplete():
     r = result()
     r.executive_review.domain_summaries = [
         DomainEvidenceSummary(
@@ -127,10 +127,8 @@ def test_dashboard_projects_domain_summaries_and_renders_missing_status():
         ),
     ]
     data = dashboard_data(r)
-    assert data["domain_summaries"][0]["kind"] == "근거 없음"
-    assert data["domain_summaries"][0]["citations"] == ""
-    assert data["domain_summaries"][1]["kind"] == "시간 초과"
-    assert data["domain_summaries"][1]["citations"] == "M:1"
+    assert data["conclusion"] == "추가 확인 후 결정"
+    assert data["findings"] == []
 
     app = AppTest.from_string("""
 from frontend.report_overview import render_dashboard
@@ -140,4 +138,4 @@ render_dashboard(st.session_state.data)
     app.session_state.data = data
     app.run()
     assert not app.exception
-    assert any("특허·시장 영역별 근거" in item.value for item in app.subheader)
+    assert not any("특허·시장 영역별 근거" in item.value for item in app.subheader)
