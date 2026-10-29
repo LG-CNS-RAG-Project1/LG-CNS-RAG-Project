@@ -2,7 +2,7 @@ import csv
 
 import pytest
 
-from evaluation.evaluate import evaluate_patents, summarize
+from evaluation.evaluate import attach_patent_run_metadata, evaluate_patents, summarize
 from evaluation.patent_labeling import (
     CSV_FIELDS,
     export_candidates,
@@ -63,6 +63,19 @@ def test_evaluate_patents_calculates_document_level_metrics():
 
 def test_evaluate_patents_skips_unlabeled_cases():
     assert evaluate_patents(CASES, lambda query, top_k: []) == []
+
+
+def test_patent_run_metadata_records_selected_reranker():
+    rows = attach_patent_run_metadata(
+        [{"case_id": "case-1"}],
+        "hybrid",
+        True,
+        reranker_model="text-embedding-3-small (bi-encoder)",
+    )
+
+    assert rows[0]["reranker_model"] == "text-embedding-3-small (bi-encoder)"
+    assert rows[0]["model"] == "text-embedding-3-small (bi-encoder)"
+    assert rows[0]["mode"] == "hybrid+rerank"
 
 
 def test_export_candidates_unions_modes_by_patent_source(tmp_path):

@@ -352,6 +352,7 @@ def attach_patent_run_metadata(
     top_k: int = K,
     candidate_k: int | None = None,
     rrf_k: int | None = None,
+    reranker_model: str | None = None,
 ) -> list[dict]:
     """검색 결과에 데이터·색인 지문과 검색 설정을 함께 기록한다."""
     commit = subprocess.run(
@@ -365,7 +366,7 @@ def attach_patent_run_metadata(
             check=False,
         ).stdout.strip()
     )
-    model = (
+    model = reranker_model or (
         "BAAI/bge-reranker-v2-m3"
         if rerank
         else ("text-embedding-3-small" if mode in {"dense", "hybrid"} else "BM25")
@@ -389,7 +390,9 @@ def attach_patent_run_metadata(
             embedding_model=(
                 "text-embedding-3-small" if mode in {"dense", "hybrid"} else "n/a"
             ),
-            reranker_model=("BAAI/bge-reranker-v2-m3" if rerank else "none"),
+            reranker_model=(
+                reranker_model or ("BAAI/bge-reranker-v2-m3" if rerank else "none")
+            ),
             prompt="n/a · retrieval",
             commit=commit,
             run_at_utc=run_at_utc,
@@ -476,7 +479,12 @@ def main() -> None:
     patent.add_argument(
         "--rerank",
         action="store_true",
-        help="BGE reranker 사용 (sentence-transformers 필요)",
+        help="BGE Cross-Encoder reranker 사용 (sentence-transformers 필요)",
+    )
+    patent.add_argument(
+        "--reranker",
+        choices=["bi-encoder", "cross-encoder"],
+        help="특허 검색 후보 재정렬 모델 (bi-encoder는 임베딩 API 호출)",
     )
     relevance = sub.add_parser("relevance", help="시장 관련성 필터 평가")
     relevance.add_argument(
@@ -495,7 +503,23 @@ def main() -> None:
         return
 
     reranker = None
-    if args.rerank:
+    patent_reranker_model = None
+    use_rerank = args.rerank
+    if args.command == "patent" and args.reranker:
+        if args.rerank and args.reranker != "cross-encoder":
+            raise SystemExit(
+                "--rerank와 --reranker bi-encoder를 함께 지정할 수 없습니다"
+            )
+        use_rerank = True
+        if args.reranker == "bi-encoder":
+            from src.retrieval.patent_search import bi_encoder_reranker
+            from src.retrieval.market_search import embed_texts
+
+            reranker = bi_encoder_reranker(embed_texts)
+            patent_reranker_model = "text-embedding-3-small (bi-encoder)"
+        else:
+            patent_reranker_model = "BAAI/bge-reranker-v2-m3 (cross-encoder)"
+    if args.rerank or (args.command == "patent" and args.reranker == "cross-encoder"):
         from src.retrieval.engine import bge_reranker
 
         reranker = bge_reranker()
@@ -530,12 +554,13 @@ def main() -> None:
         attach_patent_run_metadata(
             rows,
             args.mode,
-            args.rerank,
+            use_rerank,
             evaluation_data=cases,
             index_metadata=index_snapshot(search_fn.collection),
+            reranker_model=patent_reranker_model,
         )
         result_path = save_patent_results(
-            rows, f"{args.mode}_{'rerank_' if args.rerank else ''}{args.label}"
+            rows, f"{args.mode}_{'rerank_' if use_rerank else ''}{args.label}"
         )
     if not rows:
         label_command = (

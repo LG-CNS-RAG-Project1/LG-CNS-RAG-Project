@@ -71,11 +71,34 @@ def default_searchers(collection=None, top_k: int = TOP_K):
     }
 
 
-def add_reranked_searcher(searchers: dict, collection=None, top_k: int = TOP_K):
-    """선택된 BGE Cross-Encoder를 포함한 Hybrid 후보 검색기를 추가한다."""
+def add_reranked_searcher(
+    searchers: dict,
+    collection=None,
+    top_k: int = TOP_K,
+    reranker_type: str = "cross-encoder",
+):
+    """선택된 Bi-Encoder 또는 Cross-Encoder 후보 검색기를 추가한다."""
+    collection = collection or get_collection()
+    if reranker_type == "bi-encoder":
+        from src.retrieval.market_search import embed_texts
+        from src.retrieval.patent_search import bi_encoder_reranker
+
+        reranker = bi_encoder_reranker(embed_texts)
+        searchers["hybrid_bi_encoder"] = (
+            lambda query, technology_area_id=None: search_patents(
+                query,
+                collection=collection,
+                top_k=top_k,
+                retrieval_mode="hybrid",
+                reranker=reranker,
+                technology_area_id=technology_area_id,
+            )
+        )
+        return searchers
+    if reranker_type != "cross-encoder":
+        raise ValueError("reranker_type must be bi-encoder or cross-encoder")
     from src.retrieval.engine import bge_reranker
 
-    collection = collection or get_collection()
     reranker = bge_reranker()
     searchers["hybrid_rerank"] = lambda query, technology_area_id=None: search_patents(
         query,
@@ -178,16 +201,26 @@ def main() -> None:
     sub = parser.add_subparsers(dest="command", required=True)
     export = sub.add_parser("export", help="검색 결과 후보를 CSV로 내보냄")
     export.add_argument(
-        "--rerank", action="store_true", help="BGE reranker 후보도 포함"
+        "--rerank", action="store_true", help="기존 호환용 Cross-Encoder 후보 포함"
+    )
+    export.add_argument(
+        "--reranker",
+        choices=["bi-encoder", "cross-encoder"],
+        help="재정렬 실험의 후보도 라벨 후보에 포함",
     )
     sub.add_parser("import", help="작성한 CSV 라벨을 평가 질의에 반영")
     args = parser.parse_args()
 
     cases = load_cases()
     if args.command == "export":
+        if args.rerank and args.reranker == "bi-encoder":
+            raise SystemExit(
+                "--rerank와 --reranker bi-encoder를 함께 지정할 수 없습니다"
+            )
         searchers = default_searchers()
-        if args.rerank:
-            add_reranked_searcher(searchers)
+        if args.rerank or args.reranker:
+            reranker_type = args.reranker or "cross-encoder"
+            add_reranked_searcher(searchers, reranker_type=reranker_type)
         count = export_candidates(cases, searchers)
         print(f"{count} patent candidates -> {CANDIDATES_PATH}")
         return

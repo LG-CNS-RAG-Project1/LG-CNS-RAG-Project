@@ -352,11 +352,11 @@ python -m evaluation.patent_labeling export              # SF-02/SF-05 특허 �
 - 검토 편의를 위해 로컬 처리 특허의 초록·전체 청구항·서지 정보와 후보 행의 일치 여부를 묶으려면 `python -m evaluation.patent_review_context`를 실행한다. 결과는 Git 제외 경로 `data/patents/processed/patent_eval_review_context.jsonl`에 생성되며 KIPRIS·OpenAI API를 호출하지 않는다. 관련도 라벨은 자동 판정하지 않는다.
 - 오프라인 파이프라인 점검용 합성 데이터는 `evaluation/fixtures/patent_retrieval_synthetic_v1.json`에 있다. `python -m evaluation.patent_fixture`로 문헌·질의·관련도 참조 무결성과 데이터 SHA-256을 확인한다. 가상 데이터이므로 실제 특허 검색 성능 평가나 제품 성능 주장의 근거로 사용하지 않는다.
 - `evaluation/patent_cases.json`은 샘플 아이디어에서 고정한 5개 특허 검색 질의로 시작하며, 정답 문헌 라벨은 비어 있다.
-- 특허 원문을 수집·색인한 뒤 `python -m evaluation.patent_labeling export`로 Dense·BM25·Hybrid 상위 후보를 같은 CSV에 모은다. 선택적으로 `--rerank`를 주면 Hybrid+Cross-Encoder 후보도 포함한다.
+- 특허 원문을 수집·색인한 뒤 `python -m evaluation.patent_labeling export`로 Dense·BM25·Hybrid 상위 후보를 같은 CSV에 모은다. 선택적으로 `--reranker bi-encoder` 또는 `--reranker cross-encoder`를 주면 각 Hybrid 재정렬 후보도 포함한다.
 - 후보 CSV에서 각 문헌의 `relevant`를 `1`(관련) 또는 `0`(비관련)으로 사람 검토 후 채우고 `python -m evaluation.patent_labeling import`로 라벨을 반영한다. 모든 후보를 판정한 문항만 평가에 포함한다.
-- 동일한 문헌 단위 정답셋으로 `python -m evaluation.evaluate patent --mode dense --label baseline`, `--mode bm25`, `--mode hybrid`, `--mode hybrid --rerank`를 실행해 Hit@5·Recall@5·Precision@5·MRR·nDCG@5와 검색·리랭킹 지연시간을 비교한다. 결과 CSV는 `evaluation/results/`에 저장한다.
+- 동일한 문헌 단위 정답셋으로 `python -m evaluation.evaluate patent --mode dense --label baseline`, `--mode bm25`, `--mode hybrid`, `--mode hybrid --reranker bi-encoder`, `--mode hybrid --reranker cross-encoder`를 실행해 Hit@5·Recall@5·Precision@5·MRR·nDCG@5와 검색·리랭킹 지연시간을 비교한다. 결과 CSV는 `evaluation/results/`에 저장한다.
 - 검색 결과에서 나온 적 없는 문헌이 top-K에 나타나면 `unjudged`로 따로 세므로 라벨 후보를 추가 검토한다. 평가 문항이 라벨되기 전에는 성능 수치를 보고하지 않는다.
-- Dense·Hybrid 질의 임베딩은 `OPENAI_API_KEY`가 필요하며, 평가 도구는 현재 임베딩 사용 비용을 계산하지 않는다. Cross-Encoder는 `sentence-transformers`와 모델 파일을 별도로 설치해야 한다.
+- Dense·Hybrid 검색과 Bi-Encoder 재정렬은 `OPENAI_API_KEY`가 필요하며 후보 문헌을 매 질의 다시 임베딩한다. 평가 도구는 임베딩 비용을 자동 계산하지 않는다. Cross-Encoder는 `sentence-transformers`와 모델 파일을 별도로 설치해야 한다.
 
 ### 특허 청구항 분석
 
