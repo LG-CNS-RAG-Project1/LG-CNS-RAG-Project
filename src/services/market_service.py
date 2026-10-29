@@ -4,6 +4,10 @@ MarketReport를 만든다.
 사용 예:
     python -m src.services.market_service --idea-id SF-01
     python -m src.services.market_service --idea-id SF-01 --out data/samples/market_reports/SF-01.json
+    python -m src.services.market_service --idea-id SF-01 --idea-filter
+
+--idea-id는 data/samples/ideas.json에서 아이디어를 고르는 데만 쓴다. 기본 실행은 화면 통합 실행과 같이
+전체 색인을 검색하고, --idea-filter를 주면 그 아이디어에 연결된 뉴스·DART 기업으로 범위를 좁힌다.
 """
 
 import argparse
@@ -105,10 +109,18 @@ def run_market_research(
 
 
 def main() -> None:
-    """샘플 아이디어 1개로 시장 조사를 실행해 MarketReport JSON을 출력하거나 저장한다."""
+    """샘플 아이디어 1개로 시장 조사를 실행해 MarketReport JSON을 출력하거나 저장한다.
+
+    기본은 화면과 같은 전체 색인 검색이며, --idea-filter일 때만 아이디어 연결 자료로 좁힌다.
+    """
     parser = argparse.ArgumentParser(description="시장 조사 실행 → MarketReport JSON")
     parser.add_argument("--idea-id", required=True, help="data/samples/ideas.json의 ID")
     parser.add_argument("--out", type=Path, help="JSON 저장 경로 (없으면 화면 출력)")
+    parser.add_argument(
+        "--idea-filter",
+        action="store_true",
+        help="아이디어에 연결된 자료만 검색 (기본: 화면과 같은 전체 색인 검색)",
+    )
     args = parser.parse_args()
 
     entries = json.loads(IDEAS_PATH.read_text(encoding="utf-8"))
@@ -116,7 +128,9 @@ def main() -> None:
     request = MarketSearchRequest(idea=StructuredIdea(**entry["idea"]))
 
     started = time.perf_counter()
-    report = run_market_research(request, idea_id=args.idea_id)
+    report = run_market_research(
+        request, idea_id=args.idea_id if args.idea_filter else None
+    )
     elapsed = time.perf_counter() - started
 
     payload = report.model_dump_json(indent=2)
