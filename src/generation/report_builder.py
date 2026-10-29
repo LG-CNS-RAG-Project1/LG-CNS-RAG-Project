@@ -47,7 +47,12 @@ SOURCE_LABELS = {
     "unknown": "모름",
 }
 LINK_STATUS_LABELS = {"connected": "연결", "partial": "부분 연결", "hold": "판단 보류"}
-REPORT_STATUS_LABELS = {"completed": "완료", "no_results": "결과 없음", "error": "오류"}
+REPORT_STATUS_LABELS = {
+    "completed": "완료",
+    "partial": "부분 완료",
+    "no_results": "결과 없음",
+    "error": "오류",
+}
 RUN_STATE_LABELS = {
     **REPORT_STATUS_LABELS,
     "skipped": "실행 안 함",
@@ -572,6 +577,10 @@ def _compact_patent_lines(patent: PatentReport) -> list[str]:
     lines = ["## 특허 핵심", ""]
     if patent.status == "error":
         return lines + [f"- 조사 실패: {_compact_text(patent.error_message, 120)}", ""]
+    if patent.status == "partial":
+        lines.append("- 원문 근거는 확보했지만 비교 분석 일부가 완료되지 않았습니다.")
+        if patent.error_message:
+            lines.append(f"- 비교 오류: {_compact_text(patent.error_message, 120)}")
     if patent.status == "no_results":
         return lines + [
             "- 검색 범위에서 비교 근거를 확보하지 못함. 특허 위험이 없다는 뜻은 아닙니다.",

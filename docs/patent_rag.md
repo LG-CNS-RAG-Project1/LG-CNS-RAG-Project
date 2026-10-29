@@ -7,10 +7,11 @@
 - 입력: 기존 `PatentSearchRequest` (`StructuredIdea`, 최대 검색 문헌 수)
 - 출력: 기존 `PatentReport` (`evidence`, `comparisons`, `unknowns`, `search_scope`)
 - 검색: 기술 요소별 한국어·영어 질의로 기존 Dense 특허 색인을 검색한다.
-- 보충: 색인에서 요청 수보다 적은 문헌을 찾으면 KIPRIS 키워드 검색 결과를 더한다. 중복은 출원번호(`source_id`)로 제거하고 최대 5건만 분석한다.
+- 보충: 색인에서 요청 수보다 적은 문헌을 찾으면 KIPRIS 키워드 검색 결과를 더한다. 중복은 출원번호(`source_id`)로 제거하고 기본 최대 8건을 분석한다. 요청 `top_k`는 1~8 범위다.
 - 원문: 선택된 문헌에 대해서만 출원번호로 청구항 상세를 조회한다. KIPRIS 상세 청구항 endpoint의 상품 이용 승인이 필요하다. API 권한 오류·빈 응답은 주장항을 만들어 채우지 않고 초록 인용과 미확인 항목으로 남긴다.
 - 비교: `compare_patent_evidence()`가 각 인용 근거별 유사점·차이점·미확인을 만들고, 근거 없는 citation id나 누락된 비교를 거부한다. 법적 특허성·신규성·진보성·침해 여부를 판정하지 않는다.
 - 설계 대안: 문헌별 기술 구성요소 비교가 끝난 뒤 `generate_patent_design_analysis()`가 최대 3개 대안을 별도 생성한다. 입력의 `technical_components`를 우선 사용하며, 없으면 기술 설명을 단일 구성요소로 삼는다. 제안의 구성요소·특허·인용 ID는 입력 근거 목록으로 검증하고, 중복 변경안은 제거한다. LLM 호출 실패는 `PatentReport.design_analysis.status=failed`에 기록하며 기존 증거와 비교 결과를 보존한다. 검색 근거가 없으면 모델을 호출하지 않고 `insufficient_evidence`를 반환한다.
+- 부분 완료: 검색·원문 확보 후 비교 생성이나 응답 검증이 실패하면 `PatentReport.status=partial`로 반환한다. 확보된 원문과 오류 세부 정보는 유지하고, UI·최종 보고서는 비교가 완료되지 않은 상태를 구분한다. 검색·원문 확보 자체가 실패한 경우는 기존 `error` 상태로 남긴다.
 - 대안에는 구현 단계, 기대효과, 제약, 정성적 실현 가능성, 비교 검증 계획과 성공 기준이 포함된다. 청구항 없이 초록만 있으면 `abstract_only` 및 미확인 정보로 표시한다. 제안은 기술 검토용이지 침해·특허성·실시 자유 판단이 아니다.
 
 KIPRIS 검색 API는 `openapi/rest/patUtiModInfoSearchSevice/freeSearchInfo`의 `accessKey`를 사용한다. 청구항 상세는 별도 KIPO API인 `kipo-api/kipi/patUtiModInfoSearchSevice/getBibliographyDetailInfoSearch`를 호출하며 `applicationNumber`와 `ServiceKey`를 전달한다. 검색용 `accessKey` 파라미터를 상세 API에 그대로 쓰거나 상세 API를 `openapi/rest/` 아래 호출하면 정상 조회되지 않는다. 상세 응답은 XML의 `body/item/claimInfoArray/claimInfo/claim` 구조이며, 개별 `claim` 텍스트 앞에 포함된 항 번호를 파싱하고 원문 텍스트는 보존한다. 이 연동은 실제 API 호출에서 청구항 15건이 담긴 응답으로 확인했다. KIPRIS Plus 상품별 권한은 계정 설정에 따라 달라질 수 있다. [공개·등록공보 API 안내](https://plus.kipris.or.kr/portal/data/apiClas/DBII_000000000000001/view.do?k=&menuNo=210020), [KIPRIS Plus 서지상세 API 설명](https://plus.kipris.or.kr/portal/popup/DBII_000000000000001/SC002/ADI_0000000000010162/apiDescriptionSearch.do)
@@ -21,7 +22,7 @@ KIPRIS 검색 API는 `openapi/rest/patUtiModInfoSearchSevice/freeSearchInfo`의 
 
 각 청구항은 `PatentChunk` 하나로 색인하며 `chunk_id`는 `{patent_id}_claim_{claim_number}` 형식이다. 공통 `SearchDocument`의 metadata와 `PatentEvidence`에는 청구항 번호·유형·상위항 참조·문헌 식별자·버전이 함께 연결된다. 수집 시각은 UTC ISO 8601 문자열로 문서와 색인 metadata에 보존한다. 이 범위에서는 원문 내 문자 오프셋을 API가 제공하지 않으므로 청구항 번호가 원문 위치의 기준이다.
 
-한 문헌에서 아이디어 기술 표현과 일치하는 청구항을 우선 최대 5개까지 검토 문맥으로 선택한다. 선택 시 종속항의 상위항을 함께 포함하고, 전체 청구항 원문을 약 1,800 토큰으로 추정한 예산 안에 둔다. 분석 프롬프트에는 특허별 문헌 수 균형을 고려해 모든 특허 근거를 합산 약 6,000 토큰까지 원문 단위로 전달하며, 예산을 넘는 근거는 청구항·독립항 우선으로 보존하고 제외한 citation ID를 `unknowns`에 기록한다. 두 예산은 공백 토큰 수와 문자 길이 기반 상한 중 큰 값으로 계산하므로 모델 토크나이저의 정확한 입력 토큰 수가 아닌 보수적 근사치다. 원문을 잘라 인용하지 않으며 상위항이 예산 때문에 제외되면 종속항도 제외한다. 이 문맥 예산은 특허 근거 텍스트에 적용되며 검색어 계획, 프롬프트, 보고서 출력 전체의 모델 입력 한도를 보장하지 않는다. 보고서에는 최대 5개 문헌을 담되, 한 문헌의 독립항·종속항을 함께 인용할 수 있다.
+한 문헌에서 아이디어 기술 표현과 일치하는 청구항을 우선 최대 5개까지 검토 문맥으로 선택한다. 선택 시 종속항의 상위항을 함께 포함하고, 전체 청구항 원문을 약 1,800 토큰으로 추정한 예산 안에 둔다. 분석 프롬프트에는 특허별 문헌 수 균형을 고려해 모든 특허 근거를 합산 약 6,000 토큰까지 원문 단위로 전달하며, 예산을 넘는 근거는 청구항·독립항 우선으로 보존하고 제외한 citation ID를 `unknowns`에 기록한다. 두 예산은 공백 토큰 수와 문자 길이 기반 상한 중 큰 값으로 계산하므로 모델 토크나이저의 정확한 입력 토큰 수가 아닌 보수적 근사치다. 원문을 잘라 인용하지 않으며 상위항이 예산 때문에 제외되면 종속항도 제외한다. 이 문맥 예산은 특허 근거 텍스트에 적용되며 검색어 계획, 프롬프트, 보고서 출력 전체의 모델 입력 한도를 보장하지 않는다. 보고서에는 최대 8개 문헌을 담되, 한 문헌의 독립항·종속항을 함께 인용할 수 있다.
 
 ## 실행과 테스트
 
@@ -52,7 +53,7 @@ python -m pytest tests/test_patent_claims.py tests/test_patent_analysis_service.
 
 ## 특허 검색 품질 평가
 
-`evaluation/patent_cases.json`에는 샘플 아이디어에서 고정한 5개 질의가 있으며, 정답 문헌 라벨은 사람이 판정할 때까지 비어 있다. 특허 수집·색인 후 후보를 내보내 같은 문헌을 검토한다. 라벨링 CSV에는 검색 방식과 순위를 기록하지 않아 판정자가 시스템 순위를 보고 영향을 받지 않도록 한다. 구체적인 관련도 판정 기준은 [특허 평가 라벨링 가이드](../evaluation/patent_labeling.md)를 따른다.
+`evaluation/patent_cases.json`에는 샘플 아이디어에서 고정한 5개 질의가 있으며, 정답 문헌 라벨은 사람이 판정할 때까지 비어 있다. 서비스 특허 보고서는 요청당 최대 8개 문헌을 비교 대상으로 삼지만, 평가 질의 수와 사람 라벨 후보 수는 별도 평가 설정이다. 특허 수집·색인 후 후보를 내보내 같은 문헌을 검토한다. 라벨링 CSV에는 검색 방식과 순위를 기록하지 않아 판정자가 시스템 순위를 보고 영향을 받지 않도록 한다. 구체적인 관련도 판정 기준은 [특허 평가 라벨링 가이드](../evaluation/patent_labeling.md)를 따른다.
 
 라벨 검토 전 `python -m evaluation.patent_preflight`로 질의와 후보 파일의 케이스별 분포, URL·중복·라벨 상태와 SHA-256을 검사할 수 있다. 이 사전 점검은 외부 API를 호출하지 않는다.
 

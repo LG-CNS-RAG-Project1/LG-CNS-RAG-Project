@@ -99,7 +99,7 @@ class IdeaDraft(BaseModel):
 # 2. 특허 검색 요청
 class PatentSearchRequest(BaseModel):
     idea: StructuredIdea
-    top_k: int = Field(default=5, ge=1, le=5)
+    top_k: int = Field(default=8, ge=1, le=8)
     technology_area_id: str | None = None
 
 
@@ -298,7 +298,7 @@ class PatentDesignAnalysis(BaseModel):
 
 # 8. 최종 특허 RAG 결과
 class PatentReport(BaseModel):
-    status: Literal["completed", "no_results", "error"]
+    status: Literal["completed", "partial", "no_results", "error"]
 
     evidence: list[PatentEvidence] = Field(default_factory=list)
     comparisons: list[PatentComparison] = Field(default_factory=list)
@@ -391,8 +391,8 @@ class PatentReport(BaseModel):
                 if not citation_patents <= set(proposal.related_patent_ids):
                     raise ValueError("Cited patents must be listed as related patents")
 
-        if len({e.patent_id for e in self.evidence}) > 5:
-            raise ValueError("Maximum 5 unique patents")
+        if len({e.patent_id for e in self.evidence}) > 8:
+            raise ValueError("Maximum 8 unique patents")
 
         return self
 

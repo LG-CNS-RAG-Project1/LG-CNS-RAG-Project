@@ -1,5 +1,5 @@
 from src.generation.report_builder import CRITERIA, build_question_links
-from src.pipeline import run_pipeline
+from src.pipeline import _part_from_report, run_pipeline
 from src.schemas import IdeaDraft, MarketReport, PatentReport
 
 
@@ -35,6 +35,18 @@ def test_question_link_holds_when_one_evidence_domain_is_missing():
     )
     assert links[0].status == "hold"
     assert len(links[0].criteria) == 6
+
+
+def test_partial_patent_report_is_a_visible_partial_run():
+    patent = PatentReport(
+        status="partial",
+        evidence=[],
+        search_scope="검색 및 원문 수집 완료, 비교 실패",
+        error_message="검증 오류",
+    )
+    result = _part_from_report(patent, 12.4)
+    assert result.state == "partial"
+    assert result.message == "검증 오류"
 
 
 def test_pipeline_uses_both_service_contracts_and_returns_markdown(monkeypatch):

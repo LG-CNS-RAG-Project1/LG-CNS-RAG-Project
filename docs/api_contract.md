@@ -73,7 +73,7 @@
 | `src.pipeline.run_pipeline(draft, questions, ...)` | complete `IdeaDraft`, `{id, question, condition}` 목록, 선택 `technology_area_id` | `PipelineReport` (특허·시장 보고서, 질문별 연결, 사업 실행 검토, Markdown) |
 | `src.generation.report_builder.build_question_links(questions, market, patent)` | 질문 목록, `MarketReport`, `PatentReport` | 질문별 6개 기준 연결 (`QuestionLink`) |
 
-- 특허 검색은 요청별 기술요소 검색 결과를 문헌 단위로 합친 뒤 최대 20개 후보를 관련성 판정하고, 관련 후보에서 최대 5개 문헌을 분석한다. 후보가 부족하면 KIPRIS 검색 결과도 같은 판정을 통과해야 사용한다.
+- 특허 검색은 요청별 기술요소 검색 결과를 문헌 단위로 합친 뒤 최대 20개 후보를 관련성 판정하고, 관련 후보에서 최대 8개 문헌을 분석한다. 후보가 부족하면 KIPRIS 검색 결과도 같은 판정을 통과해야 사용한다.
 - `PatentReport.status`는 `completed`·`no_results`·`error`다. 근거는 초록 또는 청구항 원문 인용과 출처 URL·문헌 번호·출원/공개일을 보존한다. 인용은 제공 원문에 포함되는지 검사한다. 기본 분석은 문헌별 `patent_reviews`에 구성요소 대응과 인용 ID를 묶고, `patentability_precheck`에 `overlap_concern`·`potentially_distinct`·`insufficient_evidence` 예비 신호를 기록한다. 레거시 호출자가 `comparison_fn`을 주입하면 citation별 `comparisons` 계약을 유지한다. 어느 상태도 등록 가능성이나 침해 여부를 법적으로 확정하지 않는다.
 - 통합 연결은 사용 맥락·해결 과제·기술 구성·요구 성능·도입 제약·근거 범위 여섯 기준을 포함한다. 각 질문에서 시장(M:)과 특허(P:) 근거 중 하나라도 연결되지 않으면 `status="hold"`다.
 - API 키, KIPRIS 권한, 특허·시장 로컬 색인과 네트워크가 필요하다. Streamlit에서 `AI로 항목 초안 만들기 · 재질문`으로 시작하고 SF-02 또는 SF-05 색인을 선택한다. 실제 색인이 없는 분야는 해당 로컬 색인의 범위가 비어 있으므로 후보가 없을 수 있다.

@@ -300,6 +300,53 @@ def test_kipris_quota_failure_is_not_presented_as_patent_absence(live):
     assert not any("표시할 특허 문헌이 없습니다" in item.value for item in app.info)
 
 
+def test_partial_patent_comparison_keeps_eight_sources_visible(live):
+    draft = IdeaDraft(
+        original_text=IDEA,
+        **FIELDS,
+        revenue="월 구독료",
+        field_sources={field: "extracted" for field in FIELDS},
+        status="complete",
+    )
+    evidence = [
+        PatentEvidence(
+            citation_id=index,
+            patent_id=f"P{index}",
+            title=f"특허 {index}",
+            section="abstract",
+            quote=f"검색 근거 {index}",
+        )
+        for index in range(1, 9)
+    ]
+    source = sources().model_copy(
+        update={
+            "patent": PatentReport(
+                status="partial",
+                search_scope="검색과 원문 확보 완료, 비교 생성 실패",
+                error_message="비교 응답 검증 실패",
+                evidence=evidence,
+            ),
+            "patent_run": PartRun(
+                state="partial", seconds=8.0, message="비교 응답 검증 실패"
+            ),
+        }
+    )
+    app = analysis_app()
+    app.session_state.idea_draft = draft
+    app.session_state.real_mode = True
+    app.session_state.confirmed_context = True
+    app.session_state.stage = 2
+    app.session_state.pipeline_result = pipeline.run_pipeline(draft, [], sources=source)
+    app.run()
+
+    assert not app.exception
+    assert any(
+        "원문은 확보했지만 비교 분석을 완료하지 못했습니다" in item.value
+        for item in app.warning
+    )
+    assert any("비교 문헌 8건 · 최대 8건" in item.value for item in app.caption)
+
+
 def test_four_report_stages_use_one_analysis_run(live):
     app = structured_app()
     confirm_draft(app)
