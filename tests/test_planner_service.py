@@ -236,3 +236,47 @@ def test_text_report_uses_same_semantic_result(published):
     assert "## 경쟁 주장 비교" in text and "## 사업 가정과 다음 확인" in text
     assert "계산 보류" in text and "5715" not in text
     assert "의미 검증과 다르며" in text
+
+
+def test_parent_cache_revalidates_stored_raw_responses(tmp_path):
+    parent = tmp_path / "parent"
+    parent.mkdir()
+    content = json.dumps(
+        {
+            "source_id": "news-x",
+            "mentions": [
+                {
+                    "sentence_id": "s1",
+                    "exact_text": "가상",
+                    "candidate_role": "supplier",
+                },
+                {"sentence_id": "b99", "exact_text": "없음", "candidate_role": "other"},
+            ],
+            "claims": [],
+            "relations": [],
+            "metrics": [],
+            "unresolved_fields": [],
+        },
+        ensure_ascii=False,
+    )
+    (parent / "extraction.jsonl").write_text(
+        json.dumps(
+            {
+                "source_id": "news-x",
+                "status": "failed",
+                "cache_key": "k1",
+                "input_sentence_ids": ["t1", "s1"],
+                "error": "unknown_sentence_id",
+            }
+        )
+        + "\n",
+        "utf-8",
+    )
+    (parent / "llm_responses.jsonl").write_text(
+        json.dumps({"cache_key": "k1", "content": content, "finish_reason": "stop"})
+        + "\n",
+        "utf-8",
+    )
+    cache = planner_service._parent_cache(parent)
+    assert [m["exact_text"] for m in cache["k1"]["mentions"]] == ["가상"]
+    assert cache["k1"]["dropped"][0]["sentence_id"] == "b99"

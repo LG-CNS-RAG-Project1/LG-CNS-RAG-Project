@@ -155,3 +155,36 @@ def test_followup_charts_report_missing_data_instead_of_drawing():
     assert "D4" in charts["case_timeline"].question_ids
     assert not charts["segment_candidates"].available
     assert source_id("A5")
+
+
+def test_price_dotplot_requires_reviewed_comparable_prices():
+    from src.planner.schemas import Evidence, Span
+
+    def price(n, reasons):
+        span = Span(
+            source_id=f"s{n}",
+            sentence_id="s1",
+            layer="stored_snippet",
+            start=0,
+            end=3,
+            text="1억원",
+        )
+        return Evidence(
+            evidence_id=f"ev{n}",
+            anchor_id=f"a{n}",
+            source_id=f"s{n}",
+            kind="metric",
+            span=span,
+            evidence_layer="stored_snippet",
+            statement_kind="reported_event",
+            review_status="approved",
+            reasons=reasons,
+            markers=["price", "sales_unit:대당", "price_scope"],
+        )
+
+    rule_only = check_followup_charts([], [price(1, []), price(2, [])])
+    assert not {c.chart_id: c for c in rule_only}["price_dotplot"].available
+    reviewed = check_followup_charts(
+        [], [price(1, ["reviewer_approved"]), price(2, ["reviewer_approved"])]
+    )
+    assert {c.chart_id: c for c in reviewed}["price_dotplot"].available

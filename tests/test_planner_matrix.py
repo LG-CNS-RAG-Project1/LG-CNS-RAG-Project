@@ -1,7 +1,14 @@
 """경쟁 주장 비교표 규칙: 구절 위치, 역할 혼동 방지, 셀 상태·미확인 사유, 해석 템플릿."""
 
 from src.planner.matrix import build_matrix
-from src.planner.rules import align, entity_id, is_anonymous, relation_type
+from src.planner.rules import (
+    align,
+    entity_id,
+    is_anonymous,
+    mention_features,
+    mention_name,
+    relation_type,
+)
 from tests.planner_fixtures import IDEA, WORLD, processed, source_id
 
 
@@ -191,3 +198,29 @@ def test_lexical_helpers_for_anonymous_and_relation_types():
     assert relation_type("계약을 체결했다") == "contract"
     assert relation_type("도입했다가 철수했다") == "withdrawal"
     assert relation_type("전시회에 참가했다") == ""
+
+
+def test_mention_names_are_cut_to_company_and_compounds_rejected():
+    assert mention_name("가상트윔(대표 홍길동") == ("가상트윔", "")
+    long = "가상바이슨은 카메라와 렌즈, 조명을 포함한 광학계 설계부터 현장 설치까지 수행한다."
+    assert mention_name(long) == ("가상바이슨", "")
+    assert mention_name("가상차와 가상기아")[1] == "compound_mention"
+    assert mention_name("가상대학 연구진")[1] == "research_team_mention"
+    assert mention_name("AI 머신비전 검사 솔루션 전문 기업 아주 긴 설명 문장")[1] == (
+        "mention_not_a_name"
+    )
+
+
+def test_spokesperson_pattern_counts_as_supplier_evidence():
+    title = "[인터뷰] 홍길동 가상인더스트리AI 대표 “셋업 시간 단축”"
+    features = mention_features(
+        "가상인더스트리AI", "검사 플랫폼을 소개했다.", title, ["플랫폼"]
+    )
+    assert "spokesperson" in features
+
+
+def test_loosely_related_idea_text_gets_scope_definition_insight():
+    _, table = matrix()
+    site = next(i for i in table["insights"] if i.criterion_id == "site_customization")
+    assert "관련된 표현만" in site.text and site.next_question_ids == ["E2", "C4"]
+    assert "단독 차별점" not in site.text

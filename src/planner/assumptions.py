@@ -63,7 +63,7 @@ def build_assumptions(
         support, counter, note = [], [], ""
         status = None
         if template.evidence == "our_claim_competition":
-            claimed = [cid for cid, s in ours.items() if s != "unknown"]
+            claimed = [cid for cid, s in ours.items() if s == "explicit"]
             strong = [
                 c
                 for c in supplier_cells
@@ -173,7 +173,7 @@ def _checks(matrix, edges, evidence, entities) -> dict:
     ]
     cells = matrix["cells"]
     ours = [
-        c.criterion_id for c in cells if c.row_id == "our" and c.status != "unknown"
+        c.criterion_id for c in cells if c.row_id == "our" and c.status == "explicit"
     ]
 
     def claimed_ok():
@@ -234,10 +234,17 @@ def _checks(matrix, edges, evidence, entities) -> dict:
     }
 
 
-def _slot_values(slot, question_id, profile, edges, entities) -> list[str]:
+def _names(entities, labels) -> dict[str, str]:
+    """엔터티 이름 + 관계 노드 라벨(관계에만 나온 상대 이름). 익명 노드는 질의에 쓰지 않는다."""
+    names = {k: v for k, v in (labels or {}).items() if not k.startswith("anon-")}
+    names.update({e.entity_id: e.name for e in entities.values()})
+    return names
+
+
+def _slot_values(slot, question_id, profile, edges, entities, labels=None) -> list[str]:
     approved = sorted(e.name for e in entities.values() if e.approved)
     approved_edges = [e for e in edges if e.status == "approved"]
-    names = {e.entity_id: e.name for e in entities.values()}
+    names = _names(entities, labels)
     if slot == "supplier":
         if question_id in {"G2", "D4"}:
             ids = sorted(
@@ -278,9 +285,9 @@ def _slot_values(slot, question_id, profile, edges, entities) -> list[str]:
     return list(profile.slots.get(slot, []))
 
 
-def _pair_queries(template, slots, profile, edges, entities) -> list[str]:
+def _pair_queries(template, slots, profile, edges, entities, labels=None) -> list[str]:
     """공급사·고객 슬롯은 실제 관계 간선의 쌍으로만 채운다(교차 조합 금지)."""
-    names = {e.entity_id: e.name for e in entities.values()}
+    names = _names(entities, labels)
     pairs = sorted(
         {
             (names[e.supplier_id], names[e.counterpart_id])
@@ -310,18 +317,20 @@ def entities_by_name(entities, name):
     return next((e.entity_id for e in entities.values() if e.name == name), "")
 
 
-def build_queries(question, profile, edges, entities) -> list[str]:
+def build_queries(question, profile, edges, entities, labels=None) -> list[str]:
     """질문 템플릿 슬롯을 채운 질의. 채울 값이 없는 슬롯이 있으면 빈 목록."""
     template = question.query_template
     slots = sorted(template_slots(template))
     if not template:
         return []
     if {"supplier", "adopter"} <= set(slots):
-        return _pair_queries(template, slots, profile, edges, entities)
+        return _pair_queries(template, slots, profile, edges, entities, labels)
     values = []
     for slot in slots:
         options = [
-            v for v in _slot_values(slot, question.id, profile, edges, entities) if v
+            v
+            for v in _slot_values(slot, question.id, profile, edges, entities, labels)
+            if v
         ]
         if not options:
             return []
@@ -348,6 +357,7 @@ def evaluate_questions(
     entities: dict,
     assumptions: list[AssumptionLink],
     stop_reasons: dict[str, str] | None = None,
+    labels: dict[str, str] | None = None,
 ) -> list[QuestionPick]:
     """질문 은행 전체의 상태·우선순위·후속 질의를 만든다. stop_reasons는 수집 기록에서 온다."""
     checks = _checks(matrix, edges, evidence, entities)
@@ -374,7 +384,7 @@ def evaluate_questions(
         else:
             status = "not_automated"
         if status == "gap":
-            queries = build_queries(question, profile, edges, entities)
+            queries = build_queries(question, profile, edges, entities, labels)
         links = linked.get(question.id, [])
         if question.id in conflict_questions or any(
             link.status in {"counter_evidence", "mixed"} for link in links

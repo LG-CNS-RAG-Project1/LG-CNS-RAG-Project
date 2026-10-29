@@ -90,9 +90,9 @@ def test_validation_rejects_ids_refusals_and_truncated_responses():
     assert validate_response(ok_payload("news-2"), "news-1", ids)[1] == (
         "source_id_mismatch"
     )
-    assert validate_response(ok_payload(sentence_id="b9"), "news-1", ids)[1] == (
-        "unknown_sentence_id"
-    )
+    candidates, error = validate_response(ok_payload(sentence_id="b9"), "news-1", ids)
+    assert error == "" and candidates["mentions"] == []
+    assert candidates["dropped"][0]["sentence_id"] == "b9"
     assert validate_response({"content": "{"}, "news-1", ids)[1] == "invalid_json"
     assert validate_response({"refusal": "no"}, "news-1", ids)[1] == "refusal"
     truncated = ok_payload() | {"finish_reason": "length"}

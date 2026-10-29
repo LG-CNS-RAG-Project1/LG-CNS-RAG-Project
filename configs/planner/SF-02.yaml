@@ -3,7 +3,7 @@
 # 값을 바꾸면 profile_hash가 바뀌어 rule_version이 달라지고, 이전 실행과 '규칙 변경'으로 구분된다.
 # 예산·배분은 연구 초기 운영안(초기 50 + 후속 10×3)이며 최적값으로 검증되지 않았다.
 area_id: SF-02
-version: sf02-planner-profile-v1
+version: sf02-planner-profile-v2
 model: gpt-4o-mini
 
 budget:
@@ -83,7 +83,8 @@ slots:
 scope:
   include_any: [비전검사, 비전 검사, 머신비전, 머신 비전, 비전 AI, 비전AI, AI 비전, 비전 시스템, 비전시스템, 외관검사, 외관 검사, 검사장비, 검사 장비, 검사기, 결함 검출, 불량 검출, 결함 탐지, 불량 탐지, AI 검사]
   vision_terms: [비전검사, 비전 검사, 머신비전, 외관]
-  exclude_any: [예지보전, 건강검진, 자동차검사, 검역, 세무조사]
+  # 주가·공시 나열 기사(관련주·특징주)는 검사 사업 근거로 쓰지 않는다.
+  exclude_any: [예지보전, 건강검진, 자동차검사, 검역, 세무조사, 관련주, 특징주, 주요공시]
   industry_direct: [2차전지, 이차전지, 배터리, 전자부품, 반도체, PCB, 커넥터, 디스플레이, 리드탭, 양극재, 음극재]
 
 # 공급사·제품 판정에 쓰는 제공물 표현
@@ -95,19 +96,19 @@ criteria:
     label: 불량 데이터 준비 부담
     decision_id: C2
     strong: [불량 이미지, 불량 데이터, 결함 데이터, 결함 이미지, 제로샷, 정상 이미지, 가상 결함, 데이터 부족, 소량 데이터, 적은 데이터, 라벨링]
-    weak: [학습 데이터, 데이터, 학습]
+    weak: [학습 데이터, 데이터 확보, 데이터 준비, 불량 샘플, 결함 샘플, 준지도]
     next_question: {explicit: C4, partial: C2, unknown: C2, conflicting: C3}
   - id: changeover_reconfiguration
     label: 제품 변경 시 검사 재설정 부담
     decision_id: C2
     strong: [전환시간, 전환 시간, 셋업, 재설정, 제품이 바뀔, 제품 변경, 모델 변경, 다품종, 레시피, 검사 조건 재, 티칭]
-    weak: [유연, 변경, 노코딩]
+    weak: [노코딩, 코딩 없이, 유연 생산, 품목 전환]
     next_question: {explicit: C4, partial: C2, unknown: C2, conflicting: C3}
   - id: site_customization
     label: 현장 맞춤 구성
     decision_id: C2
     strong: [맞춤, 광학 구성, 광학 설계, 조명 설계, 현장에 맞, 공정에 맞, 커스터마이, 모듈형]
-    weak: [광학, 조명, 기존 라인, 기존 설비, 추가 설치, 설치, 연동, 통합]
+    weak: [광학, 조명, 기존 라인, 기존 설비, 추가 설치, 현장 설치, 라인 연동]
     next_question: {explicit: C4, partial: C2, unknown: C2, conflicting: C3}
 
 # LLM 추출 지침에 넣는 관심 주제(판정은 코드가 한다)

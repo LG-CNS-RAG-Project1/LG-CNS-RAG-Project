@@ -45,6 +45,7 @@ from src.planner.extract import (
     SCHEMA_HASH,
     Extractor,
     call_extraction_llm,
+    validate_response,
 )
 from src.planner.pricing import CALC_VERSION
 from src.planner.rules import RULE_VERSION
@@ -163,13 +164,28 @@ def _analyze(
 
 
 def _parent_cache(parent: Path | None) -> dict:
+    """이전 실행의 추출 결과를 캐시로 만든다. 실패 기록은 저장된 원응답을 현재 검증 규칙으로
+    다시 검사해 통과하면 쓴다(LLM 재호출 없음)."""
     if not parent:
         return {}
+    responses: dict[str, list[dict]] = {}
+    for row in store.read_jsonl(Path(parent) / "llm_responses.jsonl"):
+        responses.setdefault(row["cache_key"], []).append(row)
     cache = {}
     for row in store.read_jsonl(Path(parent) / "extraction.jsonl"):
         record = ExtractionRecord.model_validate(row)
-        if record.status == "ok" and record.cache_key:
+        if not record.cache_key:
+            continue
+        if record.status == "ok":
             cache[record.cache_key] = record.candidates
+            continue
+        for raw in reversed(responses.get(record.cache_key, [])):
+            candidates, error = validate_response(
+                raw, record.source_id, set(record.input_sentence_ids)
+            )
+            if not error:
+                cache[record.cache_key] = candidates
+                break
     return cache
 
 

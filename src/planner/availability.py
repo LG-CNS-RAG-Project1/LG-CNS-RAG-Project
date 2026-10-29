@@ -77,7 +77,11 @@ def check_followup_charts(
         if "price" not in item.markers:
             continue
         unit = next((m for m in item.markers if m.startswith("sales_unit:")), "")
-        if unit and "price_scope" in item.markers:
+        if (
+            unit
+            and "price_scope" in item.markers
+            and "reviewer_approved" in item.reasons
+        ):
             prices[unit].append(item)
     comparable = [items for items in prices.values() if len(items) >= 2]
     results.append(
@@ -89,7 +93,7 @@ def check_followup_charts(
                 []
                 if comparable
                 else [
-                    "판매 단위·포함 범위가 같은 가격 수치 2건 이상",
+                    "판매 단위·포함 범위를 검토자가 확인한 같은 조건의 가격 수치 2건 이상",
                     "통화·수량·기간·설치/유지보수 포함 여부",
                 ]
             ),
@@ -98,6 +102,7 @@ def check_followup_charts(
                 if comparable
                 else [
                     "E1·E2 질의로 판매 단위와 포함 범위가 명시된 가격 기사 확보",
+                    "가격 근거가 같은 판매 단위·범위인지 검토해 승인(review)",
                     "장비 가격과 프로젝트 계약 총액은 같은 축에 두지 않음",
                 ]
             ),

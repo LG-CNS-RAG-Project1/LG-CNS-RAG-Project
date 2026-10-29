@@ -67,6 +67,8 @@ def build_anchors(
         )
 
     candidates = extraction.candidates if extraction.status == "ok" else {}
+    for item in candidates.get("dropped", []):
+        reject(item.get("kind", ""), item, "unknown_sentence_id")
     mention_roles: dict[str, str] = {}
     seen_mentions = set()
     for item in candidates.get("mentions", []):
@@ -75,9 +77,9 @@ def build_anchors(
         if not found:
             reject("mention", item, "span_not_found")
             continue
-        name = rules.normalize_name(item["exact_text"])
-        if not name:
-            reject("mention", item, "empty_name")
+        name, problem = rules.mention_name(item["exact_text"])
+        if problem:
+            reject("mention", item, problem)
             continue
         eid = rules.entity_id(name)
         mention_roles.setdefault(name, item["candidate_role"])
@@ -118,7 +120,7 @@ def build_anchors(
         if not found:
             reject("claim", item, "span_not_found")
             continue
-        owner = rules.normalize_name(item["owner_text"])
+        owner = rules.mention_name(item["owner_text"])[0]
         owner_ok = bool(owner) and bool(rules.align(sentence.text, owner))
         span = _span(source_id, sentence, found)
         features = ["other_subject"] if other_subject(sentence, owner) else []
@@ -148,8 +150,12 @@ def build_anchors(
             reject("relation", item, "span_not_found")
             continue
         span = _span(source_id, sentence, found)
-        subject = rules.normalize_name(item["subject_text"])
-        obj = rules.normalize_name(item["object_text"])
+        subject = rules.mention_name(item["subject_text"])[0] or rules.normalize_name(
+            item["subject_text"]
+        )
+        obj = rules.mention_name(item["object_text"])[0] or rules.normalize_name(
+            item["object_text"]
+        )
         features = []
         if not (
             subject

@@ -80,6 +80,7 @@ def analyze(
         entities,
         links,
         stop_reasons=(collection.get("followups") or {}).get("stop_reasons", {}),
+        labels={n.node_id: n.label for n in relations["nodes"]},
     )
     counts = {
         "requests_used": collection.get("requests_used", 0),

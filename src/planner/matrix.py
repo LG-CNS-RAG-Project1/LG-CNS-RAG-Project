@@ -279,7 +279,23 @@ def _insights(rows, cells, profile, idea, evidence, metrics) -> list[Insight]:
         next_ids = ["C4"]
         if any(e.supplier_id in companies for e in metrics):
             next_ids.append("C3")
-        if ours != "unknown" and companies:
+        if ours == "partial" and companies:
+            insights.append(
+                Insight(
+                    insight_id=f"competition:{criterion.id}",
+                    text=(
+                        f"당사 기획안은 '{criterion.label}'와 관련된 표현만 담고 대응 방식은 밝히지 "
+                        f"않았습니다. 공급사 {len(companies)}곳은 이 기준 대응을 주장합니다"
+                        f"(기사 {n}건·전재 묶음 {m}개). 공급 범위와 현장 작업 책임을 먼저 정의해야 합니다."
+                    ),
+                    criterion_id=criterion.id,
+                    evidence_ids=ids,
+                    decision_id=criterion.decision_id,
+                    next_question_ids=["E2", "C4"],
+                    limits="공급사가 말한 주장이며 당사 차별성 판단이 아닙니다.",
+                )
+            )
+        elif ours == "explicit" and companies:
             insights.append(
                 Insight(
                     insight_id=f"competition:{criterion.id}",

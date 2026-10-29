@@ -15,7 +15,7 @@ import unicodedata
 
 from src.planner.schemas import Anchor, Entity, Evidence
 
-RULE_VERSION = "planner-rules-v1"
+RULE_VERSION = "planner-rules-v2"
 
 NEGATION_RE = re.compile(
     r"않는다|않았다|않아|않고|않는|않을|못한다|못했|못하|아니다|아닌|어렵다|어려운|"
@@ -30,7 +30,13 @@ AFFILIATE_RE = re.compile(
 CHANNEL_RE = re.compile(
     r"장비사|장비 업체|장비업체|OEM|\bSI\b|SI 업체|SI업체|시스템 통합|협력사|파트너사|총판|대리점"
 )
-SUPPLY_VERB_RE = re.compile(r"출시|공급|개발|선보|공개|납품|수주|제공|판매|내놓")
+SUPPLY_VERB_RE = re.compile(
+    r"출시|공급|개발|선보|선봬|공개|납품|수주|제공|판매|내놓|탑재|구현|내세|갖췄|갖춘|"
+    r"넣었|고도화|론칭|수행|설계|구축해|구축한다|구축하고"
+)
+SPOKESPERSON_RE = r"\s*(?:대표|대표이사|CEO|사장)"
+COMPOUND_RE = re.compile(r"(?:와|과)\s|,|·|및\s")
+RESEARCH_SUFFIXES = ("연구진", "연구팀", "교수팀", "교수", "연구원장")
 ADOPT_VERB_RE = re.compile(r"도입|적용|사용|가동|운영")
 SUBJECT_RE = r"\s*(?:은|는|이|가|측은|측이|측도|도)\s"
 PUBLIC_SUFFIXES = (
@@ -195,6 +201,27 @@ def normalize_name(text: str) -> str:
     return " ".join(name.split()).strip(" ,·'\"‘’“”()")
 
 
+def mention_name(text: str) -> tuple[str, str]:
+    """LLM 언급 구절에서 기업명만 남긴다. (이름, 거부 사유).
+
+    '(대표 ...)' 같은 괄호 설명을 떼고, 문장 전체가 온 경우 첫 주어(이름+은/는/이/가)만 쓴다.
+    여러 기관을 묶은 언급('A와 B', 'A·B')과 연구진·교수 언급은 기업명으로 쓰지 않는다.
+    """
+    name = normalize_name(re.split(r"[(（]", text or "", maxsplit=1)[0])
+    if len(name) > 25 or len(name.split()) > 3:
+        lead = re.match(r"^\s*(\S{2,20}?)(?:은|는|이|가)\s", normalize_name(text))
+        if not lead:
+            return "", "mention_not_a_name"
+        name = normalize_name(lead.group(1))
+    if not name:
+        return "", "empty_name"
+    if COMPOUND_RE.search(name):
+        return "", "compound_mention"
+    if name.endswith(RESEARCH_SUFFIXES):
+        return "", "research_team_mention"
+    return name, ""
+
+
 def entity_id(name: str) -> str:
     key = normalize_name(name).replace(" ", "").lower()
     return "org-" + hashlib.sha1(key.encode("utf-8")).hexdigest()[:10]
@@ -298,6 +325,8 @@ def mention_features(name: str, sentence: str, title: str, offering_terms) -> li
     subject = re.search(escaped + SUBJECT_RE, sentence)
     if subject and SUPPLY_VERB_RE.search(sentence[subject.end() :]):
         features.append("subject_supply")
+    if re.search(escaped + SPOKESPERSON_RE, f"{title}\n{sentence}"):
+        features.append("spokesperson")
     if subject and ADOPT_VERB_RE.search(sentence[subject.end() :]):
         features.append("subject_adopt")
     if any(term in sentence for term in offering_terms):
@@ -352,7 +381,7 @@ def approve_suppliers(anchors: list[Anchor]) -> tuple[dict, dict, list[Evidence]
         reasons = []
         if anchor.candidate_role != "supplier":
             reasons.append(f"role_{anchor.candidate_role}")
-        if not features & {"headline_lead", "subject_supply"}:
+        if not features & {"headline_lead", "subject_supply", "spokesperson"}:
             reasons.append("supplier_pattern_not_matched")
         if "subject_adopt" in features and "subject_supply" not in features:
             reasons.append("adopter_pattern")

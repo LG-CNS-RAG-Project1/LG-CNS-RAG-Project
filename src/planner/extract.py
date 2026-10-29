@@ -3,8 +3,9 @@
 - 입력은 번호 붙인 문장(제목 t·검색 요약 s·본문 b)이며 본문은 llm_input_chars까지만 넣는다.
 - 출력은 strict json_schema로 형식을 고정하지만, 형식 준수가 의미 정확성을 보장하지는 않는다.
   구절 위치·역할·단계 판정은 anchors·rules가 코드로 한다.
-- 형식 오류·ID 불일치·거절·잘린 응답은 기사당 1회(전체 재시도 상한 안에서) 다시 시도하고,
-  그래도 실패하면 extraction_failed로 남긴다.
+- 형식 오류·기사 ID 불일치·거절·잘린 응답은 기사당 1회(전체 재시도 상한 안에서) 다시 시도하고,
+  그래도 실패하면 extraction_failed로 남긴다. 입력에 없는 문장 번호를 단 항목만 버리고(unknown_sentence_id)
+  나머지 항목은 쓴다.
 - 캐시 키 = 입력 해시 + extractor_version + prompt_hash + schema_hash + model. 같은 키는 재호출하지 않는다.
 """
 
@@ -300,7 +301,10 @@ def call_extraction_llm(system: str, user_text: str, schema: dict) -> dict:
 def validate_response(
     raw: dict, source_id: str, sentence_ids: set[str]
 ) -> tuple[dict | None, str]:
-    """응답 형식·ID·문장 번호를 검사한다. (후보 dict 또는 None, 오류 코드)."""
+    """응답 형식·기사 ID를 검사하고 입력에 없는 문장 번호의 항목은 dropped로 뺀다.
+
+    반환: (후보 dict 또는 None, 오류 코드).
+    """
     if raw.get("refusal"):
         return None, "refusal"
     if raw.get("finish_reason") == "length":
@@ -311,10 +315,17 @@ def validate_response(
         return None, "invalid_json"
     if payload.source_id != source_id:
         return None, "source_id_mismatch"
-    for group in (payload.mentions, payload.claims, payload.relations, payload.metrics):
-        if any(item.sentence_id not in sentence_ids for item in group):
-            return None, "unknown_sentence_id"
-    return payload.model_dump(), ""
+    candidates, dropped = payload.model_dump(), []
+    for kind in ("mentions", "claims", "relations", "metrics"):
+        kept = []
+        for item in candidates[kind]:
+            if item["sentence_id"] in sentence_ids:
+                kept.append(item)
+            else:
+                dropped.append({"kind": kind.rstrip("s"), **item})
+        candidates[kind] = kept
+    candidates["dropped"] = dropped
+    return candidates, ""
 
 
 class Extractor:
