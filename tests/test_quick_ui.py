@@ -28,10 +28,13 @@ def test_landing_preserves_home_and_enters_compact_analysis():
     assert app.text_area(key="raw_input")
     assert app.button(key="create_idea_draft")
     assert not any("시연" in button.label for button in app.button)
-    assert [app.button(key=f"nav_{i}").label.split()[0] for i in (1, 2, 4)] == [
-        "1",
-        "2",
-        "3",
+    assert not any(
+        button.key and button.key.startswith("nav_") for button in app.button
+    )
+    assert [app.button(key=f"rail_{i}").label for i in (1, 2, 4)] == [
+        "아이디어",
+        "특허",
+        "보고서",
     ]
     assert not app.button(key="rail_1").disabled
     assert all(app.button(key=f"rail_{i}").disabled for i in (2, 3, 4))

@@ -213,7 +213,87 @@ def test_kipris_supplement_calls_are_bounded_and_use_draft_queries(monkeypatch):
     )
 
     assert report.status == "no_results"
-    assert calls == ["기술 검색어 0", "기술 검색어 1"]
+    assert calls == [
+        "기술 검색어 0",
+        "기술 검색어 1",
+        "기술 검색어 2",
+        "기술 검색어 3",
+        "기술 검색어 4",
+    ]
+
+
+def test_search_targets_five_relevant_patents_and_stops_after_reaching_target(
+    monkeypatch,
+):
+    import src.services.patent_service as service
+
+    monkeypatch.setattr(service, "judge_patent_candidates", judge_all)
+    local_results = [result("P1", rank=1), result("P2", rank=2)]
+    monkeypatch.setattr(
+        service, "search_patents", lambda query, **kwargs: local_results
+    )
+    queries = []
+
+    def expanded_plan(system_prompt, user_text):
+        return {
+            "queries": [
+                {
+                    "technical_element": f"구성 {index}",
+                    "korean_queries": [f"기술 검색어 {index}"],
+                    "english_queries": [f"technical query {index}"],
+                }
+                for index in range(5)
+            ]
+        }
+
+    def supplement(query, limit):
+        queries.append((query, limit))
+        patent_number = len(queries) + 2
+        return [
+            {
+                "application_number": f"P{patent_number}",
+                "title": f"보충 후보 {patent_number}",
+                "abstract": "검색어와 관련된 공개 초록",
+            }
+        ]
+
+    report = analyze_patents(
+        request(top_k=8),
+        collection=object(),
+        query_llm_fn=expanded_plan,
+        claim_fetcher=lambda _: [],
+        kipris_search_fn=supplement,
+        comparison_fn=compare_all,
+    )
+
+    assert len({item.patent_id for item in report.evidence}) == 5
+    assert len(queries) == 3
+    assert [limit for _, limit in queries] == [3, 2, 1]
+
+
+def test_search_does_not_fill_below_five_with_unrelated_or_invented_patents(
+    monkeypatch,
+):
+    import src.services.patent_service as service
+
+    monkeypatch.setattr(service, "judge_patent_candidates", judge_all)
+    monkeypatch.setattr(
+        service, "search_patents", lambda query, **kwargs: [result("P1")]
+    )
+    report = analyze_patents(
+        request(top_k=8),
+        collection=object(),
+        query_llm_fn=query_plan,
+        claim_fetcher=lambda _: [],
+        kipris_search_fn=lambda *_: [],
+        comparison_fn=compare_all,
+    )
+
+    assert {item.patent_id for item in report.evidence} == {"P1"}
+    assert any(
+        "목표 5건보다 적어 결과를 임의로 채우지 않았습니다" in item
+        for item in report.unknowns
+    )
 
 
 def test_kipris_service_limit_is_reported_as_search_error_not_no_results(monkeypatch):
@@ -366,6 +446,7 @@ def test_legacy_comparison_failure_is_reported_without_duplicate_retry(monkeypat
 
     report = analyze_patents(
         request(top_k=1),
+        collection=object(),
         query_llm_fn=query_plan,
         claim_fetcher=lambda _: [],
         kipris_search_fn=lambda *_: [],
@@ -391,6 +472,7 @@ def test_review_failure_preserves_retrieved_patent_evidence(monkeypatch):
 
     report = analyze_patents(
         request(top_k=1),
+        collection=object(),
         query_llm_fn=query_plan,
         claim_fetcher=lambda _: [],
         kipris_search_fn=lambda *_: [],
@@ -424,6 +506,7 @@ def test_design_proposal_failure_preserves_search_and_component_review(monkeypat
 
     report = analyze_patents(
         request(top_k=1),
+        collection=object(),
         query_llm_fn=query_plan,
         claim_fetcher=lambda _: [],
         kipris_search_fn=lambda *_: [],

@@ -1,9 +1,8 @@
 """파이프라인의 구조화된 판단·인용을 추가 모델 호출 없이 시각화한다."""
 
-from collections import Counter
-
 import streamlit as st
 from pydantic import BaseModel, Field
+from src.schemas import MarketKeywordNetwork, MarketSearchTrend, PatentTrendStatistics
 
 EVIDENCE_STATUS_LABELS = {
     "sufficient": "관련 자료 충분",
@@ -68,6 +67,28 @@ class Finding(BaseModel):
     relevant_count: int | None = Field(default=None, ge=0)
 
 
+class DartContextEvidence(BaseModel):
+    evidence_id: str
+    company: str
+    period: str = ""
+    section: str = ""
+    title: str
+    quote: str
+    url: str = ""
+
+
+class MarketContext(BaseModel):
+    dart_evidence: list[DartContextEvidence] = Field(default_factory=list, max_length=3)
+    search_trend: MarketSearchTrend | None = None
+    keyword_network: MarketKeywordNetwork | None = None
+    market_dimensions: list[Finding] = Field(default_factory=list, max_length=5)
+
+
+class PatentStatisticsContext(BaseModel):
+    indexed: PatentTrendStatistics | None = None
+    related_candidates: PatentTrendStatistics | None = None
+
+
 class Dashboard(BaseModel):
     conclusion: str = ""
     summary: str = ""
@@ -78,11 +99,18 @@ class Dashboard(BaseModel):
     dimensions: list[Finding] = Field(default_factory=list, max_length=10)
     actions: list[Finding] = Field(default_factory=list, max_length=20)
     unknowns: list[str] = Field(default_factory=list, max_length=100)
+    market_context: MarketContext | None = None
+    patent_statistics: PatentStatisticsContext | None = None
 
 
 def dashboard_data(result):
     """생성된 분석 값을 화면용 계약으로 투영하며 새 결론·수치를 만들지 않는다."""
-    from src.generation.executive_review import RECOMMENDATION_LABELS
+    from src.generation.executive_review import (
+        RECOMMENDATION_LABELS,
+        cross_domain_findings,
+        executive_next_checks,
+        executive_limitations,
+    )
     from src.retrieval.market_relevance import DIMENSION_LABELS
 
     executive = result.executive_review
@@ -100,11 +128,19 @@ def dashboard_data(result):
     }
     data = Dashboard()
     if executive:
-        data.conclusion = RECOMMENDATION_LABELS.get(
-            executive.recommendation, executive.recommendation
+        conclusions = cross_domain_findings(executive)
+        data.conclusion = (
+            RECOMMENDATION_LABELS.get(
+                executive.recommendation, executive.recommendation
+            )
+            if conclusions
+            else "추가 확인 후 결정"
         )
-        data.summary = executive.decision_summary
-        data.scope = executive.scope
+        data.summary = (
+            executive.decision_summary
+            if conclusions
+            else "특허와 시장 양쪽 근거가 함께 확인될 때까지 통합 결론을 보류합니다."
+        )
         data.confidence = {"low": "낮음", "medium": "보통", "high": "높음"}.get(
             executive.confidence, executive.confidence
         )
@@ -116,51 +152,45 @@ def dashboard_data(result):
                 kind=kinds[x.kind],
                 citations=", ".join(x.evidence_ids),
             )
-            for x in executive.integrated_findings[:30]
+            for x in conclusions
         ]
+        domain_labels = {"patent": "특허 근거", "market": "시장 근거"}
+        domain_status_labels = {
+            "completed": "조사 완료",
+            "partial": "일부 완료",
+            "no_results": "검색 결과 없음",
+            "error": "조사 오류",
+            "skipped": "미실행",
+            "timeout": "시간 초과",
+        }
         data.domain_summaries = [
             Finding(
-                label="특허" if x.domain == "patent" else "시장",
-                judgment=x.finding,
+                label=domain_labels[summary.domain],
+                judgment=summary.finding,
                 implication=(
-                    f"범위: {x.evidence_scope} · 자료 {x.evidence_count}건"
-                    + (f" · 기준일 {x.data_as_of}" if x.data_as_of else "")
-                    + (
-                        f" · 다음 확인: {'; '.join(x.next_check[:2])}"
-                        if x.next_check
-                        else ""
-                    )
+                    f"범위: {summary.evidence_scope} · 문헌·자료 {summary.evidence_count}건"
+                    + (f" · 기준일 {summary.data_as_of}" if summary.data_as_of else "")
                 ),
-                kind={
-                    "completed": "완료",
-                    "partial": "부분 완료",
-                    "no_results": "근거 없음",
-                    "error": "실패",
-                    "skipped": "미실행",
-                    "timeout": "시간 초과",
-                }[x.status],
-                citations=", ".join(x.evidence_ids),
-                limitation="; ".join(x.limitations[:2]),
+                kind=domain_status_labels[summary.status],
+                citations=", ".join(summary.evidence_ids),
+                limitation=" · ".join(summary.limitations[:2]),
             )
-            for x in executive.domain_summaries
+            for summary in executive.domain_summaries
         ]
         data.actions = [
             Finding(
-                label=x.question,
-                judgment=x.proof_needed,
-                implication=x.consequence,
-                kind=x.owner,
-                citations=", ".join(x.evidence_ids),
+                label=f"확인 {index}",
+                judgment=action,
             )
-            for x in executive.approval_gates
+            for index, action in enumerate(executive_next_checks(executive), 1)
         ]
-        data.unknowns = list(executive.limitations)
+        data.unknowns = executive_limitations(executive, limit=3)
     elif business:
         data.conclusion = RECOMMENDATION_LABELS.get(
             business.recommendation, business.recommendation
         )
         data.summary = business.summary
-    if business:
+    if business and not executive:
         data.actions += [
             Finding(
                 label=x.horizon,
@@ -168,9 +198,9 @@ def dashboard_data(result):
                 implication=f"대상: {x.target} · 확인 기준: {x.success_signal}",
                 citations=", ".join(x.citation_ids),
             )
-            for x in business.next_steps[:10]
+            for x in business.next_steps[:2]
         ]
-        data.unknowns += business.unknowns
+        data.unknowns += business.unknowns[:2]
     for dimension in result.market.dimensions:
         data.dimensions.append(
             Finding(
@@ -192,121 +222,384 @@ def dashboard_data(result):
                 ),
             )
         )
-    data.unknowns = list(
-        dict.fromkeys(data.unknowns + result.market.unknowns + result.patent.unknowns)
-    )[:100]
+    market = result.market
+    indexed_statistics = result.patent.indexed_statistics
+    related_statistics = result.patent.related_statistics
+    data.patent_statistics = PatentStatisticsContext(
+        indexed=indexed_statistics,
+        related_candidates=related_statistics,
+    )
+    dart_evidence = []
+    seen_companies = set()
+    for evidence in market.evidence:
+        if evidence.source_type != "dart":
+            continue
+        company = evidence.publisher or "공시 기업 미제공"
+        if company in seen_companies:
+            continue
+        seen_companies.add(company)
+        dart_evidence.append(
+            DartContextEvidence(
+                evidence_id=f"M:{evidence.citation_id}",
+                company=company,
+                period=evidence.period or "사업연도 미제공",
+                section=evidence.section or "원문 위치 미제공",
+                title=evidence.title,
+                quote=evidence.quote,
+                url=evidence.url or "",
+            )
+        )
+        if len(dart_evidence) >= 3:
+            break
+    if (
+        dart_evidence
+        or market.search_trend
+        or market.keyword_network
+        or market.dimensions
+    ):
+        data.market_context = MarketContext(
+            dart_evidence=dart_evidence,
+            search_trend=market.search_trend,
+            keyword_network=market.keyword_network,
+            market_dimensions=data.dimensions,
+        )
+    data.unknowns = list(dict.fromkeys(data.unknowns))[:3]
     return data.model_dump()
+
+
+def _render_patent_statistics(context: PatentStatisticsContext) -> None:
+    """종합보고서에 특허 색인·검색 후보 분포와 실제 집계 범위를 표시한다."""
+    st.subheader("특허 동향 · 검색 데이터 분포")
+    if context.related_candidates is None and context.indexed is None:
+        st.info("이번 분석 결과에 전달된 특허 기술 통계가 없습니다.")
+        return
+    if context.related_candidates:
+        stats = context.related_candidates
+        st.markdown("**아이디어 관련 검색 후보**")
+        st.caption(
+            f"범위: {stats.scope} · 중복 제거 문헌 {stats.total_patents}건 · "
+            f"출원일 {stats.application_date_coverage}/{stats.total_patents}건 · "
+            f"IPC {stats.ipc_coverage}/{stats.total_patents}건 · "
+            f"CPC {stats.cpc_coverage}/{stats.total_patents}건"
+        )
+        if stats.total_patents == 0:
+            st.info("관련 검색 후보가 없어 기술 분포를 표시하지 않습니다.")
+        else:
+            charts = st.columns(2)
+            if stats.yearly_applications:
+                with charts[0]:
+                    st.markdown("**출원연도별 후보 문헌**")
+                    st.bar_chart(
+                        [
+                            {"출원연도": item.label, "문헌 수": item.count}
+                            for item in stats.yearly_applications
+                        ],
+                        x="출원연도",
+                        y="문헌 수",
+                    )
+            else:
+                with charts[0]:
+                    st.info("검색 후보의 출원연도 메타데이터가 없습니다.")
+            if stats.ipc_distribution:
+                with charts[1]:
+                    st.markdown("**IPC 상위 분류**")
+                    st.bar_chart(
+                        [
+                            {"IPC 분류": item.label, "문헌 수": item.count}
+                            for item in stats.ipc_distribution
+                        ],
+                        x="IPC 분류",
+                        y="문헌 수",
+                        horizontal=True,
+                    )
+            else:
+                with charts[1]:
+                    st.info("검색 후보의 IPC 분류 메타데이터가 없습니다.")
+        st.caption(
+            "검색 후보의 구성 분포이며 전체 특허 분야의 출원 추세, 시장 성장률, 특허성 또는 권리 가능성을 뜻하지 않습니다."
+        )
+
+    if context.indexed:
+        stats = context.indexed
+        with st.expander("현재 특허 색인 전체 분포", expanded=False):
+            st.caption(
+                f"범위: {stats.scope} · 고유 문헌 {stats.total_patents}건 · "
+                f"출원일 {stats.application_date_coverage}/{stats.total_patents}건 · "
+                f"IPC {stats.ipc_coverage}/{stats.total_patents}건 · "
+                f"CPC {stats.cpc_coverage}/{stats.total_patents}건 · "
+                f"집계일 {stats.data_as_of or '미제공'}"
+            )
+            if stats.total_patents == 0:
+                st.info("현재 색인에 통계 대상 문헌이 없습니다.")
+            else:
+                if stats.yearly_applications:
+                    st.markdown("**출원연도별 문헌 수**")
+                    st.bar_chart(
+                        [
+                            {"출원연도": item.label, "문헌 수": item.count}
+                            for item in stats.yearly_applications
+                        ],
+                        x="출원연도",
+                        y="문헌 수",
+                    )
+                if stats.ipc_distribution:
+                    st.markdown("**IPC 상위 분류**")
+                    st.bar_chart(
+                        [
+                            {"IPC 분류": item.label, "문헌 수": item.count}
+                            for item in stats.ipc_distribution
+                        ],
+                        x="IPC 분류",
+                        y="문헌 수",
+                        horizontal=True,
+                    )
+                elif stats.ipc_coverage < stats.total_patents:
+                    st.info("색인 문헌 일부 또는 전체의 IPC 분류값이 누락되었습니다.")
+            st.caption(
+                "색인 범위의 메타데이터 집계입니다. 전체 특허 시장 통계가 아닙니다."
+            )
+
+
+def _render_market_context(context: MarketContext) -> None:
+    """실제 시장 계약에 있는 참고 맥락만 작은 카드로 표시한다."""
+    status_labels = {
+        "sufficient": "관련 근거 충분",
+        "limited": "관련 근거 제한적",
+        "insufficient": "관련 근거 부족",
+        "no_results": "검색 결과 없음",
+        "error": "판정 오류",
+        "": "상태 미제공",
+    }
+    verdict_labels = {
+        "confirmed": "확인됨",
+        "signal_only": "신호만 확인",
+        "unverified": "미확인",
+    }
+    if context.market_dimensions:
+        st.markdown("#### 차원별 근거 상태")
+        for dimension in context.market_dimensions:
+            count = (
+                f" · 관련 자료 {dimension.relevant_count}건"
+                if dimension.relevant_count is not None
+                else ""
+            )
+            st.markdown(
+                f"- **{dimension.label}:** {dimension.judgment} · "
+                f"{status_labels.get(dimension.evidence_status, '상태 미제공')}{count}"
+            )
+            if dimension.limitation or dimension.implication:
+                parts = [
+                    value
+                    for value in (dimension.limitation, dimension.implication)
+                    if value
+                ]
+                st.caption(" · ".join(parts))
+
+    if context.dart_evidence:
+        st.markdown("#### DART 기업 공시 맥락")
+        st.caption(
+            "기업 자체 사업 설명입니다. 시장 전체 수요나 특허 출원인과의 동일성을 입증하지 않습니다."
+        )
+        for evidence in context.dart_evidence:
+            with st.container(border=True):
+                st.markdown(f"**{evidence.evidence_id} · {evidence.company}**")
+                st.caption(f"{evidence.period} · {evidence.section} · 기업 공시")
+                st.write(evidence.title)
+                excerpt = evidence.quote
+                if len(excerpt) > 420:
+                    excerpt = excerpt[:420].rstrip() + "…"
+                st.write(excerpt)
+                if evidence.url.startswith(("https://", "http://")):
+                    st.link_button("공시 원문 열기 ↗", evidence.url)
+        st.caption(
+            "현재 특허 데이터에는 출원인 정보가 보존되지 않아 기업·특허 관계는 미확인입니다."
+        )
+
+    trend = context.search_trend
+    if trend:
+        st.markdown("#### 검색 관심도 흐름")
+        keywords = ", ".join(trend.keywords) or "주제어 미제공"
+        reference = ", ".join(trend.reference_keywords) or "기준어 미제공"
+        if trend.status == "completed":
+            if trend.recent_change_pct is not None:
+                st.caption(
+                    f"{keywords} · 기준: {reference} · 최근 6개월 변화 "
+                    f"{trend.recent_change_pct:+.1f}%"
+                )
+            else:
+                st.caption(f"{keywords} · 기준: {reference} · 변화율 미제공")
+            points = [
+                {"월": point.period, "기준 대비 지수": point.relative_index}
+                for point in trend.points
+                if point.relative_index is not None
+            ]
+            if points:
+                import altair as alt
+                import pandas as pd
+
+                chart = (
+                    alt.Chart(pd.DataFrame(points))
+                    .mark_line(point=True)
+                    .encode(
+                        x=alt.X("월:N", title=None, sort=None),
+                        y=alt.Y("기준 대비 지수:Q", title="기준 대비 지수"),
+                        tooltip=["월", "기준 대비 지수"],
+                    )
+                    .properties(height=190)
+                )
+                st.altair_chart(
+                    chart,
+                    width="stretch",
+                    alt="기준 검색어 대비 월별 상대 검색 관심도",
+                )
+            else:
+                st.info("표시할 월별 상대 지수가 없습니다.")
+        elif trend.status == "insufficient_volume":
+            st.info("검색량이 적어 관심도 흐름을 판단하지 않습니다.")
+        else:
+            st.warning("검색 관심도 자료를 불러오지 못했습니다.")
+        if trend.note:
+            st.caption(trend.note)
+        st.caption("상대 검색 관심도이며 시장 규모·고객 수요의 근거가 아닙니다.")
+
+    network = context.keyword_network
+    if network:
+        st.markdown("#### 키워드 동시 출현 네트워크")
+        if network.status == "completed" and network.nodes:
+            import altair as alt
+            import pandas as pd
+
+            palette = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4"]
+            node_rows = [
+                {
+                    "명사": node.term,
+                    "기사 수": node.document_count,
+                    "묶음": f"묶음 {node.cluster + 1}",
+                    "색": (
+                        palette[node.cluster]
+                        if node.cluster < len(palette)
+                        else "#8a8984"
+                    ),
+                    "x": node.x,
+                    "y": node.y,
+                }
+                for node in network.nodes
+            ]
+            coords = {row["명사"]: (row["x"], row["y"]) for row in node_rows}
+            edge_rows = [
+                {
+                    "x": coords[edge.source][0],
+                    "y": coords[edge.source][1],
+                    "x2": coords[edge.target][0],
+                    "y2": coords[edge.target][1],
+                    "연결": f"{edge.source} – {edge.target}",
+                    "함께 나온 기사": edge.weight,
+                }
+                for edge in network.edges
+                if edge.source in coords and edge.target in coords
+            ]
+            axis = alt.Axis(
+                labels=False, ticks=False, domain=False, grid=False, title=None
+            )
+            scale = alt.Scale(domain=[-1.15, 1.15], nice=False)
+            node_data = pd.DataFrame(node_rows)
+            base = alt.Chart(node_data).encode(
+                x=alt.X("x:Q", axis=axis, scale=scale),
+                y=alt.Y("y:Q", axis=axis, scale=scale),
+            )
+            dots = base.mark_circle(stroke="white", strokeWidth=1.5).encode(
+                size=alt.Size(
+                    "기사 수:Q", scale=alt.Scale(range=[60, 400]), legend=None
+                ),
+                color=alt.Color("색:N", scale=None, legend=None),
+                tooltip=["명사:N", "기사 수:Q", "묶음:N"],
+            )
+            texts = base.mark_text(dy=-13, fontSize=10).encode(text="명사:N")
+            chart = dots + texts
+            if edge_rows:
+                edges = (
+                    alt.Chart(pd.DataFrame(edge_rows))
+                    .mark_rule(color="#8a8984", opacity=0.32)
+                    .encode(
+                        x=alt.X("x:Q", axis=axis, scale=scale),
+                        y=alt.Y("y:Q", axis=axis, scale=scale),
+                        x2="x2:Q",
+                        y2="y2:Q",
+                        strokeWidth=alt.StrokeWidth(
+                            "함께 나온 기사:Q",
+                            scale=alt.Scale(range=[0.5, 3]),
+                            legend=None,
+                        ),
+                        tooltip=["연결:N", "함께 나온 기사:Q"],
+                    )
+                )
+                chart = edges + chart
+            st.altair_chart(
+                chart.properties(height=280).configure_view(strokeWidth=0),
+                width="stretch",
+                alt="같은 뉴스에서 함께 언급된 키워드 네트워크",
+            )
+            for index, cluster in enumerate(network.clusters[:3], 1):
+                st.caption(f"묶음 {index}: {' · '.join(cluster[:5])}")
+        elif network.status == "insufficient":
+            st.info(network.note or "연결망을 구성할 뉴스나 연결이 부족합니다.")
+        else:
+            st.warning("키워드 동시 출현 네트워크를 생성하지 못했습니다.")
+        st.caption(
+            f"뉴스 {network.document_count}건의 제목·요약에서 함께 등장한 주제입니다. "
+            "수요·인과·소비자 세그먼트의 근거가 아닙니다."
+        )
+        if network.note:
+            st.caption(network.note)
 
 
 def render_dashboard(raw):
     data = Dashboard.model_validate(raw)
     if data.conclusion:
-        st.subheader(data.conclusion)
+        st.subheader("종합 결론")
+        st.markdown(f"**{data.conclusion}**")
         st.write(data.summary)
-        if data.scope:
-            st.info(data.scope)
-        if data.confidence:
-            st.caption(
-                f"분석의 확신 수준: {data.confidence} · 생성된 검토 결과의 판단이며 성공 확률이 아닙니다."
-            )
     if data.domain_summaries:
-        st.subheader("특허·시장 영역별 근거")
-        for column, summary in zip(
-            st.columns(len(data.domain_summaries)), data.domain_summaries
-        ):
+        st.subheader("특허·시장 교차 확인")
+        columns = st.columns(2)
+        summaries = {item.label: item for item in data.domain_summaries}
+        for column, label in zip(columns, ("특허 근거", "시장 근거")):
             with column.container(border=True):
-                st.caption(summary.kind)
-                st.markdown(f"**{summary.label}**")
-                st.write(summary.judgment)
-                st.caption(summary.implication)
-                if summary.limitation:
-                    st.caption(f"한계: {summary.limitation}")
-                st.caption(f"근거: {summary.citations or '인용 근거 없음'}")
+                item = summaries.get(label)
+                st.markdown(f"**{label}**")
+                if item is None:
+                    st.info("이 영역 결과가 제공되지 않았습니다.")
+                    continue
+                st.caption(item.kind)
+                st.write(item.judgment)
+                if item.implication:
+                    st.caption(item.implication)
+                if item.citations:
+                    st.caption(f"근거 ID: {item.citations}")
+                if item.limitation:
+                    st.caption("한계: " + item.limitation)
     if data.findings:
-        st.subheader("특허 × 시장 · 연결된 판단")
-        for column, finding in zip(
-            st.columns(min(3, len(data.findings))), data.findings[:3]
-        ):
-            with column.container(border=True):
-                st.caption(finding.kind)
-                st.markdown(f"**{finding.label}**")
-                st.write(finding.judgment)
+        st.subheader("교차 분석 결과")
+        for finding in data.findings[:2]:
+            st.markdown(f"**{finding.label}**")
+            st.write(finding.judgment)
+            if finding.implication:
                 st.caption(finding.implication)
-                st.caption(f"근거: {finding.citations or '미확인'}")
-        with st.expander("연결 판단과 인용 전체 보기"):
-            st.dataframe(
-                [
-                    {
-                        "항목": x.label,
-                        "구분": x.kind,
-                        "판단": x.judgment,
-                        "사업 검토 의미": x.implication,
-                        "인용": x.citations or "없음",
-                    }
-                    for x in data.findings
-                ],
-                hide_index=True,
-                width="stretch",
-            )
-    if data.dimensions:
-        st.subheader("시장 검토 · 어디까지 확인됐나요?")
-        chart, table = st.columns([1, 2])
-        counts = Counter(x.judgment for x in data.dimensions)
-        with chart:
-            st.bar_chart(
-                [
-                    {"판단 상태": state, "항목 수": counts[state]}
-                    for state in ["근거 확인", "신호만 확인", "미확인"]
-                ],
-                x="판단 상태",
-                y="항목 수",
-                horizontal=True,
-                height=220,
-                color="#19796f",
-            )
-            st.caption(
-                "분석 항목의 상태 분포입니다. 시장 규모·수요량·사업성 점수가 아닙니다. 미제공 항목은 집계하지 않습니다."
-            )
-        with table:
-            st.dataframe(
-                [
-                    {
-                        "검토 항목": x.label,
-                        "판단": x.judgment,
-                        "근거": x.citations or "없음",
-                        "확인되지 않은 이유": x.limitation or "미제공",
-                        "자료 상태": EVIDENCE_STATUS_LABELS.get(
-                            x.evidence_status, "미제공"
-                        ),
-                        "관련 검색 자료 수": x.relevant_count,
-                        "다음 확인": x.implication,
-                    }
-                    for x in data.dimensions
-                ],
-                hide_index=True,
-                width="stretch",
-                height=220,
-            )
-            st.caption(
-                "관련 검색 자료 수는 인용 건수와 다릅니다. 미제공 값은 0으로 채우지 않습니다."
-            )
+            st.caption(f"특허·시장 근거: {finding.citations}")
     if data.actions:
-        st.subheader("다음 행동 · 결정 전에 확인할 것")
-        selected = st.selectbox(
-            "검증 과제",
-            range(len(data.actions)),
-            format_func=lambda i: f"{i+1}. {data.actions[i].label}",
-        )
-        action = data.actions[selected]
-        with st.container(border=True):
-            st.write(action.judgment)
-            st.caption(action.implication)
-            st.caption(f"근거: {action.citations or '추가 확보 필요'}")
+        st.subheader("다음 확인")
+        for action in data.actions[:2]:
+            st.write(f"- {action.judgment}")
+    if data.patent_statistics:
+        _render_patent_statistics(data.patent_statistics)
     if data.unknowns:
-        with st.expander(f"미확인 사항·한계 {len(data.unknowns)}개"):
+        with st.expander("판단 한계"):
             for value in data.unknowns:
                 st.write(f"- {value}")
-    if not any((data.conclusion, data.findings, data.dimensions, data.actions)):
+    if data.market_context:
+        with st.expander("시장 맥락 · 참고 자료", expanded=False):
+            _render_market_context(data.market_context)
+    if not any((data.conclusion, data.findings, data.actions)):
         st.info(
             "구조화된 최종 판단이 아직 제공되지 않았습니다. 원문과 근거를 확인해 주세요."
         )

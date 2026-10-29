@@ -91,7 +91,7 @@ def test_pipeline_uses_both_service_contracts_and_returns_markdown(monkeypatch):
     )
     assert result.status == "partial"
     assert result.links[0].status == "hold"
-    assert "# 최종 실행 검토 | 검사 자동화" in result.markdown
+    assert "# 종합 검토 | 검사 자동화" in result.markdown
 
 
 # --- 준비 점검·병렬 실행·격리·마스킹 ---
@@ -383,8 +383,9 @@ def test_run_pipeline_reuses_sources_without_new_analysis(monkeypatch):
         link_llm_fn=lambda *_: link_response(),
     )
     assert result.links[0].status == "hold"
-    assert "권고:" in result.markdown and "검토일 2026-10-28" in result.markdown
-    assert "시장 검토 결과가 없어" in result.markdown
+    assert "추가 확인 후 결정" in result.markdown
+    assert "검토일 2026-10-28" in result.markdown
+    assert "통합 결론을 보류합니다" in result.markdown
 
 
 def test_status_cli_prints_json_only(monkeypatch, capsys):
