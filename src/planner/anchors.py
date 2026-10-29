@@ -338,19 +338,27 @@ def process_articles(
                 "extraction_status": extraction.status,
             }
         )
+    attach_mention_index(metas, anchors, texts)
+    return {
+        "articles": metas,
+        "extractions": extractions,
+        "anchors": anchors,
+        "rejected": rejected,
+        "texts": texts,
+    }
+
+
+def attach_mention_index(
+    metas: list[dict], anchors: list[Anchor], texts: dict[str, str]
+) -> None:
+    """자료집 전체 기업 언급 이름이 각 기사 텍스트에 나오는지 기록한다(미확인 사유 계산용)."""
     names = {
         a.entity_text: a.entity_id
         for a in anchors
         if a.kind == "mention" and len(a.entity_text) >= 2
     }
     for meta in metas:
-        text = texts[meta["source_id"]]
+        text = texts.get(meta["source_id"], "")
         meta["mentioned_entity_ids"] = sorted(
             {eid for name, eid in names.items() if name in text}
         )
-    return {
-        "articles": metas,
-        "extractions": extractions,
-        "anchors": anchors,
-        "rejected": rejected,
-    }

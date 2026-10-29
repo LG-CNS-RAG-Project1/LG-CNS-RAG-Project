@@ -24,6 +24,8 @@ RUNS_DIR = ROOT_DIR / "data" / "market" / "runs"
 OPTIONAL_PREFIXES = ("bodies/", "raw_responses/")
 REQUIRED_FILES = (
     "idea.json",
+    "profile.json",
+    "question_bank.json",
     "query_plan.json",
     "selection.json",
     "articles.jsonl",

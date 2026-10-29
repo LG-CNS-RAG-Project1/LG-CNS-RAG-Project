@@ -8,7 +8,7 @@
 
 import itertools
 
-from src.planner.config import ENTITY_SLOTS, Profile, QuestionBank, template_slots
+from src.planner.config import Profile, QuestionBank, template_slots
 from src.planner.relations import is_external_transaction
 from src.planner.schemas import AssumptionLink, Edge, Evidence, QuestionPick
 

@@ -343,6 +343,7 @@ def approve_suppliers(anchors: list[Anchor]) -> tuple[dict, dict, list[Evidence]
     """기사별 승인 공급사와 엔터티 목록, 공급사 근거를 만든다."""
     approved_in: dict[str, set[str]] = {}
     entities: dict[str, Entity] = {}
+    roles: dict[str, set[str]] = {}
     evidence = []
     for anchor in anchors:
         if anchor.kind != "mention" or not anchor.entity_id:
@@ -371,11 +372,11 @@ def approve_suppliers(anchors: list[Anchor]) -> tuple[dict, dict, list[Evidence]
                 approved=False,
             ),
         )
+        roles.setdefault(anchor.entity_id, set()).add(anchor.candidate_role)
         if anchor.source_id not in entity.source_ids:
             entity.source_ids.append(anchor.source_id)
         if ok:
             entity.approved = True
-            entity.role = "supplier"
             approved_in.setdefault(anchor.source_id, set()).add(anchor.entity_id)
         else:
             entity.reasons = sorted(set(entity.reasons) | set(reasons))
@@ -396,6 +397,7 @@ def approve_suppliers(anchors: list[Anchor]) -> tuple[dict, dict, list[Evidence]
                 )
             )
     for entity in entities.values():
+        entity.role = "|".join(sorted(roles[entity.entity_id]))
         if entity.approved:
             entity.reasons = []
         entity.source_ids.sort()

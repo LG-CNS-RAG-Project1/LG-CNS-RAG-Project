@@ -312,6 +312,7 @@ class SemanticResult(BaseModel):
     area_id: str
     versions: dict[str, str]
     counts: dict
+    sources: list[dict] = Field(default_factory=list)
     entities: list[Entity] = Field(default_factory=list)
     evidence: list[Evidence] = Field(default_factory=list)
     criteria: list[dict] = Field(default_factory=list)

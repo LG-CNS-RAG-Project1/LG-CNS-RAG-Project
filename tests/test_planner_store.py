@@ -42,6 +42,8 @@ def publish(root, run_id="20261029-aaaa0001", digest="d" * 64):
     staging = Staging(root, "SF-02", digest, run_id)
     for name in [
         "idea.json",
+        "profile.json",
+        "question_bank.json",
         "query_plan.json",
         "selection.json",
     ]:
