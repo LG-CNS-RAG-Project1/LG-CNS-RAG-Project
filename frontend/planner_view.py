@@ -204,18 +204,31 @@ def render_matrix(semantic) -> None:
             )
     criteria = semantic.criteria
     cells = {(c.row_id, c.criterion_id): c for c in semantic.cells}
+    informative = [
+        row
+        for row in semantic.rows
+        if row.kind == "our_claim"
+        or any(cells[(row.row_id, c["id"])].status != "unknown" for c in criteria)
+    ]
+    hidden = len(semantic.rows) - len(informative)
+    show_all = hidden and st.checkbox(
+        f"미확인만 있는 공급사 {hidden}곳도 표시",
+        key="planner_show_all",
+        help="세 기준 모두 자료집에서 대응 주장을 찾지 못한 공급사입니다. 기능이 없다는 뜻이 아닙니다.",
+    )
+    rows = semantic.rows if show_all else informative
     table = pd.DataFrame(
         [
             {"공급사·제품": row.label}
             | {c["label"]: _cell_text(cells[(row.row_id, c["id"])]) for c in criteria}
-            for row in semantic.rows
+            for row in rows
         ]
     )
     st.caption(
         "● 대응 주장 명시 · ◐ 설명 불완전 · ○ 미확인(기능이 없다는 뜻 아님) · ⇄ 상충. "
         "경쟁력 점수나 성능 순위가 아닙니다. 칸을 누르거나 아래 목록에서 골라 근거를 확인하세요."
     )
-    ordered = [(r.row_id, c["id"]) for r in semantic.rows for c in criteria]
+    ordered = [(r.row_id, c["id"]) for r in rows for c in criteria]
     event = st.dataframe(
         table,
         hide_index=True,
@@ -228,11 +241,13 @@ def render_matrix(semantic) -> None:
     if picked:
         row_index, column = picked[0]
         names = {c["label"]: c["id"] for c in criteria}
-        if column in names and 0 <= row_index < len(semantic.rows):
-            target = ordered.index((semantic.rows[row_index].row_id, names[column]))
+        if column in names and 0 <= row_index < len(rows):
+            target = ordered.index((rows[row_index].row_id, names[column]))
             if st.session_state.get("planner_matrix_last") != target:
                 st.session_state["planner_matrix_last"] = target
                 st.session_state["planner_cell"] = target
+    if not 0 <= st.session_state.get("planner_cell", 0) < len(ordered):
+        st.session_state["planner_cell"] = 0
     choice = st.selectbox(
         "근거를 볼 칸",
         range(len(ordered)),

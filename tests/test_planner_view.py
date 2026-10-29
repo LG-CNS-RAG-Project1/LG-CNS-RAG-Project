@@ -189,3 +189,18 @@ def test_relations_assumptions_and_dataset_tabs(run_root, no_network):
 def test_run_built_from_different_idea_is_flagged(run_root, no_network):
     app = app_for(run_root, idea_draft=draft(difference="전혀 다른 차별점"))
     assert any("다른 아이디어로 만든 자료집" in w.value for w in app.warning)
+
+
+def test_suppliers_with_only_unknown_cells_are_collapsed_but_reachable(
+    run_root, no_network
+):
+    app = app_for(run_root)
+    options = app.selectbox(key="planner_cell").options
+    assert not any(o.startswith("마바솔루션") for o in options)
+    app.selectbox(key="planner_cell").select_index(len(options) - 1).run()
+    app.checkbox(key="planner_show_all").check().run()
+    assert not app.exception
+    options = app.selectbox(key="planner_cell").options
+    assert any(o.startswith("마바솔루션") for o in options)
+    app.checkbox(key="planner_show_all").uncheck().run()
+    assert not app.exception
