@@ -224,3 +224,34 @@ def test_run_market_research_attaches_financials_for_searched_companies(monkeypa
     assert received == [(["두산로보틱스"], 20261029)]
     assert report.company_financials.status == "no_companies"
     assert failed.company_financials.status == "error"
+
+
+def test_financial_chart_rows_and_chart():
+    from frontend.market_financials_view import financial_chart, financial_chart_rows
+
+    financials = build_company_financials(
+        ["두산로보틱스", "엠아이큐브솔루션"],
+        20261029,
+        lambda corp, year: {"001": DOOSAN, "002": SEPARATE_ONLY}[corp],
+        CONFIG,
+        CORP_CODES,
+    )
+
+    rows = financial_chart_rows(financials)
+
+    assert rows[0] == {
+        "패널": "두산로보틱스 · 영업이익률 -180.3%",
+        "연도": "2023",
+        "매출액(억원)": 530,
+        "영업이익(억원)": None,
+        "영업이익": "영업이익 미제공",
+    }
+    assert rows[2]["영업이익"] == "영업이익 적자"
+    assert [r["연도"] for r in rows if r["패널"].startswith("엠아이")] == [
+        "2024",
+        "2025",
+    ]
+    assert rows[-1]["영업이익"] == "영업이익 흑자"
+    spec = financial_chart(financials, "dark").to_dict()
+    assert spec["resolve"]["scale"]["y"] == "independent"
+    assert financial_chart(build_company_financials([], 20261029)) is None
