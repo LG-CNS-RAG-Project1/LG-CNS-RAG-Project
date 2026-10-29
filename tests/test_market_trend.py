@@ -122,6 +122,64 @@ def test_build_search_trend_queries_theme_with_reference():
     assert "수요의 근거가 아닙니다" in trend.note
 
 
+def test_build_search_trend_falls_back_to_broader_terms():
+    queried = []
+
+    def fake_fetch(groups, start, end):
+        terms = groups[1]["keywords"]
+        queried.append(terms)
+        volume = 0.2 if terms == ["용접 불량 검사"] else 10.0
+        return {
+            "스마트공장": series([50.0] * 24),
+            "주제어": series([volume] * 18 + [volume * 2] * 6),
+        }
+
+    trend = build_search_trend(
+        IDEA,
+        20261029,
+        llm_fn=lambda s, u: {
+            "category": "용접 불량 검사",
+            "synonyms": [],
+            "broader": ["용접 검사", "용접 불량 검사", "스마트공장"],
+        },
+        fetch_fn=fake_fetch,
+        config=CONFIG,
+    )
+
+    assert queried == [["용접 불량 검사"], ["용접 검사"]]
+    assert trend.status == "completed"
+    assert trend.keywords == ["용접 검사"]
+    assert trend.fallback_from == ["용접 불량 검사"]
+    assert trend.direction == "rising"
+
+
+def test_build_search_trend_keeps_larger_volume_points_when_both_low():
+    def fake_fetch(groups, start, end):
+        volume = 0.2 if groups[1]["keywords"] == ["공정제어"] else 0.6
+        return {"스마트공장": series([50.0] * 24), "주제어": series([volume] * 24)}
+
+    trend = build_search_trend(
+        IDEA,
+        20261029,
+        llm_fn=lambda s, u: {"category": "공정제어", "broader": ["자동제어"]},
+        fetch_fn=fake_fetch,
+        config=CONFIG,
+    )
+    narrow_only = build_search_trend(
+        IDEA,
+        20261029,
+        llm_fn=lambda s, u: {"category": "공정제어"},
+        fetch_fn=fake_fetch,
+        config=CONFIG,
+    )
+
+    assert trend.status == "insufficient_volume"
+    assert trend.keywords == ["자동제어"] and trend.fallback_from == ["공정제어"]
+    assert trend.points[0].relative_index == 1.2
+    assert narrow_only.keywords == ["공정제어"] and narrow_only.fallback_from == []
+    assert len(narrow_only.points) == 24
+
+
 def test_build_search_trend_reports_errors():
     no_terms = build_search_trend(
         IDEA, 20261029, llm_fn=lambda s, u: {"category": "AI"}, config=CONFIG
@@ -203,6 +261,10 @@ def test_trend_summary_and_markdown_section():
         "(최근 6개월 평균, 직전 6개월 대비 +100.0%)."
     )
     assert "검색량이 적어" in search_trend_summary(low)
+    widened = trend.model_copy(update={"fallback_from": ["용접 불량 검사"]})
+    assert search_trend_summary(widened).startswith(
+        "'용접 불량 검사'는 검색량이 적어 상위 범주로 조회했습니다. '예지보전"
+    )
     markdown = market_report_to_markdown(report)
     assert "### 검색 관심도 흐름" in markdown
     assert "2026-09 40" in markdown
