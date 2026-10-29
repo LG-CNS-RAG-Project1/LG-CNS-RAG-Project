@@ -7,14 +7,17 @@ from src.generation.market_analysis import (
     DEFAULT_CHECKS,
     allowed_verdicts,
     attribute_dart,
+    attribute_procurement,
     build_evidence,
     build_report,
     claim_errors,
     dimension_inputs,
     generate_dimensions,
+    mark_target_unknown,
+    public_target,
     recency_grade,
 )
-from src.schemas import StructuredIdea
+from src.schemas import MarketCommercialAnalysis, StructuredIdea
 from src.services import market_service
 
 AS_OF = 20261027
@@ -597,3 +600,94 @@ def test_build_report_includes_business_approval_profile_and_citations():
     )
     assert report.commercial_analysis.buyer == "공장장"
     assert report.commercial_analysis.citation_ids == [1]
+
+
+def procurement_evidence(citation_id=9, period="2026년 4월~2026년 9월"):
+    evidence, _ = build_evidence(ASSESSED, AS_OF)
+    return evidence[0].model_copy(
+        update={
+            "citation_id": citation_id,
+            "source_type": "procurement",
+            "evidence_nature": "purchase_signal",
+            "title": "나라장터 '협동로봇' 입찰공고 집계",
+            "quote": "관련 공고는 26건이다. 배정예산 중앙값은 4,376만원이다.",
+            "period": period,
+        }
+    )
+
+
+def test_procurement_cannot_confirm_buyer_for_private_customers():
+    procurement = procurement_evidence()
+    assessed = make_assessed(
+        price=("sufficient", [make_hit("a"), make_hit("b")]),
+        buyer=("sufficient", [make_hit("a"), make_hit("b")]),
+    )
+    evidence, ids = build_evidence(assessed, AS_OF)
+    evidence.append(procurement.model_copy(update={"citation_id": len(evidence) + 1}))
+    ids = {d: [*v, len(evidence)] for d, v in ids.items()}
+    public_idea = IDEA.model_copy(update={"customers": "대학·연구기관"})
+
+    private_inputs = {
+        d["dimension"]: d["allowed_verdicts"]
+        for d in dimension_inputs(IDEA, assessed, evidence, ids)
+    }
+    public_inputs = {
+        d["dimension"]: d["allowed_verdicts"]
+        for d in dimension_inputs(public_idea, assessed, evidence, ids)
+    }
+
+    assert not public_target(IDEA) and public_target(public_idea)
+    assert private_inputs["price"][0] == "confirmed"
+    assert private_inputs["buyer"] == ["signal_only", "unverified"]
+    assert public_inputs["buyer"][0] == "confirmed"
+    assert allowed_verdicts("buyer", "sufficient", [procurement], confirmable=[]) == [
+        "signal_only",
+        "unverified",
+    ]
+
+
+def test_attribute_procurement_adds_period_to_undated_claims():
+    by_id = {9: procurement_evidence()}
+    undated = fact("협동로봇 공고 배정예산 중앙값은 4,376만원이다.", 9)
+    dated = fact("2026년 9월 공고 배정예산 중앙값은 4,376만원이다.", 9)
+
+    attributed = attribute_procurement(undated, by_id)
+
+    assert attributed["statement"] == (
+        "나라장터 입찰공고(2026년 4월~2026년 9월) 기준 "
+        "협동로봇 공고 배정예산 중앙값은 4,376만원이다."
+    )
+    assert claim_errors(attributed, {9}, by_id, "") == []
+    assert claim_errors(undated, {9}, by_id, "")[0].startswith(
+        "수치에 기준 연도가 없음"
+    )
+    assert attribute_procurement(dated, by_id) == dated
+    named = attribute_procurement(
+        fact("나라장터에 따르면 중앙값은 4,376만원이다.", 9), by_id
+    )
+    assert named["statement"] == (
+        "2026년 4월~2026년 9월 나라장터에 따르면 중앙값은 4,376만원이다."
+    )
+    assert (
+        attribute_procurement(fact("다른 문장", 1), by_id)["statement"] == "다른 문장"
+    )
+
+
+def test_mark_target_unknown_only_for_private_customers():
+    result = MarketCommercialAnalysis(
+        buyer="공공 부문(나라장터 공고 기준): 대학·학교 16건",
+        budget_owner="공공 부문: 수요기관 배정예산",
+        purchase_process="미확인",
+        pricing_hypothesis="나라장터 배정예산 중앙값 4,376만원 / 목표 고객은 미확인",
+    )
+
+    marked = mark_target_unknown(result, IDEA)
+    public = mark_target_unknown(
+        result, IDEA.model_copy(update={"customers": "공공기관"})
+    )
+
+    assert marked.buyer.endswith("/ 목표 고객(중소 제조사)은 미확인")
+    assert marked.budget_owner.endswith("/ 목표 고객(중소 제조사)은 미확인")
+    assert marked.purchase_process == "미확인"
+    assert marked.pricing_hypothesis == result.pricing_hypothesis
+    assert public == result
