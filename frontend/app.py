@@ -823,6 +823,97 @@ def render_patent_report(patent, *, widget_suffix="", preview=False):
         patent_review_priority,
     )
 
+    indexed_stats = getattr(patent, "indexed_statistics", None)
+    related_stats = getattr(patent, "related_statistics", None)
+    if indexed_stats or related_stats:
+        with st.expander("특허 기술 동향 · 분류 통계", expanded=False):
+            if indexed_stats:
+                years = [item.label for item in indexed_stats.yearly_applications]
+                year_range = f"{min(years)}–{max(years)}" if years else "미확인"
+                st.caption(
+                    f"범위: {indexed_stats.scope} · 고유 문헌 {indexed_stats.total_patents}건 · "
+                    f"출원연도 {year_range} · "
+                    f"출원일 확인 {indexed_stats.application_date_coverage}/{indexed_stats.total_patents} · "
+                    f"IPC 보유 {indexed_stats.ipc_coverage}/{indexed_stats.total_patents} · "
+                    f"CPC 보유 {indexed_stats.cpc_coverage}/{indexed_stats.total_patents} · "
+                    f"출원인 확인 {indexed_stats.applicant_coverage}/{indexed_stats.total_patents} · "
+                    f"집계일 {indexed_stats.data_as_of or '미확인'}"
+                )
+                if not indexed_stats.total_patents:
+                    st.info(
+                        "현재 특허 색인이 비어 있어 기술 동향 통계를 표시할 수 없습니다."
+                    )
+                if indexed_stats.ipc_distribution:
+                    st.markdown("**색인 IPC 상위 분류**")
+                    st.bar_chart(
+                        [
+                            {"분류": item.label, "특허 수": item.count}
+                            for item in indexed_stats.ipc_distribution
+                        ],
+                        x="분류",
+                        y="특허 수",
+                        horizontal=True,
+                    )
+                elif indexed_stats.total_patents:
+                    st.info(
+                        "현재 색인 메타데이터에 IPC 코드가 없습니다. 특허를 다시 수집하고 색인하면 통계에 반영됩니다."
+                    )
+                if indexed_stats.cpc_distribution:
+                    st.markdown("**색인 CPC 상위 분류**")
+                    st.bar_chart(
+                        [
+                            {"분류": item.label, "특허 수": item.count}
+                            for item in indexed_stats.cpc_distribution
+                        ],
+                        x="분류",
+                        y="특허 수",
+                        horizontal=True,
+                    )
+                if indexed_stats.yearly_applications:
+                    st.markdown("**출원연도별 건수**")
+                    st.bar_chart(
+                        [
+                            {"연도": item.label, "특허 수": item.count}
+                            for item in indexed_stats.yearly_applications
+                        ],
+                        x="연도",
+                        y="특허 수",
+                    )
+                if indexed_stats.top_applicants:
+                    st.markdown("**주요 출원인**")
+                    st.dataframe(
+                        [
+                            {"출원인": item.label, "특허 수": item.count}
+                            for item in indexed_stats.top_applicants
+                        ],
+                        hide_index=True,
+                        use_container_width=True,
+                    )
+                st.caption(
+                    "현재 색인 데이터의 메타데이터 통계입니다. 전체 특허 시장 규모, 기술 신규성, 시장 성장률 또는 권리 가능성을 뜻하지 않습니다."
+                )
+            if related_stats:
+                st.markdown("**아이디어 관련 후보 분류**")
+                st.caption(
+                    f"범위: {related_stats.scope} · 중복 제거 후보 {related_stats.total_patents}건 (최종 비교 문헌 수와 다를 수 있음)"
+                )
+                if related_stats.ipc_distribution:
+                    st.dataframe(
+                        [
+                            {"IPC 분류": item.label, "후보 수": item.count}
+                            for item in related_stats.ipc_distribution
+                        ],
+                        hide_index=True,
+                        use_container_width=True,
+                    )
+                else:
+                    st.info(
+                        "관련 후보의 IPC 코드가 색인 메타데이터에 없어 분류 분포를 계산할 수 없습니다."
+                    )
+                st.caption(
+                    "검색 후보 분포는 기술 신규성이나 특허 등록 가능성의 판단 근거가 아닙니다."
+                )
+
     if patent.status == "error":
         st.error("특허 비교 보고서를 완성하지 못했습니다.")
         if "LIMITED_NUMBER_OF_SERVICE_REQUESTS_EXCEEDS_ERROR" in (
@@ -895,7 +986,7 @@ def render_patent_report(patent, *, widget_suffix="", preview=False):
         for component in design_analysis.technical_components:
             st.caption(f"{component.id} · {component.name} — {component.description}")
         for index, proposal in enumerate(design_analysis.proposals, 1):
-            with st.expander(f"대안 {index} · {proposal.title}", expanded=index == 1):
+            with st.expander(f"대안 {index} · {proposal.title}", expanded=False):
                 st.markdown(f"**현재 문제**\n\n{proposal.problem}")
                 st.markdown(
                     f"**변경 대상**\n\n{', '.join(proposal.target_component_ids)}"

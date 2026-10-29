@@ -5,6 +5,10 @@ from typing import Callable
 
 from src.generation.patent_analysis import review_patents_by_component
 from src.generation.patent_design import generate_patent_design_analysis
+from src.analysis.patent_statistics import (
+    calculate_patent_statistics,
+    indexed_patent_statistics,
+)
 from src.ingestion.kipris_client import KiprisAPIError, fetch_patent_claims
 from src.retrieval.patent_search import build_patent_queries, search_patents
 from src.retrieval.patent_relevance import judge_patent_candidates
@@ -20,6 +24,17 @@ from src.schemas import (
 from src.ingestion.patent_processor import structure_claims
 
 KIPRIS_SUPPLEMENT_QUERY_LIMIT = 2
+
+
+def _metadata_codes(value) -> list[str]:
+    """검색 메타데이터의 코드 배열 또는 쉼표 문자열을 목록으로 정리한다."""
+    if isinstance(value, (list, tuple, set)):
+        values = value
+    else:
+        values = str(value or "").replace("|", ",").split(",")
+    return list(
+        dict.fromkeys(str(item).strip() for item in values if str(item).strip())
+    )
 
 
 def _kipris_supplement_queries(plan, idea) -> list[str]:
@@ -66,6 +81,9 @@ def _supplement_result(record: dict) -> RetrievalResult | None:
             "publication_date": record.get("publication_date"),
             "public_date": record.get("public_date"),
             "source_url": record.get("source_url"),
+            "applicant": record.get("applicant"),
+            "ipc_codes": record.get("ipc_codes") or [],
+            "cpc_codes": record.get("cpc_codes") or [],
         },
     )
     return RetrievalResult(document=document)
@@ -242,6 +260,11 @@ def analyze_patents(
     """
     from src.ingestion.kipris_client import search_patents as search_kipris_patents
 
+    if collection is None:
+        from src.retrieval.patent_store import get_collection
+
+        collection = get_collection()
+
     claim_fetcher = claim_fetcher or fetch_patent_claims
     kipris_search_fn = kipris_search_fn or search_kipris_patents
     relevance_fn = relevance_fn or judge_patent_candidates
@@ -254,6 +277,13 @@ def analyze_patents(
     unknowns: list[str] = []
     used_global_fallback = False
     kipris_search_error = None
+    indexed_statistics = None
+    try:
+        indexed_statistics = indexed_patent_statistics(collection)
+    except Exception as statistics_error:
+        unknowns.append(
+            "색인 전체 통계를 읽지 못했습니다: " f"{type(statistics_error).__name__}"
+        )
     try:
         plan = build_patent_queries(**plan_kwargs)
         queries = [
@@ -293,11 +323,12 @@ def analyze_patents(
             reverse=True,
         )[: max(candidate_k, request.top_k)]
         judgments = relevance_fn(request.idea, ordered_candidates)
-        candidates = [
+        related_candidates = [
             item
             for item in ordered_candidates
             if judgments[item.document.source_id].relevant
-        ][: request.top_k]
+        ]
+        candidates = [item for item in related_candidates][: request.top_k]
 
         # A chosen technology area is a search preference, not a hard boundary.
         # Broaden to the full local index before concluding that no evidence exists.
@@ -338,11 +369,13 @@ def analyze_patents(
                     reverse=True,
                 )[: max(candidate_k, request.top_k)]
                 expanded_judgments = relevance_fn(request.idea, expanded)
-                candidates.extend(
+                expanded_related = [
                     item
                     for item in expanded
                     if expanded_judgments[item.document.source_id].relevant
-                )
+                ]
+                related_candidates.extend(expanded_related)
+                candidates.extend(expanded_related)
                 candidates = candidates[: request.top_k]
 
         if len(candidates) < request.top_k:
@@ -366,6 +399,11 @@ def analyze_patents(
                         for item in added
                         if supplemental_judgments[item.document.source_id].relevant
                     )
+                    related_candidates.extend(
+                        item
+                        for item in added
+                        if supplemental_judgments[item.document.source_id].relevant
+                    )
                 if len(candidates) >= request.top_k:
                     candidates = candidates[: request.top_k]
                     break
@@ -379,6 +417,7 @@ def analyze_patents(
                     ),
                     error_message=kipris_search_error,
                     unknowns=unknowns,
+                    indexed_statistics=indexed_statistics,
                 )
             return PatentReport(
                 status="no_results",
@@ -388,6 +427,7 @@ def analyze_patents(
                     else "아이디어 기술 요소별 Dense 검색 및 필요 시 KIPRIS 후보 보충"
                 ),
                 unknowns=unknowns or ["검색된 특허 후보가 없습니다."],
+                indexed_statistics=indexed_statistics,
             )
 
         for result in candidates:
@@ -468,6 +508,8 @@ def analyze_patents(
                             application_number=app_number,
                             publication_number=meta.get("publication_number"),
                             registration_number=meta.get("registration_number"),
+                            ipc_codes=_metadata_codes(meta.get("ipc_codes")),
+                            cpc_codes=_metadata_codes(meta.get("cpc_codes")),
                             application_date=meta.get("application_date"),
                             publication_date=meta.get("publication_date"),
                             collected_at=meta.get("collected_at"),
@@ -495,6 +537,8 @@ def analyze_patents(
                         application_number=app_number,
                         publication_number=meta.get("publication_number"),
                         registration_number=meta.get("registration_number"),
+                        ipc_codes=_metadata_codes(meta.get("ipc_codes")),
+                        cpc_codes=_metadata_codes(meta.get("cpc_codes")),
                         application_date=meta.get("application_date"),
                         publication_date=meta.get("publication_date"),
                         collected_at=meta.get("collected_at"),
@@ -524,6 +568,8 @@ def analyze_patents(
                         application_number=app_number,
                         publication_number=meta.get("publication_number"),
                         registration_number=meta.get("registration_number"),
+                        ipc_codes=_metadata_codes(meta.get("ipc_codes")),
+                        cpc_codes=_metadata_codes(meta.get("cpc_codes")),
                         application_date=meta.get("application_date"),
                         publication_date=meta.get("publication_date"),
                         collected_at=meta.get("collected_at"),
@@ -587,6 +633,15 @@ def analyze_patents(
                         "구성요소 비교 생성 실패"
                     ),
                     error_message=f"특허 비교 생성 실패: {review_error}",
+                    indexed_statistics=indexed_statistics,
+                    related_statistics=calculate_patent_statistics(
+                        [
+                            item.document.metadata
+                            | {"source_id": item.document.source_id}
+                            for item in related_candidates
+                        ],
+                        scope="아이디어 관련 검색 후보",
+                    ),
                 )
             for review in patent_reviews:
                 unknowns.extend(f"{review.title}: {item}" for item in review.unknowns)
@@ -640,6 +695,14 @@ def analyze_patents(
             patent_reviews=patent_reviews,
             patentability_precheck=patentability_precheck,
             design_analysis=design_analysis,
+            indexed_statistics=indexed_statistics,
+            related_statistics=calculate_patent_statistics(
+                [
+                    item.document.metadata | {"source_id": item.document.source_id}
+                    for item in related_candidates
+                ],
+                scope="아이디어 관련 검색 후보",
+            ),
             unknowns=unknowns,
             search_scope=(
                 "아이디어 기술 요소별 Dense 후보 검색·LLM 관련성 판정"
