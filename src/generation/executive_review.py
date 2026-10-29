@@ -251,7 +251,7 @@ def build_executive_review(
     confidence = (
         "낮음"
         if market.status in {"error", "no_results"}
-        or patent.status in {"error", "no_results"}
+        or patent.status in {"error", "partial", "no_results"}
         else {"low": "낮음", "medium": "보통", "high": "높음"}[business.confidence]
     )
     limitations = []

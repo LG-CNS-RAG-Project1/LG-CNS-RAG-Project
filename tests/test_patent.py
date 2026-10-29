@@ -223,6 +223,44 @@ def test_no_results():
     assert report.comparisons == []
 
 
+def test_patent_search_defaults_to_eight_and_rejects_more_than_eight():
+    idea = StructuredIdea(
+        title="센서 시스템",
+        problem="상태 파악",
+        technology="센서 분석",
+    )
+    assert PatentSearchRequest(idea=idea).top_k == 8
+    with pytest.raises(ValidationError):
+        PatentSearchRequest(idea=idea, top_k=9)
+
+
+def test_patent_report_allows_eight_unique_documents_and_rejects_nine():
+    evidence = [
+        PatentEvidence(
+            citation_id=index,
+            patent_id=f"P{index}",
+            title=f"특허 {index}",
+            section="abstract",
+            quote=f"근거 {index}",
+        )
+        for index in range(1, 9)
+    ]
+    report = PatentReport(status="completed", search_scope="test", evidence=evidence)
+    assert len(report.evidence) == 8
+
+    evidence.append(
+        PatentEvidence(
+            citation_id=9,
+            patent_id="P9",
+            title="특허 9",
+            section="abstract",
+            quote="근거 9",
+        )
+    )
+    with pytest.raises(ValidationError, match="Maximum 8"):
+        PatentReport(status="completed", search_scope="test", evidence=evidence)
+
+
 # ============================================================
 # 특허 데이터 정제 테스트
 # ============================================================

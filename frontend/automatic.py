@@ -40,7 +40,7 @@ def report_evidence(market_payload, patent_payload):
                     nature=e.evidence_nature,
                 )
             )
-    if patent.status == "completed":
+    if patent.status in {"completed", "partial"}:
         for e in patent.evidence:
             rows.append(
                 dict(

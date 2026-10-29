@@ -236,7 +236,7 @@ def analyze_patents(
     relevance_fn: Callable | None = None,
     candidate_k: int = 20,
 ) -> PatentReport:
-    """특허 후보를 최대 5건 고르고 청구항 원문 근거와 비교 결과를 만든다.
+    """특허 후보를 최대 8건 고르고 청구항 원문 근거와 비교 결과를 만든다.
 
     테스트와 다른 배포 환경은 collection 및 KIPRIS/LLM 함수들을 주입할 수 있다.
     """
@@ -558,17 +558,36 @@ def analyze_patents(
                     )
             except Exception as comparison_error:
                 return PatentReport(
-                    status="error",
+                    status="partial",
                     evidence=evidence,
                     unknowns=unknowns
-                    + ["특허 비교 응답이 검증되지 않아 결과를 완료하지 못했습니다."],
+                    + [
+                        "특허 원문 검색은 완료했지만 비교 응답을 검증하지 못했습니다.",
+                        "비교 단계 실패로 설계 대안 생성은 실행하지 않았습니다.",
+                    ],
                     search_scope="아이디어 기술 요소별 Dense 검색 및 관련성 판정 후 비교",
-                    error_message=str(comparison_error),
+                    error_message=f"특허 비교 응답 검증 실패: {comparison_error}",
                 )
         else:
-            patent_reviews, patentability_precheck = (
-                patent_review_fn or review_patents_by_component
-            )(request.idea, evidence)
+            try:
+                patent_reviews, patentability_precheck = (
+                    patent_review_fn or review_patents_by_component
+                )(request.idea, evidence)
+            except Exception as review_error:
+                return PatentReport(
+                    status="partial",
+                    evidence=evidence,
+                    unknowns=unknowns
+                    + [
+                        "특허 원문 검색은 완료했지만 구성요소 비교 생성에 실패했습니다.",
+                        "비교 단계 실패로 설계 대안 생성은 실행하지 않았습니다.",
+                    ],
+                    search_scope=(
+                        "아이디어 기술 요소별 특허 후보 검색과 원문 근거 확보 완료; "
+                        "구성요소 비교 생성 실패"
+                    ),
+                    error_message=f"특허 비교 생성 실패: {review_error}",
+                )
             for review in patent_reviews:
                 unknowns.extend(f"{review.title}: {item}" for item in review.unknowns)
         try:
@@ -630,7 +649,7 @@ def analyze_patents(
                     else ""
                 )
                 + "; 후보 부족 시 KIPRIS 검색; "
-                "청구항 원문 조회는 선택된 최대 5개 문헌에 한함"
+                "청구항 원문 조회는 선택된 최대 8개 문헌에 한함"
             ),
         )
     except Exception as exc:

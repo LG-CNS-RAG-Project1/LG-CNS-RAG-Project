@@ -81,7 +81,7 @@ _SECRET_PATTERNS = [
     (re.compile(r"(?i)\b(bearer\s+)[A-Za-z0-9._~+/=\-]+"), r"\1***"),
 ]
 
-RunState = Literal["completed", "no_results", "error", "skipped", "timeout"]
+RunState = Literal["completed", "partial", "no_results", "error", "skipped", "timeout"]
 
 LOG = logging.getLogger("idealens")
 if not LOG.handlers:
@@ -506,7 +506,7 @@ def _timed(fn: Callable, *args, **kwargs):
 
 
 def _part_from_report(report, seconds: float) -> PartRun:
-    message = report.error_message if report.status == "error" else None
+    message = report.error_message if report.status in {"error", "partial"} else None
     return PartRun(
         state=report.status, seconds=round(seconds, 1), message=redact(message)
     )
