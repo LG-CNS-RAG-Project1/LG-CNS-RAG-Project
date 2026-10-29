@@ -5,12 +5,14 @@ import pytest
 from chromadb.config import Settings
 
 from src.retrieval.market_search import (
-    DART_TOP_K,
+    DART_COMPANY_K,
     build_dimension_queries,
+    build_idea_query,
     build_index,
     build_where,
     get_collection,
     load_all_documents,
+    route_dart_companies,
     search_by_dimensions,
     search_market,
     to_chroma_record,
@@ -131,6 +133,9 @@ def test_build_where():
     assert build_where(idea_id="SF-01", date_from=20250101) == {
         "$and": [{"idea_SF-01": True}, {"published_at": {"$gte": 20250101}}]
     }
+    assert build_where(source_types=["dart"], publishers=["A"]) == {
+        "$and": [{"source_type": {"$in": ["dart"]}}, {"publisher": {"$in": ["A"]}}]
+    }
 
 
 def test_search_market_orders_and_formats(indexed):
@@ -233,38 +238,116 @@ def test_search_by_dimensions(indexed):
     assert all(len(hits) <= 2 for hits in results.values())
 
 
-def test_search_by_dimensions_appends_dart_quota(indexed):
-    dart = [
-        make_document(
-            f"dart-r1-1-{i}",
-            f"협동로봇 사업보고서 도입 {i}",
-            source_type="dart",
-            dup_group=f"dart-r1-{i}",
-            evidence_nature="company_claim",
-        )
-        for i in range(3)
-    ]
-    build_index(dart, indexed, embed_fn=fake_embed)
-    request = MarketSearchRequest(
-        idea=StructuredIdea(
-            title="협동로봇", problem="인력 부족", technology="협동로봇"
-        ),
-        dimensions=["demand"],
-        top_k=2,
+def dart_document(source_id, text, company, **overrides):
+    return make_document(
+        source_id,
+        text,
+        source_type="dart",
+        publisher=f"{company} (DART 사업보고서)",
+        dup_group=source_id,
+        evidence_nature="company_claim",
+        **overrides,
     )
 
-    hits = search_by_dimensions(
-        request, idea_id="SF-01", collection=indexed, embed_fn=fake_embed
-    )["demand"]
 
-    assert [h["source_type"] for h in hits] == ["news", "news"] + ["dart"] * DART_TOP_K
+@pytest.fixture
+def with_dart(indexed):
+    dart = [
+        dart_document("dart-a-1", "협동로봇 사업 개요", "로봇A"),
+        dart_document("dart-a-2", "협동로봇 도입 고객", "로봇A"),
+        dart_document("dart-b-1", "협동로봇 비전 가격", "로봇B"),
+        dart_document("dart-c-1", "협동로봇 비전", "비전C"),
+        dart_document("dart-d-1", "FEMS 사업 개요", "에너지D"),
+        dart_document("dart-e-1", "예지보전 사업 개요", "보전E"),
+    ]
+    build_index(dart, indexed, embed_fn=fake_embed)
+    return indexed
+
+
+COBOT_REQUEST = MarketSearchRequest(
+    idea=StructuredIdea(title="협동로봇", problem="인력 부족", technology="협동로봇"),
+    dimensions=["demand"],
+    top_k=2,
+)
+
+
+def test_route_dart_companies_picks_companies_close_to_idea(with_dart):
+    companies = route_dart_companies(
+        COBOT_REQUEST, collection=with_dart, embed_fn=fake_embed
+    )
+
+    assert len(companies) == DART_COMPANY_K
+    assert set(companies) == {
+        "로봇A (DART 사업보고서)",
+        "로봇B (DART 사업보고서)",
+        "비전C (DART 사업보고서)",
+    }
+    assert route_dart_companies(
+        COBOT_REQUEST, collection=with_dart, embed_fn=fake_embed, k=1
+    ) == [companies[0]]
+
+
+def test_route_dart_companies_without_dart(indexed, collection):
+    assert (
+        route_dart_companies(COBOT_REQUEST, collection=collection, embed_fn=fake_embed)
+        == []
+    )
+    assert (
+        route_dart_companies(COBOT_REQUEST, collection=indexed, embed_fn=fake_embed)
+        == []
+    )
+
+
+def test_build_idea_query_skips_empty_fields():
+    query = build_idea_query(COBOT_REQUEST)
+
+    assert query == "협동로봇 인력 부족 협동로봇"
+
+
+def test_search_by_dimensions_appends_one_dart_hit_per_routed_company(with_dart):
+    hits = search_by_dimensions(
+        COBOT_REQUEST, idea_id="SF-01", collection=with_dart, embed_fn=fake_embed
+    )["demand"]
+    dart = [h for h in hits if h["source_type"] == "dart"]
+
+    assert [h["source_type"] for h in hits[:2]] == ["news", "news"]
+    assert len(dart) == DART_COMPANY_K
+    assert len({h["publisher"] for h in dart}) == DART_COMPANY_K
+    assert "에너지D (DART 사업보고서)" not in {h["publisher"] for h in dart}
+
+
+def test_search_by_dimensions_uses_given_dart_companies(with_dart):
+    only_energy = search_by_dimensions(
+        COBOT_REQUEST,
+        collection=with_dart,
+        embed_fn=fake_embed,
+        dart_companies=["에너지D (DART 사업보고서)"],
+    )["demand"]
+    no_dart = search_by_dimensions(
+        COBOT_REQUEST, collection=with_dart, embed_fn=fake_embed, dart_companies=[]
+    )["demand"]
     only_dart = search_by_dimensions(
-        request.model_copy(update={"source_types": ["dart"]}),
-        idea_id="SF-01",
-        collection=indexed,
+        COBOT_REQUEST.model_copy(update={"source_types": ["dart"]}),
+        collection=with_dart,
         embed_fn=fake_embed,
     )["demand"]
+
+    assert [h["publisher"] for h in only_energy if h["source_type"] == "dart"] == [
+        "에너지D (DART 사업보고서)"
+    ]
+    assert all(h["source_type"] == "news" for h in no_dart)
     assert [h["source_type"] for h in only_dart] == ["dart", "dart"]
+
+
+def test_search_market_filters_publishers(with_dart):
+    hits = search_market(
+        "협동로봇",
+        collection=with_dart,
+        embed_fn=fake_embed,
+        publishers=["보전E (DART 사업보고서)"],
+    )
+
+    assert [h["source_id"] for h in hits] == ["dart-e-1"]
 
 
 def test_load_all_documents_requires_dart(tmp_path):

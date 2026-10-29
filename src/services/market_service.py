@@ -55,6 +55,17 @@ def search_scope(collection, idea_id: str | None) -> str:
     return " · ".join(parts) + f", {target}"
 
 
+def searched_dart_companies(assessed: dict[str, dict]) -> list[str]:
+    """차원별 검색 결과에 들어온 DART 기업명을 처음 나온 순서대로 반환한다."""
+    companies = []
+    for result in assessed.values():
+        for hit in result["hits"]:
+            name = hit["publisher"].removesuffix(" (DART 사업보고서)")
+            if hit["source_type"] == "dart" and name not in companies:
+                companies.append(name)
+    return companies
+
+
 def run_market_research(
     request: MarketSearchRequest,
     idea_id: str | None = None,
@@ -87,6 +98,9 @@ def run_market_research(
             data_as_of=data_as_of,
             error_message=f"market search failed: {exc}",
         )
+    companies = searched_dart_companies(assessed)
+    if companies:
+        scope += f" · 아이디어와 가까워 검색한 DART 기업: {', '.join(companies)}"
     return build_report(request.idea, assessed, scope, data_as_of, llm_fn)
 
 
