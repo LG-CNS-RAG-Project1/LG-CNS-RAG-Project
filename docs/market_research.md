@@ -20,12 +20,12 @@ flowchart TD
   subgraph data["시장 데이터 기반"]
     direction TB
     news["네이버 뉴스 수집<br/>키워드 26개 · 제목·요약·링크만"]
-    dart["DART 공시 수집<br/>사업의 내용·매출 (선택)"]
+    dart["DART 사업보고서 수집<br/>기업 15곳 · 사업의 내용 본문(표 제외)<br/>800자·150자 겹침 청크"]
     clean["정제·메타데이터 부여<br/>MarketDocument"]
     dedup["중복 제거<br/>같은 URL · 제목 유사도 0.8 · 3일 이내"]
-    index["Chroma 색인<br/>news 컬렉션 · cosine<br/>1기사 = 1청크"]
+    index["Chroma 색인<br/>news 컬렉션 · cosine<br/>source_type: news · dart"]
     news --> clean
-    dart -.-> clean
+    dart --> clean
     clean --> dedup --> index
   end
 
@@ -33,7 +33,7 @@ flowchart TD
   filter["메타데이터 필터<br/>아이디어 · 출처 유형 · 발행일"]
   vector["벡터 검색<br/>text-embedding-3-small · 후보 Top-20"]
   group["중복 그룹 정리<br/>dup_group당 1건"]
-  top["차원별 근거 Top-5 선정"]
+  top["차원별 근거 선정<br/>뉴스 Top-5 + DART Top-2 (출처별 따로 검색)"]
   judge["관련성 판정<br/>gpt-4o-mini · 평가 라벨과 같은 기준<br/>기사마다 관련 여부·이유"]
   enough{"충분성 확인<br/>관련 근거 2건 이상?"}
   live["네이버 API 실시간 보충<br/>색인 추가 후 재검색 (선택)"]
@@ -110,7 +110,7 @@ flowchart TD
   class verdict,task,gen,cite,check,drop,contract,handoff genstep
   class cases,metrics,answer,cost,compare,tune,fix evalnode
   class allowed,filled,enough,pass,improved decide
-  class dart,live,answer,cost,compare,improved,tune,fix todo
+  class live,answer,cost,compare,improved,tune,fix todo
 
   style data fill:#9aa3ad1f,stroke:#9aa3ad
   style eval fill:#9aa3ad1f,stroke:#9aa3ad
@@ -213,6 +213,29 @@ flowchart TD
 - 같은 기사가 차원마다 다른 성격으로 판정되면 '확인됨'을 열지 않는 쪽(사업 신호 등)을 쓴다.
 - 뉴스 요약은 중앙값 161자라 구매 결정자·예산·가격처럼 구매 구조를 직접 보여 주는 내용이 드물다. 대부분의 차원이 '신호만 확인'·'미확인'에 머무는 주된 이유이며, 성격 판정은 이를 바꾸지 못한다. 샘플 5건 재생성 결과 '확인됨'은 1~3개 차원이었고 실행마다 달라졌다.
 
+## DART 사업보고서
+
+뉴스 요약만으로는 판매 경로·주요 매출처·경쟁·시장 여건처럼 구매 구조를 보여 주는 내용이 드물어, 시장 근거의 필수 출처로 DART 사업보고서를 함께 쓴다(#54).
+
+- 기업 선정: `configs/dart_companies.yaml`의 후보 중 '사업의 내용'에 아이디어 용어(`idea_terms`)가 나오는 기업만 그 아이디어에 연결한다. 용어별 등장 횟수는 `dart_selection.json`에 남긴다.
+
+| 아이디어 | 연결 기업 (확인 용어) |
+|---|---|
+| SF-01 협동로봇 | 두산로보틱스·레인보우로보틱스·뉴로메카 (협동로봇) |
+| SF-02 AI 비전 검사 | 고영·라온피플·인텍플러스·뷰웍스 (비전·외관검사) |
+| SF-03 예지보전 | 엠아이큐브솔루션 (고장을 예지·고장 예측) · 이삭엔지니어링 (예방진단·상태감시) |
+| SF-04 FEMS | 엘에스일렉트릭·HD현대일렉트릭·그리드위즈 (에너지관리) |
+| SF-05 | 엠아이큐브솔루션·포스코DX·LG씨엔에스·삼성에스디에스 (생성형 AI·LLM·공정제어) |
+
+- 후보였던 현대오토에버는 어느 아이디어 용어도 나오지 않아 제외했다. 포스코DX·LG씨엔에스는 예지보전·에너지관리 용어가 없어 SF-05에만 연결한다.
+- 보고서: 기업마다 최신 사업연도(현재 FY2025) 사업보고서, 같은 사업연도의 기재정정이 있으면 가장 늦게 접수된 것.
+- 본문: 'II. 사업의 내용' 중 사업의 개요·주요 제품·매출 및 수주상황·주요계약·기타 참고사항. 원재료·위험관리(파생거래) 섹션은 쓰지 않는다. 표는 빼고 문단만 쓰며, 표 구조 보존 추출(단위·연결/별도·합계 구분)은 #29 기준으로 별도 작업한다.
+- 청크: 800자·150자 겹침, 줄·문장 끝에서 자른다. 같은 섹션 청크는 `dup_group`을 공유해 한 질의에 섹션당 1건만 나온다.
+- 근거 성격: 매출 및 수주상황(판매 경로·주요 매출처)은 구매 신호(`purchase_signal`), 그 밖은 기업 주장(`company_claim`). 관련성 판정기가 고른 성격으로 바꾸지 않는다.
+- 시점: `published_at`은 공시일, `period`는 보고 대상 사업연도(`FY2025`). 분석 문장은 사업연도를 쓴다.
+- 검색: 차원마다 뉴스 5건과 별도로 DART 2건을 검색해 붙인다. 출처별로 따로 검색해 한쪽이 다른 쪽을 밀어내지 않는다. 검색 평가(`evaluation.evaluate market`)는 정답 라벨이 있는 뉴스로 한정한다.
+- 해석: 기업의 매출·성장은 아이디어의 시장 규모나 고객 수요의 증거가 아니다. 구매 신호도 그 기업의 판매 사실이며 수요 '확인됨'은 여전히 고객 검증 자료가 필요하다.
+
 ## 단계별 코드 위치
 
 | 단계 | 위치 |
@@ -221,7 +244,8 @@ flowchart TD
 | 입력 가드레일 | `src/generation/input_guard.py`, `prompts/idea_parser.md`, `evaluation/guardrail_cases.json`, `evaluation/guardrail_eval.py` |
 | 공통 기술 분야·시장/특허 키워드·시장 수집 설정 | `configs/technology_areas.yaml` |
 | 네이버 뉴스 수집 | `src/ingestion/news_client.py` → `data/market/raw/` |
-| DART 공시 수집 | `src/ingestion/dart_client.py` |
+| DART 사업보고서 수집 | `configs/dart_companies.yaml`, `src/ingestion/dart_client.py` → `data/market/raw/dart/` |
+| DART 정제·청크 | `src/ingestion/dart_processor.py` → `data/market/processed/dart_docs.jsonl`, `dart_selection.json` |
 | 정제·중복 제거 | `src/ingestion/market_processor.py` → `data/market/processed/market_docs.jsonl` |
 | 색인·차원별 검색 툴 | `src/retrieval/market_search.py` → `data/market/chroma/` |
 | 관련성 판정·충분성 상태 | `src/retrieval/market_relevance.py`, `prompts/market_label_judge.md` |
