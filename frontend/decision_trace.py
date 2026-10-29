@@ -73,7 +73,7 @@ def render_decision_trace(raw):
     st.caption(
         "특허와 시장의 기존 분석을 연결한 결과입니다. 자료 개수나 검색 순위를 사업성 점수로 합산하지 않습니다."
     )
-    with st.expander("판단할 때 확인하는 기준", expanded=True):
+    with st.expander("판단할 때 확인하는 기준"):
         st.markdown(
             "- **기술·권리:** 아이디어 구성과 청구항의 대응·차이, 확보한 인용과 검색 한계\n"
             "- **고객·시장:** 산업·기업 신호와 실제 고객의 구매·지불 검증을 구분\n"
