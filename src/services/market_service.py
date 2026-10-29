@@ -26,9 +26,12 @@ from src.schemas import MarketReport, MarketSearchRequest, StructuredIdea
 def search_scope(collection, idea_id: str | None) -> str:
     """보고서에 표시할 검색 범위(출처별 건수·발행일·사업연도·아이디어 범위)를 만든다.
 
-    뉴스는 발행일 범위, DART는 기업 수와 보고 대상 사업연도를 쓴다.
+    뉴스는 발행일 범위, DART는 기업 수와 보고 대상 사업연도를 쓴다. idea_id를 주면 그
+    아이디어에 연결된 자료만 세고, 연결된 DART 기업이 없으면 그렇다고 쓴다.
     """
     metadatas = collection.get(include=["metadatas"])["metadatas"]
+    if idea_id:
+        metadatas = [m for m in metadatas if m.get(f"idea_{idea_id}")]
     news = [m for m in metadatas if m.get("source_type") == "news"]
     dart = [m for m in metadatas if m.get("source_type") == "dart"]
     dates = [m["published_at"] for m in news if m.get("published_at")]
@@ -41,6 +44,10 @@ def search_scope(collection, idea_id: str | None) -> str:
         years = ", ".join(sorted({m["period"] for m in dart if m.get("period")}))
         parts.append(
             f"DART 사업보고서 '사업의 내용' 발췌 {len(dart)}건(기업 {companies}곳, {years})"
+        )
+    elif idea_id:
+        parts.append(
+            "DART 사업보고서: 사업의 내용에 이 아이디어 용어가 나오는 기업 없음"
         )
     else:
         parts.append("DART 사업보고서 색인 없음")

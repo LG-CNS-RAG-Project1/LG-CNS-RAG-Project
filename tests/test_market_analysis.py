@@ -378,6 +378,31 @@ def test_build_report_no_results_and_error():
     assert len(report.evidence) == 2
 
 
+def test_search_scope_reports_dart_per_idea():
+    class Collection:
+        def get(self, include):
+            news = {"source_type": "news", "published_at": 20260101}
+            dart = {
+                "source_type": "dart",
+                "publisher": "가상로봇 (DART 사업보고서)",
+                "period": "FY2025",
+                "published_at": 20260318,
+            }
+            return {
+                "metadatas": [
+                    {**news, "idea_SF-01": True, "idea_SF-04": True},
+                    {**dart, "idea_SF-01": True},
+                ]
+            }
+
+    sf01 = market_service.search_scope(Collection(), "SF-01")
+    sf04 = market_service.search_scope(Collection(), "SF-04")
+
+    assert "발췌 1건(기업 1곳, FY2025)" in sf01
+    assert "이 아이디어 용어가 나오는 기업 없음" in sf04
+    assert "기사 1건" in sf04
+
+
 def test_run_market_research_reports_search_error(monkeypatch):
     def failing_search(*args, **kwargs):
         raise RuntimeError("index missing")
