@@ -72,10 +72,13 @@ RESULT_FIELDS = [
     "retrieved",
     "mode",
     "model",
-    "embedding_model",
-    "reranker_model",
     "prompt",
     "commit",
+]
+PATENT_RESULT_FIELDS = [
+    *RESULT_FIELDS,
+    "embedding_model",
+    "reranker_model",
     "run_at_utc",
     "working_tree_dirty",
     "evaluation_data_sha256",
@@ -292,7 +295,7 @@ def save_patent_results(rows: list[dict], label: str, results_dir: Path = RESULT
     results_dir.mkdir(parents=True, exist_ok=True)
     path = results_dir / f"patent_retrieval_{label}.csv"
     with open(path, "w", encoding="utf-8-sig", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=RESULT_FIELDS)
+        writer = csv.DictWriter(f, fieldnames=PATENT_RESULT_FIELDS)
         writer.writeheader()
         writer.writerows(rows)
     return path
@@ -319,7 +322,27 @@ def index_snapshot(collection) -> dict:
     }
 
 
-def attach_run_metadata(
+def attach_run_metadata(rows: list[dict], mode: str, rerank: bool) -> list[dict]:
+    """검색 평가 결과에 재현에 필요한 모드·모델·프롬프트·커밋 정보를 붙인다."""
+    commit = subprocess.run(
+        ["git", "rev-parse", "HEAD"], capture_output=True, text=True, check=False
+    ).stdout.strip()
+    model = (
+        "BAAI/bge-reranker-v2-m3"
+        if rerank
+        else ("text-embedding-3-small" if mode in {"dense", "hybrid"} else "BM25")
+    )
+    for row in rows:
+        row.update(
+            mode=mode + ("+rerank" if rerank else ""),
+            model=model,
+            prompt="n/a · retrieval",
+            commit=commit,
+        )
+    return rows
+
+
+def attach_patent_run_metadata(
     rows: list[dict],
     mode: str,
     rerank: bool,
@@ -483,25 +506,13 @@ def main() -> None:
             market_cases = [
                 case for case in market_cases if case["idea_id"] in included
             ]
-        ideas = load_ideas()
-        search_fn = default_search_fn(args.mode, reranker=reranker)
         rows = evaluate_market(
             market_cases,
-            ideas,
-            search_fn,
+            load_ideas(),
+            default_search_fn(args.mode, reranker=reranker),
             idea_filter=not args.no_idea_filter,
         )
-        attach_run_metadata(
-            rows,
-            args.mode,
-            args.rerank,
-            evaluation_data={
-                "cases": market_cases,
-                "ideas": ideas,
-                "idea_filter": not args.no_idea_filter,
-            },
-            index_metadata=index_snapshot(search_fn.collection),
-        )
+        attach_run_metadata(rows, args.mode, args.rerank)
         result_path = save_results(
             rows, f"{args.mode}_{'rerank_' if args.rerank else ''}{args.label}"
         )
@@ -516,7 +527,7 @@ def main() -> None:
             )
         search_fn = default_patent_search_fn(args.mode, reranker=reranker)
         rows = evaluate_patents(cases, search_fn)
-        attach_run_metadata(
+        attach_patent_run_metadata(
             rows,
             args.mode,
             args.rerank,

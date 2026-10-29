@@ -1,8 +1,14 @@
-from evaluation.evaluate import RESULT_FIELDS, attach_run_metadata, index_snapshot
+from evaluation.evaluate import (
+    PATENT_RESULT_FIELDS,
+    RESULT_FIELDS,
+    attach_patent_run_metadata,
+    attach_run_metadata,
+    index_snapshot,
+)
 
 
 def test_retrieval_csv_metadata_identifies_mode_model_prompt_and_commit():
-    rows = attach_run_metadata(
+    rows = attach_patent_run_metadata(
         [{}],
         "bm25",
         False,
@@ -29,8 +35,20 @@ def test_retrieval_csv_metadata_identifies_mode_model_prompt_and_commit():
     assert row["bm25_b"] == 0.75
     assert isinstance(row["working_tree_dirty"], bool)
     assert {"mode", "model", "prompt", "commit", "evaluation_data_sha256"} <= set(
-        RESULT_FIELDS
+        PATENT_RESULT_FIELDS
     )
+
+
+def test_market_metadata_keeps_existing_output_contract():
+    row = attach_run_metadata([{}], "bm25", False)[0]
+
+    assert row["mode"] == "bm25"
+    assert row["model"] == "BM25"
+    assert row["prompt"] == "n/a · retrieval"
+    assert len(row["commit"]) == 40
+    assert set(row) == {"mode", "model", "prompt", "commit"}
+    assert "evaluation_data_sha256" not in RESULT_FIELDS
+    assert "index_snapshot_sha256" not in RESULT_FIELDS
 
 
 def test_index_snapshot_is_independent_of_collection_iteration_order():

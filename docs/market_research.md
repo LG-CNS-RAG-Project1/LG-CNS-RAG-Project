@@ -269,8 +269,6 @@ flowchart TD
 
 `python -m evaluation.evaluate market --mode dense|bm25|hybrid`는 기존 25개 시장 라벨로 Hit@K·Recall@K·Precision@K·MRR·nDCG@K와 검색 지연을 기록한다. `--rerank`는 선택 설치한 `sentence-transformers`와 `BAAI/bge-reranker-v2-m3`를 사용하며, 설치되지 않은 Cross-Encoder의 품질·속도는 검증된 것으로 간주하지 않는다. 시장 처리 원문·색인이 로컬에 준비되지 않은 경우 평가를 실행하지 않는다. 특허 평가셋 및 원문 데이터가 준비되기 전에는 특허 품질 개선 수치를 보고하지 않는다.
 
-새 검색 결과 CSV에는 실행 시각, Git 커밋과 작업 트리 상태, 평가 문항·라벨·아이디어 데이터 해시, 색인 문서 수와 색인 내용·메타데이터 해시, Top-K·후보 수·RRF 상수, 임베딩·reranker 모델과 BM25 설정을 기록한다. 기존 결과 파일은 이 지문을 포함하지 않는 과거 산출물이다.
-
 ### 시장 검색 방식 비교
 
 비교 전에 dense·bm25·hybrid 상위 5건 중 라벨 후보에 없던 문서 123건(bm25 105·hybrid 32, 중복 14)을 후보에 추가해 판정했다(`market_labeling extend`, gpt-4o 초안 + 확신 낮은 9건 사람 검토). 세 방식 모두 상위 5건에 미판단 문서가 없다(unjudged 0). 정답 문서가 늘어 dense의 Recall@5는 기존 baseline(0.45)보다 낮게 나온다.
