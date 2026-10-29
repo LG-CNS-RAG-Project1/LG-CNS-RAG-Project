@@ -745,6 +745,7 @@ def main() -> None:
                     "stored_hash": report["stored_hash"],
                     "computed_hash": report["computed_hash"],
                     "rule_drift": report["rule_drift"],
+                    "code_changed": report["code_changed"],
                     "missing_optional": len(report["missing_optional"]),
                 },
                 ensure_ascii=False,
