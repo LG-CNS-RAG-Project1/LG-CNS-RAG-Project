@@ -4,7 +4,9 @@ import hashlib
 import json
 from pathlib import Path
 
-FIXTURE_PATH = Path(__file__).resolve().parent / "fixtures" / "patent_retrieval_synthetic_v1.json"
+FIXTURE_PATH = (
+    Path(__file__).resolve().parent / "fixtures" / "patent_retrieval_synthetic_v1.json"
+)
 
 
 def load_fixture(path: Path = FIXTURE_PATH) -> tuple[dict, str]:

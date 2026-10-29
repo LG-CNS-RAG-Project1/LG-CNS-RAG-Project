@@ -46,8 +46,7 @@ def build_review_context(candidates: list[dict], patents: list[dict]) -> list[di
                 "verification": {
                     "local_record_found": patent is not None,
                     "application_number_matches_source_id": (
-                        str((patent or {}).get("application_number", ""))
-                        == source_id
+                        str((patent or {}).get("application_number", "")) == source_id
                     ),
                     "title_matches_local_record": bool(
                         patent
