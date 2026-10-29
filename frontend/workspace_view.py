@@ -366,8 +366,11 @@ def validate_records(raw):
 def render_history(s):
     st.title("내 조사 기록")
     st.caption(
-        "현재 브라우저 세션에서 최대 20개를 보관합니다. 새로고침·연결 종료 시 사라질 수 있으므로 파일로 보관하세요. 계정별 영구 저장은 아직 연결하지 않았습니다."
+        "현재 세션의 기록은 최대 20개입니다. 다음에도 보려면 이 브라우저에 저장하거나 JSON 파일로 보관하세요. 계정별 서버 저장은 하지 않습니다."
     )
+    from frontend.browser_records import render_browser_records
+
+    render_browser_records(s, validate_records)
     controls, detail = st.columns([1, 2.4], gap="large")
     with controls:
         st.download_button(
@@ -389,6 +392,11 @@ def render_history(s):
                 st.error(
                     "기록을 읽지 못했습니다. IdeaLens에서 내보낸 5MB 이하 JSON 파일을 선택해 주세요."
                 )
+        if s.records and st.button(
+            "현재 세션 기록 모두 지우기", key="clear_session_records"
+        ):
+            s.records = []
+            st.rerun()
         if not s.records:
             st.info("보고서에서 ‘내 기록에 보관’을 눌러 기록을 남겨보세요.")
             return
