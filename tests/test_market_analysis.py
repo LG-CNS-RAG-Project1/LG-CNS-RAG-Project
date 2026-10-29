@@ -308,6 +308,9 @@ def test_build_report_completed():
     assert "고객 검증 자료" in by_dim["demand"].limitation
     assert by_dim["price"].limitation.startswith("관련 자료가 1건뿐")
     assert by_dim["adoption_barrier"].limitation.startswith("관련성 판정이 실패")
+    statements = [r.statement for r in report.opportunity_review.reasons]
+    assert statements[0].startswith("수요 판단: 신호만 확인.")
+    assert not any("signal_only" in s for s in statements)
 
 
 def test_build_evidence_uses_weaker_nature_across_dimensions():

@@ -3,7 +3,9 @@
 1. 아이디어 5개 항목에서 LLM으로 검색 주제어 1~3개를 고른다 (prompts/market_trend_terms.md).
 2. 주제어 그룹과 기준 주제어(스마트공장) 그룹을 한 요청으로 조회한다 (src/ingestion/trend_client.py).
 3. 월별 '주제어 ÷ 기준 × 100' 지수로 플랫폼 전체 검색량 변화를 걸러 내고, 최근 N개월 평균을
-   직전 N개월과 비교해 상승·유지·둔화를 정한다. 검색량이 너무 적으면 판정하지 않는다.
+   직전 N개월과 비교해 상승·유지·둔화를 정한다.
+4. 주제어 검색량이 너무 적으면 LLM이 고른 상위 범주 주제어로 한 번 더 조회한다. 그래도 적으면
+   판정하지 않되, 검색량이 더 많은 쪽의 월별 지수를 참고용으로 남긴다.
 
 검색 관심도는 시장 규모·고객 수요의 근거가 아니며, 보고서의 차원별 판정에 쓰지 않는다.
 """
@@ -64,10 +66,11 @@ def clean_keywords(raw: list, max_keywords: int, reserved: list[str]) -> list[st
 
 def extract_trend_keywords(
     idea: StructuredIdea, config: dict, llm_fn: LLMFn = call_relevance_llm
-) -> list[str]:
-    """아이디어 5개 항목에서 검색 주제어(대표 범주 + 같은 범주의 다른 이름)를 고른다.
+) -> tuple[list[str], list[str]]:
+    """아이디어 5개 항목에서 검색 주제어와 검색량이 적을 때 쓸 상위 범주 주제어를 고른다.
 
-    응답 {"category", "synonyms"}에서 category를 첫 주제어로 둔다. 쓸 수 있는 주제어가 없으면 빈 목록.
+    응답 {"category", "synonyms", "broader"}에서 category를 첫 주제어로 둔다. 상위 범주는
+    주제어와 겹치지 않는 것만 남긴다. 쓸 수 있는 주제어가 없으면 빈 목록.
     """
     fields = idea.model_dump(
         include={"title", "problem", "technology", "customers", "difference", "revenue"}
@@ -77,9 +80,12 @@ def extract_trend_keywords(
     )
     synonyms = raw.get("synonyms")
     terms = [raw.get("category")] + (synonyms if isinstance(synonyms, list) else [])
-    return clean_keywords(
-        terms, config["max_keywords"], config["reference"]["keywords"]
+    reserved = config["reference"]["keywords"]
+    keywords = clean_keywords(terms, config["max_keywords"], reserved)
+    broader = clean_keywords(
+        raw.get("broader"), config["max_keywords"], reserved + keywords
     )
+    return keywords, broader
 
 
 def summarize_trend(
@@ -136,41 +142,54 @@ def build_search_trend(
     fetch_fn: FetchFn | None = None,
     config: dict | None = None,
 ) -> MarketSearchTrend:
-    """아이디어의 검색 관심도 흐름을 만든다. 주제어 선정·조회 실패는 status=error로 반환한다."""
+    """아이디어의 검색 관심도 흐름을 만든다. 주제어 선정·조회 실패는 status=error로 반환한다.
+
+    주제어 검색량이 적으면 상위 범주 주제어로 다시 조회하고, 그 결과를 쓰면 원래 주제어를
+    fallback_from에 남긴다. 둘 다 적으면 insufficient_volume이며 검색량이 더 많은 쪽의 points를 둔다.
+    """
     config = config or load_trend_config()
     reference = config["reference"]
     base = {"reference_keywords": reference["keywords"], "note": NOTE}
     try:
-        keywords = extract_trend_keywords(idea, config, llm_fn)
+        keywords, broader = extract_trend_keywords(idea, config, llm_fn)
         if not keywords:
             return MarketSearchTrend(
                 status="error", error_message="검색 주제어를 정하지 못함", **base
             )
         as_of = date(data_as_of // 10000, data_as_of // 100 % 100, data_as_of % 100)
         start, end = period_range(as_of, config["months"])
+        months = month_list(start, end)
         fetch = fetch_fn or (lambda g, s, e: fetch_search_trend(g, s, e, config))
-        series = fetch(
-            [
-                {"groupName": reference["name"], "keywords": reference["keywords"]},
-                {"groupName": "주제어", "keywords": keywords},
-            ],
-            start,
-            end,
-        )
+
+        def query(terms: list[str]) -> dict:
+            series = fetch(
+                [
+                    {"groupName": reference["name"], "keywords": reference["keywords"]},
+                    {"groupName": "주제어", "keywords": terms},
+                ],
+                start,
+                end,
+            )
+            theme = series.get("주제어", {})
+            points, status, change, direction = summarize_trend(
+                theme, series.get(reference["name"], {}), months, config
+            )
+            return {
+                "status": status,
+                "keywords": terms,
+                "points": points,
+                "recent_change_pct": change,
+                "direction": direction,
+                "volume": sum(theme.values()),
+            }
+
+        result = query(keywords)
+        if result["status"] == "insufficient_volume" and broader:
+            wider = query(broader)
+            if wider["status"] == "completed" or wider["volume"] > result["volume"]:
+                result = {**wider, "fallback_from": keywords}
     except Exception as exc:  # 관심도 조회 실패는 시장 보고서 전체를 막지 않는다
         return MarketSearchTrend(status="error", error_message=str(exc), **base)
 
-    points, status, change, direction = summarize_trend(
-        series.get("주제어", {}),
-        series.get(reference["name"], {}),
-        month_list(start, end),
-        config,
-    )
-    return MarketSearchTrend(
-        status=status,
-        keywords=keywords,
-        points=points,
-        recent_change_pct=change,
-        direction=direction,
-        **base,
-    )
+    result.pop("volume")
+    return MarketSearchTrend(**result, **base)
