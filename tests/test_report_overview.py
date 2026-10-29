@@ -5,7 +5,17 @@ from streamlit.testing.v1 import AppTest
 
 from frontend.report_overview import dashboard_data
 from src.pipeline import PipelineReport
-from src.schemas import MarketReport, MarketDimensionResult, PatentReport
+from src.schemas import (
+    MarketDimensionResult,
+    MarketEvidence,
+    MarketKeywordEdge,
+    MarketKeywordNetwork,
+    MarketKeywordNode,
+    MarketReport,
+    MarketSearchTrend,
+    MarketTrendPoint,
+    PatentReport,
+)
 from src.generation.executive_review import (
     ExecutiveReview,
     IntegratedFinding,
@@ -166,3 +176,67 @@ render_dashboard(st.session_state.data)
     app.run()
     assert not app.exception
     assert not any("특허·시장 영역별 근거" in item.value for item in app.subheader)
+
+
+def test_dashboard_renders_real_market_context_without_treating_it_as_demand():
+    r = result()
+    r.market.evidence = [
+        MarketEvidence(
+            citation_id=1,
+            source_id="dart:corp1:2025",
+            source_type="dart",
+            title="사업의 내용",
+            publisher="공시기업",
+            quote="공시기업 사업보고서 발췌 내용",
+            section="II. 사업의 내용",
+            published_at=20260331,
+            period="FY2025",
+            reliability="medium",
+            recency="medium",
+            directness="low",
+            evidence_nature="company_claim",
+        )
+    ]
+    r.market.search_trend = MarketSearchTrend(
+        status="completed",
+        keywords=["예지보전"],
+        reference_keywords=["스마트공장"],
+        points=[
+            MarketTrendPoint(
+                period="2026-01",
+                theme_ratio=20,
+                reference_ratio=50,
+                relative_index=40,
+            )
+        ],
+        recent_change_pct=12,
+        direction="rising",
+    )
+    r.market.keyword_network = MarketKeywordNetwork(
+        status="completed",
+        document_count=12,
+        nodes=[
+            MarketKeywordNode(term="설비", document_count=8, cluster=0, x=0, y=0),
+            MarketKeywordNode(
+                term="예지보전", document_count=6, cluster=0, x=0.5, y=0.5
+            ),
+        ],
+        edges=[MarketKeywordEdge(source="설비", target="예지보전", weight=3)],
+        clusters=[["설비", "예지보전"]],
+    )
+    data = dashboard_data(r)
+    assert data["market_context"]["dart_evidence"][0]["evidence_id"] == "M:1"
+    assert data["market_context"]["dart_evidence"][0]["period"] == "FY2025"
+    assert data["market_context"]["search_trend"]["points"][0]["relative_index"] == 40
+    assert data["market_context"]["keyword_network"]["document_count"] == 12
+
+    app = AppTest.from_string("""
+from frontend.report_overview import render_dashboard
+import streamlit as st
+render_dashboard(st.session_state.data)
+""")
+    app.session_state.data = data
+    app.run()
+    assert not app.exception
+    assert len(app.get("vega_lite_chart")) == 2
+    assert any("시장 맥락 · 참고 자료" in item.label for item in app.get("expander"))

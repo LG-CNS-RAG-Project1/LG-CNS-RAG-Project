@@ -4,6 +4,26 @@ import streamlit as st
 from pydantic import BaseModel, Field
 
 
+def _market_source_location(evidence) -> str:
+    source_labels = {
+        "dart": "DART 사업보고서",
+        "news": "뉴스",
+        "customer_validation": "고객 검증 자료",
+        "research": "조사 자료",
+    }
+    parts = [source_labels.get(evidence.source_type, evidence.source_type)]
+    if evidence.publisher:
+        parts.append(evidence.publisher)
+    if evidence.period:
+        parts.append(evidence.period)
+    if evidence.section:
+        parts.append(evidence.section)
+    if evidence.published_at:
+        parts.append(f"공시·발행일 {evidence.published_at}")
+    parts.append(evidence.evidence_nature)
+    return " · ".join(parts)
+
+
 class TraceSource(BaseModel):
     ref: str
     title: str
@@ -41,7 +61,7 @@ def decision_trace(result):
             ref=f"M:{e.citation_id}",
             title=e.title,
             quote=e.quote,
-            location=f"{e.publisher} · {e.published_at} · {e.evidence_nature}",
+            location=_market_source_location(e),
             url=e.url or "",
         )
         for e in result.market.evidence

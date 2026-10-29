@@ -783,6 +783,7 @@ def run_pipeline(
         analyzed_on=sources.analyzed_on,
         cost_estimate=cost_estimate,
         cost_totals=cost_totals,
+        market=sources.market,
     )
     statuses = {sources.patent.status, sources.market.status}
     status = "completed" if statuses == {"completed"} and not errors else "partial"
