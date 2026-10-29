@@ -772,6 +772,7 @@ class ProcurementNotice(BaseModel):
     notice_date: int  # 공고일 YYYYMMDD
     budget: int | None = None  # 배정예산(원), 없으면 추정가격
     product: str = ""  # 세부품명
+    contract_method: str = ""  # 계약체결방법·낙찰방법
     url: str = ""
 
 

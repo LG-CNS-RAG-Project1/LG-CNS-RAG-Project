@@ -1,6 +1,7 @@
 # 나라장터 입찰공고 조회 설정 (src/ingestion/procurement_client.py, src/services/market_procurement.py)
 # 공공 조달 공고는 공공기관·대학·연구기관의 구매가 대부분이어서 민간 고객 수요의 근거가 아니다.
-# 시장 화면에는 공공 구매 사례와 예산 수준으로만 표시하고 차원별 판정에는 쓰지 않는다.
+# 시장 화면에 공공 구매 사례와 예산 수준으로 표시하고, 시장 분석에는 가격·구매자 차원의 구매 신호
+# 근거로만 넣는다 (목표 고객이 공공 부문이 아니면 구매자 차원은 '확인됨'이 되지 않는다).
 api:
   url: https://apis.data.go.kr/1230000/ad/BidPublicInfoService
   # 공고 종류별 공고명 검색 오퍼레이션

@@ -25,6 +25,7 @@ from src.retrieval.market_relevance import (
     search_with_relevance,
 )
 from src.retrieval.market_search import EmbedFn, embed_texts, get_collection
+from src.services.market_procurement import attach_procurement
 from src.schemas import (
     MarketKeywordNetwork,
     MarketProcurement,
@@ -103,7 +104,9 @@ def run_market_research(
     임베딩 함수)을 주면 키워드 동시 출현 네트워크(keyword_network)를, procurement_fn(아이디어,
     검색 관심도 주제어, data_as_of)을 주면 공공 조달 입찰공고(procurement)를 붙인다. 주제어는
     search_trend의 keywords를 쓰므로 trend_fn이 없거나 주제어를 정하지 못하면 no_keywords가 된다.
-    이 단계들의 실패는 각 필드의 status=error로만 남기고 보고서의 나머지에는 영향을 주지 않는다.
+    검색 관심도와 조달 공고는 분석 전에 만들고, 관련 공고는 가격·구매자 차원의 근거로 분석에 넣는다
+    (attach_procurement). 이 단계들의 실패는 각 필드의 status=error로만 남기고 보고서의 나머지에는
+    영향을 주지 않는다.
     """
     data_as_of = data_as_of or int(date.today().strftime("%Y%m%d"))
     scope = "네이버 뉴스 사전 수집 기사 · DART 사업보고서 발췌"
@@ -129,27 +132,33 @@ def run_market_research(
         scope += (
             f" · 검색한 DART 기업(아이디어와 같은 사업 범주): {', '.join(companies)}"
         )
-    report = build_report(request.idea, assessed, scope, data_as_of, llm_fn)
+    search_trend = None
     if trend_fn is not None:
         try:
-            report.search_trend = trend_fn(request.idea, data_as_of)
+            search_trend = trend_fn(request.idea, data_as_of)
         except Exception as exc:  # 관심도 실패는 시장 보고서 본문을 막지 않는다
-            report.search_trend = MarketSearchTrend(
-                status="error", error_message=str(exc)
-            )
+            search_trend = MarketSearchTrend(status="error", error_message=str(exc))
+    procurement = None
+    if procurement_fn is not None:
+        keywords = search_trend.keywords if search_trend else []
+        try:
+            procurement = procurement_fn(request.idea, keywords, data_as_of)
+        except Exception as exc:  # 조달 조회 실패도 보고서 본문을 막지 않는다
+            procurement = MarketProcurement(status="error", error_message=str(exc))
+    report = build_report(
+        request.idea,
+        attach_procurement(assessed, procurement),
+        scope,
+        data_as_of,
+        llm_fn,
+    )
+    report.search_trend = search_trend
+    report.procurement = procurement
     if network_fn is not None:
         try:
             report.keyword_network = network_fn(request, collection, embed_fn)
         except Exception as exc:  # 네트워크 실패도 보고서 본문을 막지 않는다
             report.keyword_network = MarketKeywordNetwork(
-                status="error", error_message=str(exc)
-            )
-    if procurement_fn is not None:
-        keywords = report.search_trend.keywords if report.search_trend else []
-        try:
-            report.procurement = procurement_fn(request.idea, keywords, data_as_of)
-        except Exception as exc:  # 조달 조회 실패도 보고서 본문을 막지 않는다
-            report.procurement = MarketProcurement(
                 status="error", error_message=str(exc)
             )
     return report

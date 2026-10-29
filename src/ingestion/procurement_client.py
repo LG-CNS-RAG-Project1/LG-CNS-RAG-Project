@@ -34,6 +34,8 @@ NOTICE_FIELDS = (
     "asignBdgtAmt",  # 배정예산
     "presmptPrce",  # 추정가격
     "dtilPrdctClsfcNoNm",  # 세부품명
+    "cntrctCnclsMthdNm",  # 계약체결방법 (일반·제한경쟁, 수의 등)
+    "sucsfbidMthdNm",  # 낙찰방법
     "bidNtceDtlUrl",  # 공고 상세 URL
 )
 NO_DATA_CODE = "03"  # 데이터 없음

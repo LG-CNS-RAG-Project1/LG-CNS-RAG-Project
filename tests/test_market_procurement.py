@@ -23,9 +23,12 @@ from src.schemas import (
 )
 from src.services import market_service
 from src.services.market_procurement import (
+    attach_procurement,
     build_procurement,
     buyer_type,
     judge_relevant,
+    period_text,
+    procurement_hits,
     recent_months,
     title_key,
     unique_notices,
@@ -329,3 +332,108 @@ def test_run_market_research_passes_trend_keywords_to_procurement(monkeypatch):
     assert with_trend.procurement.status == "completed"
     assert without_trend.procurement.status == "no_keywords"
     assert failed.procurement.status == "error"
+
+
+def completed_procurement():
+    return build_procurement(
+        IDEA,
+        ["협동로봇", "코봇"],
+        20261029,
+        lambda k, kind, m: (
+            [
+                raw("A", "협동로봇 구매", "인하대학교", "09-01", budget="46310000"),
+                raw(
+                    "B",
+                    "[지역주도형 AI대전환]협동로봇본체 4대",
+                    "주식회사 유엔디",
+                    "04-16",
+                    budget="88000000",
+                    cntrctCnclsMthdNm="일반경쟁",
+                ),
+                raw(
+                    "C", "협동로봇 실습장비", "동강대학 산학협력단", "07-08", budget=""
+                ),
+                raw(
+                    "D",
+                    "6축 협동로봇",
+                    "한국생산기술연구원",
+                    "08-24",
+                    budget="28765000",
+                ),
+                raw("E", "다관절 협동로봇", "조선대학교", "09-02", budget="42570000"),
+            ]
+            if (k, kind, m) == ("협동로봇", "물품", "202609")
+            else []
+        ),
+        all_relevant,
+        {**CONFIG, "months": 6},
+    )
+
+
+def test_procurement_hits_summary_and_private_first_notices():
+    hits = procurement_hits(completed_procurement())
+
+    assert len(hits) == 1 + 3
+    summary, first, *_ = hits
+    assert summary["source_type"] == "procurement"
+    assert summary["evidence_nature"] == "purchase_signal"
+    assert summary["period"] == "2026년 4월~2026년 9월"
+    assert "관련 공고는 5건이다" in summary["text"]
+    assert "배정예산 중앙값은 4,444만원" in summary["text"]
+    assert first["source_id"] == "g2b-B-000"
+    assert first["period"] == "2026년 4월"
+    assert "주식회사 유엔디(민간 기업)가 2026년 4월 16일" in first["text"]
+    assert "8,800만원(88,000,000원), 계약 방법 일반경쟁." in first["text"]
+    assert all("동강대학" not in h["text"] for h in hits[1:])  # 예산 없는 공고 제외
+    empty = MarketProcurement(status="completed", keywords=["협동로봇"])
+    assert procurement_hits(empty) == []
+    assert period_text("2026-04 ~ 2026-09") == "2026년 4월~2026년 9월"
+
+
+def test_attach_procurement_adds_price_and_buyer_evidence_only():
+    news = {"source_id": "n1", "relevant": True}
+    assessed = {
+        "demand": {"status": "limited", "relevant_count": 1, "hits": [news]},
+        "price": {"status": "insufficient", "relevant_count": 0, "hits": []},
+        "buyer": {"status": "error", "relevant_count": 0, "hits": []},
+    }
+
+    attached = attach_procurement(assessed, completed_procurement())
+
+    assert attached["demand"] is assessed["demand"]
+    assert attached["buyer"] is assessed["buyer"]  # 판정 실패 차원은 그대로
+    assert attached["price"]["status"] == "sufficient"
+    assert attached["price"]["relevant_count"] == 4
+    assert assessed["price"]["hits"] == []  # 원래 결과는 바꾸지 않음
+    assert attach_procurement(assessed, None) is assessed
+
+
+def test_run_market_research_feeds_procurement_into_analysis(monkeypatch):
+    monkeypatch.setattr(market_service, "search_scope", lambda c, i: "범위")
+    monkeypatch.setattr(
+        market_service,
+        "search_with_relevance",
+        lambda *a, **k: {"price": {"status": "no_results", "hits": []}},
+    )
+    seen = {}
+
+    def fake_build_report(idea, assessed, scope, as_of, llm_fn):
+        seen["price"] = assessed["price"]["status"]
+        return MarketReport(status="no_results", search_scope=scope)
+
+    monkeypatch.setattr(market_service, "build_report", fake_build_report)
+    procurement = completed_procurement()
+
+    report = market_service.run_market_research(
+        MarketSearchRequest(idea=IDEA),
+        collection=object(),
+        data_as_of=20261029,
+        trend_fn=lambda idea, as_of: MarketSearchTrend(
+            status="completed", keywords=["협동로봇"]
+        ),
+        procurement_fn=lambda idea, keywords, as_of: procurement,
+    )
+
+    assert seen["price"] == "sufficient"
+    assert report.procurement is procurement
+    assert report.search_trend.keywords == ["협동로봇"]

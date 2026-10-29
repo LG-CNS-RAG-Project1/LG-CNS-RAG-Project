@@ -7,9 +7,12 @@
 3. 공고명에 주제어 글자만 들어간 다른 물건을 거르기 위해 LLM이 공고명·세부품명으로 같은 제품·서비스
    범주인지 판정한다 (prompts/market_procurement_relevance.md).
 4. 수요기관 이름으로 구매 주체 유형(민간 기업·대학·학교·연구기관·공공기관)을 나눈다.
+5. 관련 공고를 시장 분석의 가격·구매자 차원 근거(구매 신호)로 넣는다 (attach_procurement).
+   집계 1건(공고 수·예산 중앙값·범위·구매 주체 유형)과 공고 최대 MAX_CITED_NOTICES건이다.
 
-공공 조달은 공공기관·대학·연구기관의 구매가 대부분이라 민간 고객 수요의 근거가 아니며, 차원별 판정에
-쓰지 않는다.
+공공 조달은 공공기관·대학·연구기관의 구매가 대부분이라 민간 고객 수요의 근거가 아니다. 수요 차원에는
+넣지 않고, 목표 고객이 공공 부문이 아니면 구매자 차원을 '확인됨'으로 올리지 않는다
+(src/generation/market_analysis.py).
 """
 
 import json
@@ -22,7 +25,8 @@ from src.ingestion.procurement_client import (
     fetch_bid_notices,
     load_procurement_config,
 )
-from src.retrieval.market_relevance import call_relevance_llm
+from src.generation.market_markdown import format_won, procurement_stats
+from src.retrieval.market_relevance import call_relevance_llm, sufficiency_status
 from src.schemas import MarketProcurement, ProcurementNotice, StructuredIdea
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
@@ -32,6 +36,10 @@ NOTE = (
     "아니며, 공공 구매 사례와 예산 수준을 참고하는 자료입니다."
 )
 CANCELLED = "취소"
+# 공고를 근거로 넣는 시장 차원과 차원마다 넣는 개별 공고 수
+EVIDENCE_DIMENSIONS = ("price", "buyer")
+MAX_CITED_NOTICES = 3
+PUBLISHER = "조달청 나라장터"
 # 공고명 앞의 재공고·긴급·내부 번호 머리말: (재공고) (재) 수의)(재) [52251] [긴급] (새로운공고)
 _TITLE_PREFIX_RE = re.compile(r"^(?:\s*(?:\[[^\]]*\]|\([^)]*\)|[^()\[\]\s]{1,4}\)))+")
 # 공고명 어디에나 붙는 재공고 표시
@@ -76,6 +84,9 @@ def to_notice(raw: dict, config: dict) -> ProcurementNotice:
         notice_date=int(str(raw.get("bidNtceDt", ""))[:10].replace("-", "") or 0),
         budget=budget,
         product=raw.get("dtilPrdctClsfcNoNm", ""),
+        contract_method=" · ".join(
+            v for v in (raw.get("cntrctCnclsMthdNm"), raw.get("sucsfbidMthdNm")) if v
+        ),
         url=raw.get("bidNtceDtlUrl", ""),
     )
 
@@ -198,3 +209,128 @@ def build_procurement(
         notices=relevant,
         note=NOTE,
     )
+
+
+def _hit(
+    source_id: str, title: str, quote: str, published_at: int, url: str, period: str
+) -> dict:
+    """시장 검색 결과(search_with_relevance hits)와 같은 형식의 관련 판정된 공고 근거.
+
+    period는 공고 기간·공고 월('2026년 4월~2026년 9월', '2026년 9월')이며 분석 문장의 기준 시점이 된다.
+    """
+    return {
+        "source_id": source_id,
+        "source_type": "procurement",
+        "publisher": PUBLISHER,
+        "title": title,
+        "text": f"{title}\n{quote}",
+        "url": url or None,
+        "published_at": published_at,
+        "period": period,
+        "section": "입찰공고",
+        "reliability": "high",
+        "evidence_nature": "purchase_signal",
+        "distance": None,
+        "relevant": True,
+        "relevance_confidence": "high",
+        "relevance_reason": "공고명·세부품명이 아이디어와 같은 제품·서비스 범주로 판정됨",
+    }
+
+
+def period_text(period: str) -> str:
+    """'2026-04 ~ 2026-09'를 인용문용 '2026년 4월~2026년 9월'로 바꾼다.
+
+    시장 분석 검증은 금액 문장에 'YYYY년' 기준 시점을 요구하고 숫자를 원문과 그대로 대조한다.
+    """
+    parts = [p.strip().split("-") for p in period.split("~")]
+    return "~".join(f"{y}년 {int(m)}월" for y, m in parts if y and m)
+
+
+def notice_quote(notice: ProcurementNotice) -> str:
+    """공고 1건을 인용문으로 쓴다: 수요기관(유형)·공고일·종류·예산·계약 방법."""
+    date_text = (
+        f"{notice.notice_date // 10000}년 {notice.notice_date // 100 % 100}월 "
+        f"{notice.notice_date % 100}일"
+    )
+    budget = (
+        f"배정예산 {format_won(notice.budget)}({notice.budget:,}원)"
+        if notice.budget
+        else "예산 미공개"
+    )
+    method = f", 계약 방법 {notice.contract_method}" if notice.contract_method else ""
+    return (
+        f"{notice.buyer}({notice.buyer_type})가 {date_text} 나라장터에 "
+        f"'{notice.title}' {notice.kind} 입찰을 공고했다. {budget}{method}."
+    )
+
+
+def cited_notices(procurement: MarketProcurement) -> list[ProcurementNotice]:
+    """근거로 넣을 공고: 예산이 있는 공고 중 민간 기업 공고를 먼저, 나머지는 최근 순으로 최대 3건."""
+    with_budget = [n for n in procurement.notices if n.budget]
+    private = [n for n in with_budget if n.buyer_type == "민간 기업"]
+    rest = [n for n in with_budget if n.buyer_type != "민간 기업"]
+    return (private + rest)[:MAX_CITED_NOTICES]
+
+
+def procurement_hits(procurement: MarketProcurement) -> list[dict]:
+    """관련 공고를 집계 1건 + 개별 공고 근거 목록으로 만든다. 관련 공고가 없으면 빈 목록."""
+    if procurement.status != "completed" or not procurement.notices:
+        return []
+    stats = procurement_stats(procurement)
+    types = ", ".join(f"{name} {n}건" for name, n in stats["buyer_types"].items())
+    budget = (
+        f" 예산이 공개된 공고의 배정예산 중앙값은 {format_won(stats['median'])}, "
+        f"범위는 {format_won(stats['min'])}~{format_won(stats['max'])}이다."
+        if stats["median"]
+        else ""
+    )
+    latest = max(n.notice_date for n in procurement.notices)
+    period = period_text(procurement.period)
+    summary = _hit(
+        f"g2b-summary-{'-'.join(procurement.keywords)}",
+        f"나라장터 '{', '.join(procurement.keywords)}' 입찰공고 집계 ({period})",
+        (
+            f"{period} 나라장터 입찰공고 중 '{', '.join(procurement.keywords)}' "
+            f"관련 공고는 {stats['count']}건이다.{budget} 수요기관 유형은 {types}이다."
+        ),
+        latest,
+        "",
+        period,
+    )
+    notices = [
+        _hit(
+            f"g2b-{n.notice_no}",
+            n.title,
+            notice_quote(n),
+            n.notice_date,
+            n.url,
+            f"{n.notice_date // 10000}년 {n.notice_date // 100 % 100}월",
+        )
+        for n in cited_notices(procurement)
+    ]
+    return [summary, *notices]
+
+
+def attach_procurement(
+    assessed: dict[str, dict], procurement: MarketProcurement | None
+) -> dict[str, dict]:
+    """공고 근거를 가격·구매자 차원의 검색 결과에 더하고 충분성 상태를 다시 정한다.
+
+    원래 assessed는 바꾸지 않는다. 관련성 판정이 실패(error)한 차원과 근거가 없으면 그대로 둔다.
+    """
+    hits = procurement_hits(procurement) if procurement else []
+    if not hits:
+        return assessed
+    result = dict(assessed)
+    for dimension in EVIDENCE_DIMENSIONS:
+        current = assessed.get(dimension) or {"hits": [], "status": "no_results"}
+        if current.get("status") == "error":
+            continue
+        merged = [*current["hits"], *hits]
+        result[dimension] = {
+            **current,
+            "hits": merged,
+            "relevant_count": sum(bool(h.get("relevant")) for h in merged),
+            "status": sufficiency_status(merged),
+        }
+    return result
