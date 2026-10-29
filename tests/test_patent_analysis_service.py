@@ -12,7 +12,7 @@ from src.schemas import (
 from src.services.patent_service import analyze_patents
 
 
-def request(top_k=5):
+def request(top_k=8):
     return PatentSearchRequest(
         idea=StructuredIdea(
             title="비전 검사",
@@ -74,14 +74,14 @@ def compare_all(idea, evidence):
     ]
 
 
-def test_analysis_limits_to_five_patents_and_keeps_claim_citations(monkeypatch):
+def test_analysis_limits_to_eight_patents_and_keeps_claim_citations(monkeypatch):
     import src.services.patent_service as service
 
     monkeypatch.setattr(service, "judge_patent_candidates", judge_all)
     monkeypatch.setattr(
         service,
         "search_patents",
-        lambda query, **kwargs: [result(f"P{i}", rank=i) for i in range(1, 6)],
+        lambda query, **kwargs: [result(f"P{i}", rank=i) for i in range(1, 9)],
     )
     fetched = []
 
@@ -114,16 +114,16 @@ def test_analysis_limits_to_five_patents_and_keeps_claim_citations(monkeypatch):
     )
 
     assert report.status == "completed"
-    assert len({item.patent_id for item in report.evidence}) == 5
-    assert len(report.evidence) == 10
+    assert len({item.patent_id for item in report.evidence}) == 8
+    assert len(report.evidence) == 16
     assert all(
         item.section == "claims" and item.claim_number for item in report.evidence
     )
     assert all(
         item.collected_at == "2026-10-29T01:02:03+00:00" for item in report.evidence
     )
-    assert [item.citation_id for item in report.comparisons] == list(range(1, 11))
-    assert len(fetched) == 5
+    assert [item.citation_id for item in report.comparisons] == list(range(1, 17))
+    assert len(fetched) == 8
 
 
 def test_indexed_candidate_fallback_uses_exact_abstract_and_marks_claim_unknown(
@@ -372,9 +372,10 @@ def test_legacy_comparison_failure_is_reported_without_duplicate_retry(monkeypat
         comparison_fn=fail,
     )
 
-    assert report.status == "error"
+    assert report.status == "partial"
     assert len(attempts) == 1
     assert report.evidence
+    assert "특허 비교 응답 검증 실패" in report.error_message
 
 
 def test_review_failure_preserves_retrieved_patent_evidence(monkeypatch):
@@ -396,9 +397,9 @@ def test_review_failure_preserves_retrieved_patent_evidence(monkeypatch):
         patent_review_fn=failed_review,
     )
 
-    assert report.status == "error"
+    assert report.status == "partial"
     assert len(report.evidence) == 1
-    assert "원문 근거는 보존했습니다" in report.unknowns[-1]
+    assert "비교 단계 실패" in report.unknowns[-1]
     assert "invalid component mapping" in report.error_message
 
 
