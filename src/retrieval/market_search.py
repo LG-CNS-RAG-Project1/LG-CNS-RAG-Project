@@ -1,9 +1,12 @@
 """시장 근거 문서를 Chroma에 색인하고, 에이전트가 호출할 시장 근거 검색 툴을 제공한다.
 
-- 입력: data/market/processed/market_docs.jsonl (market_processor 결과)
-- 저장소: data/market/chroma/ 의 "news" 컬렉션 (cosine 거리)
-- 임베딩: OpenAI text-embedding-3-small. 뉴스는 1기사 = 1청크(`{source_id}#0`)로 색인한다.
+- 입력: data/market/processed/market_docs.jsonl (뉴스, market_processor 결과)과
+  dart_docs.jsonl (DART 사업보고서, dart_processor 결과). 두 파일 모두 있어야 색인한다.
+- 저장소: data/market/chroma/ 의 "news" 컬렉션 (cosine 거리). 출처는 source_type 메타데이터로 구분한다.
+- 임베딩: OpenAI text-embedding-3-small. 문서 1건 = 1청크(`{source_id}#0`)로 색인한다
+  (DART는 dart_processor가 섹션을 청크로 나눠 청크마다 문서 1건을 만든다).
 - 아이디어 필터를 위해 idea_ids를 `idea_<ID>: True` 메타데이터로도 저장한다.
+- 차원별 검색은 뉴스 top_k건과 DART DART_TOP_K건을 따로 검색해 합친다.
 
 사용 예:
     python -m src.retrieval.market_search build
@@ -33,7 +36,10 @@ from src.retrieval.schemas import RetrievalResult, SearchDocument
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 DOCS_PATH = ROOT_DIR / "data" / "market" / "processed" / "market_docs.jsonl"
+DART_DOCS_PATH = ROOT_DIR / "data" / "market" / "processed" / "dart_docs.jsonl"
 CHROMA_DIR = ROOT_DIR / "data" / "market" / "chroma"
+# 차원마다 뉴스와 별도로 검색해 붙이는 DART 사업보고서 청크 수
+DART_TOP_K = 2
 COLLECTION_NAME = "news"
 EMBEDDING_MODEL = "text-embedding-3-small"
 EMBED_BATCH_SIZE = 100
@@ -41,11 +47,11 @@ CANDIDATE_MULTIPLIER = 4
 
 # 차원별 검색 질의 템플릿. {필드}는 StructuredIdea의 5개 항목 값으로 채우며, 빈 항목은 빠진다.
 DIMENSION_QUERIES = {
-    "demand": "{customers} {problem} {technology} 도입 확대 수요",
-    "competition": "{difference} {technology} 경쟁 업체",
-    "price": "{customers} {technology} 도입 가격 비용 {revenue}",
-    "buyer": "{customers} {technology} 도입 사례",
-    "adoption_barrier": "{customers} {technology} 도입 어려움 비용 부담 인력 부족",
+    "demand": "{target_segment} {customers} {problem} {technology} 고객 도입 구매 검토",
+    "competition": "{problem} {technology} {difference} {current_alternative} 경쟁 제품 대체 방식",
+    "price": "{target_segment} {customers} {technology} {revenue} 제품 가격 구축비 운영비 비용 절감",
+    "buyer": "{target_segment} {customers} {technology} 구매 고객 도입 계약 조달",
+    "adoption_barrier": "{target_segment} {customers} {technology} {current_alternative} 도입 장애 통합 운영 보안 인력 비용",
 }
 
 EmbedFn = Callable[[list[str]], list[list[float]]]
@@ -88,6 +94,20 @@ def load_documents(path: Path = DOCS_PATH) -> list[MarketDocument]:
     """정제된 시장 문서 JSONL을 읽어 MarketDocument 목록으로 반환한다."""
     with open(path, encoding="utf-8") as f:
         return [MarketDocument.model_validate_json(line) for line in f if line.strip()]
+
+
+def load_all_documents(
+    news_path: Path = DOCS_PATH, dart_path: Path = DART_DOCS_PATH
+) -> list[MarketDocument]:
+    """뉴스와 DART 정제 문서를 모두 읽는다. 둘 중 하나라도 없으면 만드는 방법과 함께 오류를 낸다."""
+    missing = {
+        news_path: "python -m src.ingestion.news_client 후 python -m src.ingestion.market_processor",
+        dart_path: "python -m src.ingestion.dart_client 후 python -m src.ingestion.dart_processor",
+    }
+    for path, command in missing.items():
+        if not path.exists():
+            raise FileNotFoundError(f"{path.name} 없음: {command}")
+    return load_documents(news_path) + load_documents(dart_path)
 
 
 def to_chroma_record(document: MarketDocument) -> tuple[str, str, dict]:
@@ -257,8 +277,12 @@ def search_market(
 
 
 def build_dimension_queries(request: MarketSearchRequest) -> dict[str, str]:
-    """요청 아이디어의 5개 항목으로 차원별 검색 질의를 만든다."""
-    values = request.idea.model_dump(include=set(IDEA_FIELDS))
+    """확정 아이디어의 고객·문제·대안·기술을 중심으로 차원별 질의를 만든다."""
+    values = {
+        **request.idea.model_dump(include=set(IDEA_FIELDS)),
+        "target_segment": request.idea.target_segment,
+        "current_alternative": request.idea.current_alternative,
+    }
     return {
         dimension: " ".join(DIMENSION_QUERIES[dimension].format(**values).split())
         for dimension in request.dimensions
@@ -273,19 +297,30 @@ def search_by_dimensions(
 ) -> dict[str, list[dict]]:
     """차원별 질의로 시장 근거를 검색해 {차원: 결과 목록}으로 반환한다.
 
-    idea_id를 주면 해당 아이디어 키워드로 수집된 문서로 범위를 좁힌다.
+    request.source_types가 없으면 뉴스 top_k건 뒤에 DART 사업보고서 DART_TOP_K건을 붙인다.
+    출처마다 따로 검색해 한쪽 결과가 다른 쪽을 밀어내지 않는다. source_types를 주면 그 출처만
+    top_k건 검색한다. idea_id를 주면 해당 아이디어에 연결된 문서로 범위를 좁힌다.
     """
     collection = collection or get_collection()
+    plans = (
+        [(request.source_types, request.top_k)]
+        if request.source_types
+        else [(["news"], request.top_k), (["dart"], DART_TOP_K)]
+    )
     return {
-        dimension: search_market(
-            query,
-            collection=collection,
-            embed_fn=embed_fn,
-            top_k=request.top_k,
-            idea_id=idea_id,
-            source_types=request.source_types,
-            date_from=request.date_from,
-        )
+        dimension: [
+            hit
+            for source_types, top_k in plans
+            for hit in search_market(
+                query,
+                collection=collection,
+                embed_fn=embed_fn,
+                top_k=top_k,
+                idea_id=idea_id,
+                source_types=source_types,
+                date_from=request.date_from,
+            )
+        ]
         for dimension, query in build_dimension_queries(request).items()
     }
 
@@ -294,7 +329,7 @@ def main() -> None:
     """build: 정제 문서를 색인한다. search: 질의 1건을 검색해 결과를 출력한다."""
     parser = argparse.ArgumentParser(description="시장 근거 색인·검색")
     sub = parser.add_subparsers(dest="command", required=True)
-    build = sub.add_parser("build", help="market_docs.jsonl 색인")
+    build = sub.add_parser("build", help="market_docs.jsonl·dart_docs.jsonl 색인")
     build.add_argument("--rebuild", action="store_true", help="기존 ID도 다시 임베딩")
     search = sub.add_parser("search", help="질의 검색")
     search.add_argument("query")
@@ -304,7 +339,7 @@ def main() -> None:
 
     collection = get_collection()
     if args.command == "build":
-        added = build_index(load_documents(), collection, rebuild=args.rebuild)
+        added = build_index(load_all_documents(), collection, rebuild=args.rebuild)
         print(f"embedded {added} documents -> collection size {collection.count()}")
     else:
         hits = search_market(

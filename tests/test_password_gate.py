@@ -23,13 +23,13 @@ def submit(app, value):
 def test_password_gate_blocks_until_correct(monkeypatch):
     monkeypatch.setenv("IDEALENS_APP_PASSWORD", "FAKE_APP_PASSWORD")
     app = AppTest.from_file(str(APP), default_timeout=30).run()
-    assert "예시 불러오기" not in labels(app)
+    assert "돋보기로 조사 시작" not in labels(app)
     submit(app, "wrong")
     assert any("맞지 않습니다" in e.value for e in app.error)
-    assert "예시 불러오기" not in labels(app)
+    assert "돋보기로 조사 시작" not in labels(app)
     submit(app, "FAKE_APP_PASSWORD")
     assert app.session_state.authenticated
-    assert "예시 불러오기" in labels(app)
+    assert "돋보기로 조사 시작" in labels(app)
 
 
 def test_password_gate_locks_after_repeated_failures(monkeypatch):
@@ -42,9 +42,23 @@ def test_password_gate_locks_after_repeated_failures(monkeypatch):
     assert "들어가기" not in labels(app)
 
 
+def test_password_gate_shows_build_version(monkeypatch):
+    monkeypatch.setenv("IDEALENS_APP_PASSWORD", "FAKE_APP_PASSWORD")
+    monkeypatch.setattr("frontend.live.build_version", lambda root: "abc1234")
+    app = AppTest.from_file(str(APP), default_timeout=30).run()
+    assert "버전 abc1234" in [c.value for c in app.caption]
+
+
+def test_password_gate_hides_unknown_build_version(monkeypatch):
+    monkeypatch.setenv("IDEALENS_APP_PASSWORD", "FAKE_APP_PASSWORD")
+    monkeypatch.setattr("frontend.live.build_version", lambda root: "")
+    app = AppTest.from_file(str(APP), default_timeout=30).run()
+    assert not any(c.value.startswith("버전") for c in app.caption)
+
+
 def test_no_password_means_no_gate():
     app = AppTest.from_file(str(APP), default_timeout=30).run()
-    assert "예시 불러오기" in labels(app)
+    assert "돋보기로 조사 시작" in labels(app)
 
 
 def test_password_matches_trims_input_only():

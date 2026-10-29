@@ -1,3 +1,4 @@
+import re
 from typing import Literal
 from pydantic import BaseModel, Field, model_validator
 
@@ -11,12 +12,17 @@ class StructuredIdea(BaseModel):
     difference: str = ""
     revenue: str = ""
     technical_components: list[str] = Field(default_factory=list)
+    current_alternative: str = ""
+    target_segment: str = ""
+    value_hypotheses: list[str] = Field(default_factory=list)
+    field_sources: dict[str, str] = Field(default_factory=dict)
 
 
 IdeaField = Literal["problem", "technology", "customers", "difference", "revenue"]
 FieldSource = Literal[
     "extracted",  # 입력 문장에서 LLM이 추출
     "user_answer",  # 재질문에 사용자가 직접 답변
+    "ai_hypothesis",  # AI가 분석용 가설로 제안
     "unknown",  # 사용자가 모름으로 답했거나 재질문 상한까지 비어 있음
 ]
 
@@ -39,7 +45,12 @@ class IdeaDraft(BaseModel):
     difference: str = ""
     revenue: str = ""
 
-    field_sources: dict[IdeaField, FieldSource] = Field(default_factory=dict)
+    field_sources: dict[str, FieldSource] = Field(default_factory=dict)
+    current_alternative: str = ""
+    target_segment: str = ""
+    technical_components: list[str] = Field(default_factory=list)
+    value_hypotheses: list[str] = Field(default_factory=list)
+    unknowns: list[str] = Field(default_factory=list)
     status: Literal["needs_input", "complete", "rejected"] = "needs_input"
     missing_fields: list[IdeaField] = Field(default_factory=list)
     questions: dict[IdeaField, str] = Field(default_factory=dict)
@@ -70,9 +81,18 @@ class IdeaDraft(BaseModel):
         """완성된 초안을 특허·시장 공통 입력으로 변환한다. 모름 항목은 빈 문자열로 남는다."""
         if self.status != "complete":
             raise ValueError(f"idea draft is incomplete: {self.missing_fields}")
+        required = ["title", *IDEA_FIELDS]
+        missing = [field for field in required if not str(getattr(self, field)).strip()]
+        if missing:
+            raise ValueError("분석 필수 항목이 비어 있습니다: " + ", ".join(missing))
         return StructuredIdea(
             title=self.title,
             **{field: getattr(self, field) for field in IDEA_FIELDS},
+            current_alternative=self.current_alternative,
+            target_segment=self.target_segment,
+            technical_components=self.technical_components,
+            value_hypotheses=self.value_hypotheses,
+            field_sources=self.field_sources,
         )
 
 
@@ -161,12 +181,77 @@ class PatentComparison(BaseModel):
     technical_element: str | None = None
 
 
+class PatentComponentComparison(BaseModel):
+    component_id: str
+    idea_component: str
+    status: Literal["overlap", "partial", "different", "not_found", "uncertain"]
+    citation_ids: list[int] = Field(default_factory=list)
+    overlap: str = ""
+    difference: str = ""
+    uncertainty: str = ""
+    matched_text: str = ""
+
+
+class PatentWatchout(BaseModel):
+    issue: str
+    why_it_matters: str
+    citation_ids: list[int] = Field(default_factory=list)
+    next_check: str
+
+
+class PatentDesignRecommendation(BaseModel):
+    recommendation: str
+    rationale: str
+    citation_ids: list[int] = Field(default_factory=list)
+    validation_needed: str = ""
+    basis: Literal["evidence_based", "hypothesis"] = "hypothesis"
+
+    @model_validator(mode="after")
+    def validate_basis(self):
+        if self.basis == "evidence_based" and not self.citation_ids:
+            raise ValueError("Evidence-based design recommendations require citations")
+        if self.basis == "hypothesis" and self.citation_ids:
+            raise ValueError("Hypothesis recommendations must not claim citations")
+        return self
+
+
+class PatentDocumentReview(BaseModel):
+    patent_id: str
+    title: str
+    citation_ids: list[int] = Field(default_factory=list)
+    relevance: Literal["high", "medium", "low", "insufficient"] = "insufficient"
+    relevance_reason: str = ""
+    component_comparisons: list[PatentComponentComparison] = Field(default_factory=list)
+    overall_summary: str = ""
+    watchouts: list[str] = Field(default_factory=list)
+    watchout_findings: list[PatentWatchout] = Field(default_factory=list)
+    design_recommendations: list[PatentDesignRecommendation] = Field(
+        default_factory=list
+    )
+    unknowns: list[str] = Field(default_factory=list)
+
+
+class PatentabilityPrecheck(BaseModel):
+    status: Literal["overlap_concern", "potentially_distinct", "insufficient_evidence"]
+    summary: str
+    citation_ids: list[int] = Field(default_factory=list)
+    distinction_hypotheses: list[str] = Field(default_factory=list)
+    expert_questions: list[str] = Field(default_factory=list)
+    limitations: list[str] = Field(default_factory=list)
+    common_watchouts: list[PatentWatchout] = Field(default_factory=list)
+    common_design_recommendations: list[PatentDesignRecommendation] = Field(
+        default_factory=list
+    )
+
+
 # 8. 최종 특허 RAG 결과
 class PatentReport(BaseModel):
     status: Literal["completed", "no_results", "error"]
 
     evidence: list[PatentEvidence] = Field(default_factory=list)
     comparisons: list[PatentComparison] = Field(default_factory=list)
+    patent_reviews: list[PatentDocumentReview] = Field(default_factory=list)
+    patentability_precheck: PatentabilityPrecheck | None = None
     unknowns: list[str] = Field(default_factory=list)
 
     search_scope: str
@@ -182,6 +267,54 @@ class PatentReport(BaseModel):
         for comparison in self.comparisons:
             if comparison.citation_id not in ids:
                 raise ValueError("Comparison references unknown citation")
+
+        evidence_by_patent = {}
+        for item in self.evidence:
+            evidence_by_patent.setdefault(item.patent_id, set()).add(item.citation_id)
+        reviewed = set()
+        for review in self.patent_reviews:
+            if review.patent_id in reviewed:
+                raise ValueError("Duplicate patent reviews")
+            reviewed.add(review.patent_id)
+            allowed = evidence_by_patent.get(review.patent_id, set())
+            if not set(review.citation_ids) <= allowed:
+                raise ValueError("Patent review references unknown citation")
+            for comparison in review.component_comparisons:
+                if not set(comparison.citation_ids) <= allowed:
+                    raise ValueError("Component comparison references unknown citation")
+                if comparison.matched_text and not any(
+                    comparison.matched_text in item.quote
+                    for item in self.evidence
+                    if item.citation_id in comparison.citation_ids
+                ):
+                    raise ValueError(
+                        "Matched patent text must be verbatim cited evidence"
+                    )
+            for recommendation in review.design_recommendations:
+                if not set(recommendation.citation_ids) <= allowed:
+                    raise ValueError(
+                        "Design recommendation references unknown citation"
+                    )
+            for watchout in review.watchout_findings:
+                if not set(watchout.citation_ids) <= allowed:
+                    raise ValueError("Patent watchout references unknown citation")
+        if self.patentability_precheck and not set(
+            self.patentability_precheck.citation_ids
+        ) <= set(ids):
+            raise ValueError("Patentability precheck references unknown citation")
+        if self.patentability_precheck:
+            for watchout in self.patentability_precheck.common_watchouts:
+                if not set(watchout.citation_ids) <= set(ids):
+                    raise ValueError(
+                        "Common patent watchout references unknown citation"
+                    )
+            for (
+                recommendation
+            ) in self.patentability_precheck.common_design_recommendations:
+                if not set(recommendation.citation_ids) <= set(ids):
+                    raise ValueError(
+                        "Common patent recommendation references unknown citation"
+                    )
 
         if len({e.patent_id for e in self.evidence}) > 5:
             raise ValueError("Maximum 5 unique patents")
@@ -346,6 +479,14 @@ class MarketDimensionResult(BaseModel):
     verdict: MarketVerdict
     claims: list[MarketClaim] = Field(default_factory=list, max_length=3)
     next_check: str | None = None  # 미확인일 때 다음 검증 과제
+    # 검색·관련성 판정 결과: sufficient·limited·insufficient·no_results·error
+    evidence_status: (
+        Literal["sufficient", "limited", "insufficient", "no_results", "error"] | None
+    ) = None
+    relevant_count: int | None = None  # 관련 판정된 검색 결과 수
+    limitation: str | None = (
+        None  # 확인됨이 아닌 이유 (자료 없음·판정 실패·사업 신호만 등)
+    )
 
     @model_validator(mode="after")
     def validate_verdict(self):
@@ -359,12 +500,125 @@ class MarketDimensionResult(BaseModel):
         return self
 
 
+class MarketValidationAction(BaseModel):
+    title: str
+    target: str
+    method: str
+    success_signal: str
+    citation_ids: list[int] = Field(default_factory=list)
+
+
+class MarketOpportunityFinding(BaseModel):
+    topic: str
+    statement: str
+    citation_ids: list[int] = Field(default_factory=list)
+
+
+class MarketOpportunityReview(BaseModel):
+    status: Literal[
+        "validated_demand", "buyer_signals", "indirect_signals", "insufficient_evidence"
+    ]
+    target_segment: str = ""
+    value_hypotheses: list[str] = Field(default_factory=list)
+    reasons: list[MarketOpportunityFinding] = Field(default_factory=list)
+    unknowns: list[str] = Field(default_factory=list)
+    validation_actions: list[MarketValidationAction] = Field(default_factory=list)
+
+
+class MarketAnalyticalHypothesis(BaseModel):
+    """검색 사실과 구분해 검증할 시장 가설을 기록한다."""
+
+    question: str
+    hypothesis: str
+    basis: str
+    assumptions: list[str] = Field(default_factory=list)
+    citation_ids: list[int] = Field(default_factory=list)
+    validation_target: str
+    validation_method: str
+    success_criterion: str
+    numeric_value: float | None = None
+    numeric_unit: str = ""
+    numeric_basis: str = ""
+
+    @model_validator(mode="after")
+    def require_basis_for_numeric_estimate(self):
+        if self.numeric_value is not None and not self.numeric_basis.strip():
+            raise ValueError("Numeric market hypotheses require a stated basis")
+        return self
+
+
+class MarketCommercialAnalysis(BaseModel):
+    """사업 승인 관점의 고객·구매 구조 분석. 문장은 근거 또는 가설로 구분한다."""
+
+    user: str = "미확인"
+    buyer: str = "미확인"
+    budget_owner: str = "미확인"
+    use_case: str = "미확인"
+    current_alternative: str = "미확인"
+    switching_trigger: str = "미확인"
+    purchase_process: str = "미확인"
+    adoption_requirements: list[str] = Field(default_factory=list)
+    pricing_hypothesis: str = "미확인"
+    critical_assumptions: list[str] = Field(default_factory=list)
+    citation_ids: list[int] = Field(default_factory=list)
+    unknowns: list[str] = Field(default_factory=list)
+    hypotheses: list[MarketAnalyticalHypothesis] = Field(default_factory=list)
+
+
+class ImplementationCostItem(BaseModel):
+    name: str
+    quantity: float = Field(ge=0)
+    unit: str
+    low_unit_cost: float = Field(ge=0)
+    base_unit_cost: float = Field(ge=0)
+    high_unit_cost: float = Field(ge=0)
+    basis: str
+    citation_ids: list[int] = Field(default_factory=list)
+    cost_type: Literal["one_time", "monthly", "annual"] = "one_time"
+
+    @model_validator(mode="after")
+    def validate_range(self):
+        if not self.low_unit_cost <= self.base_unit_cost <= self.high_unit_cost:
+            raise ValueError("Cost range must be low <= base <= high")
+        return self
+
+
+class ImplementationCostEstimate(BaseModel):
+    status: Literal["estimated", "insufficient_data", "error"] = "insufficient_data"
+    region: str = "대한민국"
+    currency: str = "KRW"
+    unit: str = "원"
+    as_of: str = "미확인"
+    items: list[ImplementationCostItem] = Field(default_factory=list)
+    omissions: list[str] = Field(default_factory=list)
+    assumptions: list[str] = Field(default_factory=list)
+    revenue_unit_price: float | None = Field(default=None, ge=0)
+    variable_cost_per_unit: float | None = Field(default=None, ge=0)
+    revenue_basis: str = ""
+    unknowns: list[str] = Field(default_factory=list)
+
+
+class CostScenarioTotals(BaseModel):
+    initial_low: float = 0
+    initial_base: float = 0
+    initial_high: float = 0
+    recurring_monthly_low: float = 0
+    recurring_monthly_base: float = 0
+    recurring_monthly_high: float = 0
+    break_even_units_low: int | None = None
+    break_even_units_base: int | None = None
+    break_even_units_high: int | None = None
+    calculation_note: str = ""
+
+
 # 14. 최종 시장 근거 결과
 class MarketReport(BaseModel):
     status: Literal["completed", "no_results", "error"]
 
     dimensions: list[MarketDimensionResult] = Field(default_factory=list)
     evidence: list[MarketEvidence] = Field(default_factory=list)
+    opportunity_review: MarketOpportunityReview | None = None
+    commercial_analysis: MarketCommercialAnalysis | None = None
     unknowns: list[str] = Field(default_factory=list)
 
     search_scope: str
@@ -399,6 +653,49 @@ class MarketReport(BaseModel):
                     raise ValueError(
                         "demand 'confirmed' requires direct_demand evidence"
                     )
+
+        if self.opportunity_review:
+            for finding in self.opportunity_review.reasons:
+                if not set(finding.citation_ids) <= set(ids):
+                    raise ValueError(
+                        "Market opportunity finding references unknown citation"
+                    )
+            for action in self.opportunity_review.validation_actions:
+                if not set(action.citation_ids) <= set(ids):
+                    raise ValueError(
+                        "Market validation action references unknown citation"
+                    )
+
+        if self.commercial_analysis and not set(
+            self.commercial_analysis.citation_ids
+        ) <= set(ids):
+            raise ValueError("Commercial analysis references unknown citation")
+        if self.commercial_analysis:
+            for hypothesis in self.commercial_analysis.hypotheses:
+                if not set(hypothesis.citation_ids) <= set(ids):
+                    raise ValueError("Market hypothesis references unknown citation")
+                if hypothesis.numeric_value is not None:
+                    if not hypothesis.citation_ids:
+                        raise ValueError(
+                            "Numeric market hypotheses require cited source data"
+                        )
+                    numeric_token = f"{hypothesis.numeric_value:g}"
+                    normalized_value = numeric_token.replace(",", "")
+                    cited_quotes = [
+                        by_id[cid].quote
+                        for cid in hypothesis.citation_ids
+                        if cid in by_id
+                    ]
+                    if not any(
+                        re.search(
+                            rf"(?<!\d){re.escape(normalized_value)}(?!\d)",
+                            re.sub(r"(?<=\d),(?=\d)", "", quote).replace(" ", ""),
+                        )
+                        for quote in cited_quotes
+                    ):
+                        raise ValueError(
+                            "Numeric market hypotheses must match a cited source value"
+                        )
 
         if self.status == "no_results" and self.evidence:
             raise ValueError("no_results report must not contain evidence")

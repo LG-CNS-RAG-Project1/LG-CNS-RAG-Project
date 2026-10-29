@@ -20,12 +20,12 @@ flowchart TD
   subgraph data["시장 데이터 기반"]
     direction TB
     news["네이버 뉴스 수집<br/>키워드 26개 · 제목·요약·링크만"]
-    dart["DART 공시 수집<br/>사업의 내용·매출 (선택)"]
+    dart["DART 사업보고서 수집<br/>기업 16곳 · 사업의 내용 본문(표 제외)<br/>800자·150자 겹침 청크"]
     clean["정제·메타데이터 부여<br/>MarketDocument"]
     dedup["중복 제거<br/>같은 URL · 제목 유사도 0.8 · 3일 이내"]
-    index["Chroma 색인<br/>news 컬렉션 · cosine<br/>1기사 = 1청크"]
+    index["Chroma 색인<br/>news 컬렉션 · cosine<br/>source_type: news · dart"]
     news --> clean
-    dart -.-> clean
+    dart --> clean
     clean --> dedup --> index
   end
 
@@ -33,7 +33,7 @@ flowchart TD
   filter["메타데이터 필터<br/>아이디어 · 출처 유형 · 발행일"]
   vector["벡터 검색<br/>text-embedding-3-small · 후보 Top-20"]
   group["중복 그룹 정리<br/>dup_group당 1건"]
-  top["차원별 근거 Top-5 선정"]
+  top["차원별 근거 선정<br/>뉴스 Top-5 + DART Top-2 (출처별 따로 검색)"]
   judge["관련성 판정<br/>gpt-4o-mini · 평가 라벨과 같은 기준<br/>기사마다 관련 여부·이유"]
   enough{"충분성 확인<br/>관련 근거 2건 이상?"}
   live["네이버 API 실시간 보충<br/>색인 추가 후 재검색 (선택)"]
@@ -110,7 +110,7 @@ flowchart TD
   class verdict,task,gen,cite,check,drop,contract,handoff genstep
   class cases,metrics,answer,cost,compare,tune,fix evalnode
   class allowed,filled,enough,pass,improved decide
-  class dart,live,answer,cost,compare,improved,tune,fix todo
+  class live,answer,cost,compare,improved,tune,fix todo
 
   style data fill:#9aa3ad1f,stroke:#9aa3ad
   style eval fill:#9aa3ad1f,stroke:#9aa3ad
@@ -156,7 +156,7 @@ flowchart TD
 
 - 비용 때문에 관련성 판정은 `gpt-4o-mini`를 쓴다. 아이디어 1건 실행에서 판정 25회가 전체 토큰의 약 90%를 차지해(입력 약 4.8만 토큰), `gpt-4o` 대비 비용이 약 1/16이다.
 - 프로젝트 LLM은 비용 때문에 관련성 판정·분석 생성 모두 `gpt-4o-mini`를 쓴다. `gpt-4o-mini`는 정밀도가 낮아 비관련 기사가 근거로 더 많이 들어온다.
-- 분석을 `gpt-4o-mini`로 생성하면 허용 범위 안에서 가장 강한 판정을 고르는 경향이 있다. 샘플 5건 모두 경쟁 차원이 근거가 약한 기사로 `confirmed`가 되어(SF-05 포함), 판정 제한을 코드 규칙으로 강화했다: 근거가 모두 사업 신호·기업 주장·추정치이면 어느 차원도 `confirmed`를 허용하지 않는다(뉴스만 있으면 최대 `signal_only`).
+- 분석을 `gpt-4o-mini`로 생성하면 허용 범위 안에서 가장 강한 판정을 고르는 경향이 있다. 샘플 5건 모두 경쟁 차원이 근거가 약한 기사로 `confirmed`가 되어(SF-05 포함), 판정 제한을 코드 규칙으로 강화했다: 근거가 모두 사업 신호·기업 주장·추정치이면 어느 차원도 `confirmed`를 허용하지 않는다(아래 "뉴스 근거 성격").
 - 사람 라벨 중 사람·LLM 판정이 달랐던 행은 LLM 판정을 보고 확정했으므로, 두 모델 차이는 실제보다 크게 나타났을 수 있다.
 - 사람 라벨만 있는 6문항에서 충분성 상태 일치는 `gpt-4o` 5/6, `gpt-4o-mini` 4/6이다. 문항 수가 적어 상태 정확도의 근거로는 부족하다.
 
@@ -188,7 +188,7 @@ flowchart TD
 
 | 충분성 상태 | 허용 판정 |
 |---|---|
-| `sufficient` | 확인됨 · 신호만 확인 · 미확인 ('확인됨'은 사업 신호·기업 주장·추정치가 아닌 근거가 있을 때만, 수요는 고객 검증 자료(`direct_demand`)가 있을 때만) |
+| `sufficient` | 확인됨 · 신호만 확인 · 미확인 ('확인됨'은 사업 신호·기업 주장·추정치가 아닌 근거를 인용한 사실 문장이 있을 때만, 수요는 고객 검증 자료(`direct_demand`)가 있을 때만) |
 | `limited` | 신호만 확인 · 미확인 |
 | `insufficient` · `no_results` · `error` | 미확인 |
 | 기대는 아이디어 항목이 모름 (가격 ← 수익모델, 구매자 ← 고객) | 미확인 (근거 문장은 쓸 수 있음, 검증 과제는 그 항목을 정하는 일부터) |
@@ -196,7 +196,50 @@ flowchart TD
 - 검증 항목: 허용 판정인지, 차원당 문장 3개 이하인지, 사실 문장(`fact`)에 이 차원 근거의 인용이 있는지, 문장의 숫자가 인용 기사(제목·요약·발행일)나 아이디어 입력에 있는지, 사실 문장의 단위 붙은 수치(%·원·억·건·대 등)에 4자리 기준 연도가 있는지, 확인됨·신호만 확인에 인용된 사실 문장이 있는지, 미확인에 검증 과제가 있는지.
 - 검증에 실패하면 오류 내용을 넘겨 최대 2회 재생성한다. 그래도 실패한 문장은 제거하고, 판정을 유지할 수 없으면 미확인과 기본 검증 과제로 바꾼다.
 - 문장이 기사 내용을 정확히 옮겼는지(원문 일치)는 코드로 검증하지 않으며, 평가 단계(Citation Accuracy)에서 확인한다.
-- 수집 뉴스는 모두 사업 신호(`business_signal`)이므로, 뉴스만으로는 어느 차원도 '확인됨'이 되지 않는다.
+- 사용자 주장·AI 가설 문장에 "확인되었다"·"입증" 같은 확정 표현이 있으면 검증 실패로 본다.
+- DART 사업보고서를 인용한 문장에 공시 기업명이 없으면 코드가 "기업 사업보고서(FY연도)에 따르면"을 앞에 붙인다. 기업이 자사 시장을 설명한 내용(예: "2차전지 외관 검사 수요 증가")이 시장 전체의 사실처럼 읽히지 않게 하기 위해서다. 프롬프트로만 요구했을 때 gpt-4o-mini는 대부분의 DART 문장에서 기업명을 빼고 썼고, 기업명이 없는 문장을 검증 실패로 처리하면 재생성 후 DART 문장이 대부분 삭제됐다(DART 인용 차원 12개 → 1개). 수치 검증에는 보고 대상 사업연도(`period`)도 근거로 쓴다.
+- 차원마다 검색 상태(`evidence_status`)·관련 기사 수(`relevant_count`)·확인되지 않은 이유(`limitation`)를 붙인다. 이유는 아이디어 항목 공백, 검색 결과 없음, 관련성 판정 실패, 관련 기사 없음, 관련 기사 1건, 근거가 모두 사업 신호, 수요는 고객 검증 자료 필요 중 하나다.
+
+### 뉴스 근거 성격
+
+수집 단계에서는 뉴스를 모두 사업 신호(`business_signal`)로 저장하고, 관련성 판정(`prompts/market_label_judge.md`)과 같은 LLM 호출에서 기사의 근거 성격을 함께 정한다. 추가 호출은 없다.
+
+| 성격 | 기준 | 코드 검사 (`NATURE_CUES`) |
+|---|---|---|
+| `purchase_signal` 구매 신호 | 이름이 드러난 고객의 실제 도입·구축·운영, 구매·납품·공급 계약·수주·발주 | 제목·요약에 도입·구축·계약·공급·납품·수주 등 표현 |
+| `indirect_demand` 간접 수요 | 기관 조사·통계의 결과(비율·건수) | 조사·설문·통계·실태 표현 **와** 단위 붙은 숫자 |
+| `estimate` · `company_claim` · `business_signal` | 추정치 · 기업 자체 주장 · 그 밖 (도입 계획·MOU·발언·행사 포함) | 없음 |
+
+- 코드 검사를 통과하지 못하면 사업 신호로 둔다. SF-01~05 검색 결과 125건 시험에서 gpt-4o-mini는 간접 수요를 10건 골랐으나 실제 조사 결과는 1건뿐이어서(나머지는 전문가 발언·행사·기술 설명) 이 검사를 넣었다. 구매 신호 6건은 모두 실제 도입·계약 보도였다.
+- 같은 기사가 차원마다 다른 성격으로 판정되면 '확인됨'을 열지 않는 쪽(사업 신호 등)을 쓴다.
+- 뉴스 요약은 중앙값 161자라 구매 결정자·예산·가격처럼 구매 구조를 직접 보여 주는 내용이 드물다. 대부분의 차원이 '신호만 확인'·'미확인'에 머무는 주된 이유이며, 성격 판정은 이를 바꾸지 못한다. 샘플 5건 재생성 결과 '확인됨'은 1~3개 차원이었고 실행마다 달라졌다.
+
+## DART 사업보고서
+
+뉴스 요약만으로는 판매 경로·주요 매출처·경쟁·시장 여건처럼 구매 구조를 보여 주는 내용이 드물어, 시장 근거의 필수 출처로 DART 사업보고서를 함께 쓴다(#54).
+
+- 기업 선정: `configs/dart_companies.yaml`의 후보 중 '사업의 내용'에 아이디어 용어(`idea_terms`)가 나오는 기업만 그 아이디어에 연결한다. 용어별 등장 횟수는 `dart_selection.json`에 남긴다.
+
+| 아이디어 | 연결 기업 (확인 용어) |
+|---|---|
+| SF-01 협동로봇 | 두산로보틱스·레인보우로보틱스·뉴로메카 (협동로봇) |
+| SF-02 AI 비전 검사 | 고영 (검사장비)·라온피플·인텍플러스·뷰웍스 (머신비전·외관검사) |
+| SF-03 예지보전 | 엠아이큐브솔루션 (고장을 예지·고장 예측) · 이삭엔지니어링 (예방진단·상태감시) |
+| SF-04 FEMS | 엔텔스 (xEMS·Energy Management System) · 엘에스일렉트릭 (xEMS) · 그리드위즈·누리플렉스 (에너지관리시스템) |
+| SF-05 | 엠아이큐브솔루션·포스코DX·LG씨엔에스·삼성에스디에스 (생성형 AI·LLM·공정제어) |
+
+- 용어는 다른 뜻으로 쓰이는 넓은 표현을 피한다. '비전'은 경영 비전, '음성'은 지명(음성군), '에너지 관리'는 기업 자체 ESG, 'EMS'는 전자제품 위탁생산(Electronic Manufacturing Services)·모바일 서비스·네트워크 관리에도 나와 쓰지 않는다.
+- SF-04: 사업보고서는 'FEMS' 약어 대신 xEMS·에너지관리시스템·Energy Management System으로 쓴다. 엔텔스는 Factory를 포함한 xEMS 솔루션을 밝히고, 그리드위즈의 수요관리 참여 고객에는 조업 중단 비용을 고려하는 공장이 포함된다. 다만 네 기업 모두 공정별 전력 계측 FEMS가 주력은 아니어서(전력망·ESS·AMI 비중이 큼) 관련성 판정에서 걸러지는 발췌가 많을 수 있다. HD현대일렉트릭은 스마트그린산단·ESG 에너지 관리만 나와 제외했다.
+- 아이디어에 연결된 DART 기업이 없으면 보고서 검색 범위에 "이 아이디어 용어가 나오는 기업 없음"으로 표시한다.
+- 후보였던 현대오토에버는 어느 아이디어 용어도 나오지 않아 제외했다. 포스코DX·LG씨엔에스는 예지보전·에너지관리시스템 용어가 없어 SF-05에만 연결한다.
+- 아이디어 연결은 샘플 아이디어(`idea_id`) 실행과 평가에서만 검색 범위를 좁힌다. 화면의 통합 실행은 `idea_id` 없이 전체 색인(뉴스·DART 모든 기업)을 검색하고 관련성 판정으로 거른다.
+- 보고서: 기업마다 최신 사업연도(현재 FY2025) 사업보고서, 같은 사업연도의 기재정정이 있으면 가장 늦게 접수된 것.
+- 본문: 'II. 사업의 내용' 중 사업의 개요·주요 제품·매출 및 수주상황·주요계약·기타 참고사항. 원재료·위험관리(파생거래) 섹션은 쓰지 않는다. 표는 빼고 문단만 쓰며, 표 구조 보존 추출(단위·연결/별도·합계 구분)은 #29 기준으로 별도 작업한다.
+- 청크: 800자·150자 겹침, 줄·문장 끝에서 자른다. 같은 섹션 청크는 `dup_group`을 공유해 한 질의에 섹션당 1건만 나온다.
+- 근거 성격: 매출 및 수주상황(판매 경로·주요 매출처)은 구매 신호(`purchase_signal`), 그 밖은 기업 주장(`company_claim`). 관련성 판정기가 고른 성격으로 바꾸지 않는다.
+- 시점: `published_at`은 공시일, `period`는 보고 대상 사업연도(`FY2025`). 분석 문장은 사업연도를 쓴다.
+- 검색: 차원마다 뉴스 5건과 별도로 DART 2건을 검색해 붙인다. 출처별로 따로 검색해 한쪽이 다른 쪽을 밀어내지 않는다. 검색 평가(`evaluation.evaluate market`)는 정답 라벨이 있는 뉴스로 한정한다.
+- 해석: 기업의 매출·성장은 아이디어의 시장 규모나 고객 수요의 증거가 아니다. 구매 신호도 그 기업의 판매 사실이며 수요 '확인됨'은 여전히 고객 검증 자료가 필요하다.
 
 ## 단계별 코드 위치
 
@@ -206,7 +249,8 @@ flowchart TD
 | 입력 가드레일 | `src/generation/input_guard.py`, `prompts/idea_parser.md`, `evaluation/guardrail_cases.json`, `evaluation/guardrail_eval.py` |
 | 공통 기술 분야·시장/특허 키워드·시장 수집 설정 | `configs/technology_areas.yaml` |
 | 네이버 뉴스 수집 | `src/ingestion/news_client.py` → `data/market/raw/` |
-| DART 공시 수집 | `src/ingestion/dart_client.py` |
+| DART 사업보고서 수집 | `configs/dart_companies.yaml`, `src/ingestion/dart_client.py` → `data/market/raw/dart/` |
+| DART 정제·청크 | `src/ingestion/dart_processor.py` → `data/market/processed/dart_docs.jsonl`, `dart_selection.json` |
 | 정제·중복 제거 | `src/ingestion/market_processor.py` → `data/market/processed/market_docs.jsonl` |
 | 색인·차원별 검색 툴 | `src/retrieval/market_search.py` → `data/market/chroma/` |
 | 관련성 판정·충분성 상태 | `src/retrieval/market_relevance.py`, `prompts/market_label_judge.md` |
@@ -217,6 +261,7 @@ flowchart TD
 | 데이터 형식·결과 계약 | `src/schemas.py` (`MarketDocument`, `MarketSearchRequest`, `MarketReport`) |
 | 평가 문항·정답 라벨 | `evaluation/market_cases.json`, `evaluation/labels/`, `evaluation/market_labeling.py`, `evaluation/market_judge.py` |
 | 검색·관련성 판정 평가 실행·결과 | `evaluation/evaluate.py`, `evaluation/market_relevance_eval.py` → `evaluation/results/` |
+| 답변 평가 (LLM 단독·단순 RAG·IdeaLens) | `evaluation/market_answer_eval.py`, `prompts/market_answer_baseline.md`, `prompts/market_claim_judge.md` → `evaluation/results/` |
 
 ## 공통 검색 엔진
 
@@ -256,3 +301,31 @@ SF-05 라벨은 이전 아이디어(현장 작업자용 LLM 음성 어시스턴�
 
 - hybrid는 수요(MRR 0.71 → 0.88)에서만 뚜렷하게 높고, 가격(0.69 → 0.38)·도입장벽(Hit@5 0.75 → 0.50)에서 낮다. 검색 기본값은 dense를 유지한다.
 - 결과: `evaluation/results/market_retrieval_{dense,bm25,hybrid}_extended20.csv`
+
+### 시장 답변 평가
+
+같은 20문항(SF-01~SF-04 × 5개 차원)에서 세 방식의 차원 결과를 비교했다 (`evaluation/market_answer_eval.py`). 답변 모델은 세 방식 모두 `gpt-4o`다.
+
+- LLM 단독: 자료 없이 기본 답변 규칙(`prompts/market_answer_baseline.md`)으로 답변
+- 단순 RAG: 차원 질의 dense 상위 5건을 그대로 주고 같은 규칙으로 답변 (관련성 필터·판정 제한·문장 검증 없음)
+- IdeaLens: `run_market_research` 결과(`MarketReport`)
+
+인용된 fact 문장마다 판정기(`prompts/market_claim_judge.md`, `gpt-4o-mini`)가 인용 기사 제목·요약과 대조해 supported·partial·unsupported로 판정하고, 사람이 30문장(단순 RAG 15·IdeaLens 15)을 판정기 결과를 보지 않고 검토했다. 인용 기사의 관련성은 기존 사람 정답 라벨로 센다.
+
+| 지표 (20문항) | LLM 단독 | 단순 RAG | IdeaLens |
+|---|---|---|---|
+| 판정 (확인됨 / 신호만 / 미확인) | 0 / 0 / 20 | 4 / 14 / 2 | 3 / 16 / 1 |
+| 수요 `confirmed` (뉴스만으로 수요 확인, 과대 판정) | 0 | 1 | 0 |
+| fact 문장 | 0 | 37 | 30 |
+| 인용 없는 fact 문장 | - | 2.7% | 0% |
+| Citation Accuracy (판정기) | - | 0.83 | 1.00 |
+| **Citation Accuracy (사람 검토 보정)** | - | **0.43** | **0.87** |
+| 인용 기사 관련 비율 (사람 정답 라벨) | - | 0.73 | 0.83 |
+| 근거에 없는 수치가 있는 fact 문장 | 0 | 0 | 0 |
+
+- LLM 단독은 자료가 없다고 밝히고 20문항 모두 추정 문장만 냈다. 근거로 확인할 수 있는 사실 문장이 없다.
+- 단순 RAG는 기사를 인용하지만 사람 검토에서 15문장 중 partial 6·unsupported 3이었다. 주로 한 기업 사례를 시장 수요로 넓히거나(예: 삼성전자의 협력사 요구 → "대기업 수요 증가"), 기사에 없는 판단(가격·위험 요인)을 덧붙였다.
+- IdeaLens는 사람 검토 15문장 중 supported 13·partial 2이다. partial 2건은 같은 기사(LS일렉트릭 FEMS 리스)를 가격·도입장벽 근거로 쓴 문장이다.
+- 판정기와 사람의 일치율은 0.67(kappa 0.24)로 낮다. 판정기는 사람이 partial·unsupported로 본 11건 중 7건을 supported로 판정해 실제보다 관대하다. 그래서 Citation Accuracy는 판정기 라벨별 사람 supported 비율로 보정한 값을 쓴다 (`agreement` 하위 명령, 표본: 판정기가 supported가 아니라고 본 문장 전부 + supported 문장 무작위).
+- 한계: 1회 실행 결과이며 사람 검토 표본이 방식당 15문장이다. 문장 판정은 기사 제목·요약 기준이라 기사 본문 내용은 확인하지 않았다. 관련성 판정·분석은 실행마다 조금씩 달라진다.
+- 결과: `evaluation/results/market_answer_{,claims_,summary_}baseline.csv`, `market_answer_agreement_baseline.json`, `market_answer_reports_baseline.json`, 사람 검토 `evaluation/labels/market_answer_review_baseline.csv`

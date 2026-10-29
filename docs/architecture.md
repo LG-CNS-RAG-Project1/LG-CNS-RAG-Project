@@ -4,6 +4,7 @@
 
 - 계획 기준의 모듈·외부 서비스 연결 구조. 실제 구현이 바뀌면 함께 갱신한다.
 - 로컬 개발은 같은 이미지의 Docker `app`(개발)·`ui`(Streamlit) 컨테이너에서 실행한다. 벡터 저장소는 `CHROMA_HOST`가 비어 있으면 로컬 Chroma(특허 `data/patents/chroma/`, 시장 `data/market/chroma/`), 설정되어 있으면 팀 공용 Chroma 서버를 사용한다.
+- Streamlit UI는 `src.pipeline`을 직접 호출해 특허·시장 서비스를 실행한다. FastAPI는 별도 API 진입점이며 현재 화면 흐름의 중간 계층이 아니다. 통합 보고서는 특허 비교·시장성 결과와 근거 기반 다음 행동 권고를 함께 구성한다.
 - 아래 그림 안의 규칙 주석은 자동화가 읽는다. 새 모듈이나 외부 서비스를 추가하면 노드와 규칙을 함께 추가한다.
   - `%% map <경로> <노드ID>`: 파일이 속한 계층. PR 분석의 태그와 PR 페이지 서비스 아키텍처 그림의 계층 노드에 쓴다.
   - `%% ext import:<모듈> <노드ID> <라벨>`·`%% ext host:<호스트> <노드ID> <라벨>`: 코드의 import나 호출 주소로 찾는 외부 서비스. PR 페이지 그림의 외부 노드에 쓴다.
@@ -15,7 +16,6 @@ flowchart LR
 
   subgraph app["app 컨테이너 (Python 3.12)"]
     frontend["frontend/<br/>Streamlit UI"]
-    api["src/main.py<br/>FastAPI"]
     services["src/services/<br/>특허·시장 진입점"]
     pipeline["src/pipeline.py<br/>분석 흐름"]
     ingestion["src/ingestion/<br/>수집·전처리"]
@@ -33,15 +33,14 @@ flowchart LR
   openai["OpenAI API<br/>임베딩·생성"]
 
   user --> frontend
-  frontend --> api
-  api --> services
-  services --> pipeline
-  pipeline --> ingestion
-  pipeline --> retrieval
+  frontend --> pipeline
+  pipeline --> services
   pipeline --> generation
+  services --> retrieval
+  services --> generation
+  ingestion --> datastore
   ingestion --> kipris
   ingestion --> dart
-  ingestion --> datastore
   retrieval --> chroma
   retrieval --> openai
   generation --> prompts
@@ -50,7 +49,6 @@ flowchart LR
   evaluation -.-> generation
 
   %% map frontend/ frontend
-  %% map src/main.py api
   %% map src/services/ services
   %% map src/pipeline.py pipeline
   %% map src/schemas.py pipeline
@@ -125,9 +123,10 @@ IdeaLens/
 │   │   ├── __init__.py
 │   │   ├── kipris_client.py     # 특허 API 호출
 │   │   ├── patent_processor.py  # 특허 정제·청킹
-│   │   ├── dart_client.py       # DART 공시 수집
+│   │   ├── dart_client.py       # DART 사업보고서 수집
+│   │   ├── dart_processor.py    # DART '사업의 내용' 정제·청킹
 │   │   ├── news_client.py       # 네이버 뉴스 수집
-│   │   └── market_processor.py  # 시장 자료 정제
+│   │   └── market_processor.py  # 시장 뉴스 정제
 │   │
 │   ├── retrieval/
 │   │   ├── __init__.py
@@ -142,6 +141,7 @@ IdeaLens/
 │   │   ├── idea_parser.py       # 아이디어 구조화
 │   │   ├── patent_analysis.py   # 선행특허 비교
 │   │   ├── market_analysis.py   # 시장 신호 분석
+│   │   ├── business_review.py   # 근거 기반 사업 검증 행동 권고
 │   │   ├── market_markdown.py   # 시장 결과 마크다운 섹션
 │   │   └── report_builder.py    # 최종 보고서 구성
 │   │

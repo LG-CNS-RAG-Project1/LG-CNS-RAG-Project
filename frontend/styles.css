@@ -19,6 +19,9 @@ textarea,input{font-size:14px!important;line-height:1.7!important;}
 .st-key-brandbar button{border:none;background:transparent;color:var(--accent);font-size:22px;white-space:nowrap;padding-left:0;}
 .st-key-stepnav{padding:8px 0 22px;border-bottom:1px solid var(--line);margin-bottom:26px;}
 .st-key-stepnav button{font-size:12px;min-height:38px;}
+.st-key-open_analysis button{min-height:54px;font-size:16px;letter-spacing:.02em;}
+.st-key-toggle_examples button,.st-key-toggle_recent button{min-height:44px;}
+.st-key-patent_orbit_accessible button{border-color:#b8c9bd;background:#fffef8;}
 
 /* 종이의 색과 겹침으로 입력에서 보고서까지 같은 흐름을 유지한다. */
 :root{--ink:#203d3b;--muted:#6b817b;--line:#d9e2db;--accent:#146b61;}
@@ -67,6 +70,22 @@ textarea,input{font-size:14px!important;line-height:1.7!important;}
 [data-testid="stMain"]{overflow-x:hidden;}
 html{scroll-behavior:smooth;}
 
+/* 각 단계는 실제 콘텐츠 높이를 따르는 독립된 종이로 보이게 한다. */
+[data-testid="stMainBlockContainer"]{padding-top:1.6rem;padding-bottom:1.2rem;}
+[class*="st-key-sheet_"]{height:auto;min-height:0;align-self:flex-start;padding:28px 30px 30px;margin:0 14px 18px 0;}
+[class*="st-key-sheet_1_"]{box-shadow:4px 5px 0 #d9e9df,8px 10px 0 #f1dfaa,0 15px 28px #2e504315;}
+[class*="st-key-sheet_2_"]{box-shadow:5px 6px 0 #dce9df,0 16px 30px #2e504318;}
+[class*="st-key-sheet_3_"]{box-shadow:4px 5px 0 #eee3c4,0 16px 30px #2e504318;}
+[class*="st-key-sheet_4_"]{box-shadow:5px 6px 0 #d7e2e9,0 19px 38px #243f4930;}
+[class*="st-key-sheet_"] [data-testid="stVerticalBlock"]{min-height:0;}
+[class*="st-key-sheet_"] .stElementContainer{min-height:0;}
+[data-testid="stDialog"] [data-testid="stVerticalBlockBorderWrapper"]{max-height:none;}
+@media(max-width:900px){
+  [data-testid="stMainBlockContainer"]{padding:1rem .8rem .6rem;}
+  [class*="st-key-sheet_"]{padding:20px 16px 22px;margin:0 7px 14px 0;}
+  .st-key-stepnav{padding-bottom:8px;margin-bottom:10px;}
+}
+
 /* 특허 도면과 시장 근거가 나란히 놓인 조사 문서의 표지. */
 .front-paper{padding:26px 23px;background:linear-gradient(95deg,#d4ccb614,transparent 12%),#fffdf4;border:1px solid #d7d9c7;}
 .dossier-top{display:flex;justify-content:space-between;gap:8px;font:8px monospace;letter-spacing:1px;color:#6b8174;border-bottom:2px solid #3e60524d;padding-bottom:10px;}
@@ -99,4 +118,162 @@ html{scroll-behavior:smooth;}
 .lens-detail b{position:absolute;left:5px;right:0;top:10px;height:17px;border-top:2px solid #3b7a65;transform:rotate(-15deg);}
 .lens-reflection{position:absolute;left:7px;top:6px;width:33px;height:60px;border-radius:50%;border-left:5px solid #ffffffb0;transform:rotate(25deg);}
 @media(max-width:900px){.research-magnifier{transform:rotate(-26deg) scale(.8);transform-origin:bottom right;right:3px;bottom:5px;}}
+
+
+/* 홈과 조사 작업을 분리한 세 단계 조사 노트. */
+[data-testid="stMainBlockContainer"]{max-width:1220px;padding:2.2rem 2rem 2rem;}
+[data-testid="stHeader"]{height:2rem;background:transparent;}
+.st-key-brandbar{margin-bottom:18px;}
+.st-key-brandbar button{font-size:13px;white-space:nowrap;}
+.st-key-brandbar [data-testid="stColumn"]:not(:first-child) button{font-size:13px;color:#42665b;min-height:42px;}
+.paper-hero{min-height:520px;margin:0;grid-template-columns:1.1fr 1fr;}
+.hero-copy{padding:18px 0 120px;}
+.hero-copy h1{font-size:clamp(32px,3.6vw,48px)!important;}
+.hero-note{margin-top:24px;}
+.st-key-landing{position:relative;}
+.st-key-start_research{position:absolute;left:12px;top:365px;z-index:8;}
+.st-key-start_research button{padding:14px 28px;min-height:54px;}
+.visual-paper{animation:none!important;}
+.research-magnifier{animation:lensSearch 6s ease-in-out infinite;}
+@keyframes lensSearch{0%,100%{transform:translate(0,0) rotate(-26deg)}50%{transform:translate(-18px,-20px) rotate(-18deg)}}
+[class*="st-key-workspace_"]{max-width:1120px;margin:0 auto 20px;padding:24px 28px 26px;background:#fffdf6;border:1px solid #d8dfd0;border-radius:3px;box-shadow:5px 6px 0 #d9e6da,0 18px 45px #294e3610;}
+.st-key-workspace_2{background:#f7f8ef;}
+.st-key-workspace_3{max-width:920px;background:#fffef9;}
+[class*="st-key-workspace_"] textarea{font-size:14px!important;}
+[class*="st-key-workspace_"] h1{font-size:27px!important;}
+[class*="st-key-workspace_"] .stText{white-space:normal;}
+[data-testid="stVerticalBlockBorderWrapper"]{background:transparent!important;}
+[data-testid="stVerticalBlockBorderWrapper"]>div{overscroll-behavior-y:contain;}
+[data-testid="stVerticalBlock"]:has(>.st-key-report_actions){gap:1rem;}
+.st-key-report_actions{border-top:1px solid #d8dfd0;padding-top:14px;}
+html{scroll-behavior:auto;}
+@media(max-width:900px){.paper-hero{min-height:0;grid-template-columns:1fr}.hero-copy{padding:10px 0 85px}.hero-copy h1{font-size:34px!important}.st-key-start_research{top:275px;left:0}.paper-scene{height:360px;margin-top:0}[class*="st-key-workspace_"]{padding:18px 16px;}[data-testid="stMainBlockContainer"]{padding:2rem 1rem;}}
+@media(prefers-reduced-motion:reduce){.research-magnifier{animation:none!important;}}
+
+@media(max-width:600px){.st-key-start_research{top:335px}.hero-copy{padding-bottom:130px}.paper-scene{height:330px}.hero-copy h1{font-size:31px!important;}.hero-copy p{font-size:14px;}.hero-note{max-width:90%;}}
+
+/* 상단 상태 바는 메뉴 아래의 클릭을 가로채지 않고 실제 도구 버튼만 받는다. */
+[data-testid="stHeader"], [data-testid="stHeader"] *{pointer-events:none!important;}
+[data-testid="stHeader"] button, [data-testid="stHeader"] button *, [data-testid="stHeader"] a{pointer-events:auto!important;}
+.st-key-brandbar{position:relative;z-index:5;padding:8px 0 16px;}
+.st-key-brandbar button{min-height:48px!important;padding:8px 15px!important;border-radius:8px;cursor:pointer;}
+.st-key-brandbar .st-key-home button{padding:8px 12px 8px 0!important;}
+.st-key-brandbar button:focus-visible{outline:3px solid #c1a344;outline-offset:3px;}
+.st-key-brandbar button:hover:not(:disabled){background:#dce9df;transform:none;box-shadow:none;}
+[data-testid="stMainBlockContainer"]:has(.st-key-landing){max-width:1360px;}
+.paper-hero{grid-template-columns:.86fr 1.24fr;gap:36px;min-height:630px;}
+.hero-copy{padding:0;align-self:center;}
+.hero-copy h1{font-size:clamp(32px,3.4vw,50px)!important;letter-spacing:-2px;}
+.hero-copy p{font-size:15px;}
+.hero-note{margin:28px 0 0;}
+.hero-copy .lens-instruction{margin-top:30px;color:#54766b;font-size:14px;line-height:1.75;}
+.lens-instruction strong{color:#1a5b4d;font-weight:650;}
+.lens-instruction span{display:inline-block;font-size:25px;margin-left:12px;}
+.paper-scene{height:570px;}
+.visual-paper{inset:25px 40px 35px 18px;}
+.front-paper{padding:32px 28px;}
+.front-paper h2{font-size:29px!important;line-height:1.4!important;margin:26px 0 14px;}
+.document-subtitle{font-size:12px;margin-bottom:24px;}
+.research-panel .research-drawing{height:120px;}
+.dossier-top{font-size:9px;}
+.figure-label{font-size:9px;}
+.evidence-bridge{font-size:10px;margin:23px 0;}
+.dossier-notes{font-size:10px;}
+.dossier-footer{font-size:7px;margin-top:20px;}
+.st-key-lens_start{position:absolute;right:13px;top:335px;width:180px!important;z-index:10;}
+.st-key-lens_start button{position:relative;display:block;width:180px;height:250px;padding:0;border:0!important;background:transparent!important;box-shadow:none!important;cursor:pointer;overflow:visible;border-radius:75px;}
+.st-key-lens_start button p{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;}
+.st-key-lens_start button:before{content:"";position:absolute;inset:0;background-size:contain;background-position:center;background-repeat:no-repeat;filter:drop-shadow(5px 12px 8px #193c3440);transition:filter .2s,transform .2s;pointer-events:none;}
+.st-key-lens_start button:after{content:"돋보기를 눌러 조사 시작 ↗";position:absolute;bottom:-20px;right:-5px;white-space:nowrap;font-size:13px;font-weight:650;letter-spacing:0;color:#174e43;background:#fffef6;border:1px solid #a7bc9f;border-radius:30px;padding:10px 15px;box-shadow:0 5px 18px #294e3618;pointer-events:none;}
+.st-key-lens_start button:hover:not(:disabled){transform:none;}
+.st-key-lens_start button:hover:before{transform:translateY(-5px) rotate(3deg);filter:drop-shadow(5px 14px 9px #193c3450);}
+.st-key-lens_start button:focus-visible{outline:3px solid #ac8b28;outline-offset:8px;}
+@media(max-width:1000px) and (min-width:761px){.paper-hero{gap:15px;grid-template-columns:.9fr 1.1fr}.hero-copy h1{font-size:35px!important}.front-paper h2{font-size:25px!important}.paper-scene{height:520px}.research-panel .research-drawing{height:96px}.st-key-lens_start{top:320px;right:0;}}
+@media(max-width:760px){.paper-hero{grid-template-columns:1fr;gap:0;min-height:0}.hero-copy{padding:18px 0 10px}.hero-copy h1{font-size:34px!important}.hero-copy p{font-size:14px}.hero-copy .lens-instruction{margin-top:15px}.hero-note{margin-top:20px}.paper-scene{height:490px;width:100%;max-width:540px;margin:8px auto 45px}.visual-paper{inset:22px 38px 24px 12px}.front-paper{padding:25px}.front-paper h2{font-size:25px!important}.research-panel .research-drawing{height:95px}.st-key-lens_start{top:auto;bottom:70px;right:12px;}.st-key-brandbar [data-testid="stHorizontalBlock"]{gap:4px;flex-wrap:nowrap;}.st-key-brandbar [data-testid="stColumn"]{min-width:0!important;flex:1 1 0!important;}.st-key-brandbar [data-testid="stColumn"]:first-child{flex:1.4 1 0!important}.st-key-brandbar button{padding:5px!important;font-size:11px!important;}.st-key-brandbar .st-key-home button p{font-size:17px!important;}.st-key-brandbar .st-key-home button:before{width:25px!important;height:25px!important;flex-basis:25px!important;}}
+@media(max-width:430px){.paper-scene{height:435px}.front-paper{padding:19px}.front-paper h2{font-size:21px!important}.research-panel .research-drawing{height:73px}.st-key-lens_start{right:0;bottom:65px;transform:scale(.87);transform-origin:bottom right;}.evidence-bridge{font-size:8px;margin:17px 0;}}
+@media(prefers-reduced-motion:reduce){.st-key-lens_start button:before{transition:none!important;}}
+
+/* 문서의 종횡비를 고정하고 문구·시작 버튼을 각각의 열에 정렬한다. */
+[data-testid="stMainBlockContainer"]:has(.st-key-landing){max-width:1280px;}
+.st-key-landing{padding:20px 0 10px;}
+.st-key-landing>.stHorizontalBlock{align-items:center;}
+.st-key-hero_art{position:relative;width:100%;max-width:540px;margin:0 auto;padding:0 12px 35px;}
+.st-key-hero_art .paper-scene{position:relative;height:auto;aspect-ratio:52/57;max-width:none;width:100%;margin:0;}
+.st-key-hero_art .visual-paper{inset:25px 45px 50px 12px;}
+.st-key-landing .hero-copy{max-width:510px;padding:0 15px 0 0;}
+.st-key-landing .hero-copy h1{font-size:clamp(34px,3.2vw,49px)!important;line-height:1.35!important;margin:24px 0;}
+.st-key-landing .hero-copy p{font-size:16px;line-height:1.9;word-break:keep-all;}
+.st-key-landing .hero-note{margin-top:30px;}
+.st-key-landing .lens-instruction{margin-top:26px;font-size:14px!important;}
+.st-key-hero_art .front-paper{padding:28px 24px;}
+.st-key-hero_art .front-paper h2{font-size:clamp(23px,2.2vw,28px)!important;margin:24px 0 12px;}
+.st-key-hero_art .research-panel .research-drawing{height:105px;}
+.st-key-hero_art .evidence-bridge{margin:20px 0;}
+.st-key-hero_art .st-key-lens_start{top:auto;right:-7px;bottom:30px;width:210px!important;}
+.st-key-hero_art .st-key-lens_start button{width:210px;height:275px;}
+.st-key-hero_art .st-key-lens_start button:after{right:0;bottom:-6px;}
+.st-key-introduction{max-width:1120px;margin:20px auto 30px;}
+.intro-eyebrow{font-size:11px;letter-spacing:2px;color:#567e70;font-weight:700;}
+.st-key-introduction h1{font-size:clamp(28px,3vw,40px)!important;margin:12px 0 6px;letter-spacing:-1.5px;}
+.st-key-introduction h3{font-size:19px!important;}
+.st-key-introduction p{line-height:1.8;word-break:keep-all;}
+.intro-journey{display:grid;grid-template-columns:1fr 30px 1.15fr 30px 1fr;gap:14px;align-items:center;margin:25px 0 30px;}
+.journey-card{background:#fffdf5;border:1px solid #d3dfd2;border-radius:12px;padding:25px 20px;min-height:270px;box-shadow:3px 4px 0 #d8e6d7;position:relative;}
+.journey-card h2,.evidence-node h2{font-size:23px!important;letter-spacing:-.7px;margin:15px 0 10px;}
+.journey-card p{font-size:13px;color:#5a7769;line-height:1.7;}
+.intro-number{display:block;font:10px monospace;letter-spacing:1.2px;color:#648572;}
+.journey-icon{display:block;font-size:31px;color:#2c7862;margin-bottom:15px;}
+.journey-arrow{font-size:26px;color:#849f8b;text-align:center;}
+.note-lines{margin-top:20px;}.note-lines i{display:block;border-bottom:1px solid #d2ddca;margin:9px 0;width:90%}.note-lines i:last-child{width:65%}
+.mini-lanes{display:grid;gap:12px;margin-top:20px;}.mini-lanes>div{border-left:3px solid #388775;padding:10px 12px;background:#eaf3e9;border-radius:3px;}.mini-lanes>div:last-child{border-color:#c2a647;background:#f7f0d9;}.mini-lanes b{display:block;font-size:15px;color:#244e41}.mini-lanes span{font-size:12px;color:#64816d;}
+.note-tags{display:flex;gap:5px;margin-top:24px;flex-wrap:wrap}.note-tags span{font-size:11px;border:1px solid #b8cdb6;border-radius:20px;padding:5px 8px;color:#3e6955;}
+.connection-board{display:grid;grid-template-columns:1fr 1.1fr 1fr;gap:20px;align-items:center;margin:24px 0 30px;padding:30px;background:#f5f7ee;border:1px solid #d5dfce;border-radius:14px;}
+.evidence-node{padding:24px 20px;border:1px solid #c3d7be;border-radius:10px;background:#fffef6;text-align:center;}.market-node{background:#f9f2db;border-color:#d8cc9f;}.evidence-node p{font-size:14px;color:#607964;line-height:1.8;}
+.node-symbol{display:block;font-size:46px;color:#357a61;height:70px;line-height:70px;}
+.connection-center{text-align:center;position:relative;}.connection-center strong{display:inline-block;font-size:23px;line-height:1.5;border:2px solid #7c9c78;border-radius:50%;width:145px;height:145px;padding-top:34px;background:#edf4e8;box-shadow:0 0 0 10px #e3ecdb;}.connection-center p{font-size:12px;line-height:1.8;margin-top:22px;color:#68816b;}.connection-line{display:none;}
+.mini-chart{display:flex;justify-content:center;align-items:flex-end;gap:8px;height:70px;padding:10px 0 5px;}.mini-chart i{display:block;width:12px;border-radius:3px 3px 0 0;background:#c4aa54;height:20px}.mini-chart i:nth-child(2){height:32px}.mini-chart i:nth-child(3){height:26px}.mini-chart i:nth-child(4){height:44px}
+.intro-takeaway{padding:22px 26px;border-left:4px solid #65926c;background:#ddebdc;margin:20px 0;}.intro-takeaway b{display:block;font-size:18px;color:#244e3b;margin-bottom:9px}.intro-takeaway span{font-size:14px;line-height:1.9;color:#47654f;}
+@media(min-width:901px) and (max-height:800px){.st-key-landing{padding-top:5px}.st-key-hero_art{max-width:470px;}.st-key-hero_art .front-paper h2{font-size:24px!important;}.st-key-hero_art .research-panel .research-drawing{height:82px;}.st-key-hero_art .evidence-bridge{margin:15px 0;}.st-key-hero_art .dossier-notes{display:none;}}
+@media(max-width:900px){.st-key-landing [data-testid="stHorizontalBlock"]{flex-wrap:wrap;}.st-key-landing [data-testid="stColumn"]{min-width:100%!important;}.st-key-landing .hero-copy{max-width:540px;margin:auto;padding:15px 0;}.st-key-hero_art{max-width:500px;padding-top:10px;}.st-key-hero_art .paper-scene{margin:0;}.intro-journey{grid-template-columns:1fr;max-width:520px;margin:20px auto;}.journey-card{min-height:0}.journey-arrow{transform:rotate(90deg);}.connection-board{gap:12px;padding:20px 12px;}.connection-center strong{width:110px;height:110px;font-size:18px;padding-top:27px;}.evidence-node{padding:20px 12px;}.evidence-node h2{font-size:19px!important;}}
+@media(max-width:500px){.connection-board{grid-template-columns:1fr;}.connection-center{padding:10px 0;}.evidence-node{width:100%}.st-key-hero_art .front-paper h2{font-size:22px!important;}.st-key-hero_art .research-panel .research-drawing{height:74px;}.st-key-hero_art .st-key-lens_start{transform:scale(.93);right:-5px;bottom:22px;}.st-key-hero_art .front-paper{padding:21px 18px;}.st-key-hero_art .dossier-notes{display:none;}.st-key-hero_art .evidence-bridge{font-size:8px;}}
+@media(max-width:500px){.st-key-brandbar [data-testid="stButton"]{width:100%}.st-key-brandbar button{width:100%;white-space:normal!important;}.st-key-brandbar button p{white-space:normal!important;line-height:1.3;word-break:keep-all;}.st-key-brandbar .st-key-home button p{white-space:nowrap!important;}}
+
+/* 확대된 문서와 돋보기가 시작 동작의 중심을 이룬다. */
+.st-key-hero_art{width:calc(100% + 120px)!important;max-width:670px;margin-left:-90px;margin-right:0;padding-bottom:65px;}
+.st-key-hero_art .paper-scene{aspect-ratio:1/1.06;}
+.st-key-hero_art .visual-paper{inset:24px 48px 70px 12px;}
+.st-key-hero_art .front-paper{padding:30px 28px;}
+.st-key-hero_art .research-panels{margin-top:50px;border-bottom:0;padding:22px 0;gap:24px;}
+.st-key-hero_art .research-panel .research-drawing{height:155px;}
+.st-key-hero_art .figure-label{font-size:10px;letter-spacing:.4px;}
+.st-key-hero_art .dossier-top{font-size:9px;}
+.st-key-hero_art .dossier-footer{position:absolute;bottom:24px;left:28px;right:28px;}
+.st-key-hero_art .st-key-lens_start{left:8%;right:auto;bottom:25px;width:330px!important;}
+.st-key-hero_art .st-key-lens_start button{width:330px;height:420px;}
+.st-key-hero_art .st-key-lens_start button:after{font-size:16px;padding:12px 22px;right:15px;bottom:20px;background:#174f43;color:#fff;border-color:#174f43;box-shadow:0 7px 24px #194c3d25;}
+.st-key-hero_art .st-key-lens_start button:before{filter:drop-shadow(8px 18px 12px #193c3445);}
+.st-key-landing .hero-copy{position:relative;z-index:3;}
+.difference-comparison{display:grid;grid-template-columns:1fr 50px 1.2fr;align-items:stretch;gap:18px;margin:25px 0 30px;}
+.difference-comparison article{padding:26px;border-radius:12px;border:1px solid #ccd8c9;}
+.comparison-base{background:#f4f5ed;}.comparison-expanded{background:#174f43;color:#fff;border-color:#174f43!important;}
+.difference-comparison h2{font-size:25px!important;letter-spacing:-.8px;margin:15px 0 20px;}
+.comparison-expanded .intro-number{color:#b5d3bd;}.comparison-expanded h2{color:#fff!important;}.difference-comparison p{font-size:14px;line-height:1.9;margin:17px 0 0;}.comparison-expanded p{color:#d4e7d7;}
+.scope-chips{display:flex;gap:7px;flex-wrap:wrap;}.scope-chips span{padding:7px 11px;border-radius:20px;background:#e5eadf;color:#48624b;font-size:12px;}.comparison-expanded .scope-chips span{background:#ffffff20;color:#fff;}
+.comparison-plus{display:flex;align-items:center;justify-content:center;font-size:36px;color:#51876b;}
+@media(min-width:901px) and (max-height:800px){.st-key-hero_art{max-width:560px;width:calc(100% + 75px)!important;margin-left:-50px;}.st-key-hero_art .research-panels{margin-top:35px;}.st-key-hero_art .research-panel .research-drawing{height:125px;}.st-key-hero_art .st-key-lens_start{width:290px!important;left:6%;bottom:15px;}.st-key-hero_art .st-key-lens_start button{width:290px;height:365px;}.st-key-hero_art .st-key-lens_start button:after{font-size:14px;right:0;}}
+@media(max-width:900px){.st-key-hero_art{width:100%!important;max-width:530px;margin:0 auto;}.st-key-hero_art .research-panels{margin-top:30px}.st-key-hero_art .research-panel .research-drawing{height:115px;}.st-key-hero_art .st-key-lens_start{width:285px!important;left:2%;bottom:20px;transform:none;}.st-key-hero_art .st-key-lens_start button{width:285px;height:365px;}.st-key-hero_art .st-key-lens_start button:after{font-size:14px;right:0;}.difference-comparison{grid-template-columns:1fr;gap:10px;}.comparison-plus{min-height:35px;}}
+@media(max-width:500px){.st-key-hero_art .front-paper{padding:23px 18px;}.st-key-hero_art .research-panels{gap:12px;margin-top:22px;}.st-key-hero_art .research-panel .research-drawing{height:80px;}.st-key-hero_art .figure-label{font-size:8px}.st-key-hero_art .st-key-lens_start{width:245px!important;left:0;bottom:8px;}.st-key-hero_art .st-key-lens_start button{width:245px;height:315px;}.st-key-hero_art .st-key-lens_start button:after{font-size:12px;padding:10px 15px;}.st-key-hero_art .dossier-footer{font-size:6px;left:18px;right:18px;}}
+
+/* 마지막에 등장하는 시작 돋보기. 클릭 영역은 고정하고 그림만 움직인다. */
+.st-key-hero_art .st-key-lens_start{left:auto;right:-8px;bottom:6px;width:430px!important;}
+.st-key-hero_art .st-key-lens_start button{width:430px;height:535px;}
+.st-key-hero_art .st-key-lens_start button:before{animation:lensInvite 3.4s ease-in-out infinite;}
+.st-key-hero_art .st-key-lens_start button:after{right:28px;bottom:25px;font-size:16px;}
+.st-key-hero_art .st-key-lens_start button:hover:before,.st-key-hero_art .st-key-lens_start button:focus-visible:before{animation:none;transform:translateY(-6px) rotate(2deg);}
+@keyframes lensInvite{0%,100%{transform:translateY(0) rotate(-1deg)}50%{transform:translateY(-9px) rotate(2deg)}}
+@media(min-width:901px) and (max-height:800px){.st-key-hero_art .st-key-lens_start{width:375px!important;right:-5px;bottom:2px;}.st-key-hero_art .st-key-lens_start button{width:375px;height:465px;}.st-key-hero_art .st-key-lens_start button:after{right:12px;bottom:20px;font-size:14px;}}
+@media(max-width:900px){.st-key-hero_art .st-key-lens_start{left:auto;right:-2px;bottom:10px;width:350px!important;}.st-key-hero_art .st-key-lens_start button{width:350px;height:440px;}.st-key-hero_art .st-key-lens_start button:after{right:10px;bottom:16px;font-size:14px;}}
+@media(max-width:500px){.st-key-hero_art .st-key-lens_start{width:285px!important;right:-8px;bottom:0;}.st-key-hero_art .st-key-lens_start button{width:285px;height:360px;}.st-key-hero_art .st-key-lens_start button:after{right:0;bottom:14px;font-size:12px;}}
+@media(prefers-reduced-motion:reduce){.st-key-hero_art .st-key-lens_start button:before{animation:none!important;transition:none!important;}}
+@media(min-width:901px) and (max-height:800px){.st-key-hero_art{max-width:490px;padding-bottom:45px;}.st-key-hero_art .paper-scene{aspect-ratio:1/1;}.st-key-hero_art .research-panels{margin-top:22px;}.st-key-hero_art .research-panel .research-drawing{height:105px;}.st-key-hero_art .st-key-lens_start{bottom:0;width:350px!important;}.st-key-hero_art .st-key-lens_start button{width:350px;height:435px;}.st-key-hero_art .st-key-lens_start button:after{bottom:15px;}}
 </style>

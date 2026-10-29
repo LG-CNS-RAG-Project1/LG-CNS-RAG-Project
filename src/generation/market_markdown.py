@@ -11,6 +11,7 @@ LLM을 부르지 않고 보고서 내용만 옮긴다. 판정·문장·근거를
 import argparse
 from datetime import datetime
 from pathlib import Path
+from urllib.parse import urlparse
 
 from src.retrieval.market_relevance import DIMENSION_LABELS
 from src.schemas import MarketEvidence, MarketReport
@@ -38,7 +39,8 @@ NATURE_LABELS = {
 GRADE_LABELS = {"high": "상", "medium": "중", "low": "하"}
 
 EVIDENCE_NOTE = (
-    "뉴스·기업 자료는 사업 신호이며 고객의 구매 의사를 직접 보여 주는 근거가 아니다. "
+    "뉴스는 실제 도입·계약 보도면 구매 신호, 조사기관 통계면 간접 수요, 그 밖은 사업 신호로 "
+    "구분하며 어느 것도 고객의 구매 의사를 직접 보여 주는 근거가 아니다. "
     "수요 '확인됨'은 고객 검증 자료(인터뷰·설문·파일럿·LOI)가 있을 때만 나온다."
 )
 
@@ -56,13 +58,27 @@ def format_date(value: int | None) -> str:
 
 
 def cell(text: str | None) -> str:
-    """표 칸에 넣을 수 있게 줄바꿈과 '|'를 정리한다."""
-    return " ".join(str(text or "").split()).replace("|", "\\|")
+    """외부 텍스트를 표·Markdown 문장에 안전하게 넣는다."""
+    value = " ".join(str(text or "").split())
+    for token in ("\\", "|", "`", "*", "_", "[", "]", "<", ">", "#"):
+        value = value.replace(token, "\\" + token)
+    return value
+
+
+def safe_url(value: str | None) -> str | None:
+    """외부 링크로 쓸 http(s) URL만 허용한다."""
+    if not value:
+        return None
+    parsed = urlparse(value)
+    if parsed.scheme not in ("http", "https") or not parsed.netloc or parsed.username:
+        return None
+    return value.replace("(", "%28").replace(")", "%29").replace(" ", "%20")
 
 
 def evidence_row(e: MarketEvidence) -> str:
     """근거 1건을 근거 목록 표의 한 행으로 만든다."""
-    title = f"[{cell(e.title)}]({e.url})" if e.url else cell(e.title)
+    url = safe_url(e.url)
+    title = f"[{cell(e.title)}]({url})" if url else cell(e.title)
     return (
         f"| {citation(e.citation_id)} | {title} | {cell(e.publisher)}"
         f" | {format_date(e.published_at)} | {NATURE_LABELS[e.evidence_nature]}"
@@ -96,6 +112,66 @@ def market_report_to_markdown(report: MarketReport, heading_level: int = 2) -> s
     else:
         lines += _dimension_sections(report, sub)
 
+    if report.opportunity_review:
+        review = report.opportunity_review
+        status_labels = {
+            "validated_demand": "직접 고객 검증 자료 있음",
+            "buyer_signals": "구매자 신호 있음",
+            "indirect_signals": "간접 산업 신호만 있음",
+            "insufficient_evidence": "근거 부족",
+        }
+        lines += [
+            "",
+            f"{sub} 아이디어 시장성 요약",
+            "",
+            f"- 근거 상태: {status_labels[review.status]}",
+            f"- 목표 세그먼트: {cell(review.target_segment) or '미확인'}",
+        ]
+        if review.value_hypotheses:
+            lines.append("- 검증 전 가치 가설:")
+            lines += [f"  - {cell(item)}" for item in review.value_hypotheses]
+        for finding in review.reasons:
+            refs = (
+                ", ".join(citation(item) for item in finding.citation_ids)
+                or "근거 인용 없음"
+            )
+            lines.append(f"- {cell(finding.topic)}: {cell(finding.statement)} ({refs})")
+        if review.unknowns:
+            lines.append("- 핵심 미확인:")
+            lines += [f"  - {cell(item)}" for item in review.unknowns]
+        if review.validation_actions:
+            lines += ["", f"{sub} 다음 시장 검증", ""]
+            for action in review.validation_actions:
+                refs = ", ".join(citation(item) for item in action.citation_ids)
+                lines += [
+                    f"- **{cell(action.title)} · 대상: {cell(action.target) or '미정'}**",
+                    f"  - 방법: {cell(action.method)}",
+                    f"  - 성공 신호: {cell(action.success_signal)}"
+                    + (f" ({refs})" if refs else ""),
+                ]
+
+    commercial = report.commercial_analysis
+    if commercial and commercial.hypotheses:
+        lines += [
+            "",
+            f"{sub} LLM 검증 전 가설 (확인된 사실·구매 의사가 아님)",
+            "",
+        ]
+        for item in commercial.hypotheses:
+            refs = ", ".join(citation(value) for value in item.citation_ids)
+            lines += [
+                f"- **가설:** {cell(item.hypothesis)}",
+                f"  - 질문: {cell(item.question)} · 근거/한계: {cell(item.basis)}",
+                f"  - 가정: {', '.join(cell(value) for value in item.assumptions) or '없음'}",
+                f"  - 검증: {cell(item.validation_target)} · {cell(item.validation_method)} · 성공 기준: {cell(item.success_criterion)}",
+            ]
+            if item.numeric_value is not None:
+                lines.append(
+                    f"  - 자료 기반 수치 추정: {item.numeric_value:g} {cell(item.numeric_unit)} · 산식/자료: {cell(item.numeric_basis)}"
+                )
+            if refs:
+                lines.append(f"  - 연결 근거: {refs}")
+
     if report.unknowns:
         lines += ["", f"{sub} 미확인 사항", ""]
         lines += [f"- {cell(u)}" for u in report.unknowns]
@@ -119,14 +195,15 @@ def _dimension_sections(report: MarketReport, sub: str) -> list[str]:
         "",
         f"{sub} 차원별 판정 요약",
         "",
-        "| 차원 | 판정 | 인용 근거 |",
-        "|---|---|---|",
+        "| 차원 | 판정 | 인용 근거 | 확인되지 않은 이유 |",
+        "|---|---|---|---|",
     ]
     for d in report.dimensions:
         cited = dict.fromkeys(i for c in d.claims for i in c.citation_ids)
         refs = ", ".join(citation(i) for i in cited) or "-"
         lines.append(
-            f"| {DIMENSION_LABELS[d.dimension]} | {VERDICT_LABELS[d.verdict]} | {refs} |"
+            f"| {DIMENSION_LABELS[d.dimension]} | {VERDICT_LABELS[d.verdict]} | {refs}"
+            f" | {cell(d.limitation) or '-'} |"
         )
 
     for d in report.dimensions:
@@ -143,6 +220,8 @@ def _dimension_sections(report: MarketReport, sub: str) -> list[str]:
                 f"- [{CLAIM_LABELS[c.claim_type]}] {cell(c.statement)}"
                 + (f" {refs}" if refs else "")
             )
+        if d.limitation:
+            lines.append(f"- 확인되지 않은 이유: {cell(d.limitation)}")
         if d.next_check:
             lines.append(f"- 다음 검증 과제: {cell(d.next_check)}")
     return lines

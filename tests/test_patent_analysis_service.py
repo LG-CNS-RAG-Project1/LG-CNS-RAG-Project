@@ -173,6 +173,107 @@ def test_kipris_candidates_supplement_short_local_results(monkeypatch):
     assert calls
 
 
+def test_kipris_supplement_calls_are_bounded_and_use_draft_queries(monkeypatch):
+    import src.services.patent_service as service
+
+    monkeypatch.setattr(service, "judge_patent_candidates", judge_all)
+    monkeypatch.setattr(service, "search_patents", lambda query, **kwargs: [])
+    calls = []
+
+    def expanded_plan(system_prompt, user_text):
+        return {
+            "queries": [
+                {
+                    "technical_element": f"구성 {index}",
+                    "korean_queries": [f"기술 검색어 {index}"],
+                    "english_queries": [f"technical query {index}"],
+                }
+                for index in range(5)
+            ]
+        }
+
+    report = analyze_patents(
+        request(),
+        collection=object(),
+        query_llm_fn=expanded_plan,
+        claim_fetcher=lambda _: [],
+        kipris_search_fn=lambda query, limit: calls.append(query) or [],
+        comparison_fn=compare_all,
+    )
+
+    assert report.status == "no_results"
+    assert calls == ["기술 검색어 0", "기술 검색어 1"]
+
+
+def test_kipris_service_limit_is_reported_as_search_error_not_no_results(monkeypatch):
+    import src.services.patent_service as service
+    from src.ingestion.kipris_client import KiprisAPIError
+
+    monkeypatch.setattr(service, "judge_patent_candidates", judge_all)
+    monkeypatch.setattr(service, "search_patents", lambda query, **kwargs: [])
+
+    def rate_limited(query, limit):
+        raise KiprisAPIError(
+            "KIPRIS API 오류: 22 - LIMITED_NUMBER_OF_SERVICE_REQUESTS_EXCEEDS_ERROR"
+        )
+
+    report = analyze_patents(
+        request(),
+        collection=object(),
+        query_llm_fn=query_plan,
+        claim_fetcher=lambda _: [],
+        kipris_search_fn=rate_limited,
+        comparison_fn=compare_all,
+    )
+
+    assert report.status == "error"
+    assert "22 - LIMITED_NUMBER_OF_SERVICE_REQUESTS_EXCEEDS_ERROR" in (
+        report.error_message
+    )
+    assert "특허 부재 여부 미확인" in report.search_scope
+
+
+def test_selected_area_broadens_to_global_index_when_local_candidates_are_irrelevant(
+    monkeypatch,
+):
+    import src.services.patent_service as service
+
+    scoped = request(top_k=1)
+    scoped.technology_area_id = "SF-02"
+
+    def search(query, technology_area_id=None, **kwargs):
+        if technology_area_id == "SF-02":
+            return [result("P1", content="분야는 같지만 관련 기술 구성은 없는 문헌")]
+        return [
+            result("P1", content="분야는 같지만 관련 기술 구성은 없는 문헌"),
+            result("P2", content="진동 센서의 신호로 설비 이상을 탐지하는 장치."),
+        ]
+
+    def relevance(idea, results):
+        return {
+            item.document.source_id: SimpleNamespace(
+                relevant=item.document.source_id == "P2"
+            )
+            for item in results
+        }
+
+    monkeypatch.setattr(service, "search_patents", search)
+    report = analyze_patents(
+        scoped,
+        collection=object(),
+        embed_fn=lambda _: [[0.1]],
+        query_llm_fn=query_plan,
+        relevance_fn=relevance,
+        claim_fetcher=lambda _: [],
+        kipris_search_fn=lambda *_: [],
+        comparison_fn=compare_all,
+    )
+
+    assert report.status == "completed"
+    assert {item.patent_id for item in report.evidence} == {"P2"}
+    assert "전체 색인 보충" in report.search_scope
+
+
 def test_local_indexed_claim_metadata_is_preserved(monkeypatch):
     import src.services.patent_service as service
 
@@ -207,6 +308,7 @@ def test_local_indexed_claim_metadata_is_preserved(monkeypatch):
     assert report.evidence[0].claim_type == "dependent"
     assert report.evidence[0].depends_on == [2]
     assert report.evidence[0].version_id == "KR12345B1"
+    assert any("상위항 2 원문 미확보" in item for item in report.unknowns)
 
 
 def test_supplement_without_abstract_is_not_used_as_abstract_citation():
@@ -238,7 +340,7 @@ def test_citation_validator_checks_original_quote():
         validate_patent_citations(evidence, {1: "다른 원문 내용"})
 
 
-def test_comparison_failure_is_retried_once_and_reported(monkeypatch):
+def test_legacy_comparison_failure_is_reported_without_duplicate_retry(monkeypatch):
     import src.services.patent_service as service
 
     monkeypatch.setattr(service, "judge_patent_candidates", judge_all)
@@ -260,5 +362,30 @@ def test_comparison_failure_is_retried_once_and_reported(monkeypatch):
     )
 
     assert report.status == "error"
-    assert len(attempts) == 2
+    assert len(attempts) == 1
     assert report.evidence
+
+
+def test_review_failure_preserves_retrieved_patent_evidence(monkeypatch):
+    import src.services.patent_service as service
+
+    monkeypatch.setattr(service, "judge_patent_candidates", judge_all)
+    monkeypatch.setattr(
+        service, "search_patents", lambda query, **kwargs: [result("P1")]
+    )
+
+    def failed_review(idea, evidence):
+        raise ValueError("invalid component mapping")
+
+    report = analyze_patents(
+        request(top_k=1),
+        query_llm_fn=query_plan,
+        claim_fetcher=lambda _: [],
+        kipris_search_fn=lambda *_: [],
+        patent_review_fn=failed_review,
+    )
+
+    assert report.status == "error"
+    assert len(report.evidence) == 1
+    assert "원문 근거는 보존했습니다" in report.unknowns[-1]
+    assert "invalid component mapping" in report.error_message

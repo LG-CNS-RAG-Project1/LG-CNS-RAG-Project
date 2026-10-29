@@ -72,6 +72,21 @@ def test_parse_cleans_values_and_falls_back_title():
     assert draft.title == IDEA_TEXT[:30]
 
 
+def test_parse_extracts_short_idea_with_hypotheses_without_character_splitting():
+    response = {
+        **FULL_RESPONSE,
+        "technical_components": "진동 센서와 예측 모델",
+        "value_hypotheses": "점검 시간을 줄일 수 있다",
+        "target_segment": "중소 제조사",
+        "current_alternative": "정기 점검",
+    }
+    draft = parse_idea("설비 고장을 미리 알려주는 서비스", llm_fn=fake_llm(response))
+    assert draft.technical_components == ["진동 센서와 예측 모델"]
+    assert draft.value_hypotheses == ["점검 시간을 줄일 수 있다"]
+    assert draft.field_sources["value_hypotheses"] == "ai_hypothesis"
+    assert draft.to_structured_idea().target_segment == "중소 제조사"
+
+
 def test_parse_empty_text():
     with pytest.raises(ValueError):
         parse_idea("   ", llm_fn=fake_llm(FULL_RESPONSE))
@@ -88,17 +103,19 @@ def test_apply_answers_completes_draft():
     assert draft.revenue == "장비 판매와 유지보수 계약"
     assert draft.field_sources["problem"] == "user_answer"
     assert draft.field_sources["technology"] == "extracted"
+    assert "문제" not in draft.unknowns
 
 
-def test_unknown_answer_is_confirmed_as_unknown():
+def test_unknown_answer_does_not_satisfy_required_field():
     draft = apply_answers(
         partial_draft(), {"problem": "검사 인력이 부족하다", "revenue": "모름"}
     )
 
-    assert draft.status == "complete"
+    assert draft.status == "needs_input"
     assert draft.revenue == ""
     assert draft.unknown_fields == ["revenue"]
-    assert draft.to_structured_idea().revenue == ""
+    with pytest.raises(ValueError, match="incomplete"):
+        draft.to_structured_idea()
 
 
 def test_followup_rounds_are_limited():
@@ -107,9 +124,12 @@ def test_followup_rounds_are_limited():
         assert draft.status == "needs_input"
         draft = apply_answers(draft, {"problem": "", "revenue": ""})
 
-    assert draft.status == "complete"
+    assert draft.status == "needs_input"
     assert draft.rounds == MAX_FOLLOWUP_ROUNDS
-    assert draft.unknown_fields == ["problem", "revenue"]
+    assert draft.unknown_fields == []
+    assert draft.missing_fields == ["problem", "revenue"]
+    with pytest.raises(ValueError):
+        build_requests(draft)
 
 
 def test_answer_can_correct_extracted_field():
@@ -149,3 +169,30 @@ def test_draft_status_must_match_missing_fields():
         )
     with pytest.raises(ValidationError):
         IdeaDraft(original_text=IDEA_TEXT, status="needs_input")
+
+
+def test_short_idea_gets_editable_hypotheses_for_missing_business_fields():
+    response = {
+        "input_status": "ok",
+        "title": "공장 진동 분석 서비스",
+        "problem": "갑작스러운 설비 고장 대응 부담을 줄일 수 있는지 검증",
+        "technology": "설비 진동 데이터 분석",
+        "customers": "설비 운영·보전 담당 제조사",
+        "difference": "정기 점검과 다른 상태기반 경보가 유용한지 검증",
+        "revenue": "장비 도입비와 월 분석 구독료",
+        "field_sources": {
+            "problem": "ai_hypothesis",
+            "technology": "extracted",
+            "customers": "ai_hypothesis",
+            "difference": "ai_hypothesis",
+            "revenue": "ai_hypothesis",
+        },
+    }
+    draft = parse_idea("공장 설비 진동 분석 서비스", llm_fn=fake_llm(response))
+    assert draft.status == "complete"
+    assert draft.missing_fields == []
+    assert draft.field_sources["problem"] == "ai_hypothesis"
+    assert draft.field_sources["customers"] == "ai_hypothesis"
+    assert draft.field_sources["difference"] == "ai_hypothesis"
+    assert draft.field_sources["revenue"] == "ai_hypothesis"
+    assert draft.to_structured_idea().revenue == "장비 도입비와 월 분석 구독료"

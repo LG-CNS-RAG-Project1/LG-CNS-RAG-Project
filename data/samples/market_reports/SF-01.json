@@ -6,217 +6,200 @@
       "verdict": "signal_only",
       "claims": [
         {
-          "statement": "글로벌 제조 현장의 인구구조 변화와 인건비 상승으로 인해 산업용 및 협동로봇 도입은 선택이 아닌 필수라는 주장이 있다.",
+          "statement": "중소 제조사들이 협동로봇 도입을 위해 기술 지원과 현장 검증이 필요하다는 의견이 있다.",
           "claim_type": "fact",
           "citation_ids": [
             1
           ]
         },
         {
-          "statement": "중소기업의 AI 도입이 더딘 이유로 개별 기업이 비용과 실패 위험을 혼자 감당하기 어렵다는 의견이 있다.",
+          "statement": "레인보우로보틱스 사업보고서(FY2025)에 따르면 협동로봇 시장은 초기 시장 형성 단계로 여러 업체가 시장을 확보하기 위해 노력하고 있다.",
           "claim_type": "fact",
           "citation_ids": [
             2
           ]
-        },
-        {
-          "statement": "중소 제조사에서 협동로봇 도입이 필요할 가능성이 있다.",
-          "claim_type": "ai_hypothesis",
-          "citation_ids": []
         }
       ],
-      "next_check": null
+      "next_check": "중소 제조사 5곳 인터뷰로 협동로봇 도입 의향 및 필요 기술 확인",
+      "evidence_status": "sufficient",
+      "relevant_count": 3,
+      "limitation": "수요 확인에는 고객 검증 자료(인터뷰·설문·파일럿·LOI)가 필요하며 기사·공시로는 확인할 수 없음"
     },
     {
       "dimension": "competition",
       "verdict": "signal_only",
       "claims": [
         {
-          "statement": "비전을 결합한 협동로봇이 현장 자동화를 이끌 것으로 예상된다는 주장이 있다.",
+          "statement": "레인보우로보틱스 사업보고서(FY2025)에 따르면 협동로봇 시장은 초기 단계로 여러 업체가 경쟁하고 있으며, 정부의 시장 활성화 노력이 있다.",
           "claim_type": "fact",
           "citation_ids": [
-            3
+            2
           ]
         },
         {
-          "statement": "협동로봇을 활용한 산업 자동화 기술이 선보이고 있다는 보도가 있다.",
+          "statement": "인건비 상승으로 인해 자동화 및 로봇 시스템 도입이 증가하고 있다.",
           "claim_type": "fact",
           "citation_ids": [
             4
           ]
-        },
-        {
-          "statement": "협동로봇과 머신비전의 결합이 경쟁력을 높일 가능성이 있다.",
-          "claim_type": "ai_hypothesis",
-          "citation_ids": []
         }
       ],
-      "next_check": null
+      "next_check": "경쟁사 제품 분석을 통해 협동로봇 시장 내 경쟁력 평가",
+      "evidence_status": "sufficient",
+      "relevant_count": 3,
+      "limitation": "관련 자료 3건이 모두 사업 신호·기업 주장·추정치라 확인할 수 없음"
     },
     {
       "dimension": "price",
       "verdict": "signal_only",
       "claims": [
         {
-          "statement": "제조업 고객이 로봇을 도입할 때 총소유비용(TCO)이 중요한 판단 기준이라는 주장이 있다.",
+          "statement": "협동로봇 도입 시 초기 구매가격과 총소유비용(TCO)이 중요한 판단 기준으로 작용한다.",
           "claim_type": "fact",
           "citation_ids": [
             6
           ]
         },
         {
-          "statement": "협동로봇 도입 시 시스템 통합에 소요되는 비용도 고려해야 한다는 의견이 있다.",
+          "statement": "두산로보틱스 사업보고서(FY2025)에 따르면 협동로봇의 가격은 경쟁 요인 중 하나로 작용하며, 가격 협상력이 중요하다.",
           "claim_type": "fact",
           "citation_ids": [
-            8
+            3
           ]
-        },
-        {
-          "statement": "협동로봇 도입 비용이 중소 제조사에 부담이 될 가능성이 있다.",
-          "claim_type": "ai_hypothesis",
-          "citation_ids": []
         }
       ],
-      "next_check": null
+      "next_check": "협동로봇 공급사 3곳의 견적으로 가격대 확인",
+      "evidence_status": "sufficient",
+      "relevant_count": 2,
+      "limitation": "관련 자료 2건이 모두 사업 신호·기업 주장·추정치라 확인할 수 없음"
     },
     {
       "dimension": "buyer",
       "verdict": "signal_only",
       "claims": [
         {
-          "statement": "중소 제조사에서 협동로봇 도입이 필요하다는 주장이 있다.",
+          "statement": "두산로보틱스 사업보고서(FY2025)에 따르면 협동로봇은 기존 산업용 로봇의 한계점을 극복한 차세대 로봇으로 부각되고 있다.",
           "claim_type": "fact",
           "citation_ids": [
-            7
+            8
           ]
-        },
-        {
-          "statement": "광진의 협동로봇 도입 계기는 두산로보틱스와의 만남에서 시작되었다는 보도가 있다.",
-          "claim_type": "fact",
-          "citation_ids": [
-            9
-          ]
-        },
-        {
-          "statement": "중소 제조사에서 협동로봇의 반복성, 유지보수성, 비용이 중요한 요소일 가능성이 있다.",
-          "claim_type": "ai_hypothesis",
-          "citation_ids": []
         }
       ],
-      "next_check": null
+      "next_check": "중소 제조사 5곳 인터뷰로 협동로봇 구매 의향 및 예산 확인",
+      "evidence_status": "sufficient",
+      "relevant_count": 3,
+      "limitation": "관련 자료 3건이 모두 사업 신호·기업 주장·추정치라 확인할 수 없음"
     },
     {
       "dimension": "adoption_barrier",
       "verdict": "signal_only",
       "claims": [
         {
-          "statement": "중소기업은 설비 투자뿐 아니라 시스템 구축, 유지보수, 인력 교육까지 추가 비용이 발생한다는 주장이 있다.",
+          "statement": "제조업 고객이 로봇을 도입할 때 총소유비용(TCO)이 중요한 판단 기준이 된다.",
           "claim_type": "fact",
           "citation_ids": [
-            10
+            6
           ]
         },
         {
-          "statement": "중소기업의 디지털 전환 진입장벽이 낮아지고 있다는 보도가 있다.",
+          "statement": "협동로봇 도입에 있어 초기 구매가격 외에도 장애 발생 시 대응 속도가 중요하다.",
           "claim_type": "fact",
           "citation_ids": [
-            12
+            6
           ]
-        },
-        {
-          "statement": "중소 제조사에서 초기 진입 장벽이 존재할 가능성이 있다.",
-          "claim_type": "ai_hypothesis",
-          "citation_ids": []
         }
       ],
-      "next_check": null
+      "next_check": "중소 제조사 5곳 인터뷰로 도입장벽 및 지원 필요성 확인",
+      "evidence_status": "sufficient",
+      "relevant_count": 5,
+      "limitation": "관련 자료 5건이 모두 사업 신호·기업 주장·추정치라 확인할 수 없음"
     }
   ],
   "evidence": [
     {
       "citation_id": 1,
-      "source_id": "news-a481434ba27c",
+      "source_id": "news-23becf685263",
       "source_type": "news",
-      "title": "감속기부터 협동로봇까지 매수 온기 확산… 실적 모멘텀 겸비한 로봇 핵...",
+      "title": "중기중앙회, 中企 제조 AI 전환에 협동조합 역할 제시",
       "publisher": "pinpointnews.co.kr",
-      "quote": "증권사 연구원은 \"글로벌 제조 현장의 인구구조 변화와 인건비 상승으로 인해 산업용 및 협동로봇 도입은 선택이 아닌 필수\"라며 \"단기 주가 변동성에 일희일비하기보다는 핵심 국산화 기술을 보유하고 대기업과의 협력...",
+      "quote": "특히 업종별 협동조합을 중심으로 기술 도입과 현장 검증을 지원하는 방안이 주요 과제로 떠올랐다.... 오민석 메가존㈜ 부사장은 로봇이나 솔루션 구매비 지원만으로는 현장 정착에 한계가 있다고 진단했다. 데이터...",
       "section": "title+description",
-      "url": "https://www.pinpointnews.co.kr/news/articleView.html?idxno=492985",
-      "published_at": 20261006,
+      "url": "https://www.pinpointnews.co.kr/news/articleView.html?idxno=497095",
+      "published_at": 20261021,
       "period": null,
       "reliability": "medium",
       "recency": "high",
       "directness": "medium",
       "evidence_nature": "business_signal",
-      "similarity": 0.5546
+      "similarity": 0.5521
     },
     {
       "citation_id": 2,
-      "source_id": "news-63f0fc72e0dd",
-      "source_type": "news",
-      "title": "'로봇 구매 지원만으론 한계'…중소기업 피지컬 AI 해법은 '공동 인프라...",
-      "publisher": "biz.sbs.co.kr",
-      "quote": "축적하고 협동조합은 공동 기준과 공동 실증 기반을 마련하는 역할 분담이 필요하다고 제안했습니다. 조주현 중소벤처기업연구원장은 중소기업의 AI 도입이 더딘 이유로 개별 기업이 비용과 실패 위험을 혼자 감당하기...",
-      "section": "title+description",
-      "url": "https://biz.sbs.co.kr/article_hub/20000341119?division=NAVER",
-      "published_at": 20261021,
-      "period": null,
-      "reliability": "medium",
+      "source_id": "dart-20260320000803-5-8",
+      "source_type": "dart",
+      "title": "레인보우로보틱스 사업보고서(FY2025) 7. 기타 참고사항",
+      "publisher": "레인보우로보틱스 (DART 사업보고서)",
+      "quote": "건\n1) 경쟁상황 및 안정성\n가) 협동로봇\n협동로봇은 초기 시장 형성 단계로 여러 업체가 초기 시장을 확보하기 위해 노력하고있습니다. 해외 협동로봇 제조사는 'A사 '와 'B사'가 있으며 국내 제조사로는 대기업인 'C사'와 'D사', 중소기업으로는 'E사'가 있습니다. 기존 산업용 로봇을 제조하던 회사 중에서 협동로봇을 판매하고 있는 독일 'K사', 스위스 'A사', 일본 'F사', 'Y사' 등의 회사가 있습니다. 이외에도 다양한 기업들이 협동로봇을 개발하기 위해 노력하고 있습니다. 이러한 협동로봇 제조사 중 'A사' 가 전세계적으로 시장을 주도하고 있으며 타 업체는 자국 내 판매를 주로하고 있습니다.\n'A사'의 판매 비중을 보면 자국(EU 포함) 내 판매가 월등히 높으며 해외 시장의 서비스가 미비한 상태에 있습니다. 따라서, 국내에서 경쟁할 수 있는 대체 협동로봇의 부재로 인하여 시장을 선도할 수 있었으나 국내 협동로봇 제조사가 생기면서 점진적으로 국내 제품으로 대체되고 있습니다.\n하지만 여전히 시장 형성 초기 단계로 제조사 간의 경쟁보다는 협동로봇의 시장을 확대하는데 주안점을 두고 있으며 다양한 애플리케이션을 개발하기 위한 노력을 하고 있습니다. 어느 한 업체가 독과점의 형태를 가지고 있지 않으며 정부에서는 협동로봇시장을 활성화하기 위해 큰 노력을 기울이고 있습니다.\n국내 시장은 과거 'A사'의 독점적 지위를 가지고 있었으나 국내 제조업체들의 제품 출시로 인하여 빠르게 완전 경쟁의 형태로 바뀌고 있습니다.",
+      "section": "II. 사업의 내용 > 7. 기타 참고사항 (본문, 표 제외)",
+      "url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260320000803",
+      "published_at": 20260320,
+      "period": "FY2025",
+      "reliability": "high",
       "recency": "high",
       "directness": "medium",
-      "evidence_nature": "business_signal",
-      "similarity": 0.5476
+      "evidence_nature": "company_claim",
+      "similarity": 0.4962
     },
     {
       "citation_id": 3,
-      "source_id": "news-c45a829aef8d",
-      "source_type": "news",
-      "title": "라온피플, 머신비전 넘어 제조AX로 확장… 설비 데이터 읽는 AI 에이전트...",
-      "publisher": "industrynews.co.kr",
-      "quote": "이 대표는 휴머노이드보다 비전을 결합한 직교로봇·협동로봇이 먼저 현장 자동화를 이끌 것으로 예상했다. 휴머노이드는 아직 느리고 불안정하며 가격도 비싸 업계가 대체로 현장 적용시점을 2030년 이후로 본다고...",
-      "section": "title+description",
-      "url": "https://www.industrynews.co.kr/news/articleView.html?idxno=87608",
-      "published_at": 20261016,
-      "period": null,
-      "reliability": "medium",
+      "source_id": "dart-20260318001562-5-9",
+      "source_type": "dart",
+      "title": "두산로보틱스 사업보고서(FY2025) 7. 기타 참고사항",
+      "publisher": "두산로보틱스 (DART 사업보고서)",
+      "quote": "본의 Fanuc과 Yaskawa, 스위스의 ABB, 독일의 KUKA 등도 한 발 늦게 뛰어들고 있는 추세입니다. 협동로봇 시장은 현재 Universal Robots가 과반의 점유율을 차지하는 1강 체제로 나머지 파이를 두고 다수 기업이 각축전을 벌이고 있는 상황입니다. 그러나 아직 협동로봇 분야는 시장 초기 단계로 현재 구도는 유동적으로변할 수 있으며, 당사는 이와 같은 시장 속에서 글로벌 매출처들을 고객사로 끌어들이며 경쟁력을 확보해 나가고 있습니다.\n당사가 영위하고 있는 협동로봇 사업의 주요 경쟁요인은 ① 가격 및 제품 라인업, ② 제품성능(기술력), ③ 사업화 역량으로 구분됩니다.① 첫째로 협동로봇 시장에서 가격은 핵심적인 경쟁요인 중 하나로 작용합니다. 앞서 기술되었듯이, 일반적으로 협동로봇이 사용되는 가장 큰 원인은 노동력 부족 및 인건비 상승에 따른 비용 절감에 초점이 맞추어져 있습니다. 따라서 최종 수요자는 필요 가반하중 대의 제품들 중 기능이 전반적으로 유사하다면, 상대적으로 저렴하여 더 큰 효용을 체감할 수 있는 제품을 선호하게 됩니다. 당사를 포함한 Universal Robots, Fanuc, Techman Robot 등과 같은 주요 협동로봇 제조업체는 각각 가반하중에 따라 다양한 제품 라인업을 보유하고 있습니다.\n내재화의 필요성이 적은 비핵심 부품들은 당사의 개념설계 후 외주제작으로 내재화 및 생산에 불필요한 비용을 최소화하였으며, 핵심부품은 주요 매입처의 이원화 및 대량발주 등을 통해 가격협상력을 높여 매입단가를 낮추었습니다.",
+      "section": "II. 사업의 내용 > 7. 기타 참고사항 (본문, 표 제외)",
+      "url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260318001562",
+      "published_at": 20260318,
+      "period": "FY2025",
+      "reliability": "high",
       "recency": "high",
       "directness": "medium",
-      "evidence_nature": "business_signal",
-      "similarity": 0.43789999999999996
+      "evidence_nature": "company_claim",
+      "similarity": 0.4569
     },
     {
       "citation_id": 4,
-      "source_id": "news-007a29ac06f8",
+      "source_id": "news-b37edff3b4bc",
       "source_type": "news",
-      "title": "조선소 누빌 휴머노이드 만든다…HD현대로보틱스, 양팔 로봇 공개",
-      "publisher": "ddaily.co.kr",
-      "quote": "시각 정보를 바탕으로 주변 환경을 인식하고 동작을 결정하는 비전·언어·행동(VLA) 모델을 활용하기 위한... 역시 협동로봇을 활용한 산업 자동화 기술을 선보였다. 전시관에서는 협동로봇이 작업자와 함께 물품을 다루는...",
+      "title": "로봇으로 만드니 생산성 23% '쑥' [COST ZERO]",
+      "publisher": "mk.co.kr",
+      "quote": "특히 최근 인건비 상승과 함께 숙련 인력 확보의 어려움이 심화되면서 자동화 및 로봇 시스템 도입이... 매경기업비용절감센터는 생산 라인 내에 협동로봇(Co-bot)을 중심으로 한 자동화 시스템 도입을 제안했다. 납땜 및...",
       "section": "title+description",
-      "url": "https://www.ddaily.co.kr/page/view/2026102108293718907",
-      "published_at": 20261021,
+      "url": "https://www.mk.co.kr/article/11414065",
+      "published_at": 20250908,
       "period": null,
       "reliability": "medium",
-      "recency": "high",
+      "recency": "medium",
       "directness": "medium",
       "evidence_nature": "business_signal",
-      "similarity": 0.41679999999999995
+      "similarity": 0.47319999999999995
     },
     {
       "citation_id": 5,
-      "source_id": "news-bbe83f8c1426",
-      "source_type": "news",
-      "title": "[AM리더스클럽 34] 화인스텍·화인로보틱스 김묵현 대표 \"비전으로 보고...",
-      "publisher": "industrynews.co.kr",
-      "quote": "산업 현장에서 머신비전은 오랫동안 제품의 불량을 찾아내고 위치를 판별하는 '눈'의 역할을 맡아왔다.... 기존 AMR이나 협동로봇으로도 일부 작업을 자동화할 수 있지만, 고정된 위치에 설치하면 다른 공정에 활용하기...",
-      "section": "title+description",
-      "url": "https://www.industrynews.co.kr/news/articleView.html?idxno=86734",
-      "published_at": 20260930,
-      "period": null,
-      "reliability": "medium",
+      "source_id": "dart-20260320000803-4-3",
+      "source_type": "dart",
+      "title": "레인보우로보틱스 사업보고서(FY2025) 6. 주요계약 및 연구개발활동",
+      "publisher": "레인보우로보틱스 (DART 사업보고서)",
+      "quote": "종 소량생산 제조공정 대응 및 서비스 산업 내 라스트마일 물류 등 복합 작업환경에서의 자동화를 실현하고자 연구개발을 진행 중입니다.기존 2D Lidar SLAM기반 기술의 한계를 극복하기 위해 3D Lidar SLAM 및 Navigation 기술을 고도화하고 있습니다. 이는 물류 환경에서 흔히 발생하는 맵의 빈번한 변화와 특징점 부족 문제를 해결함으로써 자율주행의 안정성과 정밀도를 확보하는데 기여하고 있습니다. 또한 고속 제어, 환경 적응 등 핵심 기술을 접목해 기존 산업용 로봇의 한계를 극복하고 있으며, 전자·식품·의약 제조사, 3PL 물류센터, 스마트팩토리 전환 중소·중견기업을 대상으로 한 시제품 개발 및 양산 계획을 수립하고 기술 상용화에 집중하고 있습니다.(라) 협동로봇 핵심 부품 및 응용시스템 개발\n당사의 협동 로봇을 구성하는 대부분의 요소 기술들이 개발 완료된 상태이며, 미확보된 기술은 지속해서 개발하여 내재화하며, 그 이전에는 전문기관에서 개발된 상용품을 활용할 계획입니다.\n현재 당사에서 유일하게 아직 내재화하지 못한 로봇 핵심 부품은 감속기입니다. 당사는 2018년부터 감속기에 관한 연구를 지속해오고 있으며, 개발한 감속기를 자사의 시스템에 최종 적용하는 것을 목표로 연구에 매진하고 있습니다.\n또한 모바일 매니퓰레이터에 적합한 배터리(DC 전원) 구동 방식의 협동로봇에 대해 지속적으로 연구개발하고 있습니다. 기존의 협동로봇은 AC 전원 기반으로 동작하는 시스템입니다.",
+      "section": "II. 사업의 내용 > 6. 주요계약 및 연구개발활동 (본문, 표 제외)",
+      "url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260320000803",
+      "published_at": 20260320,
+      "period": "FY2025",
+      "reliability": "high",
       "recency": "high",
       "directness": "medium",
-      "evidence_nature": "business_signal",
-      "similarity": 0.4151
+      "evidence_nature": "company_claim",
+      "similarity": 0.4686
     },
     {
       "citation_id": 6,
@@ -233,113 +216,232 @@
       "recency": "high",
       "directness": "medium",
       "evidence_nature": "business_signal",
-      "similarity": 0.5114000000000001
+      "similarity": 0.5334
     },
     {
       "citation_id": 7,
-      "source_id": "news-b37edff3b4bc",
+      "source_id": "news-5dbe9360f2c2",
       "source_type": "news",
-      "title": "로봇으로 만드니 생산성 23% '쑥' [COST ZERO]",
-      "publisher": "mk.co.kr",
-      "quote": "특히 최근 인건비 상승과 함께 숙련 인력 확보의 어려움이 심화되면서 자동화 및 로봇 시스템 도입이... 매경기업비용절감센터는 생산 라인 내에 협동로봇(Co-bot)을 중심으로 한 자동화 시스템 도입을 제안했다. 납땜 및...",
+      "title": "두산로보틱스, 동남아에 대규모 협동로봇 공급 MOU 체결",
+      "publisher": "hani.co.kr",
+      "quote": "제품마다 다르지만 협동로봇 한 대 가격이 평균 2천∼3천만원이라는 점을 고려하면, 이번 업무협약이 계약으로 이어질 경우 회사 연간 매출의 10%에 이르는 대규모 수주가 될 전망이다. 현재는 북미·유럽의 주요...",
       "section": "title+description",
-      "url": "https://www.mk.co.kr/article/11414065",
-      "published_at": 20250908,
+      "url": "https://www.hani.co.kr/arti/economy/marketing/1180823.html",
+      "published_at": 20250205,
       "period": null,
       "reliability": "medium",
       "recency": "medium",
       "directness": "medium",
       "evidence_nature": "business_signal",
-      "similarity": 0.5051
+      "similarity": 0.47750000000000004
     },
     {
       "citation_id": 8,
-      "source_id": "news-06c506bca6be",
-      "source_type": "news",
-      "title": "성장하는 미국 협동로봇 시장, 우리 기업이 주목해야 할 기술은?",
-      "publisher": "dream.kotra.or.kr",
-      "quote": "또한 그리퍼(로봇팔 끝에 장착해 제품을 잡고 옮기는 장치)와 카메라, 안전 스캐너 등 주변 장치를 함께 연결하고 제어해야 하므로 도입 비용 검토 시에는 코봇 본체 가격 뿐만 아니라 시스템 통합에 소요되는 비용도...",
-      "section": "title+description",
-      "url": "http://dream.kotra.or.kr/kotranews/cms/news/actionKotraBoardDetail.do?SITE_NO=3&MENU_ID=180&CONTENTS_NO=1&bbsGbn=243&bbsSn=243&pNttSn=244490",
-      "published_at": 20261006,
-      "period": null,
-      "reliability": "medium",
+      "source_id": "dart-20260318001562-1-0",
+      "source_type": "dart",
+      "title": "두산로보틱스 사업보고서(FY2025) 1. 사업의 개요",
+      "publisher": "두산로보틱스 (DART 사업보고서)",
+      "quote": "당사는 산업용 로봇, 그 중에서도 협동로봇(Cobot, Collaborative Robot)에 대한 제조 및 솔루션 제공 사업을 영위하고 있습니다. 협동로봇은 기존 산업용 로봇의 한계점(위험성, 높은 사용 난이도, 높은 가격)을 극복한 차세대 로봇으로서, 새로운 개념으로 부각되고 있는 추세입니다. 영어로는 'Cobot'이며 함께 한다는 의미의 접두사 'Co'가 붙은 대로 사람과 함께 협동하며 작업하는 로봇을 의미합니다. 하나의 생산활동을 기계가 단독으로 수행하는 것이 아닌 사람과의 협업(Co-work)을 통해 작업효율성 및 안전성을 높이는 것을 목표로 합니다.당사는 2015년 4개 모델의 협동로봇을 개발을 완료한 후 로보월드, Automatica, Automate 등 세계 메이저 박람회에 참가하며 국내 및 해외 시장에 진출하였으며, 이후 2020년 6개 모델을 추가 출시하면서 협동로봇 시장에서 최대 라인업을 보유한 기업 타이틀을 얻게 되었습니다. 2021년에는 판매량 기준 글로벌 Top 4 진입에 성공하였으며, 2025년 9월 미국의 자동화 설비 및 로봇 솔루션 업체인 ONExia를 인수하였고, 2025년 12월 당사 북미법인인 Doosan Robotics Americas, LLC와의 합병을 통해 자동화 최대 시장인 북미 시장을 본격적으로 공략하고 있습니다.당사는 연결기준으로 로봇 Arm등의 협동로봇 사업부문과 자회사인 Doosan Robotics Americas, Inc.를 통해 EOL 솔루션 및 맞춤형 자동화 시스템 사업(CMI)의 자동화솔루션 사업부문을 영위하고 있습니다.",
+      "section": "II. 사업의 내용 > 1. 사업의 개요 (본문, 표 제외)",
+      "url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260318001562",
+      "published_at": 20260318,
+      "period": "FY2025",
+      "reliability": "high",
       "recency": "high",
       "directness": "medium",
-      "evidence_nature": "business_signal",
-      "similarity": 0.5008
+      "evidence_nature": "company_claim",
+      "similarity": 0.47
     },
     {
       "citation_id": 9,
-      "source_id": "news-115faf6b2773",
-      "source_type": "news",
-      "title": "값싸도 중국산 안 쓴다...\"공장 에이스=K협동로봇\" 불량률 제로[르포]",
-      "publisher": "mt.co.kr",
-      "quote": "광진의 협동로봇 도입 계기는 2024년 두산로보틱스와의 만남에서부터다. 현장의 인력난으로 자동화를 더... 로봇이 실제 생산라인에 들어가기 위해서는 단순한 보행 능력이나 시연용 동작보다 반복성, 유지보수성, 비용...",
-      "section": "title+description",
-      "url": "https://www.mt.co.kr/industry/2026/06/26/2026062517001050048",
-      "published_at": 20260626,
-      "period": null,
-      "reliability": "medium",
+      "source_id": "dart-20260320000803-5-7",
+      "source_type": "dart",
+      "title": "레인보우로보틱스 사업보고서(FY2025) 7. 기타 참고사항",
+      "publisher": "레인보우로보틱스 (DART 사업보고서)",
+      "quote": "니다. 점진적 논의에 따라 일부 로봇의 수요는 변동될 수 있습니다.\n4) 시장의 계절성가) 협동로봇협동로봇 시장에서 가장 뚜렷하게 나타나는 계절성은 4분기의 수요 집중입니다. 많은 기업이 연간 편성된 설비투자예산을 회계연도 종료 전에 집행하려는 경향이 있기 때문입니다. 특히 당사의 주력제품인 협동로봇은 대형 산업용로봇에 비해 단가가 낮고 설치가 간편하여, 연말 남은 예산을 활용해 즉각적인 공정 개선 효과를 보려는 기업들의 스몰 티켓 투자 수요가 이 시기에 몰리는 특성이 있습니다.나) 초정밀 지향 시스템(천문마운트)중대형 천문마운트 시스템은 주로 연구 및 군사용으로 사용됩니다. 따라서 계절적요인은 미미하며, 중소형 천문 마운트의 경우 겨울에 청정 일수가 많아 상대적으로 수요가 높은 편이며, 국내조달 시장을 통해 구매가 이루어지는 국공립 기관의 경우 예산 집행이 겨울에 많이 이루어지기 때문에 시기상 겨울에 매출이 다소 높은편입니다.다) 이족보행 로봇 플랫폼 및 사족보행 플랫폼로봇의 수요에 영향을 받는 계절적 요인은 없을 것으로 판단됩니다.라) 이동형 양팔로봇로봇의 수요에 영향을 받는 계절적 요인은 없을 것으로 판단됩니다.마) 자율이동로봇로봇의 수요에 영향을 받는 계절적 요인은 없을 것으로 판단됩니다.\n라. 국내외 시장여건\n1) 경쟁상황 및 안정성\n가) 협동로봇\n협동로봇은 초기 시장 형성 단계로 여러 업체가 초기 시장을 확보하기 위해 노력하고있습니다. 해외 협동로봇 제조사는 'A사 '와 'B사'가 있으며 국내 제조사로는 대기업인 'C사'와 'D사', 중소기업으로는 'E사'가 있습니다.",
+      "section": "II. 사업의 내용 > 7. 기타 참고사항 (본문, 표 제외)",
+      "url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260320000803",
+      "published_at": 20260320,
+      "period": "FY2025",
+      "reliability": "high",
       "recency": "high",
       "directness": "medium",
-      "evidence_nature": "business_signal",
-      "similarity": 0.5338
+      "evidence_nature": "company_claim",
+      "similarity": 0.43679999999999997
     },
     {
       "citation_id": 10,
-      "source_id": "news-c7da5c7cd4ba",
+      "source_id": "news-6cd32e1dbabe",
       "source_type": "news",
-      "title": "[기획] 자동화·AI 도입하는 中企…비용 부담은 '가중'",
-      "publisher": "m-i.kr",
-      "quote": "특히 중소기업은 설비 투자뿐 아니라 시스템 구축, 유지보수, 인력 교육까지 추가 비용이 발생하면서 초기 진입 자체가 쉽지 않은 구조다. 배경에는 제조업 구조 변화가 있다. 최근 제조 현장은 단순 자동화를 넘어 AI 기반...",
+      "title": "베트남 산업용 로봇 수입 2억 달러 돌파… 전자 넘어 식품·물류 등으로...",
+      "publisher": "dream.kotra.or.kr",
+      "quote": "지원 비용이 늘었다. 인력 확보가 어려운 섬유·의류 업계에서는 자동화와 로봇 도입을 서두르는... 새로운 수요층의 진입 문턱을 낮추는 것은 협동로봇과 자율이동로봇(AMR)이다. 기존 산업용 로봇은 설비...",
       "section": "title+description",
-      "url": "https://www.m-i.kr/news/articleView.html?idxno=1360939",
-      "published_at": 20260402,
+      "url": "http://dream.kotra.or.kr/kotranews/cms/news/actionKotraBoardDetail.do?SITE_NO=3&MENU_ID=180&CONTENTS_NO=1&bbsGbn=243&bbsSn=243&pNttSn=244480",
+      "published_at": 20261007,
       "period": null,
       "reliability": "medium",
       "recency": "high",
       "directness": "medium",
       "evidence_nature": "business_signal",
-      "similarity": 0.5674
+      "similarity": 0.5438000000000001
     },
     {
       "citation_id": 11,
-      "source_id": "news-649581df4a05",
+      "source_id": "news-602b24788845",
       "source_type": "news",
-      "title": "중소기업 AI 전환, 제조 데이터·공동 인프라 구축이 관건",
-      "publisher": "viva100.com",
-      "quote": "축적하고 협동조합은 공통 기준과 공동 실증 기반을 마련하며, 정부는 이를 뒷받침할 인프라를 제공하는 역할 분담이 필요하다고 강조했다. 조주현 중소벤처기업연구원장은 중소기업이 AI 도입에 어려움을 겪는 이유로...",
+      "title": "중소기업 피지컬 AI 확산하려면…\"공동 인프라·단계별 지원 필요\"",
+      "publisher": "dailian.co.kr",
+      "quote": "개별 기업이 AI 도입에 따른 비용과 위험을 감당하기 어려운 만큼 업종별 협동조합을 중심으로 기술을 공동... 인프라를 협동조합 중심으로 공동 구축해야 한다고 강조했다. 오민석 메가존 부사장은 단순한 로봇이나 AI...",
       "section": "title+description",
-      "url": "https://www.viva100.com/article/20261021500504",
+      "url": "https://www.dailian.co.kr/news/view/1703985/?sc=Naver",
       "published_at": 20261021,
       "period": null,
       "reliability": "medium",
       "recency": "high",
       "directness": "medium",
       "evidence_nature": "business_signal",
-      "similarity": 0.5514
+      "similarity": 0.5409999999999999
     },
     {
       "citation_id": 12,
-      "source_id": "news-45725cde0db3",
-      "source_type": "news",
-      "title": "[기획] 설비도 로봇도 '빌려 쓴다'… 中企 경영, '소유'에서 '서비스'로",
-      "publisher": "m-i.kr",
-      "quote": "경기 불확실성이 커지고 기술 변화 주기가 짧아질수록 큰 비용이 투자되는 설비를 직접 도입하기보다 월... 중소기업의 디지털 전환 진입장벽도 낮아지고 있다. 로봇 분야에서도 변화는 뚜렷하다. 최근에는 협동로봇과...",
-      "section": "title+description",
-      "url": "https://www.m-i.kr/news/articleView.html?idxno=1399089",
-      "published_at": 20260805,
-      "period": null,
-      "reliability": "medium",
+      "source_id": "dart-20260320000803-5-5",
+      "source_type": "dart",
+      "title": "레인보우로보틱스 사업보고서(FY2025) 7. 기타 참고사항",
+      "publisher": "레인보우로보틱스 (DART 사업보고서)",
+      "quote": "국내외 경기변동에 따라 생산하는 재화의 총량이 감소하게 되면 로봇을 활용한생산성 향상에 대한 요구가 줄어들게 되어 로봇 수요가 감소할 수 있습니다. 특히 제조업의 경우 경기가 좋지 못하면 일반적으로 신규 시설 투자가 줄어들게 되며 이는 로봇 수요의 감소를 의미합니다. 현재 로봇의 수요는 지속해서 상승하고 있으며 중국의 제조업에 종사하는 인력의 인건비가 상승함에 따라 로봇의 수요가 가파르게 증가하고 있습니다. 특히 4차 산업혁명의 핵심 구성 중의 하나인 로봇은 지속해서 수요가증가할 것으로 많은 전문가가 예측합니다.\n둘째, 조달되는 핵심 부품의 가격이 상승하여 로봇의 공급가가 높아질 경우, 로봇 구매자의 ROI(Return On Investment) 기간이 길어지게 되어 로봇 이외의 대체품 혹은 대체 요소를 찾게 됩니다. 이는 로봇의 수요를 낮추는 원인이 됩니다. 당사는 이러한 변동요인에 대처하기 위해 핵심 부품을 내재화하여 이러한 변동요인을 원천적으로 제거하고자 노력하고 있습니다.\n셋째, 법규에 따라 로봇의 활용범위에 제한이 발생하면 로봇의 활용처 감소에 따른 수요감소가 예상됩니다. 예를 들어 협동 로봇의 경우, 국내에서는 산업안전보건법에 따라 산업용 로봇으로 분류 되어 사용자 혹은 공급자가 별도로 안전 인증을 받아야 했습니다. 이를 개선하기 위해 정부는 2018년도부터 협동 로봇 설치 작업장 안전 인증 제도를 마련하여 한국로봇산업진흥원에서 안전 인증제도 운용 및 안전 인증 획득 지원사업을 운영하고 있습니다.",
+      "section": "II. 사업의 내용 > 7. 기타 참고사항 (본문, 표 제외)",
+      "url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260320000803",
+      "published_at": 20260320,
+      "period": "FY2025",
+      "reliability": "high",
       "recency": "high",
       "directness": "medium",
-      "evidence_nature": "business_signal",
-      "similarity": 0.54
+      "evidence_nature": "company_claim",
+      "similarity": 0.53
     }
   ],
+  "opportunity_review": {
+    "status": "buyer_signals",
+    "target_segment": "중소 제조사",
+    "value_hypotheses": [],
+    "reasons": [
+      {
+        "topic": "수요",
+        "statement": "수요 판단은 signal_only이며, 현재 확정 아이디어의 고객·문제 범위 안에서 해석해야 합니다.",
+        "citation_ids": [
+          1,
+          2
+        ]
+      },
+      {
+        "topic": "경쟁·대체재",
+        "statement": "경쟁·대체재 판단은 signal_only이며, 현재 확정 아이디어의 고객·문제 범위 안에서 해석해야 합니다.",
+        "citation_ids": [
+          2,
+          4
+        ]
+      },
+      {
+        "topic": "가격·수익모델",
+        "statement": "가격·수익모델 판단은 signal_only이며, 현재 확정 아이디어의 고객·문제 범위 안에서 해석해야 합니다.",
+        "citation_ids": [
+          6,
+          3
+        ]
+      },
+      {
+        "topic": "구매자",
+        "statement": "구매자 판단은 signal_only이며, 현재 확정 아이디어의 고객·문제 범위 안에서 해석해야 합니다.",
+        "citation_ids": [
+          8
+        ]
+      },
+      {
+        "topic": "도입장벽",
+        "statement": "도입장벽 판단은 signal_only이며, 현재 확정 아이디어의 고객·문제 범위 안에서 해석해야 합니다.",
+        "citation_ids": [
+          6
+        ]
+      }
+    ],
+    "unknowns": [
+      "고객의 현재 해결 방식과 대체재",
+      "고객 인터뷰·구매 검토·파일럿 등 직접 수요 증거",
+      "고객 가치와 ROI를 계산할 측정 변수"
+    ],
+    "validation_actions": [
+      {
+        "title": "목표 고객 문제·구매 검증",
+        "target": "중소 제조사",
+        "method": "현재 해결 방식, 문제 발생 맥락, 비용 영향, 구매결정자와 도입 조건을 묻는 인터뷰를 수행하고 익명 요약만 기록",
+        "success_signal": "여러 고객이 같은 문제와 현재 대안을 구체적 사례로 확인하고, 구매 절차 또는 후속 실증 의사를 설명함",
+        "citation_ids": []
+      },
+      {
+        "title": "고객 가치 측정 기준 설정",
+        "target": "중소 제조사",
+        "method": "고객과 함께 문제 빈도, 현재 처리시간·불량·비용 중 측정 가능한 기준을 선택하고 파일럿 전후에 같은 방식으로 기록",
+        "success_signal": "현재 기준선과 목표 효과를 고객이 합의하고, 측정 자료 접근 범위가 정해짐",
+        "citation_ids": []
+      }
+    ]
+  },
+  "commercial_analysis": {
+    "user": "중소 제조사",
+    "buyer": "미확인",
+    "budget_owner": "미확인",
+    "use_case": "조립·검사 공정 자동화",
+    "current_alternative": "기존 산업용 로봇",
+    "switching_trigger": "숙련 인력 부족 및 인건비 상승",
+    "purchase_process": "미확인",
+    "adoption_requirements": [],
+    "pricing_hypothesis": "협동로봇의 가격은 평균 2천∼3천만원으로, 초기 구매가격과 총소유비용(TCO)이 중요한 판단 기준이 된다.",
+    "critical_assumptions": [],
+    "citation_ids": [
+      1,
+      2,
+      4,
+      6,
+      7,
+      10,
+      11
+    ],
+    "unknowns": [],
+    "hypotheses": [
+      {
+        "question": "누가 구매를 승인하는가?",
+        "hypothesis": "중소 제조사의 경영진 또는 기술 담당자가 구매를 승인할 가능성이 높다.",
+        "basis": "중소 제조사가 협동로봇 도입을 고려하는 이유는 숙련 인력 부족과 인건비 상승 때문이며, 이로 인해 자동화 시스템 도입이 필요하다는 점에서 경영진의 승인 필요성이 추론된다.",
+        "assumptions": [],
+        "citation_ids": [],
+        "validation_target": "중소 제조사 경영진 및 기술 담당자",
+        "validation_method": "인터뷰 및 설문조사",
+        "success_criterion": "구매 승인 절차 및 관련자 확인",
+        "numeric_value": null,
+        "numeric_unit": "",
+        "numeric_basis": ""
+      },
+      {
+        "question": "구매 결정 과정에서 어떤 요소가 가장 중요한가?",
+        "hypothesis": "가격, 성능, 유지보수 용이성이 주요 결정 요소일 것이다.",
+        "basis": "협동로봇 시장에서 가격과 제품 성능이 핵심 경쟁요인으로 언급되었으며, 총소유비용(TCO)도 중요한 판단 기준으로 작용한다.",
+        "assumptions": [],
+        "citation_ids": [
+          6,
+          7
+        ],
+        "validation_target": "구매 결정자 및 관련 문서",
+        "validation_method": "인터뷰 및 문서 분석",
+        "success_criterion": "구매 결정 시 고려되는 요소 확인",
+        "numeric_value": null,
+        "numeric_unit": "",
+        "numeric_basis": ""
+      }
+    ]
+  },
   "unknowns": [],
-  "search_scope": "네이버 뉴스 검색 API로 사전 수집한 스마트팩토리 기사 1895건(제목·요약, 발행일 20240102~20261023), 아이디어 SF-01 수집 키워드 범위",
-  "data_as_of": 20261028,
+  "search_scope": "네이버 뉴스 검색 API로 사전 수집한 스마트팩토리 기사 790건(제목·요약, 발행일 20240102~20261022) · DART 사업보고서 '사업의 내용' 발췌 86건(기업 3곳, FY2025), 아이디어 SF-01 연결 자료 범위",
+  "data_as_of": 20261029,
   "error_message": null
 }

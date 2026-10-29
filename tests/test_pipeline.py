@@ -74,11 +74,12 @@ def test_pipeline_uses_both_service_contracts_and_returns_markdown(monkeypatch):
             }
         ],
         technology_area_id="SF-02",
+        readiness=ready(market=True, patent_mode="local_only"),
         link_llm_fn=lambda *_: link_response(),
     )
     assert result.status == "partial"
     assert result.links[0].status == "hold"
-    assert "# 검사 자동화" in result.markdown
+    assert "# 최종 실행 검토 | 검사 자동화" in result.markdown
 
 
 # --- 준비 점검·병렬 실행·격리·마스킹 ---
@@ -177,6 +178,10 @@ def test_prepare_sources_counts_local_index_and_area(tmp_path, monkeypatch):
     assert readiness.patent_mode == "local_only"
     assert market_collection is not None and patent_collection is not None
 
+    readiness, _, _ = prepare_sources("SF-03", dotenv_path=None)
+    assert readiness.patent_mode == "local_only"
+    assert any("전체 특허 색인으로 검색" in item for item in readiness.reasons)
+
 
 def test_remote_heartbeat_failure_is_reported_without_creating_dirs(
     tmp_path, monkeypatch
@@ -259,6 +264,38 @@ def test_not_ready_areas_are_skipped_without_calls(monkeypatch):
     assert result.market_run.state == result.patent_run.state == "skipped"
 
 
+def test_empty_selected_area_searches_existing_global_patent_index(monkeypatch):
+    captured = []
+    state = IndexState(
+        location="local",
+        collection="patents",
+        count=4,
+        area_counts={"SF-02": 0, "SF-05": 4},
+    )
+    readiness = Readiness(
+        keys={"OPENAI_API_KEY": True},
+        chroma="local",
+        market_index=IndexState(location="local", collection="news", count=0),
+        patent_index=state,
+        market_runnable=False,
+        patent_mode="local_only",
+    )
+
+    def capture_request(request, **kwargs):
+        captured.append(request.technology_area_id)
+        return PatentReport(status="no_results", search_scope="test")
+
+    monkeypatch.setattr(pipeline, "analyze_patents", capture_request)
+    analyze_sources(
+        complete_draft(),
+        technology_area_id="SF-02",
+        readiness=readiness,
+        patent_kwargs={"collection": object()},
+        parallel=False,
+    )
+    assert captured == [None]
+
+
 def test_parallel_and_serial_give_same_reports(monkeypatch):
     monkeypatch.setattr(
         pipeline,
@@ -334,7 +371,8 @@ def test_run_pipeline_reuses_sources_without_new_analysis(monkeypatch):
         link_llm_fn=lambda *_: link_response(),
     )
     assert result.links[0].status == "hold"
-    assert "분석 실행 상태" in result.markdown and "2026-10-28" in result.markdown
+    assert "권고:" in result.markdown and "검토일 2026-10-28" in result.markdown
+    assert "시장 검토 결과가 없어" in result.markdown
 
 
 def test_status_cli_prints_json_only(monkeypatch, capsys):
@@ -489,3 +527,11 @@ def test_part_errors_are_logged_without_keys(monkeypatch, caplog):
         )
     text = caplog.text
     assert "특허 조사 error" in text and "FAKE_KIPRIS_KEY_1" not in text
+
+
+def test_patent_defaults_use_component_level_review():
+    import threading
+
+    defaults = pipeline._patent_defaults(threading.Event())
+    assert "patent_review_fn" in defaults
+    assert "comparison_fn" not in defaults

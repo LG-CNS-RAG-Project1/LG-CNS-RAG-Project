@@ -25,7 +25,7 @@
 ```text
 .
 ├── .github/
-│   ├── workflows/           # CI, 리뷰어 자동 지정, PR 분석
+│   ├── workflows/           # CI, 리뷰어 자동 지정, PR 분석, main 승격 PR, SCC 배포 스모크
 │   ├── ISSUE_TEMPLATE/      # 작업·버그 이슈 양식
 │   └── pull_request_template.md
 ├── .vscode/                 # 저장 시 black 적용 등 공용 편집기 설정
@@ -42,14 +42,15 @@
 ├── deploy/                  # 공용 Chroma·HTTPS 중계·개인 키 인증 배포 설정
 ├── docs/                    # 기획·설계·개발 환경 문서, 프로젝트 목표·PR 분석 안내서(review-baseline.md)
 ├── evaluation/              # 평가 질문·정답 근거·평가 실행
-├── frontend/                # 아이디어 검토 UI, 실제 분석 화면 보조(live.py), 스타일, 비용 계산과 예시 보고서
+├── frontend/                # 아이디어 검토 UI, 실제 분석 화면 보조(live.py), 스타일, 비용 계산과 예시 보고서, SCC 전용 의존성(requirements.txt)
 ├── prompts/                 # 아이디어 구조화·근거 검증·보고서 프롬프트
 ├── reports/                 # 생성한 경영진·R&D 보고서
 ├── scripts/
 │   ├── idealens.py          # 팀원용 통합 실행 도구(환경 점검·화면 실행·수집·색인·테스트, 표준 라이브러리만 사용)
 │   ├── *.py                 # 특허 수집·색인 생성 실행 스크립트
+│   ├── scc_smoke.py · check_scc_deps.py  # SCC 배포 스모크(브라우저 확인)·SCC 의존성 점검
 │   ├── notion/              # Notion 블록 도우미, 코드 해석 기반 서비스 아키텍처 그림(mermaid) 생성
-│   ├── github/              # PR 리뷰어 무작위 지정
+│   ├── github/              # PR 리뷰어 무작위 지정, develop → main 승격 PR
 │   └── review/              # PR 자동 분석(규칙 점검·GPT 분석(Codex 구독 또는 API)·Notion PR 페이지와 영역 요약 카드 기록)
 ├── src/
 │   ├── main.py · pipeline.py · schemas.py  # API 진입점·분석 흐름·공통 모델
@@ -142,13 +143,15 @@ make patent-collect ARGS="--field-id SF-02 --limit 20 --include-claims"
 make patent-index ARGS="--field-id SF-02"
 ```
 
-홈 로고와 클릭 가능한 상단 1~4단계·본문 버튼으로 **아이디어 입력 → 핵심 구성 확인 → 문헌 선정·근거 검토 → 종합 보고서**를 진행한다. 왼쪽 단계 사이드바는 사용하지 않는다.
-홈은 배경과 경계 없이 이어지는 조사 문서 비주얼과 입력 바로가기를 제공한다. 표지에는 특허 구성 도면·시장 흐름 그래프·근거 연결선과 유리 반사·그림자를 표현한 장식 돋보기를 배치하며 실제 특허·수요 데이터로 표시하지 않는다. 단계마다 아이보리·연녹색·크림·연청색으로 종이 색이 바뀌며 남은 장수가 3→2→1→0장으로 줄어든다. 앞뒤 이동 시 종이의 들림·회전·그림자를 표현하고 동작 줄이기 설정을 따른다. `frontend/assets/idealens-symbol.svg`와 `idealens-logo.svg`는 문서·돋보기·근거 연결을 결합한 심볼과 글자 로고다. 로고 버튼은 홈 이동 기능을 유지한다. `frontend/presentation.py`가 홈 비주얼을, `frontend/styles.css`가 종이 재질과 전환을 관리한다. 제공된 사진은 디자인 참고로만 사용하며 화면의 도해와 종이는 코드로 표현한다.
-입력 화면은 큰 본문과 우측 최근 입력, 조사 화면은 좌측 구성·중앙 특허/시장 후보·우측 선택 목록, 보고서는 좌측 선택 문헌·우측 본문으로 구성한다.
-핵심 구성은 최대 7개, 검토 질문은 최대 5개를 조건과 함께 확정한다. 3단계는 자동 연결 결과를 먼저 보여주며 사용 맥락·해결 과제·기술 구성·요구 성능·도입 제약·근거 범위의 판단 과정을 펼쳐 확인한다. 문헌 제외와 결과 수정은 선택 사항이다. 최소 2개 자료로 부분 보고서를 열 수 있으며, 질문별 근거 부족은 통합 판단 보류로 표시한다.
-정확한 기본 예시에만 가상 자료 4건과 사전 작성된 연결 초안을 자동 배치한다. `OPENAI_API_KEY`가 있으면 직접 입력한 아이디어는 `핵심 구성 확인하기 →`에서 AI 구조화(빈 항목은 최대 2회 재질문)를 거쳐 실제 분석 흐름으로 이어진다. 3단계에서 특허(선택 분야 색인·KIPRIS)와 시장 조사를 병렬로 실행하고 영역별 상태·소요 시간·근거를 보여 준다. 구성·분야가 그대로면 조사 결과를 재사용해 질문 연결만 다시 만들며, 한 번에 하나의 분석만 실행한다. 키가 없으면 구성만 작성하는 시연 경로로 진행한다. 예시도 실제 수요·성능 검증으로 표시하지 않는다.
-`frontend/automatic.py`는 시연 규칙과 팀 보고서 모델의 근거 변환을 담당한다. 실제 실행은 `src.pipeline.run_pipeline`에서 특허·시장 서비스를 호출하고 `src.generation.report_builder`가 질문별 6개 기준으로 연결한다. 인용 ID는 영역별로 구분하며 한쪽 근거가 없으면 연결 판단을 보류한다. `frontend/quick.py`는 보고서 규칙, `frontend/app.py`는 화면을 담당한다. 수정·제외는 보고서에도 반영하고 이전 스냅샷을 무효화한다.
-[실행·시연 가이드](docs/ui-guide.md)와 [참고 화면 구조 및 연결 계약](docs/quick-research-ui.md)을 참고한다. 실제 보고서에는 구현 비용 항목을 입력할 수 있고, 누락 금액을 0으로 간주하지 않는 소계를 함께 표시한다. Streamlit 포트는 8505이며 `make ui`(Docker) 또는 `make ui-host`(고정 버전 가상환경)로 실행한다.
+홈은 서비스 소개·왜 IdeaLens인가·내 기록과 돋보기 시작 버튼으로 구성한다. 상단 IdeaLens 로고를 누르면 홈으로 이동하며 별도 안내 말풍선은 표시하지 않는다. 첫 방문에는 메인 문구 → 설명과 문서 → 돋보기 순서로 나타나며, 동작 줄이기 설정을 지원한다. 시작 전에는 입력 폼을 표시하지 않는다. 조사 화면은 **아이디어 구체화 → 특허·시장 검토 → 종합 보고서**의 세 단계이며 가운데 단계의 특허·시장 탭으로 결과를 나눠 본다.
+
+아이디어 초안은 제목·문제·기술·고객·대안·세그먼트·구성요소·가치 가설을 확인·수정할 수 있다. 분석 실행 후에는 백그라운드에서 특허 조사 → 시장 분석 → 최종 검토를 진행한다. 실제 완료 콜백으로 대기·분석 중·완료·근거 부족·실패를 표시하고 경과 시간과 현재 작업을 설명한다. 화면을 이동해도 분석은 계속되며 읽던 결과 화면은 자동 전환하지 않는다. 취소 후 새 입력과 늦은 결과가 섞이지 않게 한다. 이미 전송한 요청은 즉시 중단되지 않아 비용이 발생할 수 있다.
+
+특허 보고서는 문헌·구성별 비교와 강조된 원문 인용을, 시장 보고서는 다섯 차원의 판단·인용·검증 과제를 제공한다. 최종 화면은 `executive_review`, `business_review`, `MarketReport.dimensions`를 사용해 권고·근거 연결 카드·시장 판단 상태 차트·검증 과제를 표시한다. 원문 전체는 별도 탭에서 확인한다. 차트는 제공된 분석 항목의 상태 분포이며 사업성 점수·시장 규모·고객 수가 아니다. 누락된 항목이나 수치를 추정하지 않으며 UI에서 추가 LLM 호출이나 데이터 재정제를 하지 않는다. 뉴스·기업 자료를 직접 구매 수요로 간주하지 않는다.
+
+PDF·Markdown 다운로드와 현재 세션 최대 20개 기록 보관, JSON 내보내기·불러오기를 제공한다. PDF는 ReportLab과 포함된 Nanum Gothic OFL 글꼴을 사용한다. 구조화된 시각화도 기록에 보관하지만 계정별 영구 DB 기록은 연결하지 않았다. 세션이 종료될 수 있으므로 개인 기록 파일로 보관한다. PDF는 인용과 표를 포함한 보고서 원문·비용·메모를 내보내며 화면 차트 이미지는 포함하지 않는다. 키는 기록이나 다운로드에 포함하지 않는다.
+
+화면은 `frontend/app.py`, 홈 연출은 `frontend/landing_motion.py`, 소개는 `frontend/introduction.py`, 보고서·기록은 `frontend/workspace_view.py`, 시각화는 `frontend/report_overview.py`, PDF는 `frontend/report_export.py`, 백그라운드 상태는 `frontend/workflow.py`에서 관리한다. [실행·시연 가이드](docs/ui-guide.md)와 [분석 계약](docs/idea-business-review.md)을 참고한다. `python scripts/idealens.py ui`로 실행하고 `.env` 변경은 `ui --recreate`로 반영한다. 실제 분석은 API 비용이 발생하며 시연 자료는 가상임을 표시한다.
 
 ### 시장 뉴스 수집·정제
 
@@ -164,6 +167,21 @@ python -m src.ingestion.market_processor                                        
 - 시장·특허 공통 기술 분야, 분야별 검색어 및 시장 수집 기준은 `configs/technology_areas.yaml`에서 관리한다. 공통 시장 키워드는 `shared_market_keywords`, 분야별 시장 키워드와 특허 키워드는 각 `technology_areas` 항목에 둔다.
 - NAVER API HUB 뉴스 검색 API의 제목·요약·링크·발행일만 `data/market/raw/news_{keyword_id}_{수집일}.json`에 저장한다.
 - 정제 단계는 같은 URL 기사를 합치고, 제목 유사도 0.8 초과·발행일 3일 이내 기사를 같은 `dup_group`으로 묶어 대표 1건만 `data/market/processed/market_docs.jsonl`에 저장한다.
+
+### DART 사업보고서 수집·정제
+
+시장 근거는 뉴스와 DART 사업보고서를 함께 쓴다. 두 자료가 모두 있어야 시장 색인을 만든다.
+
+```bash
+python -m src.ingestion.dart_client                         # 설정 기업의 최신 사업보고서 원문 수집
+python -m src.ingestion.dart_processor                      # '사업의 내용' 본문 → 청크 MarketDocument
+```
+
+- 기업 목록·관련 아이디어·선정 이유는 `configs/dart_companies.yaml`에서 관리한다. `DART_API_KEY`가 필요하다.
+- 기업마다 최신 사업연도 사업보고서를 고르고, 기재정정 보고서가 있으면 가장 늦게 접수된 것을 쓴다. 원문 XML과 메타데이터는 `data/market/raw/dart/`에 저장한다.
+- 정제 단계는 'II. 사업의 내용'의 사업의 개요·주요 제품·매출 및 수주상황·주요계약·기타 참고사항 본문(표 제외)을 800자·150자 겹침 청크로 나눠 `data/market/processed/dart_docs.jsonl`에 저장한다. 표 구조 보존 추출은 별도 작업이다(#29).
+- 기업은 `idea_terms`의 아이디어 용어가 '사업의 내용'에 나올 때만 그 아이디어에 연결하고, 용어별 등장 횟수를 `data/market/processed/dart_selection.json`에 남긴다.
+- 매출 및 수주상황(판매 경로·주요 매출처)은 구매 신호, 그 밖의 섹션은 기업 주장으로 저장한다. 공시일(`published_at`)과 보고 대상 사업연도(`period`, 예: `FY2025`)를 구분한다.
 
 ### 특허 문서 수집·분야별 사전 색인
 
@@ -184,14 +202,15 @@ python -m src.ingestion.patent_processor --field-id SF-05 --limit 20 --include-c
 ### 시장 근거 색인·검색
 
 ```bash
-python -m src.retrieval.market_search build                                     # market_docs.jsonl 색인
+python -m src.retrieval.market_search build                                     # market_docs.jsonl·dart_docs.jsonl 색인
 python -m src.retrieval.market_search search "협동로봇 도입 확대" --idea-id SF-01   # 질의 검색
 ```
 
-- `data/market/processed/market_docs.jsonl`을 `text-embedding-3-small`로 임베딩해 `data/market/chroma/`의 `news` 컬렉션(cosine)에 저장한다. `OPENAI_API_KEY`가 필요하다.
+- `data/market/processed/market_docs.jsonl`(뉴스)과 `dart_docs.jsonl`(DART)을 `text-embedding-3-small`로 임베딩해 `data/market/chroma/`의 `news` 컬렉션(cosine)에 저장한다. 출처는 `source_type`(`news`·`dart`)으로 구분한다. `OPENAI_API_KEY`가 필요하다.
+- `search_by_dimensions`는 차원마다 뉴스 5건과 DART 2건을 따로 검색해 합친다. 통합 실행 준비 점검은 시장 색인에 DART가 없으면 사유를 표시한다.
 - 이미 색인된 문서는 다시 임베딩하지 않으며, `--rebuild`로 전체를 다시 임베딩한다.
 - 에이전트 툴은 `search_market`(질의 1건)과 `search_by_dimensions`(수요·경쟁·가격·구매자·도입장벽 차원별 질의)이며, 같은 `dup_group` 결과는 1건만 반환한다.
-- 차원별 질의는 아이디어 5개 항목으로 만든다: 수요(고객·문제·기술), 경쟁(차별점·기술), 가격(고객·기술·수익모델), 구매자·도입장벽(고객·기술). 빈 항목은 질의에서 빠진다.
+- 차원별 질의는 목표 세그먼트·고객·문제·현재 대안·기술·차별점·수익모델을 해당 차원에 맞게 결합한다. 빈 항목은 질의에서 빠진다.
 
 ```bash
 python -m src.retrieval.market_relevance --idea-id SF-01   # 차원별 검색 + 관련성 판정·충분성 상태
@@ -208,7 +227,7 @@ python -m src.services.market_service --idea-id SF-01 --out data/samples/market_
 ```
 
 - `run_market_research(MarketSearchRequest)`가 차원별 검색 → 관련성 판정 → 시장 분석 생성·인용 검증을 실행해 `MarketReport`(`src/schemas.py`)를 반환한다. 분석 규칙은 `prompts/market_analysis.md`, 생성·검증은 `src/generation/market_analysis.py`에서 관리한다. `OPENAI_API_KEY`가 필요하다.
-- 사실 문장은 인용 근거(`evidence`의 `citation_id`)가 있어야 하고, 인용 기사·아이디어 입력에 없는 숫자가 있거나 수치에 기준 연도가 없으면 재생성(최대 2회)하거나 해당 문장을 제거한다. 판정은 차원별 충분성 상태와 근거 성격으로 제한하고(근거 1건이거나 뉴스 같은 사업 신호뿐이면 최대 '신호만 확인'), 기대는 아이디어 항목이 모름이면 미확인으로 둔다(가격 ← 수익모델, 구매자 ← 고객).
+- 사실 문장은 인용 근거(`evidence`의 `citation_id`)가 있어야 하고, 인용 기사·아이디어 입력에 없는 숫자가 있거나 수치에 기준 연도가 없으면 재생성(최대 2회)하거나 해당 문장을 제거한다. 판정은 차원별 충분성 상태와 근거 성격으로 제한하고(근거 1건이거나 사업 신호뿐이면 최대 '신호만 확인'), 기대는 아이디어 항목이 모름이면 미확인으로 둔다(가격 ← 수익모델, 구매자 ← 고객). 뉴스의 근거 성격(구매 신호·간접 수요·사업 신호 등)은 관련성 판정과 같은 호출에서 정하고, 차원마다 확인되지 않은 이유(`limitation`)를 붙인다. DART 사업보고서를 인용한 문장은 "기업 사업보고서(FY연도)에 따르면"처럼 공시 기업을 밝힌다.
 - `data/samples/market_reports/`에는 SF-01~SF-05 실행 결과 예시가 있다. 로컬 수집 뉴스 기준이므로 다시 수집하면 내용이 달라진다.
 
 ```bash
@@ -225,10 +244,13 @@ python -m src.generation.idea_parser "중소 부품 공장에 협동로봇과 �
 ```
 
 - 아이디어 한 문장을 `gpt-4o-mini`로 문제(`problem`)·기술(`technology`)·고객(`customers`)·차별점(`difference`)·수익모델(`revenue`)로 나눈다. 규칙은 `prompts/idea_parser.md`에서 관리하며, 문장에 없는 항목은 추측하지 않고 비워 둔다. `OPENAI_API_KEY`가 필요하다.
-- 빈 항목은 사용자에게 최대 2회 재질문한다. '모름'으로 답했거나 끝까지 비어 있는 항목은 `unknown`으로 확정하고, 항목별 출처(`extracted`·`user_answer`·`unknown`)를 함께 남긴다.
+- 빈 항목은 사용자에게 최대 2회 재질문한다. 사용자는 빠진 항목을 미확인으로 두고 진행할 수 있다. 항목 출처(`extracted`·`user_answer`·`ai_hypothesis`·`unknown`)를 함께 남기며 AI 가치 가설은 입력 사실과 분리한다.
 - 완성된 결과(`IdeaDraft`)는 `build_requests`로 특허·시장 공통 입력(`StructuredIdea`)과 검색 요청(`PatentSearchRequest`·`MarketSearchRequest`)으로 변환한다.
-- Streamlit에서 `핵심 구성 확인하기 →`(키가 있을 때) 또는 `AI로 항목 초안 만들기 · 재질문`으로 구조화·재질문을 실행하고 SF-02/SF-05 특허 색인을 선택할 수 있다. 입력은 1,000자까지다. 확인한 질문으로 특허·시장 통합 조사를 실행하고 원문 근거(청구항 위치)와 출원·공개일을 확인한다.
-- `src.pipeline.run_pipeline`의 입력·출력 및 보류 규칙은 [docs/api_contract.md](docs/api_contract.md#3-특허-조사-및-통합-파이프라인)에 명시한다.
+- Streamlit에서는 `아이디어 구조화·전체 보고서 시작`으로 구조화·재질문을 시작하고, SF-02/SF-05 특허 색인을 선택할 수 있다. 입력은 1,000자까지다. 초안이 완성되면 특허 보고서 → 시장성 보고서 → 최종 사업 검토 순서로 화면과 결과가 자동 진행한다.
+- 사용자는 초안을 확인·수정하고 미확인 항목을 남긴 채 진행할 수 있다. 초안 출처는 `extracted`·`user_answer`·`ai_hypothesis`·`unknown`으로 기록한다.
+- UI는 `아이디어 입력·초안 확인 → 특허 비교 보고서 → 시장성 보고서 → 최종 실행 검토`의 네 단계다. 전체 분석 시작 한 번으로 초안이 완성되면 특허·시장·최종 보고서를 차례로 보여준다. 특허 비교는 문헌별 구성요소 대응·청구항 인용과 등록 관련 예비 신호, 시장 보고서는 직접 수요 근거와 산업 신호의 구분·다음 검증 계획, 최종 단계는 기회·위험·미확인 사항을 반영한 다음 행동 권고를 제공한다.
+- 최종 권고는 사업 성공 예측이나 특허 법률 판단이 아니다. 기사·기업 자료만으로 고객 구매 의사를 확인하지 않으며, 검색 결과가 없는 경우 특허 비유사나 시장 수요 부재로 단정하지 않는다.
+- `src.pipeline.run_pipeline`의 입력·출력 및 보류 규칙은 [docs/api_contract.md](docs/api_contract.md#3-특허-조사-및-통합-파이프라인)에 명시한다. 화면 안내는 [docs/ui-guide.md](docs/ui-guide.md)를 참고한다.
 
 ### 통합 분석 실행·점검
 
@@ -263,7 +285,9 @@ PR 분석 자동화용 `CODEX_AUTH_JSON`(ChatGPT 구독 로그인, `make review-
 
 - **코드 포맷**: Python 코드는 [black](https://black.readthedocs.io/)으로 통일한다. 버전은 `requirements-dev.txt`에 고정하고, `pyproject.toml`의 `required-version`으로 다른 주 버전 실행을 막는다.
 - **커밋 전 검사**: `pre-commit install` 후 커밋마다 black, 병합 충돌 표시, 개인키 노출, 대용량 파일, 줄끝 공백을 검사한다.
-- **CI**: develop·main 대상 PR과 push에서 black 검사, pytest, 자동화 스크립트 테스트, Docker 이미지 빌드를 실행한다.
+- **CI**: develop·main 대상 PR과 push에서 black 검사, pytest, 자동화 스크립트 테스트, Docker 이미지 빌드, SCC와 같은 Debian 11 환경의 SCC 전용 의존성 검사를 실행한다.
+- **main 승격 PR**: develop push의 CI가 성공하면 develop → main 배포 승격 PR을 열거나 갱신하고 리뷰어 1명을 요청한다. 병합(= SCC 배포)은 사람이 승인하며 Create a merge commit만 쓴다([배포 안내](docs/deploy-streamlit-cloud.md)).
+- **SCC 배포 스모크**: main push와 수동 실행 때 브라우저로 SCC 앱을 열어 비밀번호 화면과 버전(방금 커밋)을 확인한다. 앱 주소는 저장소 변수 `SCC_APP_URL`에 둔다.
 - **리뷰어 자동 지정**: PR에 리뷰어가 없으면 작성자를 제외한 팀원 중 한 명을 무작위로 지정한다. 후보는 저장소 변수 `REVIEWER_POOL`로 바꿀 수 있다.
 - **PR 자동 분석**: develop 대상 PR이 검토 요청 상태로 열리거나 수정되면 규칙 점검과 GPT(`gpt-6-sol`, 기본은 Codex CLI + 리더 ChatGPT 구독 로그인, API 키 방식도 선택 가능) 분석 결과를 Notion 'RAG 기반 미니 프로젝트: IdeaLens' 아래 'PR 분석' 표의 PR별 페이지 하나에 기록한다. 페이지에는 태그(서비스 계층)·키워드·분석 내용, AI 병합 판단(4등급과 근거 3문장, 참고용), 첫 분석 때 코드로 한 번 그린 서비스 아키텍처 그림이 들어간다. 초안·병합·닫힘에는 모델을 부르지 않고, 수정본은 의미 있는 변경이 있을 때 바뀐 파일만 다시 분석한다. 병합되면 분석한 변경과 최종 변경이 같을 때만 카드 변경 후보를 태그별 '영역 요약 카드'에 항목 단위로 반영한다. 구독 방식은 리더의 Codex 사용량을 쓰고, API 키 방식은 OpenAI API 결제로 따로 청구된다. 구독 로그인은 OpenAI 문서가 공개 저장소에 권하지 않는 방식이라 위험과 대응을 운영 안내에 둔다. 참고용이며 승인·병합·GitHub 댓글은 하지 않는다. 판단 기준은 [docs/review-baseline.md](docs/review-baseline.md), 운영 안내는 [docs/development.md](docs/development.md#pr-자동-분석-githubworkflowspr-analysisyml).
 - **Codex 구독 경로 주의:** 도구 비활성화 설정과 기능 점검만으로 실제 도구 노출이나 파일 읽기 차단을 보장할 수 없다. 공개 저장소에서 구독 로그인을 사용하는 위험과 운영 절차를 확인한다.
@@ -277,7 +301,7 @@ PR 분석 자동화용 `CODEX_AUTH_JSON`(ChatGPT 구독 로그인, `make review-
 - 데이터 출처: KIPRIS Plus, NAVER 뉴스 검색 API(교육 목적, 프로젝트 종료 시 폐기), DART, 공공기관·연구기관·기업의 공식 자료. 사내자료 연계는 향후 검토 범위.
 - 원문 구획과 청구항 구조를 보존하고, 각 주장에 출처·문헌 버전·원문 위치·링크를 연결.
 - 검색은 공통 엔진에서 의미 검색(dense)·단어 검색(BM25)·결합(hybrid) 중 선택하며, 임베딩은 `text-embedding-3-small`, 색인은 로컬 Chroma 또는 환경변수로 지정한 공용 Chroma를 사용.
-- 시연은 Streamlit UI로 하며 Streamlit Community Cloud(`main` 배포, 앱 비밀번호, [배포 안내](docs/deploy-streamlit-cloud.md)) 또는 로컬 Docker로 실행한다. 팀 색인은 공용 Chroma, 로컬 Chroma(`data/patents/chroma/`·`data/market/chroma/`)는 개인 실험·테스트용이다.
+- 시연은 Streamlit UI로 하며 Streamlit Community Cloud(`main` 병합 시 자동 배포, 앱 비밀번호, [배포 안내](docs/deploy-streamlit-cloud.md)) 또는 로컬 Docker로 실행한다. 팀 색인은 공용 Chroma, 로컬 Chroma(`data/patents/chroma/`·`data/market/chroma/`)는 개인 실험·테스트용이다.
 - 사실·해석·가설·미확인을 구분하고, 근거가 부족하면 판단을 보류. 최종 판단은 사용자가 수행.
 
 ## 평가 계획
@@ -303,12 +327,16 @@ python -m evaluation.evaluate market --mode hybrid --rerank --label baseline  # 
 python -m evaluation.evaluate relevance                 # 관련성 판정(gpt-4o-mini) vs 사람 라벨 → evaluation/results/
 python -m evaluation.evaluate guardrail                 # 입력 가드레일 차단율·오차단율 → evaluation/results/
 python -m evaluation.answer_eval --limit 5              # LLM 단독 vs RAG 답변 품질(LLM 평가, API 비용 발생)
+python -m evaluation.market_answer_eval run             # LLM 단독·단순 RAG·IdeaLens 시장 분석 문장 단위 비교 (SF-01~04, API 비용 발생)
+python -m evaluation.market_answer_eval sample          # 판정기 결과를 숨긴 사람 검토 표본 → evaluation/labels/
+python -m evaluation.market_answer_eval agreement       # 사람 검토 vs 문장 판정기 일치율·kappa, 사람 보정 Citation Accuracy
 python -m evaluation.patent_labeling export              # SF-02/SF-05 특허 후보 CSV 내보내기 (사람 라벨 필요)
 ```
 
 - 시장 평가에는 사람 라벨 25문항이 있으나 SF-05 라벨은 이전 '현장 작업자용 LLM 음성 어시스턴트' 기준이다. 현재 SF-05(지능형 공정제어)와 맞지 않으므로 최신 비교는 `--idea-ids SF-01,SF-02,SF-03,SF-04`로 20문항을 실행하고, SF-05는 새 수집·라벨 이후 포함한다.
 - 특허 평가셋은 현재 로컬 색인이 준비된 SF-02·SF-05에서 각각 기술 요소 질의로 구성한다. `patent_cases.json`의 사람 정답은 초기화 상태이며, CSV 라벨을 작성해 import한 뒤에만 검색 지표를 계산한다.
 - 검색 CSV에는 mode, 모델, prompt 적용 여부, 커밋 ID가 기록된다. LLM 단독/RAG 답변 비교는 `answer_eval`의 LLM 판정 점수이며 사람 정답 평가와 구분해야 한다.
+- `market_answer_eval`은 실제 시장 조사 결과(`run_market_research`)를 LLM 단독·단순 RAG(검색 상위 5건 그대로)와 같은 문항으로 비교한다. 인용된 fact 문장마다 `prompts/market_claim_judge.md` 판정기가 인용 기사 제목·요약과 대조하고(Citation Accuracy), 사람 검토 표본으로 판정기 결과를 보정한다. 인용 기사의 관련성은 사람 정답 라벨로 센다. 결과와 해석은 [docs/market_research.md](docs/market_research.md#시장-답변-평가).
 - 라벨링 후보는 문항마다 벡터 검색 상위 8건과 그 아래 순위에서 차원 표현(가격·비용, 도입·사례 등)이 들어간 4건, 그리고 `extend`로 추가한 bm25·hybrid 상위 5건 중 새 문서다. 방식 비교 결과는 [docs/market_research.md](docs/market_research.md#시장-검색-방식-비교). 라벨 기준과 LLM 초안·사람 검토 절차는 [evaluation/market_labeling.md](evaluation/market_labeling.md).
 - 관련 문서가 없는 문항은 평균에서 빼고 따로 센다. 라벨 후보에 없던 문서가 상위 5건에 나오면 `unjudged`로 표시한다.
 - 관련성 판정 평가는 사람이 직접 라벨한 행(`label_source=human`)만 비교해 정확도·정밀도·재현율·kappa를 계산하고, 사람 라벨만 있는 문항의 충분성 상태 일치를 함께 출력한다.
@@ -330,3 +358,9 @@ python -m evaluation.patent_labeling export              # SF-02/SF-05 특허 �
 ### 특허 청구항 분석
 
 특허 분석 입력은 `PatentSearchRequest`, 반환 계약은 `PatentReport`이며 `src.services.patent_service.analyze_patents()`에서 호출한다. 문헌별 청구항 원문·버전·번호·종속항 참조를 인용 근거로 보존하고, KIPRIS 청구항 조회가 비어 있거나 실패하면 초록 근거와 미확인 상태를 반환한다. 구현 흐름과 Mock 통합 예제는 [docs/patent_rag.md](docs/patent_rag.md)를 참고한다.
+
+## 통합 분석 화면
+
+시장 검토는 근거 성격을 구매 신호·간접 수요·기업 주장 등으로 구분하고, 차원별 자료 상태·관련 검색 자료 수·확인되지 않은 이유·다음 검증 과제를 표시한다. 동일한 확인 범위를 최종 원문·PDF·기록에도 포함한다. 관련 검색 자료 수와 인용 건수는 구분하며, 미제공 값은 0으로 채우지 않는다. 기존 기록에 새 항목이 없으면 미제공으로 표시한다.
+
+특허 분류 시각화·상세 팝업, 시장 사업 검토, 사용자 초안 확정 흐름을 3단계 화면에 연결한다. 비용·메모 탭에서 LLM 비용 가설을 견적과 구분해 편집하고 동일한 결과를 원문·PDF·기록에 반영한다. 비용 분석에는 추가 모델 호출이 발생한다. 분야 기본값은 자동이며 자료가 없는 선택 분야는 전체 색인으로 보완한다.

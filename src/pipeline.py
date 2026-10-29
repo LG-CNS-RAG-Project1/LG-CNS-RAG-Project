@@ -32,13 +32,25 @@ from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 
 from src.generation.idea_parser import build_requests
+from src.generation.business_review import BusinessReview, build_business_review
+from src.generation.executive_review import (
+    ExecutiveReview,
+    build_executive_review,
+    executive_report_markdown,
+)
 from src.generation.input_guard import MAX_ANSWER_CHARS, screen_text
 from src.generation.report_builder import (
     QuestionLink,
-    integrated_report_markdown,
     link_questions_with_retry,
 )
-from src.schemas import IDEA_FIELDS, IdeaDraft, MarketReport, PatentReport
+from src.schemas import (
+    IDEA_FIELDS,
+    IdeaDraft,
+    MarketReport,
+    PatentReport,
+    ImplementationCostEstimate,
+    CostScenarioTotals,
+)
 from src.services.market_service import run_market_research
 from src.services.patent_service import analyze_patents
 
@@ -124,11 +136,15 @@ class PipelineReport(BaseModel):
     market: MarketReport
     links: list[QuestionLink] = Field(default_factory=list)
     markdown: str = ""
+    business_review: BusinessReview | None = None
+    executive_review: ExecutiveReview | None = None
     errors: list[str] = Field(default_factory=list)
     patent_run: PartRun | None = None
     market_run: PartRun | None = None
     readiness: Readiness | None = None
     analyzed_on: int | None = None
+    cost_estimate: ImplementationCostEstimate | None = None
+    cost_totals: CostScenarioTotals | None = None
 
 
 class Cancelled(RuntimeError):
@@ -274,6 +290,14 @@ def open_collection(name: str, local_dir: Path, client=None):
     return collection, IndexState(location=location, collection=name, count=count)
 
 
+def _market_dart_count(collection) -> int:
+    """시장 컬렉션의 DART 사업보고서 청크 수. 확인하지 못하면 0."""
+    try:
+        return len(collection.get(where={"source_type": "dart"}, include=[])["ids"])
+    except Exception:
+        return 0
+
+
 def _market_collected_at(collection) -> int | None:
     try:
         metadatas = collection.get(include=["metadatas"])["metadatas"] or []
@@ -317,11 +341,22 @@ def prepare_sources(
     market_runnable = keys["OPENAI_API_KEY"] and bool(market_state.count)
     if not market_state.count:
         reasons.append(f"시장 색인 준비 필요({market_state.reason or '문서 0건'})")
-    local_patents = (
+    elif not _market_dart_count(market):
+        reasons.append(
+            "시장 색인에 DART 사업보고서 없음: dart_client·dart_processor 실행 후 "
+            "market_search build 필요"
+        )
+    total_local_patents = patent_state.count or 0
+    selected_area_count = (
         patent_state.area_counts.get(technology_area_id, 0)
         if technology_area_id
-        else (patent_state.count or 0)
+        else total_local_patents
     )
+    local_patents = selected_area_count or total_local_patents
+    if technology_area_id and not selected_area_count and total_local_patents:
+        reasons.append(
+            f"특허 색인에 {technology_area_id} 문서가 없어 전체 특허 색인으로 검색합니다"
+        )
     if not keys["OPENAI_API_KEY"]:
         patent_mode = "none"
     elif local_patents and keys["KIPRIS_API_KEY"]:
@@ -427,18 +462,26 @@ def _market_defaults(event: threading.Event) -> dict:
 
 
 def _patent_defaults(event: threading.Event) -> dict:
-    from src.generation.patent_analysis import compare_patent_evidence
+    from src.generation.patent_analysis import (
+        call_comparison_llm,
+        review_patents_by_component,
+    )
     from src.ingestion.kipris_client import fetch_patent_claims
     from src.ingestion.kipris_client import search_patents as search_kipris
     from src.retrieval.market_search import embed_texts
     from src.retrieval.patent_search import call_query_llm
+
+    guarded_review_llm = _guard(call_comparison_llm, event)
+
+    def review(idea, evidence):
+        return review_patents_by_component(idea, evidence, llm_fn=guarded_review_llm)
 
     return {
         "embed_fn": _guard(embed_texts, event),
         "query_llm_fn": _guard(call_query_llm, event),
         "claim_fetcher": _guard(fetch_patent_claims, event),
         "kipris_search_fn": _guard(search_kipris, event),
-        "comparison_fn": _guard(compare_patent_evidence, event),
+        "patent_review_fn": review,
         "relevance_fn": _tolerant_relevance(event),
     }
 
@@ -467,6 +510,7 @@ def analyze_sources(
     parallel: bool | None = None,
     market_timeout: float = MARKET_TIMEOUT,
     patent_timeout: float = PATENT_TIMEOUT,
+    progress_callback: Callable[[str, object, PartRun], None] | None = None,
 ) -> SourceAnalysis:
     """시장·특허 조사를 실행한다. 준비되지 않은 영역은 호출하지 않고 skipped로 둔다.
 
@@ -485,6 +529,13 @@ def analyze_sources(
         readiness, market_collection, patent_collection = prepare_sources(
             technology_area_id
         )
+    if (
+        technology_area_id
+        and readiness.patent_index.count
+        and not readiness.patent_index.area_counts.get(technology_area_id, 0)
+    ):
+        # 오래된 세션의 고정 분야 선택이 비어 있는 분야를 가리켜도 검색을 중단하지 않는다.
+        patent_request.technology_area_id = None
 
     event = threading.Event()
     market_args = {**_market_defaults(event), **(market_kwargs or {})}
@@ -507,7 +558,12 @@ def analyze_sources(
 
     if parallel is None:
         parallel = os.getenv("IDEALENS_SERIAL", "") != "1"
-    results = _run_jobs(jobs, event, parallel)
+    if progress_callback is not None:
+        # The UI's step-by-step flow needs the patent result before starting
+        # the market phase. Keep ordinary CLI/pipeline callers parallel.
+        jobs = {kind: jobs[kind] for kind in ("patent", "market") if kind in jobs}
+        parallel = False
+    results = _run_jobs(jobs, event, parallel, on_result=progress_callback)
 
     skipped_reason = "; ".join(readiness.reasons) or "실행 조건 미충족"
     market_report, market_run = results.get(
@@ -541,6 +597,13 @@ def analyze_sources(
         )
         for item in report.unknowns:
             LOG.info("%s 미확인: %s", label, item)
+    if progress_callback is not None:
+        for kind, report, run in (
+            ("patent", patent_report, patent_run),
+            ("market", market_report, market_run),
+        ):
+            if kind not in jobs:
+                progress_callback(kind, report, run)
     return SourceAnalysis(
         patent=patent_report,
         market=market_report,
@@ -558,7 +621,12 @@ def _failed(kind: str, state: RunState, message: str, seconds: float | None):
     return report, PartRun(state=state, seconds=seconds, message=message)
 
 
-def _run_jobs(jobs: dict, event: threading.Event, parallel: bool) -> dict:
+def _run_jobs(
+    jobs: dict,
+    event: threading.Event,
+    parallel: bool,
+    on_result: Callable[[str, object, PartRun], None] | None = None,
+) -> dict:
     """영역별로 제한 시간 안에 실행하고 예외·시간 초과를 그 영역 결과로만 남긴다."""
     results = {}
     if not jobs:
@@ -574,10 +642,14 @@ def _run_jobs(jobs: dict, event: threading.Event, parallel: bool) -> dict:
             for kind, (future, timeout) in futures.items():
                 remaining = max(0.0, timeout - (time.monotonic() - started))
                 results[kind] = _collect(kind, future, remaining, event)
+                if on_result:
+                    on_result(kind, *results[kind])
         else:
             for kind, (fn, request, kwargs, timeout) in jobs.items():
                 future = pool.submit(_timed, fn, request, **kwargs)
                 results[kind] = _collect(kind, future, timeout, event)
+                if on_result:
+                    on_result(kind, *results[kind])
     finally:
         pool.shutdown(wait=False, cancel_futures=True)
     return results
@@ -628,7 +700,7 @@ def default_questions(draft: IdeaDraft) -> list[dict]:
     return [
         {
             "id": "Q1",
-            "question": f"제안 기술({draft.technology})로 문제({draft.problem})를 해결할 수 있는가?",
+            "question": f"제안 기술({draft.technology or '미확인'})로 문제({draft.problem or '미확인'})를 해결할 수 있는가?",
             "condition": "",
         }
     ]
@@ -646,11 +718,13 @@ def run_pipeline(
     readiness: Readiness | None = None,
     sources: SourceAnalysis | None = None,
     parallel: bool | None = None,
+    cost_llm_fn=None,
 ) -> PipelineReport:
     """확정된 IdeaDraft로 두 조사와 질문별 통합 근거 보고서를 실행한다.
 
     sources를 넘기면 조사를 다시 하지 않고 질문 연결과 보고서만 새로 만든다.
     """
+    draft.to_structured_idea()
     questions = screen_inputs(technical_components, questions)
     if sources is None:
         sources = analyze_sources(
@@ -672,17 +746,25 @@ def run_pipeline(
         if run.state in ("error", "timeout"):
             errors.append(f"{label} 조사 {run.state}: {run.message}")
     collected = sources.readiness.market_collected_at if sources.readiness else None
-    markdown = integrated_report_markdown(
+    business_review = build_business_review(draft, sources.patent, sources.market)
+    executive_review = build_executive_review(
+        draft, sources.patent, sources.market, business_review
+    )
+    cost_estimate = None
+    cost_totals = None
+    if cost_llm_fn is not None:
+        from src.generation.cost_estimation import calculate_scenarios, estimate_costs
+
+        cost_estimate = estimate_costs(
+            draft, sources.market, sources.patent, llm_fn=cost_llm_fn
+        )
+        cost_totals = calculate_scenarios(cost_estimate)
+    markdown = executive_report_markdown(
         draft.title,
-        questions,
-        links,
-        sources.market,
-        sources.patent,
-        draft=draft,
-        runs={"특허": sources.patent_run, "시장": sources.market_run},
+        executive_review,
         analyzed_on=sources.analyzed_on,
-        market_collected_at=collected,
-        warnings=errors,
+        cost_estimate=cost_estimate,
+        cost_totals=cost_totals,
     )
     statuses = {sources.patent.status, sources.market.status}
     status = "completed" if statuses == {"completed"} and not errors else "partial"
@@ -693,11 +775,15 @@ def run_pipeline(
         market=sources.market,
         links=links,
         markdown=markdown,
+        business_review=business_review,
+        executive_review=executive_review,
         errors=errors,
         patent_run=sources.patent_run,
         market_run=sources.market_run,
         readiness=sources.readiness,
         analyzed_on=sources.analyzed_on,
+        cost_estimate=cost_estimate,
+        cost_totals=cost_totals,
     )
 
 

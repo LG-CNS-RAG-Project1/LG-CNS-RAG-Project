@@ -3,7 +3,7 @@
 from collections import defaultdict
 from typing import Callable
 
-from src.generation.patent_analysis import compare_patent_evidence
+from src.generation.patent_analysis import review_patents_by_component
 from src.ingestion.kipris_client import KiprisAPIError, fetch_patent_claims
 from src.retrieval.patent_search import build_patent_queries, search_patents
 from src.retrieval.patent_relevance import judge_patent_candidates
@@ -16,6 +16,27 @@ from src.schemas import (
     PatentSearchRequest,
 )
 from src.ingestion.patent_processor import structure_claims
+
+KIPRIS_SUPPLEMENT_QUERY_LIMIT = 2
+
+
+def _kipris_supplement_queries(plan, idea) -> list[str]:
+    """KIPRIS 요청량을 제한하면서 LLM이 만든 한국어 기술 검색어를 우선 사용한다."""
+    queries = []
+    for item in plan.queries:
+        for query in item.korean_queries:
+            normalized = " ".join(query.split())
+            if normalized and normalized not in queries:
+                queries.append(normalized)
+                break
+        if len(queries) >= KIPRIS_SUPPLEMENT_QUERY_LIMIT:
+            break
+
+    if not queries:
+        fallback = " ".join((idea.technology or idea.title).split())[:100]
+        if fallback:
+            queries.append(fallback)
+    return queries
 
 
 def _supplement_result(record: dict) -> RetrievalResult | None:
@@ -67,17 +88,51 @@ def validate_patent_citations(
 
 
 def _select_claims(idea, claims: list, limit: int = 5) -> list:
-    """기술 표현과 토큰이 겹치는 청구항을 우선하되 독립항 근거를 우선 포함한다."""
+    """관련 청구항과 그 상위항을 한 묶음으로 선택한다."""
     from src.retrieval.engine import tokenize
 
     idea_text = " ".join(idea.technical_components or [idea.technology, idea.problem])
     terms = set(tokenize(idea_text))
-    scored = []
-    for claim in claims:
-        overlap = len(terms & set(tokenize(claim.text)))
-        independent_priority = 1 if claim.claim_type == "independent" else 0
-        scored.append((independent_priority, overlap, -claim.claim_number, claim))
-    return [row[3] for row in sorted(scored, reverse=True)[:limit]]
+    claims_by_number = {claim.claim_number: claim for claim in claims}
+    ranked = sorted(
+        claims,
+        key=lambda claim: (
+            len(terms & set(tokenize(claim.text))),
+            claim.claim_type == "independent",
+            -claim.claim_number,
+        ),
+        reverse=True,
+    )
+    selected = []
+    selected_numbers = set()
+    for claim in ranked:
+        if claim.claim_number in selected_numbers:
+            continue
+        ancestors = []
+        pending = list(claim.depends_on)
+        visited = set()
+        missing_parent = False
+        while pending:
+            number = pending.pop()
+            if number in visited or number in selected_numbers:
+                continue
+            visited.add(number)
+            parent = claims_by_number.get(number)
+            if not parent:
+                missing_parent = True
+                break
+            ancestors.append(parent)
+            pending.extend(parent.depends_on)
+        # 부모 원문이 빠져 있어도 인용 자체는 보존한다. 호출부가 미확인 경고를 붙이고,
+        # 비교기는 상위항 범위를 추정하지 않도록 프롬프트에서 제한한다.
+        additions = sorted(ancestors, key=lambda item: item.claim_number) + [claim]
+        additions = [
+            item for item in additions if item.claim_number not in selected_numbers
+        ]
+        if len(selected) + len(additions) <= limit:
+            selected.extend(additions)
+            selected_numbers.update(item.claim_number for item in additions)
+    return sorted(selected, key=lambda claim: claim.claim_number)
 
 
 def analyze_patents(
@@ -91,6 +146,7 @@ def analyze_patents(
     comparison_fn: (
         Callable[[object, list[PatentEvidence]], list[PatentComparison]] | None
     ) = None,
+    patent_review_fn: Callable | None = None,
     relevance_fn: Callable | None = None,
     candidate_k: int = 20,
 ) -> PatentReport:
@@ -102,12 +158,16 @@ def analyze_patents(
 
     claim_fetcher = claim_fetcher or fetch_patent_claims
     kipris_search_fn = kipris_search_fn or search_kipris_patents
-    comparison_fn = comparison_fn or compare_patent_evidence
     relevance_fn = relevance_fn or judge_patent_candidates
     plan_kwargs = {"request": request}
     if query_llm_fn is not None:
         plan_kwargs["llm_fn"] = query_llm_fn
 
+    evidence: list[PatentEvidence] = []
+    source_texts: dict[int, str] = {}
+    unknowns: list[str] = []
+    used_global_fallback = False
+    kipris_search_error = None
     try:
         plan = build_patent_queries(**plan_kwargs)
         queries = [
@@ -138,7 +198,6 @@ def analyze_patents(
                 if previous is None or current_score > previous_score:
                     retrieved_by_id[result.document.source_id] = result
 
-        unknowns = []
         ordered_candidates = sorted(
             retrieved_by_id.values(),
             key=lambda item: (
@@ -154,11 +213,58 @@ def analyze_patents(
             if judgments[item.document.source_id].relevant
         ][: request.top_k]
 
-        if len(candidates) < request.top_k:
+        # A chosen technology area is a search preference, not a hard boundary.
+        # Broaden to the full local index before concluding that no evidence exists.
+        if request.technology_area_id and len(candidates) < request.top_k:
+            used_global_fallback = True
+            global_candidates = {}
             for query in dict.fromkeys(queries):
+                for result in search_patents(
+                    query,
+                    collection=collection,
+                    embed_fn=embed_fn,
+                    top_k=max(candidate_k, request.top_k),
+                    technology_area_id=None,
+                ):
+                    source_id = result.document.source_id
+                    if source_id not in retrieved_by_id:
+                        previous = global_candidates.get(source_id)
+                        current_score = (
+                            result.dense_score
+                            if result.dense_score is not None
+                            else float("-inf")
+                        )
+                        previous_score = (
+                            previous.dense_score
+                            if previous and previous.dense_score is not None
+                            else float("-inf")
+                        )
+                        if previous is None or current_score > previous_score:
+                            global_candidates[source_id] = result
+
+            if global_candidates:
+                expanded = sorted(
+                    global_candidates.values(),
+                    key=lambda item: (
+                        item.dense_score is not None,
+                        item.dense_score if item.dense_score is not None else 0,
+                    ),
+                    reverse=True,
+                )[: max(candidate_k, request.top_k)]
+                expanded_judgments = relevance_fn(request.idea, expanded)
+                candidates.extend(
+                    item
+                    for item in expanded
+                    if expanded_judgments[item.document.source_id].relevant
+                )
+                candidates = candidates[: request.top_k]
+
+        if len(candidates) < request.top_k:
+            for query in _kipris_supplement_queries(plan, request.idea):
                 try:
                     records = kipris_search_fn(query, request.top_k - len(candidates))
                 except KiprisAPIError as exc:
+                    kipris_search_error = str(exc)
                     unknowns.append(f"KIPRIS 후보 보충 미실행: {exc}")
                     break
                 added = []
@@ -178,14 +284,26 @@ def analyze_patents(
                     candidates = candidates[: request.top_k]
                     break
         if not candidates:
+            if kipris_search_error:
+                return PatentReport(
+                    status="error",
+                    search_scope=(
+                        "로컬 Dense 검색 후 KIPRIS 보충 검색에서 오류 발생; "
+                        "특허 부재 여부 미확인"
+                    ),
+                    error_message=kipris_search_error,
+                    unknowns=unknowns,
+                )
             return PatentReport(
                 status="no_results",
-                search_scope="아이디어 기술 요소별 Dense 검색 및 필요 시 KIPRIS 후보 보충",
+                search_scope=(
+                    "분야 우선 Dense 검색·전체 색인 보충 후 관련 후보 없음"
+                    if used_global_fallback
+                    else "아이디어 기술 요소별 Dense 검색 및 필요 시 KIPRIS 후보 보충"
+                ),
                 unknowns=unknowns or ["검색된 특허 후보가 없습니다."],
             )
 
-        evidence = []
-        source_texts = {}
         for result in candidates:
             document = result.document
             meta = document.metadata
@@ -227,7 +345,20 @@ def analyze_patents(
                 unknowns.append(f"{app_number}: KIPRIS 청구항 원문 조회 실패 ({exc})")
 
             if claims:
-                for claim in _select_claims(request.idea, claims):
+                selected_claims = _select_claims(request.idea, claims)
+                available_claim_numbers = {claim.claim_number for claim in claims}
+                for claim in selected_claims:
+                    missing_parents = [
+                        number
+                        for number in claim.depends_on
+                        if number not in available_claim_numbers
+                    ]
+                    if missing_parents:
+                        unknowns.append(
+                            f"{app_number}: 청구항 {claim.claim_number}의 상위항 "
+                            f"{', '.join(map(str, missing_parents))} 원문 미확보; "
+                            "종속항만으로 권리 범위를 추정하지 않음"
+                        )
                     evidence.append(
                         PatentEvidence(
                             citation_id=len(evidence) + 1,
@@ -315,9 +446,10 @@ def analyze_patents(
 
         validate_patent_citations(evidence, source_texts)
         expected_ids = {item.citation_id for item in evidence}
-        comparison_error = None
         comparisons = []
-        for _ in range(2):
+        patent_reviews = []
+        patentability_precheck = None
+        if comparison_fn is not None:
             try:
                 comparisons = comparison_fn(request.idea, evidence)
                 actual_ids = [item.citation_id for item in comparisons]
@@ -327,32 +459,47 @@ def analyze_patents(
                     raise ValueError(
                         "Patent comparisons must map one-to-one to supplied evidence"
                     )
-                comparison_error = None
-                break
-            except Exception as exc:
-                comparison_error = exc
-        if comparison_error is not None:
-            return PatentReport(
-                status="error",
-                evidence=evidence,
-                unknowns=unknowns + ["특허 비교 생성이 재시도 후 실패했습니다."],
-                search_scope="아이디어 기술 요소별 Dense 검색 및 관련성 판정 후 비교",
-                error_message=str(comparison_error),
-            )
+            except Exception as comparison_error:
+                return PatentReport(
+                    status="error",
+                    evidence=evidence,
+                    unknowns=unknowns
+                    + ["특허 비교 응답이 검증되지 않아 결과를 완료하지 못했습니다."],
+                    search_scope="아이디어 기술 요소별 Dense 검색 및 관련성 판정 후 비교",
+                    error_message=str(comparison_error),
+                )
+        else:
+            patent_reviews, patentability_precheck = (
+                patent_review_fn or review_patents_by_component
+            )(request.idea, evidence)
+            for review in patent_reviews:
+                unknowns.extend(f"{review.title}: {item}" for item in review.unknowns)
         return PatentReport(
             status="completed",
             evidence=evidence,
             comparisons=comparisons,
+            patent_reviews=patent_reviews,
+            patentability_precheck=patentability_precheck,
             unknowns=unknowns,
             search_scope=(
-                "아이디어 기술 요소별 Dense 후보 검색·LLM 관련성 판정; 후보 부족 시 KIPRIS 검색; "
+                "아이디어 기술 요소별 Dense 후보 검색·LLM 관련성 판정"
+                + (
+                    "· 분야 결과 부족으로 전체 색인 보충"
+                    if used_global_fallback
+                    else ""
+                )
+                + "; 후보 부족 시 KIPRIS 검색; "
                 "청구항 원문 조회는 선택된 최대 5개 문헌에 한함"
             ),
         )
     except Exception as exc:
         return PatentReport(
             status="error",
+            evidence=evidence,
             search_scope="아이디어 기술 요소별 특허 검색 및 청구항 분석",
             error_message=str(exc),
-            unknowns=["분석 실행 중 오류가 발생해 결과를 확인하지 못했습니다."],
+            unknowns=unknowns
+            + [
+                "특허 비교 분석 중 오류가 발생했습니다. 확보된 원문 근거는 보존했습니다."
+            ],
         )

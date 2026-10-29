@@ -1,4 +1,4 @@
-"""아이디어 한 문장을 5개 항목(문제·기술·고객·차별점·수익모델)으로 구조화하고,
+"""아이디어 한 문장을 5개 항목(문제·기술·고객·차별점·수익모델)으로 구조화하며, 부족한 사업 항목은 가설로 제안하고,
 빈 항목을 사용자에게 재질문한 뒤 특허·시장 검색 요청을 만든다.
 
 흐름:
@@ -110,22 +110,24 @@ def reject(text: str, status: InputStatus, reason: str | None = None) -> IdeaDra
 def check_draft(draft: IdeaDraft) -> IdeaDraft:
     """빈 항목을 찾아 상태와 재질문을 갱신한다.
 
-    재질문 상한에 닿았으면 남은 빈 항목을 모름으로 확정하고 complete로 반환한다.
+    재질문 상한에 닿아도 필수 항목이 비어 있으면 미완성 상태를 유지한다.
     거절된 초안은 그대로 반환한다.
     """
     if draft.status == "rejected":
         return draft
     sources = dict(draft.field_sources)
-    missing = [
-        f for f in IDEA_FIELDS if not getattr(draft, f) and sources.get(f) != "unknown"
-    ]
-    if missing and draft.rounds >= MAX_FOLLOWUP_ROUNDS:
-        sources.update({f: "unknown" for f in missing})
-        missing = []
+    missing = [f for f in IDEA_FIELDS if not getattr(draft, f).strip()]
+    known_unknown_labels = set(FIELD_LABELS.values())
+    unknowns = [item for item in draft.unknowns if item not in known_unknown_labels]
+    unknowns.extend(
+        FIELD_LABELS[field] for field in IDEA_FIELDS if sources.get(field) == "unknown"
+    )
+    # A retry limit must never turn a blank required field into a complete draft.
     return IdeaDraft.model_validate(
         {
             **draft.model_dump(),
             "field_sources": sources,
+            "unknowns": list(dict.fromkeys(unknowns)),
             "status": "needs_input" if missing else "complete",
             "missing_fields": missing,
             "questions": {f: FOLLOWUP_QUESTIONS[f] for f in missing},
@@ -153,14 +155,63 @@ def parse_idea(text: str, llm_fn: LLMFn = call_llm) -> IdeaDraft:
 
     values = {f: _clean(raw.get(f)) for f in IDEA_FIELDS}
     title = _clean(raw.get("title")) or text
+    current_alternative = _clean(raw.get("current_alternative"))
+    target_segment = _clean(raw.get("target_segment"))
+    raw_components = raw.get("technical_components", [])
+    if isinstance(raw_components, str):
+        raw_components = [raw_components]
+    if not isinstance(raw_components, list):
+        raw_components = []
+    technical_components = list(
+        dict.fromkeys(_clean(value) for value in raw_components if _clean(value))
+    )[:7]
+    raw_hypotheses = raw.get("value_hypotheses", [])
+    if isinstance(raw_hypotheses, str):
+        raw_hypotheses = [raw_hypotheses]
+    if not isinstance(raw_hypotheses, list):
+        raw_hypotheses = []
+    value_hypotheses = list(
+        dict.fromkeys(_clean(value) for value in raw_hypotheses if _clean(value))
+    )[:3]
+    raw_sources = raw.get("field_sources") or {}
+    field_sources = {}
+    for field in IDEA_FIELDS:
+        if not values[field]:
+            continue
+        source = raw_sources.get(field) if isinstance(raw_sources, dict) else None
+        field_sources[field] = (
+            source if source in {"extracted", "ai_hypothesis"} else "extracted"
+        )
+    if current_alternative:
+        field_sources["current_alternative"] = "extracted"
+    if target_segment:
+        field_sources["target_segment"] = "extracted"
+    if technical_components:
+        field_sources["technical_components"] = "extracted"
+    if value_hypotheses:
+        field_sources["value_hypotheses"] = "ai_hypothesis"
+    unknowns = []
     draft = IdeaDraft(
         original_text=text,
         title=title[:TITLE_MAX_LENGTH],
         **values,
-        field_sources={f: "extracted" for f in IDEA_FIELDS if values[f]},
+        current_alternative=current_alternative,
+        target_segment=target_segment,
+        technical_components=technical_components,
+        value_hypotheses=value_hypotheses,
+        unknowns=unknowns,
+        field_sources=field_sources,
         status="complete",
     )
     return check_draft(draft)
+
+
+def confirm_unknowns(draft: IdeaDraft) -> IdeaDraft:
+    """필수 정보가 전부 채워진 초안만 분석 가능한 상태로 확인한다."""
+    if draft.status == "rejected":
+        raise ValueError("cannot confirm a rejected idea draft")
+    draft.to_structured_idea()
+    return draft
 
 
 def apply_answers(draft: IdeaDraft, answers: dict[str, str]) -> IdeaDraft:
@@ -191,7 +242,10 @@ def apply_answers(draft: IdeaDraft, answers: dict[str, str]) -> IdeaDraft:
         else:
             update[field], sources[field] = value, "user_answer"
 
-    rounds = draft.rounds + (1 if draft.status == "needs_input" else 0)
+    rounds = min(
+        MAX_FOLLOWUP_ROUNDS,
+        draft.rounds + (1 if draft.status == "needs_input" else 0),
+    )
     return check_draft(
         draft.model_copy(update={**update, "field_sources": sources, "rounds": rounds})
     )
