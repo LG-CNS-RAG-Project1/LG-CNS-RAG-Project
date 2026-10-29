@@ -108,6 +108,7 @@ def test_scope_rule_allows_exclusion_terms_only_with_vision_terms():
     p = load_profile("SF-02")
     assert not in_scope("예지보전 검사 장비 계약", p)
     assert in_scope("예지보전과 머신비전 검사장비 함께 공급", p)
+    assert not in_scope("현대차그룹, 협력사와 전환 비전 공유", p)
 
 
 def test_request_cap_and_retry_rules_are_enforced_separately():
