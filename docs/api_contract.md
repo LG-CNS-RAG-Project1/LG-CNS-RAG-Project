@@ -30,11 +30,12 @@
 
 | 함수 | 입력 | 출력 |
 |---|---|---|
-| `src.services.market_service.run_market_research(request, idea_id=None, trend_fn=None)` | `MarketSearchRequest` (`build_requests`의 두 번째 값) | `MarketReport` |
+| `src.services.market_service.run_market_research(request, idea_id=None, trend_fn=None, network_fn=None)` | `MarketSearchRequest` (`build_requests`의 두 번째 값) | `MarketReport` |
 | `src.generation.market_markdown.market_report_to_markdown(report, heading_level=2)` | `MarketReport` | 종합 보고서용 마크다운 섹션 (str) |
 
 - `idea_id`는 평가·시연용 샘플 아이디어(`data/samples/ideas.json`)의 수집 범위로 검색을 좁힐 때만 준다. 사용자가 새로 입력한 아이디어는 `None`.
 - `trend_fn`(`src.services.market_trend.build_search_trend`)을 주면 `search_trend`를 붙인다. 통합 실행(`src/pipeline.py`)과 CLI는 기본으로 넘기고, 평가·테스트는 넘기지 않는다. 주제어 선정 gpt-4o-mini 1회와 검색어 트렌드 API 1회가 추가된다.
+- `network_fn`(`src.services.market_network.build_keyword_network`)을 주면 같은 컬렉션·임베딩 함수로 `keyword_network`를 붙인다. 통합 실행과 CLI는 기본으로 넘긴다. 질의 임베딩 1회가 추가되고, 프로세스에서 처음 실행할 때 전체 뉴스 명사 분석(수 초)을 한 번 한다.
 - 소요 시간: 아이디어 1건당 약 13~20초 (관련성 판정 gpt-4o-mini 25회 + 분석 gpt-4o-mini 1~3회). 특허 조사와 입력·저장소가 독립적이라 병렬로 부를 수 있다(스레드 병렬 실행은 아직 검증하지 않음).
 - 로컬 색인 `data/market/chroma/`와 `OPENAI_API_KEY`가 필요하다.
 - 결과 예시: `data/samples/market_reports/SF-0{1..5}.json`
@@ -54,6 +55,7 @@
 | `unknowns` | 미확인 사항 (비어 있는 아이디어 항목, 미확인 차원) |
 | `opportunity_review` | 목표 세그먼트·가치 가설·직접 수요 상태·시장 근거와 인용·미확인 사항·다음 고객 검증 행동 |
 | `search_trend` | 검색 관심도 흐름 (없으면 `null`). `status`(`completed`·`insufficient_volume` 검색량 부족·`error`)·`keywords`(주제어)·`reference_keywords`(기준 주제어)·`points[]`(`period` YYYY-MM, `theme_ratio`·`reference_ratio` 요청 안 최댓값 100 기준 상대값, `relative_index` 주제어÷기준×100)·`recent_change_pct`(최근 6개월 지수 평균의 직전 6개월 대비 %)·`direction`(`rising`·`stable`·`cooling`·`unknown`)·`note`·`error_message`. 검색 관심도이며 시장 규모·수요 근거가 아니어서 차원별 판정에 쓰지 않는다. 실패해도 보고서 `status`는 바뀌지 않는다 |
+| `keyword_network` | 키워드 동시 출현 네트워크 (없으면 `null`). `status`(`completed`·`insufficient` 기사·연결 부족·`error`)·`document_count`(분석 기사 수)·`nodes[]`(`term`·`document_count`·`cluster` 묶음 번호·`x`·`y` 배치 좌표 -1~1)·`edges[]`(`source`·`target`·`weight` 함께 나온 기사 수)·`clusters`(묶음별 명사, 인덱스 = `cluster`)·`note`·`error_message`. 같은 기사에 함께 나왔다는 뜻이며 수요·인과 근거가 아니다. 실패해도 보고서 `status`는 바뀌지 않는다 |
 | `search_scope` · `data_as_of` | 검색 범위 설명, 분석 기준일(YYYYMMDD) |
 
 - 오류는 예외 대신 `status="error"` 보고서로 돌려준다(검색·판정·분석 생성 실패 모두).
