@@ -347,6 +347,7 @@ python -m evaluation.patent_labeling export              # SF-02/SF-05 특허 �
 - `market_answer_eval`은 실제 시장 조사 결과(`run_market_research`)를 LLM 단독·단순 RAG(검색 상위 5건 그대로)와 같은 문항으로 비교한다. 인용된 fact 문장마다 `prompts/market_claim_judge.md` 판정기가 인용 기사 제목·요약과 대조하고(Citation Accuracy), 사람 검토 표본으로 판정기 결과를 보정한다. 인용 기사의 관련성은 사람 정답 라벨로 센다. 결과와 해석은 [docs/market_research.md](docs/market_research.md#시장-답변-평가).
 - 라벨링 후보는 문항마다 벡터 검색 상위 8건과 그 아래 순위에서 차원 표현(가격·비용, 도입·사례 등)이 들어간 4건, 그리고 `extend`로 추가한 bm25·hybrid 상위 5건 중 새 문서다. 방식 비교 결과는 [docs/market_research.md](docs/market_research.md#시장-검색-방식-비교). 라벨 기준과 LLM 초안·사람 검토 절차는 [evaluation/market_labeling.md](evaluation/market_labeling.md).
 - 관련 문서가 없는 문항은 평균에서 빼고 따로 센다. 라벨 후보에 없던 문서가 상위 5건에 나오면 `unjudged`로 표시한다.
+- 시장 조사의 Baseline·실험·결정과 오류 개선 기록은 [docs/experiments.md](docs/experiments.md)에 모은다.
 - 관련성 판정 평가는 사람이 직접 라벨한 행(`label_source=human`)만 비교해 정확도·정밀도·재현율·kappa를 계산하고, 사람 라벨만 있는 문항의 충분성 상태 일치를 함께 출력한다.
 - 정답 `source_id`는 로컬에 수집한 뉴스 기준이므로, 다시 수집하면 문서가 달라질 수 있다.
 - `--mode`는 `dense`(기본, 기존 Chroma 검색), `bm25`, `hybrid`(RRF 결합) 중 선택한다. 검색 함수 기본 동작은 dense로 유지한다.
