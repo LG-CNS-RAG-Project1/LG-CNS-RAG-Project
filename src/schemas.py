@@ -761,6 +761,36 @@ class MarketKeywordNetwork(BaseModel):
     error_message: str | None = None
 
 
+class DartFinancialYear(BaseModel):
+    """사업연도 1개의 주요 재무 계정(원). 공시에 없는 계정은 None."""
+
+    year: int
+    revenue: int | None = None  # 매출액
+    operating_income: int | None = None  # 영업이익
+    net_income: int | None = None  # 당기순이익
+
+
+class DartCompanyFinancials(BaseModel):
+    """DART 사업보고서 주요 재무 계정으로 본 기업 1곳의 최근 3개 사업연도 실적."""
+
+    company: str
+    stock_code: str
+    statement: Literal["연결", "별도"]  # 연결재무제표가 없으면 별도재무제표
+    rcept_no: str  # 재무 계정을 가져온 사업보고서 접수번호
+    years: list[DartFinancialYear] = Field(default_factory=list)  # 오래된 연도부터
+
+
+class MarketCompanyFinancials(BaseModel):
+    """아이디어와 같은 사업 범주로 검색한 DART 기업의 재무 현황 (시장 규모·구매 수요 근거가 아님)."""
+
+    status: Literal["completed", "no_companies", "error"]
+    companies: list[DartCompanyFinancials] = Field(default_factory=list)
+    # 재무 계정을 찾지 못한 기업과 사유
+    missing: list[str] = Field(default_factory=list)
+    note: str = ""
+    error_message: str | None = None
+
+
 # 14. 최종 시장 근거 결과
 class MarketReport(BaseModel):
     status: Literal["completed", "no_results", "error"]
@@ -771,6 +801,7 @@ class MarketReport(BaseModel):
     commercial_analysis: MarketCommercialAnalysis | None = None
     search_trend: MarketSearchTrend | None = None
     keyword_network: MarketKeywordNetwork | None = None
+    company_financials: MarketCompanyFinancials | None = None
     unknowns: list[str] = Field(default_factory=list)
 
     search_scope: str

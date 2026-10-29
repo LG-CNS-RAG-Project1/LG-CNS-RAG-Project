@@ -6,6 +6,7 @@
   기재정정 보고서가 있으면 가장 늦게 접수된 보고서를 쓴다.
 - 저장: data/market/raw/dart/{rcept_no}.xml (본문) + {rcept_no}.json (기업·보고서 메타데이터)
 - '사업의 내용' 추출·청크·MarketDocument 변환은 dart_processor에서 수행한다.
+- 사업보고서 주요 재무 계정(fetch_major_accounts)은 data/market/raw/dart/financials/에 캐시한다.
 
 OpenDART는 인증키를 URL 파라미터로 받으므로, 오류 메시지에 요청 URL을 넣지 않는다.
 
@@ -34,6 +35,9 @@ ROOT_DIR = Path(__file__).resolve().parents[2]
 CONFIG_PATH = ROOT_DIR / "configs" / "dart_companies.yaml"
 RAW_DIR = ROOT_DIR / "data" / "market" / "raw" / "dart"
 CORP_CODES_PATH = RAW_DIR / "corp_codes.json"
+FINANCIALS_DIR = RAW_DIR / "financials"
+ANNUAL_REPORT_CODE = "11011"  # 사업보고서
+NO_DATA_STATUS = "013"  # 조회된 데이터 없음
 
 # '사업보고서 (2025.12)' → 사업연도 말 '2025.12'
 _PERIOD_RE = re.compile(r"\((\d{4})\.(\d{2})\)")
@@ -171,6 +175,41 @@ def download_document(rcept_no: str) -> str:
         else max(names, key=lambda n: archive.getinfo(n).file_size)
     )
     return archive.read(main).decode("utf-8", errors="replace")
+
+
+def fetch_major_accounts(
+    corp_code: str, year: int, cache_dir: Path | None = FINANCIALS_DIR
+) -> list[dict]:
+    """사업연도 사업보고서의 주요 재무 계정(fnlttSinglAcnt) 목록을 반환한다. 공시가 없으면 빈 목록.
+
+    받은 목록은 {corp_code}_{year}.json으로 캐시해 다시 호출하지 않는다. 빈 목록은 캐시하지 않는다.
+    OpenDART 오류 응답은 상태 코드·메시지로 RuntimeError를 낸다.
+    """
+    cache_path = cache_dir / f"{corp_code}_{year}.json" if cache_dir else None
+    if cache_path is not None and cache_path.exists():
+        return json.loads(cache_path.read_text(encoding="utf-8"))
+    body = _get(
+        "fnlttSinglAcnt.json",
+        {
+            "corp_code": corp_code,
+            "bsns_year": str(year),
+            "reprt_code": ANNUAL_REPORT_CODE,
+        },
+        30,
+    ).json()
+    if body.get("status") == NO_DATA_STATUS:
+        return []
+    if body.get("status") != "000":
+        raise RuntimeError(
+            f"OpenDART fnlttSinglAcnt error {body.get('status')}: {body.get('message')}"
+        )
+    accounts = body.get("list", [])
+    if cache_path is not None:
+        cache_path.parent.mkdir(parents=True, exist_ok=True)
+        cache_path.write_text(
+            json.dumps(accounts, ensure_ascii=False, indent=1), encoding="utf-8"
+        )
+    return accounts
 
 
 def collect_company(

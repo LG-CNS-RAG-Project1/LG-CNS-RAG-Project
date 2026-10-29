@@ -26,6 +26,7 @@ from src.retrieval.market_relevance import (
 )
 from src.retrieval.market_search import EmbedFn, embed_texts, get_collection
 from src.schemas import (
+    MarketCompanyFinancials,
     MarketKeywordNetwork,
     MarketReport,
     MarketSearchRequest,
@@ -36,6 +37,8 @@ from src.schemas import (
 TrendFn = Callable[[StructuredIdea, int], MarketSearchTrend]
 # (요청, 컬렉션, 임베딩 함수) → 키워드 동시 출현 네트워크
 NetworkFn = Callable[[MarketSearchRequest, object, EmbedFn], MarketKeywordNetwork]
+# (검색한 DART 기업명, 기준일) → 기업 재무 현황
+FinancialsFn = Callable[[list[str], int], MarketCompanyFinancials]
 
 
 def search_scope(collection, idea_id: str | None) -> str:
@@ -91,12 +94,14 @@ def run_market_research(
     data_as_of: int | None = None,
     trend_fn: TrendFn | None = None,
     network_fn: NetworkFn | None = None,
+    financials_fn: FinancialsFn | None = None,
 ) -> MarketReport:
     """차원별 검색·관련성 판정·분석을 실행해 MarketReport를 반환한다.
 
     검색·판정 단계에서 예외가 나면 status=error 보고서를 반환한다. data_as_of가 없으면 오늘 날짜를 쓴다.
     trend_fn(아이디어, data_as_of)을 주면 검색 관심도 흐름(search_trend)을, network_fn(요청, 컬렉션,
-    임베딩 함수)을 주면 키워드 동시 출현 네트워크(keyword_network)를 붙인다. 두 단계의 실패는 각
+    임베딩 함수)을 주면 키워드 동시 출현 네트워크(keyword_network)를, financials_fn(검색한 DART
+    기업명, data_as_of)을 주면 기업 재무 현황(company_financials)을 붙인다. 세 단계의 실패는 각
     필드의 status=error로만 남기고 보고서의 나머지에는 영향을 주지 않는다.
     """
     data_as_of = data_as_of or int(date.today().strftime("%Y%m%d"))
@@ -138,6 +143,13 @@ def run_market_research(
             report.keyword_network = MarketKeywordNetwork(
                 status="error", error_message=str(exc)
             )
+    if financials_fn is not None:
+        try:
+            report.company_financials = financials_fn(companies, data_as_of)
+        except Exception as exc:  # 재무 조회 실패도 보고서 본문을 막지 않는다
+            report.company_financials = MarketCompanyFinancials(
+                status="error", error_message=str(exc)
+            )
     return report
 
 
@@ -162,6 +174,11 @@ def main() -> None:
         action="store_true",
         help="키워드 동시 출현 네트워크(keyword_network) 생략",
     )
+    parser.add_argument(
+        "--no-financials",
+        action="store_true",
+        help="검색한 DART 기업 재무 현황(company_financials) 생략",
+    )
     args = parser.parse_args()
 
     entries = json.loads(IDEAS_PATH.read_text(encoding="utf-8"))
@@ -169,6 +186,7 @@ def main() -> None:
     request = MarketSearchRequest(idea=StructuredIdea(**entry["idea"]))
 
     started = time.perf_counter()
+    from src.services.market_financials import build_company_financials
     from src.services.market_network import build_keyword_network
     from src.services.market_trend import build_search_trend
 
@@ -177,6 +195,7 @@ def main() -> None:
         idea_id=args.idea_id if args.idea_filter else None,
         trend_fn=None if args.no_trend else build_search_trend,
         network_fn=None if args.no_network else build_keyword_network,
+        financials_fn=None if args.no_financials else build_company_financials,
     )
     elapsed = time.perf_counter() - started
 
@@ -202,6 +221,12 @@ def main() -> None:
         print(
             f"  keyword_network   {network.status} 기사 {network.document_count} "
             f"명사 {len(network.nodes)} 묶음 {len(network.clusters)}"
+        )
+    if report.company_financials:
+        financials = report.company_financials
+        print(
+            f"  company_financials {financials.status} "
+            f"{[c.company for c in financials.companies]} 누락 {financials.missing}"
         )
     if report.error_message:
         print(f"  error: {report.error_message}")

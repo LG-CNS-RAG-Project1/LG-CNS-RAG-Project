@@ -455,6 +455,7 @@ def _market_defaults(event: threading.Event) -> dict:
     from src.generation.market_analysis import call_analysis_llm
     from src.retrieval.market_relevance import call_relevance_llm
     from src.retrieval.market_search import embed_texts
+    from src.services.market_financials import build_company_financials
     from src.services.market_network import build_keyword_network
     from src.services.market_trend import build_search_trend
 
@@ -464,6 +465,7 @@ def _market_defaults(event: threading.Event) -> dict:
         "llm_fn": _guard(call_analysis_llm, event),
         "trend_fn": _guard(build_search_trend, event),
         "network_fn": _guard(build_keyword_network, event),
+        "financials_fn": _guard(build_company_financials, event),
     }
 
 
