@@ -73,6 +73,7 @@ KEY_NAMES = [
     "NAVER_TREND_CLIENT_ID",
     "NAVER_TREND_CLIENT_SECRET",
     "DART_API_KEY",
+    "DATA_GO_KR_SERVICE_KEY",
     "CHROMA_API_KEY",
 ]
 _SECRET_PATTERNS = [
@@ -456,6 +457,7 @@ def _market_defaults(event: threading.Event) -> dict:
     from src.retrieval.market_relevance import call_relevance_llm
     from src.retrieval.market_search import embed_texts
     from src.services.market_network import build_keyword_network
+    from src.services.market_procurement import build_procurement
     from src.services.market_trend import build_search_trend
 
     return {
@@ -464,6 +466,7 @@ def _market_defaults(event: threading.Event) -> dict:
         "llm_fn": _guard(call_analysis_llm, event),
         "trend_fn": _guard(build_search_trend, event),
         "network_fn": _guard(build_keyword_network, event),
+        "procurement_fn": _guard(build_procurement, event),
     }
 
 

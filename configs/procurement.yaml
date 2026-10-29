@@ -1,0 +1,30 @@
+# 나라장터 입찰공고 조회 설정 (src/ingestion/procurement_client.py, src/services/market_procurement.py)
+# 공공 조달 공고는 공공기관·대학·연구기관의 구매가 대부분이어서 민간 고객 수요의 근거가 아니다.
+# 시장 화면에는 공공 구매 사례와 예산 수준으로만 표시하고 차원별 판정에는 쓰지 않는다.
+api:
+  url: https://apis.data.go.kr/1230000/ad/BidPublicInfoService
+  # 공고 종류별 공고명 검색 오퍼레이션
+  operations:
+    물품: getBidPblancListInfoThngPPSSrch
+    용역: getBidPblancListInfoServcPPSSrch
+  num_of_rows: 100  # 한 페이지 공고 수
+  max_pages: 5  # 한 달·한 종류·한 주제어에서 더 넘기지 않는다
+  timeout_sec: 30
+  request_interval_sec: 0.1
+
+# API는 한 요청의 조회 기간을 약 1개월로 제한해, 기준일 직전 달까지 months개월을 달마다 조회한다.
+# 끝난 달은 공고가 바뀌지 않아 계속 캐시하고, 기준일이 속한 달은 조회하지 않는다.
+months: 6
+max_judge_notices: 80  # 관련성 판정에 넘기는 공고 수 (공고일 최신순)
+judge_batch_size: 20  # 한 번의 판정 호출에 넣는 공고 수
+max_listed: 10  # 화면 목록에 보여 줄 공고 수
+
+# 수요기관 이름으로 구매 주체 유형을 나눈다 (위에서부터 먼저 맞는 것)
+buyer_types:
+  - name: 민간 기업
+    terms: [주식회사, (주), ㈜, 유한회사]
+  - name: 대학·학교
+    terms: [대학교, 대학, 과학기술원, 산학협력단, 고등학교, 교육청, 학교]
+  - name: 연구기관
+    terms: [연구원, 연구소, 연구재단, 테크노파크, 진흥원]
+default_buyer_type: 공공기관
