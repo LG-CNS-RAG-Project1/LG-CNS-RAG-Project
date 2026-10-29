@@ -104,7 +104,7 @@ class Anchor(BaseModel):
 
     anchor_id: str
     source_id: str
-    kind: Literal["mention", "claim", "relation", "metric"]
+    kind: Literal["mention", "claim", "relation", "metric", "adverse"]
     span: Span
     candidate_role: str = "unknown"
     entity_text: str = ""
@@ -148,7 +148,7 @@ class Evidence(BaseModel):
     evidence_id: str
     anchor_id: str
     source_id: str
-    kind: Literal["supplier", "claim", "relation", "metric"]
+    kind: Literal["supplier", "claim", "relation", "metric", "adverse"]
     span: Span
     evidence_layer: EvidenceLayer
     statement_kind: StatementKind
