@@ -6,6 +6,7 @@ from src.generation import market_analysis
 from src.generation.market_analysis import (
     DEFAULT_CHECKS,
     allowed_verdicts,
+    attribute_dart,
     build_evidence,
     build_report,
     claim_errors,
@@ -214,6 +215,28 @@ def test_claim_errors():
         "claim_type": "user_claim",
     }
     assert claim_errors(hedged, {2}, by_id, "제조사 구매자") == []
+    dart = by_id[2].model_copy(
+        update={
+            "source_type": "dart",
+            "publisher": "가상로봇 (DART 사업보고서)",
+            "period": "FY2025",
+            "quote": "2차전지 업체들이 외관 검사 장비를 도입하고 있습니다.",
+        }
+    )
+    unnamed = fact("2차전지 업체들이 외관 검사 장비를 도입하고 있다", 2)
+    named = fact(
+        "가상로봇은 2차전지 업체들이 외관 검사 장비를 도입하고 있다고 밝혔다", 2
+    )
+    assert "공시 기업(가상로봇)" in claim_errors(unnamed, {2}, {2: dart}, "")[0]
+    assert claim_errors(named, {2}, {2: dart}, "") == []
+    attributed = attribute_dart(unnamed, {2: dart})
+    assert attributed["statement"] == (
+        "가상로봇 사업보고서(FY2025)에 따르면 "
+        "2차전지 업체들이 외관 검사 장비를 도입하고 있다"
+    )
+    assert claim_errors(attributed, {2}, {2: dart}, "") == []
+    assert attribute_dart(named, {2: dart}) == named
+    assert attribute_dart(fact("뉴스 문장", 1), by_id) == fact("뉴스 문장", 1)
 
 
 def test_generate_retries_with_errors_then_passes():

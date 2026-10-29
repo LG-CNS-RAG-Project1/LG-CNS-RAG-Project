@@ -307,6 +307,36 @@ def content_overlap(statement: str, sources: str) -> float:
     return len(statement_tokens & source_tokens) / len(statement_tokens)
 
 
+def disclosing_company(evidence: MarketEvidence) -> str | None:
+    """DART 근거면 공시 기업명(publisher의 '(DART 사업보고서)' 앞부분), 그 밖은 None."""
+    if evidence.source_type != "dart":
+        return None
+    return evidence.publisher.split(" (DART")[0].strip() or None
+
+
+def attribute_dart(claim: dict, by_id: dict[int, MarketEvidence]) -> dict:
+    """DART를 인용했는데 공시 기업명이 없는 문장 앞에 '기업 사업보고서(FY연도)에 따르면'을 붙인다.
+
+    기업 주장이 시장 전체의 사실처럼 읽히지 않게 한다. 인용 ID가 근거에 없으면 그대로 둔다.
+    """
+    statement = str(claim.get("statement", "")).strip()
+    cited = [
+        by_id[i]
+        for i in claim.get("citation_ids") or []
+        if isinstance(i, int) and i in by_id
+    ]
+    reports = dict.fromkeys(
+        (disclosing_company(e), e.period) for e in cited if disclosing_company(e)
+    )
+    missing = [(c, p) for c, p in reports if c not in statement]
+    if not statement or not missing:
+        return claim
+    prefix = "·".join(
+        f"{c} 사업보고서({p})" if p else f"{c} 사업보고서" for c, p in missing
+    )
+    return {**claim, "statement": f"{prefix}에 따르면 {statement}"}
+
+
 def claim_errors(
     claim: dict, allowed_ids: set[int], by_id: dict[int, MarketEvidence], idea_text: str
 ) -> list[str]:
@@ -315,6 +345,7 @@ def claim_errors(
     - 문장 유형이 fact·user_claim·ai_hypothesis 중 하나인지
     - fact는 인용이 1개 이상이고 모두 이 차원의 근거 ID인지
     - user_claim·ai_hypothesis가 "확인되었다"처럼 확인된 사실로 쓰이지 않았는지
+    - DART 사업보고서를 인용하면 문장에 공시 기업명이 있는지 (기업 주장을 시장 사실로 쓰지 않게)
     - 문장의 숫자가 인용 기사(제목·요약·발행연도)나 아이디어 입력에 있는지
     - fact 문장에 단위가 붙은 수치(METRIC_PATTERN)가 있으면 4자리 기준 연도도 있는지
     """
@@ -334,12 +365,22 @@ def claim_errors(
     unknown = [i for i in citation_ids if i not in allowed_ids]
     if unknown:
         return [f"이 차원의 근거에 없는 인용 {unknown}: {statement}"]
+    unnamed = [
+        company
+        for company in dict.fromkeys(disclosing_company(by_id[i]) for i in citation_ids)
+        if company and company not in statement
+    ]
+    if unnamed:
+        return [
+            f"DART 공시 내용은 공시 기업({', '.join(unnamed)})을 주어로 써야 함: {statement}"
+        ]
 
     sources = (
         idea_text
         + " "
         + " ".join(
             f"{by_id[i].title} {by_id[i].quote} {publication_date_text(by_id[i])}"
+            f" {by_id[i].period or ''}"
             for i in citation_ids
         )
     )
@@ -369,7 +410,10 @@ def validate_dimension(
     verdict = raw.get("verdict")
     if verdict not in allowed:
         errors.append(f"허용되지 않은 판정 {verdict} (허용: {allowed})")
-    claims = raw.get("claims") or []
+    claims = [
+        attribute_dart(c, by_id) if isinstance(c, dict) else c
+        for c in raw.get("claims") or []
+    ]
     if len(claims) > MAX_CLAIMS:
         errors.append(f"문장 {len(claims)}개 (최대 {MAX_CLAIMS}개)")
     for claim in claims:
@@ -406,13 +450,16 @@ def finalize_dimension(
     default_check(없으면 DEFAULT_CHECKS)를 쓴다.
     """
     raw = raw or {}
+    attributed = [
+        attribute_dart(c, by_id) for c in raw.get("claims") or [] if isinstance(c, dict)
+    ]
     claims = [
         {
             "statement": " ".join(str(c["statement"]).split()),
             "claim_type": c["claim_type"],
             "citation_ids": list(dict.fromkeys(c.get("citation_ids") or [])),
         }
-        for c in (raw.get("claims") or [])
+        for c in attributed
         if not claim_errors(c, allowed_ids, by_id, idea_text)
     ]
     hypotheses = [c for c in claims if c["claim_type"] == "ai_hypothesis"]
