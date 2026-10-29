@@ -15,6 +15,8 @@ from src.schemas import (
     MarketSearchTrend,
     MarketTrendPoint,
     PatentReport,
+    PatentStatisticItem,
+    PatentTrendStatistics,
 )
 from src.generation.executive_review import (
     ExecutiveReview,
@@ -126,6 +128,48 @@ def test_dashboard_uses_market_and_patent_specific_next_checks():
         "고객 견적과 예산 주체를 확인합니다.",
         "독립 청구항을 전문가와 확인합니다.",
     ]
+
+
+def test_patent_trend_statistics_are_transferred_to_integrated_report():
+    r = result()
+    r.patent.related_statistics = PatentTrendStatistics(
+        scope="아이디어 관련 검색 후보",
+        total_patents=4,
+        application_date_coverage=3,
+        ipc_coverage=2,
+        cpc_coverage=1,
+        ipc_distribution=[PatentStatisticItem(label="G01N", count=2)],
+        yearly_applications=[
+            PatentStatisticItem(label="2022", count=1),
+            PatentStatisticItem(label="2024", count=2),
+        ],
+    )
+    r.patent.indexed_statistics = PatentTrendStatistics(
+        scope="현재 특허 색인",
+        total_patents=10,
+        application_date_coverage=8,
+        ipc_coverage=7,
+        ipc_distribution=[PatentStatisticItem(label="G01N", count=4)],
+    )
+
+    data = dashboard_data(r)
+    related = data["patent_statistics"]["related_candidates"]
+    assert related["total_patents"] == 4
+    assert related["yearly_applications"][1]["label"] == "2024"
+    assert related["ipc_coverage"] == 2
+    assert data["patent_statistics"]["indexed"]["scope"] == "현재 특허 색인"
+
+    app = AppTest.from_string("""
+from frontend.report_overview import render_dashboard
+import streamlit as st
+render_dashboard(st.session_state.data)
+""")
+    app.session_state.data = data
+    app.run()
+    assert not app.exception
+    assert any("특허 동향 · 검색 데이터 분포" in item.value for item in app.subheader)
+    assert any("아이디어 관련 검색 후보" in item.value for item in app.markdown)
+    assert any("전체 특허 분야의 출원 추세" in item.value for item in app.caption)
 
 
 def test_final_dashboard_renders_concise_result_without_market_detail_chart():

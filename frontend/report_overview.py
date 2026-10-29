@@ -2,7 +2,7 @@
 
 import streamlit as st
 from pydantic import BaseModel, Field
-from src.schemas import MarketKeywordNetwork, MarketSearchTrend
+from src.schemas import MarketKeywordNetwork, MarketSearchTrend, PatentTrendStatistics
 
 EVIDENCE_STATUS_LABELS = {
     "sufficient": "관련 자료 충분",
@@ -84,6 +84,11 @@ class MarketContext(BaseModel):
     market_dimensions: list[Finding] = Field(default_factory=list, max_length=5)
 
 
+class PatentStatisticsContext(BaseModel):
+    indexed: PatentTrendStatistics | None = None
+    related_candidates: PatentTrendStatistics | None = None
+
+
 class Dashboard(BaseModel):
     conclusion: str = ""
     summary: str = ""
@@ -95,6 +100,7 @@ class Dashboard(BaseModel):
     actions: list[Finding] = Field(default_factory=list, max_length=20)
     unknowns: list[str] = Field(default_factory=list, max_length=100)
     market_context: MarketContext | None = None
+    patent_statistics: PatentStatisticsContext | None = None
 
 
 def dashboard_data(result):
@@ -194,6 +200,12 @@ def dashboard_data(result):
             )
         )
     market = result.market
+    indexed_statistics = result.patent.indexed_statistics
+    related_statistics = result.patent.related_statistics
+    data.patent_statistics = PatentStatisticsContext(
+        indexed=indexed_statistics,
+        related_candidates=related_statistics,
+    )
     dart_evidence = []
     seen_companies = set()
     for evidence in market.evidence:
@@ -230,6 +242,99 @@ def dashboard_data(result):
         )
     data.unknowns = list(dict.fromkeys(data.unknowns))[:3]
     return data.model_dump()
+
+
+def _render_patent_statistics(context: PatentStatisticsContext) -> None:
+    """종합보고서에 특허 색인·검색 후보 분포와 실제 집계 범위를 표시한다."""
+    st.subheader("특허 동향 · 검색 데이터 분포")
+    if context.related_candidates is None and context.indexed is None:
+        st.info("이번 분석 결과에 전달된 특허 기술 통계가 없습니다.")
+        return
+    if context.related_candidates:
+        stats = context.related_candidates
+        st.markdown("**아이디어 관련 검색 후보**")
+        st.caption(
+            f"범위: {stats.scope} · 중복 제거 문헌 {stats.total_patents}건 · "
+            f"출원일 {stats.application_date_coverage}/{stats.total_patents}건 · "
+            f"IPC {stats.ipc_coverage}/{stats.total_patents}건 · "
+            f"CPC {stats.cpc_coverage}/{stats.total_patents}건"
+        )
+        if stats.total_patents == 0:
+            st.info("관련 검색 후보가 없어 기술 분포를 표시하지 않습니다.")
+        else:
+            charts = st.columns(2)
+            if stats.yearly_applications:
+                with charts[0]:
+                    st.markdown("**출원연도별 후보 문헌**")
+                    st.bar_chart(
+                        [
+                            {"출원연도": item.label, "문헌 수": item.count}
+                            for item in stats.yearly_applications
+                        ],
+                        x="출원연도",
+                        y="문헌 수",
+                    )
+            else:
+                with charts[0]:
+                    st.info("검색 후보의 출원연도 메타데이터가 없습니다.")
+            if stats.ipc_distribution:
+                with charts[1]:
+                    st.markdown("**IPC 상위 분류**")
+                    st.bar_chart(
+                        [
+                            {"IPC 분류": item.label, "문헌 수": item.count}
+                            for item in stats.ipc_distribution
+                        ],
+                        x="IPC 분류",
+                        y="문헌 수",
+                        horizontal=True,
+                    )
+            else:
+                with charts[1]:
+                    st.info("검색 후보의 IPC 분류 메타데이터가 없습니다.")
+        st.caption(
+            "검색 후보의 구성 분포이며 전체 특허 분야의 출원 추세, 시장 성장률, 특허성 또는 권리 가능성을 뜻하지 않습니다."
+        )
+
+    if context.indexed:
+        stats = context.indexed
+        with st.expander("현재 특허 색인 전체 분포", expanded=False):
+            st.caption(
+                f"범위: {stats.scope} · 고유 문헌 {stats.total_patents}건 · "
+                f"출원일 {stats.application_date_coverage}/{stats.total_patents}건 · "
+                f"IPC {stats.ipc_coverage}/{stats.total_patents}건 · "
+                f"CPC {stats.cpc_coverage}/{stats.total_patents}건 · "
+                f"집계일 {stats.data_as_of or '미제공'}"
+            )
+            if stats.total_patents == 0:
+                st.info("현재 색인에 통계 대상 문헌이 없습니다.")
+            else:
+                if stats.yearly_applications:
+                    st.markdown("**출원연도별 문헌 수**")
+                    st.bar_chart(
+                        [
+                            {"출원연도": item.label, "문헌 수": item.count}
+                            for item in stats.yearly_applications
+                        ],
+                        x="출원연도",
+                        y="문헌 수",
+                    )
+                if stats.ipc_distribution:
+                    st.markdown("**IPC 상위 분류**")
+                    st.bar_chart(
+                        [
+                            {"IPC 분류": item.label, "문헌 수": item.count}
+                            for item in stats.ipc_distribution
+                        ],
+                        x="IPC 분류",
+                        y="문헌 수",
+                        horizontal=True,
+                    )
+                elif stats.ipc_coverage < stats.total_patents:
+                    st.info("색인 문헌 일부 또는 전체의 IPC 분류값이 누락되었습니다.")
+            st.caption(
+                "색인 범위의 메타데이터 집계입니다. 전체 특허 시장 통계가 아닙니다."
+            )
 
 
 def _render_market_context(context: MarketContext) -> None:
@@ -443,6 +548,8 @@ def render_dashboard(raw):
         st.subheader("다음 확인")
         for action in data.actions[:2]:
             st.write(f"- {action.judgment}")
+    if data.patent_statistics:
+        _render_patent_statistics(data.patent_statistics)
     if data.unknowns:
         with st.expander("판단 한계"):
             for value in data.unknowns:

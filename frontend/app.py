@@ -291,6 +291,142 @@ def patent_detail_dialog(patent, patent_id):
         st.caption("출원번호 미확인 · KIPRIS 검색 링크를 만들 수 없습니다.")
 
 
+@st.dialog("2. 주의점 및 개선 제안 상세", width="large")
+def patent_watchouts_dialog(patent):
+    """주의점·공통 설계 권고와 이를 뒷받침하는 특허 근거를 표시한다."""
+    precheck = patent.patentability_precheck
+    if precheck is None:
+        st.info("특허 비교 신호가 없어 상세 내용을 제공할 수 없습니다.")
+        return
+
+    evidence_by_id = {item.citation_id: item for item in patent.evidence}
+    st.caption("검색 문헌 기반의 예비 기술 검토이며 법률 의견이 아닙니다.")
+    if precheck.common_watchouts:
+        st.markdown("### 문헌 비교에서 확인된 주의점")
+        for item in precheck.common_watchouts:
+            st.warning(
+                f"**{item.issue}**\n\n{item.why_it_matters}\n\n다음 확인: {item.next_check}"
+            )
+            for citation_id in item.citation_ids:
+                evidence = evidence_by_id.get(citation_id)
+                if evidence:
+                    claim = (
+                        f" · 청구항 {evidence.claim_number}"
+                        if evidence.claim_number
+                        else ""
+                    )
+                    st.caption(f"P:{citation_id}{claim} · {evidence.title}")
+                    st.text(evidence.quote)
+    else:
+        st.info("문헌 전체에서 근거가 연결된 공통 주의점은 확인되지 않았습니다.")
+
+    if precheck.common_design_recommendations:
+        st.markdown("### 공통 개선 제안")
+        for item in precheck.common_design_recommendations:
+            refs = ", ".join(f"P:{cid}" for cid in item.citation_ids)
+            basis = "근거 기반" if item.basis == "evidence_based" else "검증 전 가설"
+            st.markdown(
+                f"**{item.recommendation}** · {basis}{f' ({refs})' if refs else ''}"
+            )
+            st.write(item.rationale)
+            if item.validation_needed:
+                st.caption(f"검증 방법: {item.validation_needed}")
+            for citation_id in item.citation_ids:
+                evidence = evidence_by_id.get(citation_id)
+                if evidence:
+                    claim = (
+                        f" · 청구항 {evidence.claim_number}"
+                        if evidence.claim_number
+                        else ""
+                    )
+                    st.caption(f"근거 P:{citation_id}{claim} · {evidence.title}")
+
+    if precheck.expert_questions:
+        st.markdown("### 전문가 확인 질문")
+        for question in precheck.expert_questions:
+            st.write(f"- {question}")
+    if precheck.limitations:
+        st.caption("공통 검토 한계: " + " · ".join(precheck.limitations))
+
+
+@st.dialog("3. 설계 대안 상세", width="large")
+def patent_design_dialog(patent):
+    """설계 대안의 구현 내용·근거·검증 계획을 한국어로 표시한다."""
+    analysis = patent.design_analysis
+    if analysis is None:
+        st.info("설계 대안 분석 결과가 없습니다.")
+        return
+
+    status_labels = {
+        "success": "근거를 바탕으로 대안을 구성했습니다.",
+        "partial": "일부 정보가 부족해 제한적으로 제안합니다.",
+        "insufficient_evidence": "설계 대안을 뒷받침할 근거가 부족합니다.",
+        "failed": "대안 생성이 완료되지 않았습니다.",
+    }
+    feasibility_labels = {
+        "low": "낮음",
+        "medium": "보통",
+        "high": "높음",
+        "unknown": "미확인",
+    }
+    evidence_labels = {"grounded": "근거 연결", "insufficient_evidence": "근거 부족"}
+    evidence_by_id = {item.citation_id: item for item in patent.evidence}
+    st.caption(status_labels[analysis.status])
+    if analysis.evidence_level == "abstract_only":
+        st.warning("청구항 원문이 없어 초록 수준의 근거로만 분석했습니다.")
+    for component in analysis.technical_components:
+        st.caption(f"{component.id} · {component.name} — {component.description}")
+
+    if not analysis.proposals:
+        st.info("표시할 설계 대안이 없습니다.")
+    for index, proposal in enumerate(analysis.proposals, 1):
+        with st.container(border=True):
+            st.markdown(f"### 대안 {index} · {proposal.title}")
+            st.markdown(f"**현재 문제**\n\n{proposal.problem}")
+            st.markdown(f"**변경 대상**\n\n{', '.join(proposal.target_component_ids)}")
+            st.markdown(f"**설계 변경**\n\n{proposal.proposed_change}")
+            st.markdown("**구현 방법**")
+            for step in proposal.implementation_approach:
+                st.markdown(f"- {step}")
+            st.markdown(f"**기술적 차이**\n\n{proposal.technical_difference}")
+            if proposal.expected_benefits:
+                st.markdown(
+                    "**기대 효과**\n\n" + " · ".join(proposal.expected_benefits)
+                )
+            if proposal.limitations:
+                st.markdown("**구현상 제약**\n\n" + " · ".join(proposal.limitations))
+            st.caption(
+                f"기술 구현 가능성: {feasibility_labels[proposal.feasibility]} · "
+                f"근거 상태: {evidence_labels[proposal.evidence_status]}"
+            )
+            for citation_id in proposal.citation_ids:
+                source = evidence_by_id.get(citation_id)
+                if source:
+                    claim = (
+                        f" · 청구항 {source.claim_number}"
+                        if source.claim_number
+                        else ""
+                    )
+                    st.caption(f"근거 P:{citation_id} · {source.title}{claim}")
+                    st.text(source.quote)
+            st.markdown(f"**검증 방법**\n\n{proposal.verification_plan.method}")
+            if proposal.verification_plan.metrics:
+                st.caption(
+                    "측정 항목: " + " · ".join(proposal.verification_plan.metrics)
+                )
+            st.caption("성공 기준: " + proposal.verification_plan.success_criteria)
+            st.caption(
+                "추가 특허 확인 필요"
+                if proposal.patent_verification_required
+                else "추가 특허 확인 표시 없음"
+            )
+    for item in analysis.missing_information:
+        st.warning("추가 확인: " + item)
+    for item in analysis.limitations:
+        st.caption("한계: " + item)
+    st.caption("기술 검토용이며 침해·특허성·실시 자유에 대한 법률 의견이 아닙니다.")
+
+
 password_gate()
 
 
@@ -838,97 +974,6 @@ def render_patent_report(patent, *, widget_suffix="", preview=False):
         patent_review_priority,
     )
 
-    indexed_stats = getattr(patent, "indexed_statistics", None)
-    related_stats = getattr(patent, "related_statistics", None)
-    if indexed_stats or related_stats:
-        with st.expander("특허 기술 동향 · 분류 통계", expanded=False):
-            if indexed_stats:
-                years = [item.label for item in indexed_stats.yearly_applications]
-                year_range = f"{min(years)}–{max(years)}" if years else "미확인"
-                st.caption(
-                    f"범위: {indexed_stats.scope} · 고유 문헌 {indexed_stats.total_patents}건 · "
-                    f"출원연도 {year_range} · "
-                    f"출원일 확인 {indexed_stats.application_date_coverage}/{indexed_stats.total_patents} · "
-                    f"IPC 보유 {indexed_stats.ipc_coverage}/{indexed_stats.total_patents} · "
-                    f"CPC 보유 {indexed_stats.cpc_coverage}/{indexed_stats.total_patents} · "
-                    f"출원인 확인 {indexed_stats.applicant_coverage}/{indexed_stats.total_patents} · "
-                    f"집계일 {indexed_stats.data_as_of or '미확인'}"
-                )
-                if not indexed_stats.total_patents:
-                    st.info(
-                        "현재 특허 색인이 비어 있어 기술 동향 통계를 표시할 수 없습니다."
-                    )
-                if indexed_stats.ipc_distribution:
-                    st.markdown("**색인 IPC 상위 분류**")
-                    st.bar_chart(
-                        [
-                            {"분류": item.label, "특허 수": item.count}
-                            for item in indexed_stats.ipc_distribution
-                        ],
-                        x="분류",
-                        y="특허 수",
-                        horizontal=True,
-                    )
-                elif indexed_stats.total_patents:
-                    st.info(
-                        "현재 색인 메타데이터에 IPC 코드가 없습니다. 특허를 다시 수집하고 색인하면 통계에 반영됩니다."
-                    )
-                if indexed_stats.cpc_distribution:
-                    st.markdown("**색인 CPC 상위 분류**")
-                    st.bar_chart(
-                        [
-                            {"분류": item.label, "특허 수": item.count}
-                            for item in indexed_stats.cpc_distribution
-                        ],
-                        x="분류",
-                        y="특허 수",
-                        horizontal=True,
-                    )
-                if indexed_stats.yearly_applications:
-                    st.markdown("**출원연도별 건수**")
-                    st.bar_chart(
-                        [
-                            {"연도": item.label, "특허 수": item.count}
-                            for item in indexed_stats.yearly_applications
-                        ],
-                        x="연도",
-                        y="특허 수",
-                    )
-                if indexed_stats.top_applicants:
-                    st.markdown("**주요 출원인**")
-                    st.dataframe(
-                        [
-                            {"출원인": item.label, "특허 수": item.count}
-                            for item in indexed_stats.top_applicants
-                        ],
-                        hide_index=True,
-                        use_container_width=True,
-                    )
-                st.caption(
-                    "현재 색인 데이터의 메타데이터 통계입니다. 전체 특허 시장 규모, 기술 신규성, 시장 성장률 또는 권리 가능성을 뜻하지 않습니다."
-                )
-            if related_stats:
-                st.markdown("**아이디어 관련 후보 분류**")
-                st.caption(
-                    f"범위: {related_stats.scope} · 중복 제거 후보 {related_stats.total_patents}건 (최종 비교 문헌 수와 다를 수 있음)"
-                )
-                if related_stats.ipc_distribution:
-                    st.dataframe(
-                        [
-                            {"IPC 분류": item.label, "후보 수": item.count}
-                            for item in related_stats.ipc_distribution
-                        ],
-                        hide_index=True,
-                        use_container_width=True,
-                    )
-                else:
-                    st.info(
-                        "관련 후보의 IPC 코드가 색인 메타데이터에 없어 분류 분포를 계산할 수 없습니다."
-                    )
-                st.caption(
-                    "검색 후보 분포는 기술 신규성이나 특허 등록 가능성의 판단 근거가 아닙니다."
-                )
-
     if patent.status == "error":
         st.error("특허 비교 보고서를 완성하지 못했습니다.")
         if "LIMITED_NUMBER_OF_SERVICE_REQUESTS_EXCEEDS_ERROR" in (
@@ -973,97 +1018,13 @@ def render_patent_report(patent, *, widget_suffix="", preview=False):
     evidence_by_id = {item.citation_id: item for item in patent.evidence}
     reviews_by_patent = {item.patent_id: item for item in patent.patent_reviews}
     design_analysis = patent.design_analysis
+    related_stats = getattr(patent, "related_statistics", None)
 
-    comparison_section = st.expander("1. 특허 비교 궤도", expanded=True)
-    caution_section = st.expander("2. 주의점", expanded=False)
-    suggestion_section = st.expander("3. 개선 제안 · 설계 대안", expanded=False)
-
-    with caution_section:
-        precheck_labels = {
-            "overlap_concern": "유사 청구항 주의",
-            "potentially_distinct": "차별 구성 신호",
-            "insufficient_evidence": "판단 근거 부족",
-        }
-        if precheck and precheck.citation_ids:
-            st.subheader("특허 비교 신호")
-            st.info(f"{precheck_labels[precheck.status]} · {precheck.summary}")
-            st.caption(
-                "검색된 자료를 바탕으로 한 예비 기술 비교이며, 법률 의견이 아닙니다."
-            )
-        elif precheck:
-            st.warning("특허 비교 신호에 연결된 인용 근거가 없어 판단을 보류합니다.")
-
-    with suggestion_section:
-        if design_analysis:
-            st.subheader("문헌별 설계 대안")
-            status_labels = {
-                "success": "근거를 바탕으로 대안을 구성했습니다.",
-                "partial": "일부 정보가 부족해 제한적으로 제안합니다.",
-                "insufficient_evidence": "설계 대안을 뒷받침할 근거가 부족합니다.",
-                "failed": "대안 생성이 완료되지 않았습니다. 기존 특허 근거는 아래에서 확인할 수 있습니다.",
-            }
-            st.caption(status_labels[design_analysis.status])
-            if design_analysis.evidence_level == "abstract_only":
-                st.warning("청구항 원문이 없어 초록 수준의 근거로만 분석했습니다.")
-            for component in design_analysis.technical_components:
-                st.caption(
-                    f"{component.id} · {component.name} — {component.description}"
-                )
-            for index, proposal in enumerate(design_analysis.proposals, 1):
-                with st.container(border=True):
-                    st.markdown(f"#### 대안 {index} · {proposal.title}")
-                    st.markdown(f"**현재 문제**\n\n{proposal.problem}")
-                    st.markdown(
-                        f"**변경 대상**\n\n{', '.join(proposal.target_component_ids)}"
-                    )
-                    st.markdown(f"**설계 변경**\n\n{proposal.proposed_change}")
-                    st.markdown("**구현 접근**")
-                    for step in proposal.implementation_approach:
-                        st.markdown(f"- {step}")
-                    st.markdown(f"**기술적 차이**\n\n{proposal.technical_difference}")
-                    if proposal.expected_benefits:
-                        st.markdown(
-                            "**기대효과**\n\n" + " · ".join(proposal.expected_benefits)
-                        )
-                    if proposal.limitations:
-                        st.markdown("**제약**\n\n" + " · ".join(proposal.limitations))
-                    st.caption(
-                        f"기술 구현 가능성: {proposal.feasibility} · 근거 상태: {proposal.evidence_status}"
-                    )
-                    if proposal.citation_ids:
-                        st.markdown("**연결된 특허 근거**")
-                        for citation_id in proposal.citation_ids:
-                            source = evidence_by_id.get(citation_id)
-                            if source:
-                                claim = (
-                                    f" · 청구항 {source.claim_number}"
-                                    if source.claim_number
-                                    else ""
-                                )
-                                st.caption(f"P:{citation_id} · {source.title}{claim}")
-                                st.text(source.quote)
-                    st.markdown(f"**검증 계획**\n\n{proposal.verification_plan.method}")
-                    if proposal.verification_plan.metrics:
-                        st.caption(
-                            "측정 항목: "
-                            + " · ".join(proposal.verification_plan.metrics)
-                        )
-                    st.caption(
-                        "성공 기준: " + proposal.verification_plan.success_criteria
-                    )
-                    st.caption(
-                        "추가 특허 확인 필요"
-                        if proposal.patent_verification_required
-                        else "특허 확인 표시 없음"
-                    )
-            for item in design_analysis.missing_information:
-                st.warning(item)
-            for item in design_analysis.limitations:
-                st.caption("한계: " + item)
-            st.caption(
-                "기술 검토용 의사결정 지원이며 침해·특허성·실시 자유에 대한 법률 의견이 아닙니다."
-            )
-    with comparison_section:
+    st.subheader("1. 특허 비교 궤도")
+    st.caption(
+        "검색된 문헌과 청구항을 아이디어 구성요소에 대조한 기술 예비 검토입니다."
+    )
+    with st.container(border=True):
         documents = []
         for evidence in patent.evidence:
             if evidence.patent_id not in {item["patent_id"] for item in documents}:
@@ -1283,64 +1244,57 @@ def render_patent_report(patent, *, widget_suffix="", preview=False):
                     "표시할 특허 문헌이 없습니다. 검색 결과가 없다는 뜻이 특허 위험이 없다는 의미는 아닙니다."
                 )
 
-    with caution_section:
-        if precheck:
-            st.subheader("문헌 비교에서 확인할 주의점")
-            if precheck.common_watchouts:
-                for item in precheck.common_watchouts:
-                    st.warning(
-                        f"**{item.issue}**\n\n{item.why_it_matters}\n\n다음 확인: {item.next_check}"
-                    )
-                    for citation_id in item.citation_ids:
-                        evidence = evidence_by_id.get(citation_id)
-                        if evidence:
-                            claim = (
-                                f" · 청구항 {evidence.claim_number}"
-                                if evidence.claim_number
-                                else ""
-                            )
-                            st.caption(
-                                f"근거 P:{citation_id}{claim} · {evidence.title}"
-                            )
-                            st.text(evidence.quote)
-            else:
-                st.info(
-                    "제공 문헌 전체에서 인용으로 뒷받침되는 공통 주의점이 생성되지 않았습니다."
-                )
-            for question in precheck.expert_questions:
-                st.caption(f"전문가 확인: {question}")
-            if precheck.limitations:
-                st.caption("검토 한계: " + " · ".join(precheck.limitations))
-    with suggestion_section:
-        if precheck:
-            st.subheader("전체 문헌 공통 제안")
-            if precheck.common_design_recommendations:
-                for item in precheck.common_design_recommendations:
-                    refs = ", ".join(f"P:{cid}" for cid in item.citation_ids)
-                    basis_label = (
-                        "근거 기반"
-                        if item.basis == "evidence_based"
-                        else "검증 전 설계 가설"
-                    )
-                    st.markdown(
-                        f"**{item.recommendation}** · {basis_label}{f' ({refs})' if refs else ''}"
-                    )
-                    st.write(item.rationale)
-                    for citation_id in item.citation_ids:
-                        evidence = evidence_by_id.get(citation_id)
-                        if evidence:
-                            claim = (
-                                f" · 청구항 {evidence.claim_number}"
-                                if evidence.claim_number
-                                else ""
-                            )
-                            st.caption(
-                                f"근거 P:{citation_id}{claim} · {evidence.title}"
-                            )
-                    if item.validation_needed:
-                        st.caption(f"검증 방법: {item.validation_needed}")
-            else:
-                st.info("전체 문헌을 종합한 공통 제안이 생성되지 않았습니다.")
+    st.subheader("2. 주의점 및 개선 제안")
+    if precheck:
+        precheck_labels = {
+            "overlap_concern": "유사 구성에 주의",
+            "potentially_distinct": "차이 가능성 확인",
+            "insufficient_evidence": "근거 부족 · 판단 보류",
+        }
+        st.info(f"{precheck_labels[precheck.status]} · {precheck.summary}")
+        for item in precheck.common_watchouts[:2]:
+            st.markdown(f"- **주의:** {item.issue} — {item.why_it_matters}")
+        for item in precheck.common_design_recommendations[:2]:
+            refs = ", ".join(f"P:{cid}" for cid in item.citation_ids)
+            basis = "근거 기반" if item.basis == "evidence_based" else "검증 전 가설"
+            st.markdown(
+                f"- **개선:** {item.recommendation} · {basis}"
+                + (f" · {refs}" if refs else "")
+            )
+        if not precheck.common_watchouts and not precheck.common_design_recommendations:
+            st.caption("문헌 공통 주의점·개선 제안은 확인되지 않았습니다.")
+        if not preview and st.button(
+            "2 상세 보기", key=f"patent_watchouts_{widget_suffix}"
+        ):
+            patent_watchouts_dialog(patent)
+    else:
+        st.info(
+            "특허 비교 신호가 제공되지 않아 주의점과 개선 제안을 판단하지 않았습니다."
+        )
+
+    st.subheader("3. 설계 대안")
+    if design_analysis:
+        design_status_labels = {
+            "success": "근거 기반 제안",
+            "partial": "제한적 제안",
+            "insufficient_evidence": "근거 부족",
+            "failed": "생성 실패",
+        }
+        st.caption(design_status_labels[design_analysis.status])
+        for index, proposal in enumerate(design_analysis.proposals, 1):
+            refs = ", ".join(f"P:{cid}" for cid in proposal.citation_ids)
+            st.markdown(
+                f"- **대안 {index} · {proposal.title}:** {proposal.proposed_change}"
+                + (f" · 근거 {refs}" if refs else " · 검증 전 제안")
+            )
+        if not design_analysis.proposals:
+            st.caption("표시할 설계 대안이 없습니다.")
+        if not preview and st.button(
+            "3 상세 보기", key=f"patent_design_{widget_suffix}"
+        ):
+            patent_design_dialog(patent)
+    else:
+        st.info("설계 대안 분석 결과가 없습니다.")
     if patent.unknowns:
         with st.expander(f"특허 검색 미확인 사항 ({len(patent.unknowns)}건)"):
             for item in patent.unknowns:

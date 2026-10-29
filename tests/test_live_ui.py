@@ -22,6 +22,12 @@ from src.schemas import (
     PatentEvidence,
     PatentReport,
     PatentabilityPrecheck,
+    PatentWatchout,
+    PatentDesignRecommendation,
+    PatentDesignAnalysis,
+    PatentDesignProposal,
+    PatentTechnicalComponent,
+    ProposalVerificationPlan,
 )
 
 APP = Path(__file__).resolve().parents[1] / "frontend" / "app.py"
@@ -90,6 +96,54 @@ def sources():
             status="insufficient_evidence",
             summary="등록 관련 판단에는 추가 선행기술 조사가 필요합니다.",
             citation_ids=[1],
+            common_watchouts=[
+                PatentWatchout(
+                    issue="독립항 구성 확인",
+                    why_it_matters="아이디어 구성과 겹치는 범위를 살펴야 합니다.",
+                    citation_ids=[1],
+                    next_check="독립항 전문을 검토합니다.",
+                )
+            ],
+            common_design_recommendations=[
+                PatentDesignRecommendation(
+                    recommendation="센서 설치 조건을 구체화합니다.",
+                    rationale="검증 가능한 입력 범위를 정합니다.",
+                    citation_ids=[1],
+                    basis="evidence_based",
+                    validation_needed="현장 센서 데이터로 검증합니다.",
+                )
+            ],
+        ),
+        design_analysis=PatentDesignAnalysis(
+            status="success",
+            evidence_level="claims_and_abstract",
+            technical_components=[
+                PatentTechnicalComponent(
+                    id="C1", name="진동 센서", description="설비 진동 측정"
+                )
+            ],
+            proposals=[
+                PatentDesignProposal(
+                    proposal_id="D1",
+                    title="설비별 기준값 보정",
+                    target_component_ids=["C1"],
+                    problem="설비별 진동 차이를 반영하지 못할 수 있습니다.",
+                    proposed_change="설비별 기준값을 적용합니다.",
+                    implementation_approach=["운전 조건별 기준선을 학습합니다."],
+                    technical_difference="설비별 조건을 입력으로 사용합니다.",
+                    expected_benefits=["오경보를 줄일 가능성"],
+                    limitations=["현장 데이터 검증이 필요합니다."],
+                    feasibility="medium",
+                    related_patent_ids=["1020200000001"],
+                    citation_ids=[1],
+                    evidence_status="grounded",
+                    verification_plan=ProposalVerificationPlan(
+                        method="설비별 데이터를 분리해 검증합니다.",
+                        metrics=["오경보율"],
+                        success_criteria="기준선보다 오경보가 감소합니다.",
+                    ),
+                )
+            ],
         ),
     )
     return SourceAnalysis(
@@ -215,13 +269,14 @@ def test_direct_input_runs_followup_and_reaches_report(live):
     )
     app.session_state.stage = 2
     app.run()
-    assert any("특허 비교 신호" in item.value for item in app.subheader)
     assert any("특허 비교 궤도" in item.value for item in app.subheader)
-    assert {item.label for item in app.get("expander")} >= {
-        "1. 특허 비교 궤도",
-        "2. 주의점",
-        "3. 개선 제안 · 설계 대안",
-    }
+    assert any("2. 주의점 및 개선 제안" in item.value for item in app.subheader)
+    assert any("3. 설계 대안" in item.value for item in app.subheader)
+    assert not any(
+        "특허 기술 동향 · 분류 통계" in item.label for item in app.get("expander")
+    )
+    assert app.button(key="patent_watchouts_").label == "2 상세 보기"
+    assert app.button(key="patent_design_").label == "3 상세 보기"
     charts = app.get("vega_lite_chart")
     assert len(charts) == 1
     assert json.loads(charts[0].proto.spec)["padding"] == {
@@ -237,6 +292,15 @@ def test_direct_input_runs_followup_and_reaches_report(live):
     assert "핵심 요약" in serialized and "우선 확인 이유" in serialized
     assert not any("문헌 요약 선택" in item.label for item in app.selectbox)
     assert '"name": "patent_click"' in serialized
+
+    app.button(key="patent_watchouts_").click().run()
+    watchout_dialog = app.get("dialog")[0]
+    assert any("독립항 구성 확인" in item.value for item in watchout_dialog.warning)
+    assert any("센서 설치 조건" in item.value for item in watchout_dialog.markdown)
+    app.button(key="patent_design_").click().run()
+    design_dialog = app.get("dialog")[0]
+    assert any("설비별 기준값 보정" in item.value for item in design_dialog.markdown)
+    assert any("구현 방법" in item.value for item in design_dialog.markdown)
 
     app.session_state.selected_patent_detail_id = "1020200000001"
     app.run()
