@@ -161,7 +161,7 @@ def click(app, label):
 
 def analysis_app():
     app = AppTest.from_file(str(APP), default_timeout=30).run()
-    app.button(key="open_analysis").click().run()
+    app.button(key="lens_start").click().run()
     assert not app.exception, app.exception
     return app
 
@@ -379,8 +379,10 @@ def test_completed_stage_status_button_opens_read_only_dialog(live):
         app.session_state.workflow_auto_patent_advanced = True
         app.run()
 
-        assert not any(item.key.startswith("workflow_preview_") for item in app.button)
-        assert "특허 비교" in app.button(key="nav_2").label
+        assert not any(
+            (item.key or "").startswith("workflow_preview_") for item in app.button
+        )
+        assert "특허" in app.button(key="nav_2").label
         assert app.button(key="nav_3").disabled
         app.button(key="nav_2").click().run()
 
@@ -509,7 +511,7 @@ def test_complete_draft_waits_for_user_and_uses_edited_values(live, monkeypatch)
     assert app.session_state.idea_draft.technology == "수정한 진동 예측 기술"
     assert app.session_state.idea_draft.field_sources["technology"] == "user_answer"
     assert app.session_state.stage in (2, 4)
-    assert app.session_state.analysis_workflow_id
+    assert app.session_state.analysis_workflow_id or app.session_state.pipeline_result
 
 
 def test_completed_patent_preview_uses_current_orbit_report_ui(live):

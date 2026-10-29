@@ -44,7 +44,8 @@ from frontend.quick import (
 from frontend.workspace import EXAMPLE, empty_costs, cost_summary
 from frontend.workflow import WORKFLOW_JOBS, WORKFLOW_JOBS_LOCK
 from frontend.automatic import automatic_links
-from frontend.presentation import hero, brand_style
+from frontend.presentation import hero_parts, brand_style
+from frontend.workspace_view import report_payload, render_report, render_history
 
 st.set_page_config(page_title="IdeaLens · 빠른 조사", page_icon="▤", layout="wide")
 st.html("""<style>
@@ -61,6 +62,8 @@ st.html(Path(__file__).with_name("styles.css").read_text(encoding="utf-8"))
 st.html(brand_style())
 for key, value in {
     "app_view": "landing",
+    "page": "home",
+    "records": [],
     "stage": 1,
     "idea_page_view": "input",
     "show_examples": False,
@@ -128,11 +131,13 @@ def password_gate():
 
 def show_landing():
     """모든 화면에서 브랜드 메인 페이지로 돌아간다."""
+    s.page = "home"
     s.app_view = "landing"
 
 
 def enter_analysis():
     """랜딩 화면에서 아이디어 입력 단계로 진입한다."""
+    s.page = "workspace"
     s.app_view = "analysis"
     s.stage = 1
 
@@ -537,6 +542,7 @@ def start_report_workflow():
             "updated_at": time.monotonic(),
             "started_at": time.monotonic(),
         }
+    s.workflow_ready_key = (False, False)
     s.analysis_workflow_id = job_id
     s.workflow_preview_stage = None
     s.workflow_cancelled = False
@@ -697,11 +703,62 @@ def workflow_progress_fragment():
     now = time.monotonic()
     phase = snapshot.get("phase", "patent")
 
-    current_step = {
-        "patent": "특허 문헌과 청구항 비교",
-        "market": "시장 수요와 도입 장벽 분석",
-        "final_report": "통합 실행 검토 작성",
-    }.get(phase, "분석 준비")
+    def report_state(report, run, active):
+        if run and run.state in {"error", "timeout"}:
+            return "실패"
+        if report is not None:
+            if report.status == "no_results":
+                return "근거 부족"
+            if report.status == "completed":
+                return "완료"
+            if report.status == "error" or (run and run.state in {"error", "timeout"}):
+                return "실패"
+            return "근거 부족"
+        return "분석 중" if active else "대기"
+
+    final_result = snapshot.get("result")
+    if snapshot.get("error"):
+        final_state = "실패"
+    elif final_result is None:
+        final_state = "작성 중" if phase == "final_report" else "대기"
+    else:
+        final_state = "완료" if final_result.status == "completed" else "일부 보류"
+
+    steps = [
+        ("입력 확정", "완료"),
+        (
+            "특허 조사",
+            report_state(
+                snapshot.get("patent_report"),
+                snapshot.get("patent_run"),
+                phase == "patent",
+            ),
+        ),
+        (
+            "시장 분석",
+            report_state(
+                snapshot.get("market_report"),
+                snapshot.get("market_run"),
+                phase == "market",
+            ),
+        ),
+        ("보고서 작성", final_state),
+    ]
+    with st.container(border=True):
+        columns = st.columns(4)
+        for index, (column, (name, state)) in enumerate(zip(columns, steps), 1):
+            column.caption(name)
+            active = (
+                (index == 2 and phase == "patent" and not patent_ready)
+                or (index == 3 and phase == "market" and not market_ready)
+                or (index == 4 and phase == "final_report" and final_result is None)
+            )
+            marker = (
+                '<span class="workflow-spinner" aria-label="분석 중"></span> '
+                if active
+                else ""
+            )
+            column.markdown(f"{marker}**{state}**", unsafe_allow_html=True)
 
     if snapshot.get("error"):
         s.pipeline_error = snapshot["error"]
@@ -714,57 +771,33 @@ def workflow_progress_fragment():
             WORKFLOW_JOBS.pop(job_id, None)
         st.rerun(scope="app")
 
-    if patent_ready and s.pipeline_result is None:
+    if snapshot.get("result") is not None:
+        s.pipeline_result = snapshot["result"]
+        s.analysis_sources = snapshot.get("sources")
+        s.analysis_workflow_id = None
+        with WORKFLOW_JOBS_LOCK:
+            WORKFLOW_JOBS.pop(job_id, None)
+        st.rerun(scope="app")
+    ready_key = (patent_ready, market_ready)
+    if ready_key != s.get("workflow_ready_key") and any(ready_key):
+        s.workflow_ready_key = ready_key
         s.pipeline_result = partial_workflow_result(snapshot)
-        if s.stage == 2:
-            s.workflow_patent_displayed_at = now
         st.rerun(scope="app")
-    if s.stage == 2 and patent_ready and s.workflow_patent_displayed_at is None:
-        s.workflow_patent_displayed_at = now
-    if (
-        s.stage == 2
-        and patent_ready
-        and s.workflow_patent_displayed_at is not None
-        and not s.get("workflow_auto_patent_advanced", False)
-        and now - s.workflow_patent_displayed_at >= 2
-    ):
-        s.stage = 3
-        s.workflow_auto_patent_advanced = True
-        s.workflow_stage_entered_at = now
-        st.rerun(scope="app")
-    if s.stage == 3 and market_ready:
-        if s.workflow_market_displayed_at is None:
-            s.pipeline_result = partial_workflow_result(snapshot)
-            s.workflow_market_displayed_at = now
-            st.rerun(scope="app")
-        if (
-            snapshot.get("result") is not None
-            and now - s.workflow_market_displayed_at >= 2
-        ):
-            s.pipeline_result = snapshot["result"]
-            s.analysis_sources = snapshot.get("sources")
-            s.analysis_workflow_id = None
-            s.stage = 4
-            with WORKFLOW_JOBS_LOCK:
-                WORKFLOW_JOBS.pop(job_id, None)
-            st.rerun(scope="app")
 
     if not snapshot.get("done"):
-        st.markdown(
-            '<span class="workflow-spinner" aria-label="분석 중"></span> '
-            f"**{current_step} 중**",
-            unsafe_allow_html=True,
-        )
         messages = {
-            "patent": "특허 원문 근거를 아이디어 구성요소와 대조하고 있습니다.",
-            "market": "특허 비교가 끝났습니다. 목표 고객·수요·도입 장벽을 살펴보고 있습니다.",
-            "final_report": "특허와 시장 결과를 함께 검토해 다음 실행 단계를 정리하고 있습니다.",
+            "patent": "특허 문헌과 청구항에서 아이디어 구성요소의 유사점·차이점을 확인하고 있습니다.",
+            "market": "특허 비교가 끝났습니다. 목표 고객·수요·도입 장벽에 관한 시장 근거를 분석하고 있습니다.",
+            "final_report": "두 조사가 끝났습니다. 핵심 근거와 다음 행동을 묶어 최종 검토를 작성하고 있습니다.",
         }
-        st.caption(messages.get(phase, "분석을 준비하고 있습니다."))
+        st.info(messages.get(phase, "보고서를 준비하고 있습니다."))
         elapsed = max(0, int(now - snapshot.get("started_at", now)))
-        st.caption(f"진행 시간 {elapsed // 60}분 {elapsed % 60}초")
         st.caption(
-            "상단의 완료된 단계 버튼에서 결과를 확인할 수 있습니다. 현재 분석은 계속 진행됩니다."
+            f"현재 단계: {steps[{ 'patent': 1, 'market': 2, 'final_report': 3 }.get(phase, 0)][0]} · "
+            f"진행 시간 {elapsed // 60}분 {elapsed % 60}초"
+        )
+        st.caption(
+            "새 입력이 분석 결과에 섞이지 않도록 입력은 잠겨 있습니다. 이전 완료 단계는 상단 메뉴에서 다시 볼 수 있습니다."
         )
         if st.button("분석 취소하고 아이디어 수정", key=f"cancel_workflow_{job_id}"):
             cancel_report_workflow()
@@ -1109,6 +1142,8 @@ def render_patent_report(patent, *, widget_suffix="", preview=False):
 
 
 def render_market_report(market, draft=None):
+    from src.generation.market_markdown import NATURE_LABELS
+
     """시장성 화면에는 고객 신호와 다음 검증을 우선 표시하고 상세 자료를 접는다."""
     if market.status == "error":
         st.error(market.error_message or "시장 조사에 실패했습니다.")
@@ -1220,7 +1255,7 @@ def render_market_report(market, draft=None):
 
         verdict_labels = {
             "confirmed": "근거 확인",
-            "signal_only": "산업 신호",
+            "signal_only": "신호만 확인",
             "unverified": "미확인",
         }
         key_dimensions = ["demand", "buyer", "competition", "price", "adoption_barrier"]
@@ -1233,6 +1268,12 @@ def render_market_report(market, draft=None):
             st.markdown(
                 f"**{DIMENSION_LABELS[key]} · {verdict_labels[dimension.verdict]}**"
             )
+            if dimension.limitation:
+                st.caption(f"확인되지 않은 이유: {dimension.limitation}")
+            if dimension.relevant_count is not None:
+                st.caption(
+                    f"관련 검색 자료 {dimension.relevant_count}건 · 인용 건수와 별개입니다."
+                )
             if dimension.claims:
                 for claim in dimension.claims[:1]:
                     label = {
@@ -1259,7 +1300,7 @@ def render_market_report(market, draft=None):
                 st.markdown(f"**M:{item.citation_id} · {escape_md(item.title)}**")
                 st.caption(
                     f"{item.publisher} · {item.published_at or '발행일 미확인'} · "
-                    f"{item.evidence_nature} · 신뢰도 {item.reliability}"
+                    f"{NATURE_LABELS.get(item.evidence_nature, item.evidence_nature)} · 신뢰도 {item.reliability}"
                 )
                 st.write(item.quote)
                 if safe_url(item.url):
@@ -1469,6 +1510,7 @@ def can_visit(number):
 
 
 def navigate(number):
+    s.page = "workspace"
     s.app_view = "analysis"
     sync_context()
     if not can_visit(number):
@@ -1494,6 +1536,7 @@ def navigate(number):
 
 
 def load(text, title=""):
+    s.page = "workspace"
     s.app_view = "analysis"
     input_changed()
     s.raw_input = text
@@ -1551,7 +1594,7 @@ def select(source_id):
 
 
 if s.stage in (3, 4) and not s.confirmed_context:
-    s.stage = 2 if s.raw else 1
+    s.stage = 1
 
 
 def save_memo():
@@ -1572,35 +1615,56 @@ def drop_link(qid):
     s.report_snapshot = None
 
 
-with st.container(key="brandbar"):
-    brand, section, status = st.columns([1, 2, 2])
-    brand.button(
-        "IdeaLens", key="home", on_click=show_landing, help="메인페이지로 이동"
-    )
-    section.caption("아이디어 검토")
-    if s.app_view == "analysis":
-        status.caption(
-            "분석 진행 중"
-            if s.get("analysis_workflow_id")
-            else (
-                "실제 AI 분석 연결됨"
-                if live_available()
-                else "OPENAI_API_KEY 설정 필요"
-            )
-        )
-    else:
-        status.caption("특허와 시장 근거로 아이디어를 검토합니다")
+def open_page(page):
+    s.page = page
 
-if s.app_view == "landing":
-    st.html(hero(show_cta=False))
-    _, cta, _ = st.columns([1, 1.3, 1])
-    cta.button(
-        "내 아이디어 펼치기  ↗",
-        key="open_analysis",
-        type="primary",
-        width="stretch",
-        on_click=enter_analysis,
-    )
+
+def start_research():
+    s.page = "workspace"
+    s.app_view = "analysis"
+    s.stage = 1
+
+
+with st.container(key="brandbar"):
+    brand, intro, guide, records = st.columns([2.6, 1, 1, 1.1])
+    brand.button("IdeaLens", key="home", on_click=open_page, args=("home",))
+    intro.button("서비스 소개", on_click=open_page, args=("about",))
+    guide.button("왜 IdeaLens인가", on_click=open_page, args=("difference",))
+    records.button("내 기록", on_click=open_page, args=("history",))
+
+if s.page == "home":
+    play_intro = not s.get("home_intro_played", False)
+    with st.container(key="landing"):
+        copy_markup, art_markup = hero_parts()
+        copy_column, art_column = st.columns(
+            [1, 1.08], gap="large", vertical_alignment="center"
+        )
+        with copy_column:
+            st.html(copy_markup)
+        with art_column:
+            with st.container(key="hero_art"):
+                st.html(art_markup)
+                st.button(
+                    "돋보기로 조사 시작",
+                    key="lens_start",
+                    type="primary",
+                    help="돋보기를 클릭하거나 Enter 키를 눌러 아이디어 조사를 시작하세요.",
+                    on_click=start_research,
+                )
+    if play_intro:
+        from frontend.landing_motion import intro_markup
+
+        st.html(intro_markup(), unsafe_allow_javascript=True)
+        s.home_intro_played = True
+    st.stop()
+if s.page in ("about", "difference"):
+    from frontend.introduction import render_introduction
+
+    render_introduction(s.page)
+    st.button("홈에서 살펴보기 ↗", on_click=open_page, args=("home",))
+    st.stop()
+if s.page == "history":
+    render_history(s)
     st.stop()
 
 steps = [
@@ -1651,25 +1715,35 @@ def step_button_label(number):
     return f"{marker} {number}  {short_names[number - 1]}{suffix}{state}"
 
 
+def review_navigation(number, label, column, key):
+    if column.button(
+        label,
+        key=key,
+        type="primary" if s.stage == number else "secondary",
+        disabled=not can_visit(number)
+        or (active_job is not None and s.stage == number),
+        width="stretch",
+    ):
+        if active_job is not None:
+            s.workflow_preview_stage = number
+            st.rerun(scope="app")
+        else:
+            navigate(number)
+            st.rerun(scope="app")
+
+
 with st.container(key="stepnav"):
-    for i, column in enumerate(st.columns(4), 1):
-        available = can_visit(i)
-        is_current = active_job is not None and i == s.stage
-        if column.button(
-            step_button_label(i),
-            key=f"nav_{i}",
-            type="primary" if s.stage == i else "secondary",
-            disabled=not available or is_current,
-            width="stretch",
-        ):
-            if active_job is not None:
-                # During an active run, completed steps are previews. Never
-                # change the workflow's current page or replace its result.
-                s.workflow_preview_stage = i
-                st.rerun(scope="app")
-            else:
-                navigate(i)
-                st.rerun(scope="app")
+    for number, label, column in zip(
+        [1, 2, 4],
+        ["1 아이디어 구체화", "2 특허·시장 검토", "3 종합 보고서"],
+        st.columns(3),
+    ):
+        review_navigation(number, label, column, f"nav_{number}")
+if s.stage in (2, 3):
+    a, b = st.columns(2)
+    review_navigation(2, "특허 비교", a, "review_patent")
+    review_navigation(3, "시장성 분석", b, "nav_3")
+
 
 preview_stage = s.get("workflow_preview_stage")
 if preview_stage:
@@ -1678,7 +1752,7 @@ if preview_stage:
     )
 if not s.confirmed_context and s.raw:
     st.caption(
-        "입력·구성·질문을 바꾼 경우 2단계에서 다시 확정해야 조사와 보고서를 볼 수 있습니다."
+        "입력·구성·질문을 바꾼 경우 아이디어 구체화에서 다시 확정해야 조사와 보고서를 볼 수 있습니다."
     )
 
 previous_stage = s.get("displayed_stage", s.stage)
@@ -1686,8 +1760,10 @@ if previous_stage != s.stage:
     s.turn_direction = "forward" if s.stage > previous_stage else "backward"
 s.displayed_stage = s.stage
 direction = s.get("turn_direction", "still")
-with st.container(key=f"sheet_{s.stage}_{direction}"):
-    st.html(f'<div class="page-folio">{s.stage:02d} / 04 · {steps[s.stage - 1]}</div>')
+with st.container(key=f"workspace_{1 if s.stage == 1 else 3 if s.stage == 4 else 2}"):
+    st.html(
+        f'<div class="page-folio">{1 if s.stage == 1 else 3 if s.stage == 4 else 2:02d} / 03 · {steps[s.stage - 1]}</div>'
+    )
     if s.get("analysis_workflow_id"):
         workflow_progress_fragment()
     if s.stage == 1:
@@ -2007,7 +2083,9 @@ with st.container(key=f"sheet_{s.stage}_{direction}"):
                         start_report_workflow()
                         st.rerun()
                 if s.get("analysis_workflow_id"):
-                    st.caption("시장성 조사가 끝나면 다음 화면으로 자동 이동합니다.")
+                    st.caption(
+                        "시장성 분석은 계속 진행됩니다. 준비된 결과는 위 메뉴에서 확인하세요."
+                    )
                 else:
                     left, right = st.columns(2)
                     left.button("← 아이디어 수정", on_click=navigate, args=(1,))
@@ -2034,7 +2112,7 @@ with st.container(key=f"sheet_{s.stage}_{direction}"):
             render_market_report(market, s.idea_draft)
             if s.get("analysis_workflow_id"):
                 st.caption(
-                    "최종 실행 검토를 작성한 뒤 자동으로 마무리 화면으로 이동합니다."
+                    "최종 실행 검토를 작성 중입니다. 완료되면 종합 보고서에서 확인하세요."
                 )
             else:
                 left, right = st.columns(2)
@@ -2114,126 +2192,9 @@ with st.container(key=f"sheet_{s.stage}_{direction}"):
                 s.analysis_key = ""
                 start_report_workflow()
                 st.rerun()
-        final_markdown = s.pipeline_result.markdown
-        st.subheader("구현비용과 사업성 가설")
-        estimate = s.pipeline_result.cost_estimate
-        if estimate is None:
-            st.info(
-                "LLM 기반 비용 추정 결과가 없습니다. 특허·시장 분석을 완료한 실제 분석에서 비용 가설을 생성합니다."
-            )
-        elif estimate.status == "estimated":
-            st.caption(
-                f"{estimate.region} · {estimate.currency} · 기준일 {estimate.as_of} · 검증 전 추정 가설이며 외부 견적이 아닙니다."
-            )
-            import pandas as pd
-
-            editable = pd.DataFrame([item.model_dump() for item in estimate.items])
-            if not editable.empty:
-                edited = st.data_editor(
-                    editable,
-                    num_rows="dynamic",
-                    width="stretch",
-                    key="llm_cost_estimate_editor",
-                    column_config={
-                        "name": "비용 항목",
-                        "quantity": st.column_config.NumberColumn("수량", min_value=0),
-                        "unit": "단위",
-                        "low_unit_cost": st.column_config.NumberColumn(
-                            "낮음 단가", min_value=0
-                        ),
-                        "base_unit_cost": st.column_config.NumberColumn(
-                            "기준 단가", min_value=0
-                        ),
-                        "high_unit_cost": st.column_config.NumberColumn(
-                            "높음 단가", min_value=0
-                        ),
-                        "basis": "산식·가정",
-                        "citation_ids": st.column_config.ListColumn("근거 ID"),
-                        "cost_type": "비용 구분",
-                    },
-                )
-                try:
-                    from src.generation.cost_estimation import calculate_scenarios
-                    from src.schemas import ImplementationCostEstimate
-
-                    edited_rows = (
-                        edited.to_dict("records")
-                        if hasattr(edited, "to_dict")
-                        else edited
-                    )
-                    estimate_data = estimate.model_dump()
-                    estimate_data["items"] = edited_rows
-                    user_estimate = ImplementationCostEstimate.model_validate(
-                        estimate_data
-                    )
-                    totals = calculate_scenarios(user_estimate)
-                    from src.generation.executive_review import (
-                        executive_report_markdown,
-                    )
-
-                    final_markdown = executive_report_markdown(
-                        s.pipeline_result.title,
-                        s.pipeline_result.executive_review,
-                        analyzed_on=s.pipeline_result.analyzed_on,
-                        cost_estimate=user_estimate,
-                        cost_totals=totals,
-                    )
-                    c1, c2 = st.columns(2)
-                    c1.metric(
-                        "초기 구축비 · 기준",
-                        f"{totals.initial_base:,.0f} {estimate.unit}",
-                    )
-                    c2.metric(
-                        "월 반복비 · 기준",
-                        f"{totals.recurring_monthly_base:,.0f} {estimate.unit}",
-                    )
-                    st.caption(totals.calculation_note)
-                    if totals.break_even_units_base is not None:
-                        st.write(
-                            f"단순 손익분기 판매량(기준): **{totals.break_even_units_base:,}개**"
-                        )
-                except Exception as exc:
-                    st.warning(
-                        f"수정한 비용값을 계산하지 못했습니다: {type(exc).__name__}"
-                    )
-            if estimate.assumptions:
-                st.markdown("**가정:** " + " · ".join(estimate.assumptions[:4]))
-            if estimate.omissions:
-                st.markdown(
-                    "**포함하지 않은 비용:** " + " · ".join(estimate.omissions[:4])
-                )
-        else:
-            st.warning(
-                "비용 산정 보류: "
-                + (" · ".join(estimate.unknowns[:3]) or "입력 근거가 부족합니다.")
-            )
-        with st.expander("직접 비용 메모 (선택)"):
-            cost_rows = cost_rows_list(
-                st.data_editor(
-                    s.cost_rows,
-                    num_rows="dynamic",
-                    width="stretch",
-                    key="real_cost_rows",
-                )
-            )
-            costs = cost_summary(cost_rows)
-            st.metric("직접 입력 소계 (만원)", f"{costs['total']:,.1f}")
-            if costs["missing"]:
-                st.caption("금액 미입력: " + ", ".join(costs["missing"]))
-            if costs["errors"]:
-                st.warning("유효하지 않은 비용 입력: " + ", ".join(costs["errors"]))
-        st.markdown(final_markdown)
-        footer_left, footer_right = st.columns(2, gap="medium")
-        if footer_left.button("시장성 보고서", key="final_to_market", width="stretch"):
-            navigate(3)
-            st.rerun()
-        footer_right.download_button(
-            "간결 보고서 다운로드",
-            final_markdown,
-            file_name="idealens-report.md",
-            mime="text/markdown",
-            width="stretch",
-        )
+        render_report(s, report_payload(s))
+    elif s.stage == 4 and s.report_snapshot:
+        render_report(s, report_payload(s))
 
 if previous_stage != s.stage:
     st.html(

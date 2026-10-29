@@ -17,23 +17,22 @@ def click(app, label):
 
 def test_landing_preserves_home_and_enters_compact_analysis():
     app = AppTest.from_file(str(APP)).run()
-    assert app.button(key="open_analysis").label == "내 아이디어 펼치기  ↗"
+    assert app.button(key="lens_start").label == "돋보기로 조사 시작"
     assert "hero-copy" in "\n".join(item.value for item in app.html)
-    click(app, "내 아이디어 펼치기  ↗")
+    click(app, "돋보기로 조사 시작")
     assert app.text_area(key="raw_input")
     assert app.button(key="create_idea_draft")
     assert not any("시연" in button.label for button in app.button)
-    assert [app.button(key=f"nav_{i}").label.split()[0] for i in range(1, 5)] == [
+    assert [app.button(key=f"nav_{i}").label.split()[0] for i in (1, 2, 4)] == [
         "1",
         "2",
         "3",
-        "4",
     ]
 
 
 def test_example_and_recent_are_separate_controls():
     app = AppTest.from_file(str(APP)).run()
-    click(app, "내 아이디어 펼치기  ↗")
+    click(app, "돋보기로 조사 시작")
     assert app.button(key="toggle_examples").label == "예시 아이디어"
     assert app.button(key="toggle_recent").label == "최근 입력"
     click(app, "예시 아이디어")
@@ -49,7 +48,7 @@ def test_recent_session_input_reloads_into_the_editable_input_view():
     app.session_state.recent = [
         {"title": "진동 예측", "text": "공장 설비 진동을 분석하는 서비스 아이디어"}
     ]
-    click(app, "내 아이디어 펼치기  ↗")
+    click(app, "돋보기로 조사 시작")
     click(app, "최근 입력")
     click(app, "진동 예측")
     assert app.session_state.raw_input == "공장 설비 진동을 분석하는 서비스 아이디어"
@@ -62,7 +61,7 @@ def test_custom_input_does_not_show_sample_evidence(monkeypatch):
 
     monkeypatch.setattr(frontend.live, "live_available", lambda: False)
     app = AppTest.from_file(str(APP)).run()
-    click(app, "내 아이디어 펼치기  ↗")
+    click(app, "돋보기로 조사 시작")
     app.text_area(key="raw_input").set_value(
         "실제 사용자가 직접 작성한 새로운 기술 아이디어"
     )
@@ -74,7 +73,7 @@ def test_custom_input_does_not_show_sample_evidence(monkeypatch):
 
 def test_blank_input_is_rejected_before_draft_generation():
     app = AppTest.from_file(str(APP)).run()
-    click(app, "내 아이디어 펼치기  ↗")
+    click(app, "돋보기로 조사 시작")
     click(app, "AI 초안 만들기")
     assert app.session_state.stage == 1
     assert app.error
