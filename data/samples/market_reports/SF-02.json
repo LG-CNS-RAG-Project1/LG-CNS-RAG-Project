@@ -13,13 +13,6 @@
           ]
         },
         {
-          "statement": "AI 비전 검사 도입을 검토하는 제조기업이 증가하고 있다.",
-          "claim_type": "fact",
-          "citation_ids": [
-            4
-          ]
-        },
-        {
           "statement": "2차전지 시장의 성장에 따라 외관 검사 솔루션의 수요가 증가하고 있다.",
           "claim_type": "ai_hypothesis",
           "citation_ids": []
@@ -35,7 +28,7 @@
       "verdict": "signal_only",
       "claims": [
         {
-          "statement": "AI 비전 검사 장비와 관련된 다양한 기업들이 시장에 존재한다.",
+          "statement": "AI 비전 검사 장비 시장에서 다양한 기업들이 경쟁하고 있다.",
           "claim_type": "fact",
           "citation_ids": [
             9
@@ -49,7 +42,7 @@
           ]
         },
         {
-          "statement": "AI 비전 검사 장비의 경쟁이 치열할 가능성이 있다.",
+          "statement": "AI 비전 검사 장비의 도입이 증가하면서 경쟁이 치열해질 가능성이 있다.",
           "claim_type": "ai_hypothesis",
           "citation_ids": []
         }
@@ -64,12 +57,12 @@
       "verdict": "unverified",
       "claims": [
         {
-          "statement": "AI 비전 검사 장비의 가격대가 시장에서 경쟁력을 갖출 가능성이 있다.",
+          "statement": "2차전지 생산 업체들은 공정 개선을 위해 외관 검사 장비 도입을 고려하고 있다.",
           "claim_type": "ai_hypothesis",
           "citation_ids": []
         }
       ],
-      "next_check": "비전 검사 장비 공급사 2곳의 견적으로 실제 가격대 확인",
+      "next_check": "비전 검사 장비의 가격대와 공급사 견적을 확인하기 위해 2곳의 공급사에 문의",
       "evidence_status": "sufficient",
       "relevant_count": 2,
       "limitation": "관련 자료 2건이 모두 사업 신호·기업 주장·추정치라 확인할 수 없음"
@@ -79,21 +72,21 @@
       "verdict": "signal_only",
       "claims": [
         {
-          "statement": "HB테크놀러지와 같은 기업들이 2차전지 외관 검사 장비를 주요 사업으로 영위하고 있다.",
+          "statement": "HB테크놀러지는 2차전지 외관 검사 장비를 주요 사업으로 영위하고 있다.",
           "claim_type": "fact",
           "citation_ids": [
             15
           ]
         },
         {
-          "statement": "인텍플러스 사업보고서(FY2025)에 따르면 2차전지 제조업체들이 외관 검사 장비 도입을 통해 품질 안전성을 강화하고 있다.",
+          "statement": "인텍플러스 사업보고서(FY2025)에 따르면 2차전지 제조업체들이 외관 검사 장비를 도입하고 있다.",
           "claim_type": "fact",
           "citation_ids": [
             14
           ]
         },
         {
-          "statement": "2차전지 제조사 품질 부서가 주요 고객이 될 가능성이 있다.",
+          "statement": "2차전지 시장의 성장에 따라 고객사들의 검사 솔루션 수요가 증가할 가능성이 있다.",
           "claim_type": "ai_hypothesis",
           "citation_ids": []
         }
@@ -108,21 +101,21 @@
       "verdict": "signal_only",
       "claims": [
         {
-          "statement": "중소 제조기업에서 AI 도입 비용과 전문인력 문제가 큰 장벽으로 확인되었다.",
+          "statement": "중소 제조기업에서 AI 도입 비용과 전문인력 문제가 도입장벽으로 확인되었다.",
           "claim_type": "fact",
           "citation_ids": [
             17
           ]
         },
         {
-          "statement": "라온피플 사업보고서(FY2025)에 따르면 AI 비전 검사 도입에 있어 기존 육안 검사 방식의 한계가 도입 장벽이 될 수 있다.",
+          "statement": "라온피플 사업보고서(FY2025)에 따르면 AI 비전 검사의 도입이 기존 육안 검사 방식의 한계를 극복할 수 있다.",
           "claim_type": "fact",
           "citation_ids": [
             6
           ]
         },
         {
-          "statement": "AI 비전 검사 장비의 도입 장벽이 존재할 가능성이 있다.",
+          "statement": "AI 비전 검사 장비의 도입이 증가하면서 도입장벽이 낮아질 가능성이 있다.",
           "claim_type": "ai_hypothesis",
           "citation_ids": []
         }
@@ -165,7 +158,7 @@
       "reliability": "medium",
       "recency": "medium",
       "directness": "medium",
-      "evidence_nature": "company_claim",
+      "evidence_nature": "business_signal",
       "similarity": 0.5729
     },
     {
@@ -318,7 +311,7 @@
       "reliability": "medium",
       "recency": "high",
       "directness": "medium",
-      "evidence_nature": "business_signal",
+      "evidence_nature": "company_claim",
       "similarity": 0.5594
     },
     {
@@ -433,8 +426,7 @@
         "topic": "수요",
         "statement": "수요 판단은 signal_only이며, 현재 확정 아이디어의 고객·문제 범위 안에서 해석해야 합니다.",
         "citation_ids": [
-          2,
-          4
+          2
         ]
       },
       {
@@ -487,45 +479,27 @@
   },
   "commercial_analysis": {
     "user": "미확인",
-    "buyer": "2차전지·전자부품 제조사 품질 부서",
+    "buyer": "미확인",
     "budget_owner": "미확인",
-    "use_case": "외관 검사 자동화",
-    "current_alternative": "육안 검사",
-    "switching_trigger": "AI 비전 검사 도입 필요성 증가",
+    "use_case": "미확인",
+    "current_alternative": "미확인",
+    "switching_trigger": "미확인",
     "purchase_process": "미확인",
     "adoption_requirements": [],
-    "pricing_hypothesis": "AI 비전 검사 장비의 가격은 기존 육안 검사 대비 경쟁력이 있어야 한다.",
+    "pricing_hypothesis": "미확인",
     "critical_assumptions": [],
-    "citation_ids": [
-      1,
-      2,
-      5,
-      14
-    ],
+    "citation_ids": [],
     "unknowns": [],
     "hypotheses": [
       {
         "question": "누가 구매를 승인하는가?",
         "hypothesis": "구매 승인자는 품질 부서의 책임자일 가능성이 높다.",
-        "basis": "입력 아이디어에서 품질 부서가 고객으로 언급되었으나, 구매 승인자에 대한 정보는 부족하다.",
+        "basis": "입력 아이디어에서 고객이 2차전지 및 전자부품 제조사의 품질 부서라고 명시되어 있으나, 구매 승인자의 구체적인 정보는 제공되지 않음.",
         "assumptions": [],
         "citation_ids": [],
         "validation_target": "품질 부서의 조직 구조 및 구매 승인 프로세스",
         "validation_method": "인터뷰·조달 문서 확인 등",
-        "success_criterion": "구매 승인자의 직책 및 역할 확인",
-        "numeric_value": null,
-        "numeric_unit": "",
-        "numeric_basis": ""
-      },
-      {
-        "question": "예산 보유자는 누구인가?",
-        "hypothesis": "예산 보유자는 회사의 재무 부서 또는 경영진일 가능성이 있다.",
-        "basis": "예산 보유자에 대한 정보가 제공되지 않았으며, 일반적으로 대규모 장비 구매는 재무 부서의 승인을 필요로 한다.",
-        "assumptions": [],
-        "citation_ids": [],
-        "validation_target": "재무 부서의 역할 및 예산 승인 프로세스",
-        "validation_method": "인터뷰·조달 문서 확인 등",
-        "success_criterion": "예산 승인 프로세스 및 관련 부서 확인",
+        "success_criterion": "구매 승인자의 역할 및 책임이 명확히 정의됨",
         "numeric_value": null,
         "numeric_unit": "",
         "numeric_basis": ""
@@ -692,6 +666,809 @@
     "recent_change_pct": 0.9,
     "direction": "stable",
     "note": "네이버 검색 관심도를 기준 주제어 검색량 대비 지수로 나타낸 것이며, 시장 규모나 고객 수요의 근거가 아닙니다.",
+    "error_message": null
+  },
+  "keyword_network": {
+    "status": "completed",
+    "document_count": 100,
+    "nodes": [
+      {
+        "term": "검사",
+        "document_count": 42,
+        "cluster": 0,
+        "x": -0.5671,
+        "y": 0.2435
+      },
+      {
+        "term": "설비",
+        "document_count": 34,
+        "cluster": 1,
+        "x": 0.1456,
+        "y": -0.2272
+      },
+      {
+        "term": "예지보전",
+        "document_count": 29,
+        "cluster": 1,
+        "x": 0.3412,
+        "y": -0.2956
+      },
+      {
+        "term": "비전",
+        "document_count": 26,
+        "cluster": 0,
+        "x": -0.6376,
+        "y": 0.4384
+      },
+      {
+        "term": "분석",
+        "document_count": 21,
+        "cluster": 2,
+        "x": 0.1355,
+        "y": -0.0201
+      },
+      {
+        "term": "장비",
+        "document_count": 20,
+        "cluster": 0,
+        "x": -0.3662,
+        "y": 0.1925
+      },
+      {
+        "term": "징후",
+        "document_count": 17,
+        "cluster": 1,
+        "x": 0.5198,
+        "y": -0.4164
+      },
+      {
+        "term": "에이전트",
+        "document_count": 16,
+        "cluster": 2,
+        "x": 0.6804,
+        "y": -0.2745
+      },
+      {
+        "term": "품질",
+        "document_count": 16,
+        "cluster": 0,
+        "x": -0.0932,
+        "y": -0.0135
+      },
+      {
+        "term": "평가",
+        "document_count": 15,
+        "cluster": 1,
+        "x": 0.447,
+        "y": -0.6416
+      },
+      {
+        "term": "LG전자",
+        "document_count": 14,
+        "cluster": 1,
+        "x": 0.6459,
+        "y": -0.5834
+      },
+      {
+        "term": "비전검사",
+        "document_count": 14,
+        "cluster": 0,
+        "x": -0.179,
+        "y": 0.2878
+      },
+      {
+        "term": "상태",
+        "document_count": 13,
+        "cluster": 1,
+        "x": 0.7995,
+        "y": -0.4442
+      },
+      {
+        "term": "손실",
+        "document_count": 13,
+        "cluster": 2,
+        "x": 0.5564,
+        "y": 0.0338
+      },
+      {
+        "term": "외관",
+        "document_count": 13,
+        "cluster": 0,
+        "x": -0.8106,
+        "y": 0.3167
+      },
+      {
+        "term": "위험성",
+        "document_count": 13,
+        "cluster": 1,
+        "x": 0.2972,
+        "y": -0.4982
+      },
+      {
+        "term": "발전량",
+        "document_count": 12,
+        "cluster": 2,
+        "x": 0.5034,
+        "y": -0.1666
+      },
+      {
+        "term": "원인",
+        "document_count": 12,
+        "cluster": 2,
+        "x": 0.3416,
+        "y": 0.0015
+      },
+      {
+        "term": "점검",
+        "document_count": 12,
+        "cluster": 1,
+        "x": 0.1016,
+        "y": -0.4297
+      },
+      {
+        "term": "카메라",
+        "document_count": 12,
+        "cluster": 0,
+        "x": -0.736,
+        "y": 0.1233
+      },
+      {
+        "term": "일정",
+        "document_count": 11,
+        "cluster": 1,
+        "x": 0.1447,
+        "y": -0.6385
+      },
+      {
+        "term": "불량",
+        "document_count": 10,
+        "cluster": 0,
+        "x": -0.3625,
+        "y": -0.0148
+      },
+      {
+        "term": "탐지",
+        "document_count": 10,
+        "cluster": 2,
+        "x": 0.4403,
+        "y": 0.2055
+      },
+      {
+        "term": "3D",
+        "document_count": 9,
+        "cluster": 0,
+        "x": -0.4303,
+        "y": 0.4422
+      },
+      {
+        "term": "결함",
+        "document_count": 9,
+        "cluster": 0,
+        "x": -1.0,
+        "y": 0.4032
+      },
+      {
+        "term": "기아",
+        "document_count": 9,
+        "cluster": 0,
+        "x": -0.8267,
+        "y": 0.5233
+      },
+      {
+        "term": "외관검사",
+        "document_count": 8,
+        "cluster": 0,
+        "x": -0.6939,
+        "y": 0.6914
+      },
+      {
+        "term": "기상",
+        "document_count": 7,
+        "cluster": 2,
+        "x": 0.7764,
+        "y": -0.0908
+      },
+      {
+        "term": "해수면",
+        "document_count": 7,
+        "cluster": 2,
+        "x": 0.7353,
+        "y": 0.1385
+      },
+      {
+        "term": "터널형",
+        "document_count": 6,
+        "cluster": 0,
+        "x": -0.9087,
+        "y": 0.7137
+      }
+    ],
+    "edges": [
+      {
+        "source": "설비",
+        "target": "예지보전",
+        "weight": 24
+      },
+      {
+        "source": "검사",
+        "target": "비전",
+        "weight": 18
+      },
+      {
+        "source": "예지보전",
+        "target": "징후",
+        "weight": 17
+      },
+      {
+        "source": "분석",
+        "target": "설비",
+        "weight": 16
+      },
+      {
+        "source": "분석",
+        "target": "예지보전",
+        "weight": 16
+      },
+      {
+        "source": "설비",
+        "target": "징후",
+        "weight": 16
+      },
+      {
+        "source": "분석",
+        "target": "징후",
+        "weight": 14
+      },
+      {
+        "source": "설비",
+        "target": "평가",
+        "weight": 14
+      },
+      {
+        "source": "LG전자",
+        "target": "설비",
+        "weight": 13
+      },
+      {
+        "source": "LG전자",
+        "target": "예지보전",
+        "weight": 13
+      },
+      {
+        "source": "설비",
+        "target": "손실",
+        "weight": 13
+      },
+      {
+        "source": "설비",
+        "target": "에이전트",
+        "weight": 13
+      },
+      {
+        "source": "설비",
+        "target": "위험성",
+        "weight": 13
+      },
+      {
+        "source": "손실",
+        "target": "예지보전",
+        "weight": 13
+      },
+      {
+        "source": "예지보전",
+        "target": "위험성",
+        "weight": 13
+      },
+      {
+        "source": "예지보전",
+        "target": "평가",
+        "weight": 13
+      },
+      {
+        "source": "위험성",
+        "target": "평가",
+        "weight": 13
+      },
+      {
+        "source": "LG전자",
+        "target": "위험성",
+        "weight": 12
+      },
+      {
+        "source": "LG전자",
+        "target": "징후",
+        "weight": 12
+      },
+      {
+        "source": "LG전자",
+        "target": "평가",
+        "weight": 12
+      },
+      {
+        "source": "발전량",
+        "target": "분석",
+        "weight": 12
+      },
+      {
+        "source": "발전량",
+        "target": "설비",
+        "weight": 12
+      },
+      {
+        "source": "발전량",
+        "target": "손실",
+        "weight": 12
+      },
+      {
+        "source": "발전량",
+        "target": "예지보전",
+        "weight": 12
+      },
+      {
+        "source": "발전량",
+        "target": "원인",
+        "weight": 12
+      },
+      {
+        "source": "발전량",
+        "target": "징후",
+        "weight": 12
+      },
+      {
+        "source": "분석",
+        "target": "손실",
+        "weight": 12
+      },
+      {
+        "source": "분석",
+        "target": "에이전트",
+        "weight": 12
+      },
+      {
+        "source": "분석",
+        "target": "원인",
+        "weight": 12
+      },
+      {
+        "source": "설비",
+        "target": "원인",
+        "weight": 12
+      },
+      {
+        "source": "손실",
+        "target": "원인",
+        "weight": 12
+      },
+      {
+        "source": "에이전트",
+        "target": "예지보전",
+        "weight": 12
+      },
+      {
+        "source": "예지보전",
+        "target": "원인",
+        "weight": 12
+      },
+      {
+        "source": "위험성",
+        "target": "징후",
+        "weight": 12
+      },
+      {
+        "source": "징후",
+        "target": "평가",
+        "weight": 12
+      },
+      {
+        "source": "LG전자",
+        "target": "에이전트",
+        "weight": 11
+      },
+      {
+        "source": "검사",
+        "target": "장비",
+        "weight": 11
+      },
+      {
+        "source": "발전량",
+        "target": "에이전트",
+        "weight": 11
+      },
+      {
+        "source": "분석",
+        "target": "점검",
+        "weight": 11
+      },
+      {
+        "source": "비전",
+        "target": "카메라",
+        "weight": 11
+      },
+      {
+        "source": "상태",
+        "target": "예지보전",
+        "weight": 11
+      },
+      {
+        "source": "설비",
+        "target": "일정",
+        "weight": 11
+      },
+      {
+        "source": "설비",
+        "target": "점검",
+        "weight": 11
+      },
+      {
+        "source": "예지보전",
+        "target": "일정",
+        "weight": 11
+      },
+      {
+        "source": "예지보전",
+        "target": "점검",
+        "weight": 11
+      },
+      {
+        "source": "위험성",
+        "target": "일정",
+        "weight": 11
+      },
+      {
+        "source": "위험성",
+        "target": "점검",
+        "weight": 11
+      },
+      {
+        "source": "일정",
+        "target": "점검",
+        "weight": 11
+      },
+      {
+        "source": "일정",
+        "target": "평가",
+        "weight": 11
+      },
+      {
+        "source": "검사",
+        "target": "외관",
+        "weight": 10
+      },
+      {
+        "source": "발전량",
+        "target": "탐지",
+        "weight": 10
+      },
+      {
+        "source": "분석",
+        "target": "탐지",
+        "weight": 10
+      },
+      {
+        "source": "설비",
+        "target": "탐지",
+        "weight": 10
+      },
+      {
+        "source": "손실",
+        "target": "탐지",
+        "weight": 10
+      },
+      {
+        "source": "에이전트",
+        "target": "탐지",
+        "weight": 10
+      },
+      {
+        "source": "검사",
+        "target": "카메라",
+        "weight": 9
+      },
+      {
+        "source": "검사",
+        "target": "품질",
+        "weight": 9
+      },
+      {
+        "source": "기아",
+        "target": "비전",
+        "weight": 9
+      },
+      {
+        "source": "상태",
+        "target": "설비",
+        "weight": 9
+      },
+      {
+        "source": "상태",
+        "target": "징후",
+        "weight": 9
+      },
+      {
+        "source": "3D",
+        "target": "검사",
+        "weight": 7
+      },
+      {
+        "source": "검사",
+        "target": "비전검사",
+        "weight": 7
+      },
+      {
+        "source": "기상",
+        "target": "발전량",
+        "weight": 7
+      },
+      {
+        "source": "기상",
+        "target": "분석",
+        "weight": 7
+      },
+      {
+        "source": "기상",
+        "target": "설비",
+        "weight": 7
+      },
+      {
+        "source": "기상",
+        "target": "손실",
+        "weight": 7
+      },
+      {
+        "source": "기상",
+        "target": "에이전트",
+        "weight": 7
+      },
+      {
+        "source": "기상",
+        "target": "해수면",
+        "weight": 7
+      },
+      {
+        "source": "기아",
+        "target": "외관검사",
+        "weight": 7
+      },
+      {
+        "source": "발전량",
+        "target": "해수면",
+        "weight": 7
+      },
+      {
+        "source": "분석",
+        "target": "상태",
+        "weight": 7
+      },
+      {
+        "source": "분석",
+        "target": "해수면",
+        "weight": 7
+      },
+      {
+        "source": "비전",
+        "target": "외관검사",
+        "weight": 7
+      },
+      {
+        "source": "비전",
+        "target": "장비",
+        "weight": 7
+      },
+      {
+        "source": "설비",
+        "target": "해수면",
+        "weight": 7
+      },
+      {
+        "source": "손실",
+        "target": "해수면",
+        "weight": 7
+      },
+      {
+        "source": "LG전자",
+        "target": "상태",
+        "weight": 6
+      },
+      {
+        "source": "검사",
+        "target": "불량",
+        "weight": 6
+      },
+      {
+        "source": "기아",
+        "target": "터널형",
+        "weight": 6
+      },
+      {
+        "source": "비전",
+        "target": "터널형",
+        "weight": 6
+      },
+      {
+        "source": "설비",
+        "target": "품질",
+        "weight": 6
+      },
+      {
+        "source": "외관검사",
+        "target": "터널형",
+        "weight": 6
+      },
+      {
+        "source": "3D",
+        "target": "비전",
+        "weight": 5
+      },
+      {
+        "source": "검사",
+        "target": "결함",
+        "weight": 5
+      },
+      {
+        "source": "검사",
+        "target": "기아",
+        "weight": 5
+      },
+      {
+        "source": "비전",
+        "target": "외관",
+        "weight": 5
+      },
+      {
+        "source": "외관",
+        "target": "장비",
+        "weight": 5
+      },
+      {
+        "source": "장비",
+        "target": "카메라",
+        "weight": 5
+      },
+      {
+        "source": "3D",
+        "target": "기아",
+        "weight": 4
+      },
+      {
+        "source": "검사",
+        "target": "외관검사",
+        "weight": 4
+      },
+      {
+        "source": "분석",
+        "target": "장비",
+        "weight": 4
+      },
+      {
+        "source": "불량",
+        "target": "품질",
+        "weight": 4
+      },
+      {
+        "source": "예지보전",
+        "target": "품질",
+        "weight": 4
+      },
+      {
+        "source": "3D",
+        "target": "결함",
+        "weight": 3
+      },
+      {
+        "source": "결함",
+        "target": "비전",
+        "weight": 3
+      },
+      {
+        "source": "결함",
+        "target": "외관",
+        "weight": 3
+      },
+      {
+        "source": "기아",
+        "target": "카메라",
+        "weight": 3
+      },
+      {
+        "source": "분석",
+        "target": "품질",
+        "weight": 3
+      },
+      {
+        "source": "불량",
+        "target": "비전",
+        "weight": 3
+      },
+      {
+        "source": "불량",
+        "target": "장비",
+        "weight": 3
+      },
+      {
+        "source": "외관",
+        "target": "외관검사",
+        "weight": 3
+      },
+      {
+        "source": "외관",
+        "target": "카메라",
+        "weight": 3
+      },
+      {
+        "source": "3D",
+        "target": "설비",
+        "weight": 2
+      },
+      {
+        "source": "3D",
+        "target": "터널형",
+        "weight": 2
+      },
+      {
+        "source": "검사",
+        "target": "터널형",
+        "weight": 2
+      },
+      {
+        "source": "결함",
+        "target": "기아",
+        "weight": 2
+      },
+      {
+        "source": "분석",
+        "target": "불량",
+        "weight": 2
+      },
+      {
+        "source": "비전검사",
+        "target": "설비",
+        "weight": 2
+      },
+      {
+        "source": "비전검사",
+        "target": "장비",
+        "weight": 2
+      }
+    ],
+    "clusters": [
+      [
+        "검사",
+        "비전",
+        "장비",
+        "품질",
+        "비전검사",
+        "외관",
+        "카메라",
+        "불량",
+        "3D",
+        "결함",
+        "기아",
+        "외관검사",
+        "터널형"
+      ],
+      [
+        "설비",
+        "예지보전",
+        "징후",
+        "평가",
+        "LG전자",
+        "상태",
+        "위험성",
+        "점검",
+        "일정"
+      ],
+      [
+        "분석",
+        "에이전트",
+        "손실",
+        "발전량",
+        "원인",
+        "탐지",
+        "기상",
+        "해수면"
+      ]
+    ],
+    "note": "아이디어와 가까운 뉴스 제목·요약에서 같은 기사에 함께 나온 명사를 이은 것이며, 시장 수요나 인과관계의 근거가 아닙니다.",
     "error_message": null
   },
   "unknowns": [
