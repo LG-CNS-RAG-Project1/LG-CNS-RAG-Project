@@ -270,6 +270,19 @@ flowchart TD
 - 샘플 결과(묶음 대표 명사): SF-01 자동화·도입·협동로봇 / 비용·중소·부담 / 중소기업·투자·무인공장, SF-02 검사·비전·외관검사 / 설비·예지보전·징후 / 분석·에이전트·손실, SF-04 공장·전력·공장에너지관리시스템 / 절감·전기료·피크·스케줄링 / 비용·LS일렉트릭·에이스침대, SF-05 최적화·데이터·실시간 / 자동화·제어·자율제조·장벽.
 - 한계: 같은 사건을 다룬 비슷한 기사가 여러 건이면(예: 반월시화 무인공장, LG전자 조력발전소 AI) 그 기사 표현이 한 묶음을 이룬다. 제목·요약만 쓰므로 본문의 연결은 반영하지 않는다.
 
+## 공공 조달 공고
+
+시장 화면에서 아이디어와 같은 제품·서비스를 공공 부문이 어떤 예산으로 사는지 보여 주기 위해 조달청 나라장터 입찰공고를 붙인다(`MarketReport.procurement`). 공공기관·대학·연구기관 구매가 대부분이라 민간 고객 수요의 근거가 아니며 차원별 판정에 쓰지 않는다.
+
+- 자료: 공공데이터포털 '조달청_나라장터 입찰공고정보서비스'의 물품·용역 공고명 검색(`/1230000/ad/BidPublicInfoService`). 이전 주소(`BidPublicInfoService04`)는 폐기됐다. 한 요청의 조회 기간이 약 1개월로 제한돼(12개월 요청은 `07 입력범위값 초과`) 기준일 직전 달까지 6개월을 달마다 조회하고, 끝난 달은 `data/market/procurement/`에 캐시한다. 주제어 2개 기준 첫 조회는 24회 호출이다.
+- 주제어: 검색 관심도에서 고른 `search_trend.keywords`(대표 범주 + 다른 이름)를 그대로 쓴다. 주제어가 없으면 조회하지 않는다.
+- 개인정보: 공고에는 담당 공무원 이름·전화·이메일이 있어 `NOTICE_FIELDS`의 공고 정보만 저장·반환한다.
+- 중복: 같은 공고번호는 마지막 차수, 번호가 바뀌는 재공고는 '(재공고)'·'[번호]'·'수의)(재)' 같은 머리말과 재공고 표시를 뺀 공고명과 수요기관이 같으면 최근 1건만 남긴다. 취소공고는 뺀다.
+- 관련성: API는 공백을 무시하고 글자를 찾아 '용접'에 '전동차용 접지브러쉬'가 걸린다. LLM이 공고명·세부품명으로 같은 제품·서비스 범주인지 판정한다. 한 번에 공고 목록 전체를 주고 관련 번호만 받으면 '협동로봇 구매' 같은 단순 구매를 자주 빠뜨려(69건 중 10건), 20건씩 나눠 공고마다 `relevant`를 받는다(38건 중 27건).
+- 구매 주체: 수요기관 이름으로 민간 기업·대학·학교·연구기관·공공기관을 나눈다(`configs/procurement.yaml`의 `buyer_types`).
+- 시험(2026-04~09): 협동로봇·코봇 관련 27건, 대학·학교 15·연구기관 9·공공기관 2·민간 기업 1(지역주도형 AI대전환 지원사업), 1대 구매 예산 약 2,900만~5,800만 원. 비전검사·머신비전 관련 2건(스마트 생태공장 구축사업 비전 검사장치 2.2억 원 등).
+- 한계: 공고 예산은 낙찰가가 아니다. 공고명 검색이라 공고명에 주제어가 없는 구매는 빠진다. 민간 기업 공고는 정부 지원사업 집행분이 대부분이다.
+
 ## 단계별 코드 위치
 
 | 단계 | 위치 |
@@ -286,6 +299,7 @@ flowchart TD
 | 시장 조사 진입점 | `src/services/market_service.py` |
 | 검색 관심도 흐름 | `configs/search_trend.yaml`, `prompts/market_trend_terms.md`, `src/ingestion/trend_client.py` → `data/market/trends/`, `src/services/market_trend.py`, `frontend/market_trend_view.py` |
 | 키워드 동시 출현 네트워크 | `configs/keyword_network.yaml`, `src/services/market_network.py`, `frontend/market_network_view.py` |
+| 공공 조달 공고 | `configs/procurement.yaml`, `src/ingestion/procurement_client.py` → `data/market/procurement/`, `prompts/market_procurement_relevance.md`, `src/services/market_procurement.py`, `frontend/market_procurement_view.py` |
 | 보고서용 마크다운 섹션 | `src/generation/market_markdown.py` |
 | 연결 계약 (입력·출력·오류) | `docs/api_contract.md` |
 | 시장 분석 생성 규칙 | `prompts/market_analysis.md`, `src/generation/market_analysis.py` |
