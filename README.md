@@ -298,6 +298,8 @@ docker compose run --rm app python -m src.pipeline run --idea-id SF-02 --out rep
 | `NAVER_TREND_CLIENT_ID` · `NAVER_TREND_CLIENT_SECRET` | 검색어 트렌드(Search Trend) API를 활성화한 NAVER API HUB Application의 Client ID·Secret. 없으면 시장 보고서의 검색 관심도 흐름만 오류로 표시된다 |
 | `DATA_GO_KR_SERVICE_KEY` | 공공데이터포털 일반 인증키(Decoding 값). '조달청_나라장터 입찰공고정보서비스' 활용신청이 필요하다. 없으면 시장 보고서의 공공 조달 공고만 오류로 표시된다 |
 | `IDEALENS_MARKET_TIMEOUT` · `IDEALENS_PATENT_TIMEOUT` | (선택) 통합 분석의 영역별 제한 시간(초). 기본 120·180 |
+| `IDEALENS_PATENT_RETRIEVAL_MODE` | (선택) 특허 서비스 검색 방식: `dense`(기본), `bm25`, `hybrid` |
+| `IDEALENS_PATENT_RERANKER` | (선택) `none`(기본) 또는 `bge-cross-encoder`. 후자는 `sentence-transformers`와 모델 다운로드가 필요 |
 | `IDEALENS_SERIAL` | (선택) `1`이면 시장·특허 조사를 순차 실행 |
 | `IDEALENS_APP_PASSWORD` | (호스팅 배포) 접속 비밀번호. 비어 있으면 비밀번호 화면을 띄우지 않는다(로컬 실행) |
 | `CHROMA_HOST`·`CHROMA_PORT`·`CHROMA_SSL`·`CHROMA_API_KEY` | (선택) 팀 공용 Chroma 접속. 비우면 로컬 Chroma. HTTPS 키 접속은 `443`·`true` |
@@ -377,9 +379,9 @@ python -m evaluation.patent_labeling export              # SF-02/SF-05 특허 �
 - 오프라인 파이프라인 점검용 합성 데이터는 `evaluation/fixtures/patent_retrieval_synthetic_v1.json`에 있다. `python -m evaluation.patent_fixture`로 문헌·질의·관련도 참조 무결성과 데이터 SHA-256을 확인한다. 가상 데이터이므로 실제 특허 검색 성능 평가나 제품 성능 주장의 근거로 사용하지 않는다.
 - `evaluation/patent_cases.json`은 샘플 아이디어에서 고정한 5개 특허 검색 질의로 시작하며, 정답 문헌 라벨은 비어 있다.
 - 특허 원문을 수집·색인한 뒤 `python -m evaluation.patent_labeling export`로 Dense·BM25·Hybrid 상위 후보를 같은 CSV에 모은다. 선택적으로 `--reranker bi-encoder` 또는 `--reranker cross-encoder`를 주면 각 Hybrid 재정렬 후보도 포함한다.
-- 후보 CSV에서 각 문헌의 `relevant`를 `1`(관련) 또는 `0`(비관련)으로 사람 검토 후 채우고 `python -m evaluation.patent_labeling import`로 라벨을 반영한다. 모든 후보를 판정한 문항만 평가에 포함한다.
+- 후보 CSV에서 사람 검토를 끝낸 문헌은 `relevant`를 `1`(관련) 또는 `0`(비관련), `review_status=reviewed`, `label_source=human`으로 기록한다. 판정이 어려운 문헌은 `review_status=hold`로 남기며, AI 초안은 `label_source=ai_draft`로 표시해 사람 정답으로 집계하지 않는다. 모든 후보가 사람 검토 완료된 문항만 평가에 포함한다.
 - 실제 `PatentReport` JSON의 구성요소 주장과 연결된 원문 인용을 검토하려면 `python -m evaluation.patent_groundedness export <report.json>`으로 사람 검토 CSV를 만들고, 라벨 입력 후 `python -m evaluation.patent_groundedness score <labels.csv>`로 분포·파일 지문을 저장한다. 라벨 기준은 [특허 주장 근거 지지 검토 가이드](evaluation/patent_groundedness.md)를 따른다.
-- 동일한 문헌 단위 정답셋으로 `python -m evaluation.evaluate patent --mode dense --label baseline`, `--mode bm25`, `--mode hybrid`, `--mode hybrid --reranker bi-encoder`, `--mode hybrid --reranker cross-encoder --candidate-k 40`을 실행해 Hit@5·Recall@5·Precision@5·MRR·nDCG@5와 검색·리랭킹 지연시간을 비교한다. 결과 CSV는 `evaluation/results/`에 저장한다. `--candidate-k` 비교 시 다른 조건은 고정하고, 새 Top-5 문헌이 미판정이면 먼저 추가 라벨링한다.
+- 동일한 문헌 단위 정답셋으로 `python -m evaluation.evaluate patent --mode dense --label baseline`, `--mode bm25`, `--mode hybrid`, `--mode hybrid --reranker bi-encoder`, `--mode hybrid --reranker cross-encoder --candidate-k 40`을 실행해 Hit@5·Recall@5·Precision@5·MRR·nDCG@5와 후보 풀 Recall@candidate-k, 검색·리랭킹 지연시간을 비교한다. 후보 풀 재현율의 분모는 해당 케이스에서 사람 검토된 관련 문헌이며, 라벨 후보에 포함되지 않은 전체 코퍼스 관련 문헌까지 의미하지 않는다. 결과 CSV는 `evaluation/results/`에 저장한다. `--candidate-k` 비교 시 다른 조건은 고정하고, 새 Top-5 문헌이 미판정이면 먼저 추가 라벨링한다.
 - 검색 결과에서 나온 적 없는 문헌이 top-K에 나타나면 `unjudged`로 따로 세므로 라벨 후보를 추가 검토한다. 평가 문항이 라벨되기 전에는 성능 수치를 보고하지 않는다.
 - Dense·Hybrid 검색과 Bi-Encoder 재정렬은 `OPENAI_API_KEY`가 필요하며 후보 문헌을 매 질의 다시 임베딩한다. 평가 도구는 임베딩 비용을 자동 계산하지 않는다. Cross-Encoder는 `sentence-transformers`와 모델 파일을 별도로 설치해야 한다.
 
@@ -389,12 +391,42 @@ python -m evaluation.patent_labeling export              # SF-02/SF-05 특허 �
 python -m evaluation.patent_domain_experiment run   # SF-05 질문을 SF-05·SF-02 로컬 색인에서 검색
 python -m evaluation.patent_domain_experiment score # 후보 사람 라벨 완료 후 지표 계산
 python -m evaluation.patent_index_effect --rebuild-cache # SF-05 사전색인과 매 요청 임베딩 시간 비교
+python -m evaluation.patent_candidate_budget run --limit 150 # 확장 코퍼스에서 고정 배치 후보 수 비교
+python -m evaluation.patent_candidate_budget run --resume # 저장된 코퍼스·색인 재사용 후 비교 재개
+python -m evaluation.patent_candidate_budget score # 후보 사람 라벨 완료 후 후보 제한별 품질 비교
 ```
 
 - 비교 스크립트는 `data/patents/chroma/`의 로컬 `patents` 컬렉션을 직접 열어 공용 Chroma 설정과 분리한다. 기존 로컬 색인의 SF-05(지능형 공정제어)와 비교 분야 SF-02(AI 비전 품질검사) 임베딩을 분야별 필터로 검색한다. 새 특허를 추가할 때는 수집·정제 및 기존 특허 색인 구축 절차를 따른다.
-- SF-05 평가 질의와 동일한 Top-20 후보 풀에서 Dense·BM25·Hybrid를 비교한다. 검색 순위가 포함된 `rankings.csv`와 순위·방식을 감춘 `candidates.csv`는 Git 제외 경로 `data/patents/processed/domain_experiment/`에 생성된다. 후보의 `relevant`를 사람이 0/1로 판정하고, 기존 [특허 평가 라벨링 가이드](evaluation/patent_labeling.md)에 따라 애매한 후보는 보류한 뒤 `score`를 실행한다.
-- Hit@5·Recall@5·Precision@5·MRR@5·nDCG@5는 라벨 완료된 후보 풀 기준으로만 계산한다. 평가 문항과 특허 표본이 작으므로 결과는 해당 색인·질의의 예비 비교로 해석한다. Dense·Hybrid 검색은 질의 임베딩에 `OPENAI_API_KEY`가 필요하다.
+- SF-05 평가 질의와 동일한 Top-20 후보 풀에서 Dense·BM25·Hybrid를 비교한다. 검색 순위가 포함된 `rankings.csv`와 순위·방식을 감춘 `candidates.csv`는 Git 제외 경로 `data/patents/processed/domain_experiment/`에 생성된다. 재실행할 때 같은 문헌의 기존 라벨과 검토 메모를 보존한다. 각 후보는 `relevant=0/1`, `review_status=reviewed`, `label_source=human`으로 표시하고, 애매한 후보는 `hold`로 남긴 뒤 `score`를 실행한다.
+- Hit@5·Recall@5·Precision@5·MRR@5·nDCG@5와 실제 후보 풀 Recall을 사람 검토된 후보만으로 계산한다. Recall의 분모는 방식별 결과 합집합에서 판정한 관련 문헌이므로 전체 특허 코퍼스 기준 재현율이 아니다. 평가 문항과 특허 표본이 작으므로 결과는 해당 색인·질의의 예비 비교로 해석한다. Dense·Hybrid 검색은 질의 임베딩에 `OPENAI_API_KEY`가 필요하다.
 - `patent_index_effect`는 SF-05 특허 청크를 실험 전용 로컬 Chroma에 한 번 색인한 경로와, 질의마다 문서 전체를 다시 임베딩하는 경로의 임베딩 입력 수·API 요청 수·시간·Top-5 순위 일치도를 비교한다. 전자는 색인 구축 시간을 별도로 기록하고, 실측 질의 시간 절감으로 단순 손익분기 질의 수를 계산한다. 결과는 Git 제외 경로 `data/patents/processed/domain_experiment/index_effect.json`에 저장된다. 비교 실행은 특허 본문을 임베딩 API로 보낸다. 단일 실행 시간은 네트워크 변동을 포함하며, 검색 품질 지표는 사람 라벨을 완료한 뒤 해석한다.
+- `patent_candidate_budget`은 SF-05 설정 검색어당 KIPRIS 최대 150건을 수집해 별도 로컬 색인을 만든다. 질의마다 임베딩 API 입력을 최대 100개로 제한한 비교에서 무색인 경로는 BM25 상위 99개 후보와 질의를 함께 임베딩하고, 사전색인 경로는 미리 저장한 전체 특허 벡터를 검색한다. 따라서 이 실험은 고정된 쿼리 임베딩 예산에서 전체 벡터 후보를 검색할 때의 효과를 평가한다. 전체 코퍼스를 매 질의 임베딩할 수 있는 무색인 방식과 비교하면 후보 수와 의미 순위는 원칙적으로 같아야 하며, 사전색인 자체가 검색 품질을 자동으로 높인다고 해석하지 않는다. 각 방식의 Top-20 합집합만 블라인드 후보 CSV에 담아 관련도를 판정한 뒤 Hit@5·Precision@5·MRR@5·nDCG@5와 판정 후보 풀 기준 Recall@5를 계산한다. 판정 후보 풀 밖의 문헌 수는 미판정으로 별도 기록한다. CSV `note`가 `AI 초안`으로 시작하면 제목·초록을 이용한 자동 판정으로 간주하며, 지표 파일과 결과 JSON에도 해당 라벨 출처를 남긴다. AI 초안은 사람 판정을 대체하지 않는다. 특허 원문·색인·결과는 Git 제외 `data/patents/processed/domain_experiment/candidate_budget/`에 보관한다. 수집·임베딩은 각각 KIPRIS·OpenAI API를 사용하고 공유 Chroma에는 쓰지 않는다. 중단 후에는 `--resume`으로 저장된 코퍼스와 동일한 로컬 색인을 확인해 재사용한다.
+
+### 특허 청킹·문헌 집계·리랭킹 실험
+
+```bash
+python -m evaluation.patent_chunk_rerank_experiment inventory
+python -m evaluation.patent_chunk_rerank_experiment run
+python -m evaluation.patent_chunk_rerank_experiment run --with-cross-encoder  # 선택 의존성·모델 사용
+python -m evaluation.patent_chunk_rerank_experiment score  # 사람 라벨 작성 후 실행
+```
+
+- 실험은 정제된 `data/patents/processed/patent_docs.jsonl`과 5개 평가 질의로 SF-05 지능형 공정제어 및 SF-02 AI 비전 품질검사를 비교한다. 인벤토리는 코퍼스 fingerprint, 분야별 초록·청구항 수, 로컬 Chroma snapshot fingerprint와 기존 246개 청크 내용의 일치 여부를 기록한다.
+- BM25 기준에서 `baseline_max`, 독립항 중심, 상위항 문맥 결합, 상위 3개 청크 평균, 초록·독립항·종속항 가중 집계를 비교한다. 가중치는 실험 상수이며 최적값으로 학습된 값이 아니다. 특허 버전 중복이 발견되면 문헌 단위로 잘못 합치지 않도록 실험을 중단한다.
+- Cross-Encoder는 `--with-cross-encoder`를 명시한 경우에만 실행한다. `sentence-transformers` 및 BGE 모델 사용이 가능하면 같은 질의·분야의 baseline Top-K 후보를 고정하고 제목+초록+독립항 입력과 청구항 전용 입력을 비교한다. 모델 로드·검색·리랭킹 시간을 분리한다. 기본 서비스 검색 설정은 바뀌지 않는다.
+- 순위와 실험 방식은 `rankings.csv`에, 원문·청구항·KIPRIS 링크가 포함된 방식 비공개 검토 후보는 `candidates.csv`에 기록한다. 두 파일, 인벤토리, 지표는 Git 제외 경로 `data/patents/processed/chunk_rerank_experiment/`에 저장되고 재실행해도 같은 후보의 사람 라벨과 메모를 보존한다. 라벨은 원문과 청구항을 확인해 `relevant=0/1`, `review_status=reviewed`, `label_source=human`으로 작성한다. 판단 보류는 `review_status=hold`로 남긴다.
+- `score`는 각 질의·분야 후보 풀 전체가 사람에 의해 판정된 경우에만 지표를 계산한다. Candidate Recall@K의 분모는 해당 실험 후보 풀의 사람 검토 관련 문헌이며 전체 특허 모집단 재현율이 아니다. 무관련 후보만 나온 질의는 별도 집계하고 macro 지표에서 제외한다. 미판정·보류·AI 초안은 정답이 아니다.
+- 현재 로컬 분야별 문헌 수는 14건이고 후보 K 기본값은 20이므로 후보 단계가 코퍼스를 줄이지 않는다. Cross-Encoder 의존성이나 사람 라벨을 사용할 수 없으면 비교·품질 지표가 제한되며, 이 실험만으로 품질 개선을 주장하지 않는다. 자세한 라벨 기준은 [특허 평가 라벨링 가이드](evaluation/patent_labeling.md)를 참고한다.
+
+### 특허 질의·필드 순위 결합 실험
+
+```bash
+python -m evaluation.patent_fusion_experiment run
+```
+
+- 동일한 5개 질의·분야별 로컬 코퍼스에서 기준 BM25와 질의 표현 순위 RRF, 초록·독립항·종속항 순위 RRF, 필드별 가중 RRF를 비교한다. 기본 가중치는 실험 가설이며 학습되거나 운영 검색에 적용된 값이 아니다.
+- 결과 순위와 지표는 Git 제외 경로 `data/patents/processed/query_fusion_experiment/`에 기록한다. 기존 청킹 실험 후보 CSV의 출처별 라벨을 사용하며 AI 초안 지표는 탐색용으로만 표시한다. 사람 라벨 지표는 해당 질의·분야 후보 풀 전체가 `review_status=reviewed`, `label_source=human`으로 판정된 경우에만 별도로 계산한다.
+- 현재 코퍼스는 분야별 14건이고 후보 풀이 코퍼스 전체를 포함하므로 Recall@20은 후보 생성 개선을 판별하지 못한다. 사람 검토 라벨과 더 넓은 후보 풀을 확보하기 전에는 운영 검색 품질 개선으로 해석하지 않는다. 분류코드가 현재 정제 데이터에 없으면 IPC/CPC 보조 점수는 비교하지 않는다.
 
 ### 특허 청구항 분석
 
