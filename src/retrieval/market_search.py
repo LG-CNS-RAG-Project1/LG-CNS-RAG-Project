@@ -26,12 +26,7 @@ from chromadb.api import ClientAPI
 from src.retrieval.chroma_client import connect_chroma
 from dotenv import load_dotenv
 
-from src.schemas import (
-    ALL_DIMENSIONS,
-    IDEA_FIELDS,
-    MarketDocument,
-    MarketSearchRequest,
-)
+from src.schemas import IDEA_FIELDS, MarketDocument, MarketSearchRequest
 from src.retrieval.engine import RetrievalConfig, retrieve
 from src.retrieval.schemas import RetrievalResult, SearchDocument
 
