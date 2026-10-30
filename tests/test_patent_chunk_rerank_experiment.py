@@ -1,6 +1,7 @@
 from evaluation.patent_chunk_rerank_experiment import (
     aggregate_patent_scores,
     build_experiment_chunks,
+    build_reranker_document,
     corpus_fingerprint,
     corpus_inventory,
 )
@@ -124,3 +125,24 @@ def test_aggregation_limits_duplicate_chunk_influence_and_preserves_evidence():
     assert maximum[0]["depends_on"]["2"] == [1]
     assert top_mean[0]["score"] == 0.95
     assert weighted[0]["matched_sections"] == ["abstract", "claims"]
+
+
+def test_reranker_profiles_select_controlled_text_and_record_input_sections():
+    patent = sample_patent()
+
+    combined = build_reranker_document(patent, "title_abstract_independent")
+    claims_only = build_reranker_document(patent, "claims_only")
+
+    assert "공정 제어 장치" in combined.content
+    assert "공정 데이터를 이용해 제어 조건을 조정한다." in combined.content
+    assert "독립항 1" in combined.content
+    assert "현재 청구항" not in claims_only.content
+    assert "청구항 1 (independent)" in claims_only.content
+    assert "청구항 2 (dependent)" in claims_only.content
+    assert combined.metadata["input_sections"] == [
+        "title",
+        "abstract",
+        "independent_claims",
+    ]
+    assert claims_only.metadata["input_sections"] == ["claims"]
+    assert combined.metadata["version_id"] == "V1"

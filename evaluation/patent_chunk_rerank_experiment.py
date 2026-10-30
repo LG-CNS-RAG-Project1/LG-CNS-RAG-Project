@@ -20,6 +20,7 @@ from evaluation.evaluate import (
     reciprocal_rank,
 )
 from evaluation.patent_labeling import load_cases
+from src.retrieval.schemas import SearchDocument
 from src.schemas import PatentChunk, PatentClaim, PatentDocument
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
@@ -288,6 +289,47 @@ def aggregate_patent_scores(
         )
     return sorted(
         output, key=lambda item: (-item["score"], item["patent_id"], item["version_id"])
+    )
+
+
+def build_reranker_document(patent: PatentDocument, profile: str) -> SearchDocument:
+    """Format a patent candidate for controlled Cross-Encoder input profiles."""
+    if profile not in {"title_abstract_independent", "claims_only"}:
+        raise ValueError("profile must be title_abstract_independent or claims_only")
+    claims = patent.claim_items
+    if profile == "title_abstract_independent":
+        independent = [claim for claim in claims if claim.claim_type == "independent"]
+        sections = [
+            f"발명의 명칭: {patent.title}" if patent.title.strip() else "",
+            f"초록: {patent.abstract}" if patent.abstract.strip() else "",
+            *[f"독립항 {claim.claim_number}: {claim.text}" for claim in independent],
+        ]
+    else:
+        sections = [
+            f"청구항 {claim.claim_number} ({claim.claim_type}): {claim.text}"
+            for claim in claims
+        ]
+    content = "\n".join(section for section in sections if section)
+    if not content.strip():
+        content = patent.title or patent.patent_id
+    version = patent.claim_version_id or patent.publication_number or "unknown"
+    return SearchDocument(
+        chunk_id=f"{patent.patent_id}:{version}:rerank:{profile}",
+        source_id=patent.patent_id,
+        source_type="patent",
+        title="",
+        content=content,
+        metadata={
+            "profile": profile,
+            "input_sections": (
+                ["title", "abstract", "independent_claims"]
+                if profile == "title_abstract_independent"
+                else ["claims"]
+            ),
+            "version_id": version,
+            "publication_number": patent.publication_number,
+            "application_number": patent.application_number,
+        },
     )
 
 
