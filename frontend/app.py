@@ -62,9 +62,14 @@ st.html("""<style>
     </style>""")
 st.html(Path(__file__).with_name("styles.css").read_text(encoding="utf-8"))
 st.html(brand_style())
+_requested_page = st.query_params.get("page", "home")
+if _requested_page not in {"home", "patent-process"}:
+    _requested_page = "home"
+if _requested_page == "patent-process":
+    st.session_state["page"] = _requested_page
 for key, value in {
     "app_view": "landing",
-    "page": "home",
+    "page": _requested_page,
     "records": [],
     "stage": 1,
     "idea_page_view": "input",
@@ -1803,6 +1808,10 @@ def open_page(page):
     if s.page == "workspace" and s.idea_page_view == "input":
         s.idea_input_buffer = s.get("raw_input", s.raw)
     s.page = page
+    if page == "patent-process":
+        st.query_params["page"] = page
+    else:
+        st.query_params.pop("page", None)
     s.scroll_to_top = True
 
 
@@ -1985,6 +1994,13 @@ if s.page in ("about", "difference"):
     st.stop()
 if s.page == "history":
     render_history(s)
+    render_page_nav(s.page, open_page, resume_research, has_research=has_research)
+    settle_navigation()
+    st.stop()
+if s.page == "patent-process":
+    from frontend.patent_process_page import render_patent_process_page
+
+    render_patent_process_page()
     render_page_nav(s.page, open_page, resume_research, has_research=has_research)
     settle_navigation()
     st.stop()
