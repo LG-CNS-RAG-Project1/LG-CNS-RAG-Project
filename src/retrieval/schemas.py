@@ -26,6 +26,10 @@ class RetrievalResult(BaseModel):
 
 
 # 특허 검색 스키마
+# 기술 요소 최대 수: 화면 핵심 구성요소 최대 7개 + 구성요소 결합 기술 1개
+MAX_TECHNICAL_ELEMENTS = 8
+
+
 class PatentSearchQuery(BaseModel):
     """하나의 기술 요소에 대한 특허 검색어."""
 
@@ -37,4 +41,6 @@ class PatentSearchQuery(BaseModel):
 class PatentQueryPlan(BaseModel):
     """기술 요소별 특허 검색어 목록."""
 
-    queries: list[PatentSearchQuery] = Field(min_length=1, max_length=5)
+    queries: list[PatentSearchQuery] = Field(
+        min_length=1, max_length=MAX_TECHNICAL_ELEMENTS
+    )
