@@ -1352,9 +1352,9 @@ def render_patent_report(patent, *, widget_suffix="", preview=False):
                 chart_state = st.altair_chart(
                     chart,
                     key=(
-                        f"patent_orbit{widget_suffix}"
+                        f"patent_orbit_v3{widget_suffix}"
                         if preview
-                        else f"patent_orbit{widget_suffix}_{s.patent_orbit_chart_version}"
+                        else f"patent_orbit_v3{widget_suffix}_{s.patent_orbit_chart_version}"
                     ),
                     on_select="ignore" if preview else "rerun",
                     selection_mode=None if preview else click.name,

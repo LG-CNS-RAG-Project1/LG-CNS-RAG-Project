@@ -270,6 +270,8 @@ def test_direct_input_runs_followup_and_reaches_report(live, monkeypatch):
     )
     report = app.session_state.pipeline_result
     patent = report.patent
+    evidence = patent.evidence[0].model_copy(update={"similarity": float("nan")})
+    patent = patent.model_copy(update={"evidence": [evidence]})
     review = patent.patent_reviews[0].model_copy(update={"relevance_reason": "NaN"})
     app.session_state.pipeline_result = report.model_copy(
         update={"patent": patent.model_copy(update={"patent_reviews": [review]})}
@@ -301,7 +303,7 @@ def test_direct_input_runs_followup_and_reaches_report(live, monkeypatch):
     serialized = json.dumps(json.loads(charts[0].proto.spec), ensure_ascii=False)
     assert "우선 확인 이유" in serialized
     assert "Dense 검색 점수" in serialized
-    assert "0.720 · Dense 검색 점수 (확률 아님)" in serialized
+    assert '"미제공"' in serialized
     assert "우선 확인 이유 미제공" in serialized
     assert "핵심 요약" not in serialized
     assert '"nan"' not in serialized.lower()
