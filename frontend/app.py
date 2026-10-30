@@ -676,6 +676,14 @@ def start_report_workflow():
     )
     with WORKFLOW_JOBS_LOCK:
         WORKFLOW_JOBS[job_id] = {
+            "resume_context": dict(
+                draft=s.idea_draft.model_dump(),
+                parts=list(s.parts),
+                questions=deepcopy(s.questions),
+                area=s.technology_area_id,
+                raw=s.raw,
+                title=s.research_title,
+            ),
             "patent_report": None,
             "patent_run": None,
             "market_report": None,
@@ -916,16 +924,12 @@ def workflow_progress_fragment(compact=False):
             s.pipeline_result = partial_workflow_result(snapshot)
         s.stage = 4
         s.analysis_workflow_id = None
-        with WORKFLOW_JOBS_LOCK:
-            WORKFLOW_JOBS.pop(job_id, None)
         st.rerun(scope="app")
 
     if snapshot.get("result") is not None:
         s.pipeline_result = snapshot["result"]
         s.analysis_sources = snapshot.get("sources")
         s.analysis_workflow_id = None
-        with WORKFLOW_JOBS_LOCK:
-            WORKFLOW_JOBS.pop(job_id, None)
         st.rerun(scope="app")
     ready_key = (patent_ready, market_ready)
     if ready_key != s.get("workflow_ready_key") and any(ready_key):
@@ -1321,7 +1325,7 @@ def render_patent_report(patent, *, widget_suffix="", preview=False):
                     st.text(evidence.quote)
 
 
-def render_market_report(market, draft=None, widget_suffix=""):
+def _render_market_details(market, draft=None, widget_suffix=""):
     """실제 시장 근거·시각화와 조사 범위를 중심으로 보고서를 표시한다."""
     from src.generation.market_markdown import NATURE_LABELS
     from src.retrieval.market_relevance import DIMENSION_LABELS
@@ -1475,6 +1479,17 @@ def render_market_report(market, draft=None, widget_suffix=""):
         with st.expander(f"시장 조사 한계와 미확인 항목 ({len(market.unknowns)}건)"):
             for item in market.unknowns:
                 st.write(f"- {item}")
+
+
+def render_market_report(market, draft=None, widget_suffix=""):
+    """요약을 먼저 보여주고 팀 공용 상세 렌더러는 접어 제공한다."""
+    from frontend.report_reading import render_market_brief
+
+    if market.status == "error":
+        st.error("시장 조사를 완료하지 못했습니다. 상세에서 처리 상태를 확인해 주세요.")
+    render_market_brief(market)
+    with st.expander("상세 근거·시각화 펼쳐보기"):
+        _render_market_details(market, draft, widget_suffix)
 
 
 @st.dialog("완료된 단계 결과", width="large", on_dismiss=clear_workflow_preview)
@@ -1694,8 +1709,6 @@ def navigate(number):
             s.pipeline_result = job["result"]
             s.analysis_sources = job.get("sources")
             s.analysis_workflow_id = None
-            with WORKFLOW_JOBS_LOCK:
-                WORKFLOW_JOBS.pop(workflow_id, None)
     if number == 4:
         snapshot()
     s.stage = number
@@ -1864,7 +1877,58 @@ def settle_navigation():
 
 st.html('<div id="research-top"></div>')
 with st.container(key="brandbar"):
-    st.button("IdeaLens", key="home", on_click=open_page, args=("home",))
+    brand, intro, guide, records = st.columns([2.6, 1, 1, 1.1])
+    brand.button("IdeaLens", key="home", on_click=open_page, args=("home",))
+    intro.button("서비스 소개", key="header_about", on_click=open_page, args=("about",))
+    guide.button(
+        "왜 IdeaLens인가",
+        key="header_difference",
+        on_click=open_page,
+        args=("difference",),
+    )
+    records.button(
+        "내 기록", key="header_history", on_click=open_page, args=("history",)
+    )
+
+from frontend.workflow import prune_finished_jobs
+
+prune_finished_jobs()
+from frontend.workflow_resume import browser_workflow
+
+saved_workflow = browser_workflow(s.get("analysis_workflow_id"))
+if (
+    isinstance(saved_workflow, str)
+    and saved_workflow
+    and not s.get("analysis_workflow_id")
+    and not s.get("pipeline_result")
+):
+    with WORKFLOW_JOBS_LOCK:
+        recoverable = WORKFLOW_JOBS.get(saved_workflow)
+        context = (
+            deepcopy(recoverable.get("resume_context"))
+            if recoverable and not recoverable.get("cancelled")
+            else None
+        )
+    if context:
+        st.info(
+            "이 탭에서 시작한 분석이 있습니다. 추가 API 호출 없이 진행 상태와 결과를 다시 확인할 수 있습니다."
+        )
+        if st.button("이전 분석 이어보기", key="resume_previous_workflow"):
+            from src.schemas import IdeaDraft
+
+            s.idea_draft = IdeaDraft.model_validate(context["draft"])
+            s.parts, s.questions = context["parts"], context["questions"]
+            s.technology_area_id = context["area"]
+            s.raw, s.research_title = context["raw"], context["title"]
+            s.confirmed_context = True
+            s.real_mode = True
+            s.pipeline_error = None
+            s.analysis_workflow_id = saved_workflow
+            s.workflow_ready_key = (False, False)
+            s.stage = 2
+            resume_research()
+            st.rerun()
+
 
 if s.page != "workspace":
     if s.get("analysis_workflow_id"):
@@ -1931,7 +1995,7 @@ def review_navigation(number, label, column, key, *, icon=None):
         key=key,
         type=(
             "primary"
-            if s.stage == number or (key == "rail_2" and s.stage == 3)
+            if s.stage == number or (key in {"rail_2", "nav_2"} and s.stage == 3)
             else "secondary"
         ),
         disabled=not can_visit(number)
@@ -1947,6 +2011,18 @@ def review_navigation(number, label, column, key, *, icon=None):
             st.rerun(scope="app")
 
 
+with st.container(key="stage_navigation"):
+    for column, number, label in zip(
+        st.columns(3),
+        (1, 2, 4),
+        ("1 아이디어 구체화", "2 특허·시장 검토", "3 종합 보고서"),
+    ):
+        review_navigation(number, label, column, f"nav_{number}")
+if s.stage in (2, 3):
+    for column, number, label in zip(
+        st.columns(2), (2, 3), ("특허 비교", "시장성 분석")
+    ):
+        review_navigation(number, label, column, f"subnav_{number}")
 render_quick_nav(review_navigation, open_page)
 
 

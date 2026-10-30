@@ -136,8 +136,18 @@ def render_live_review(s, run, key_fn, navigate):
 def report_payload(s):
     """가공·추가 요약 없이 기존 분석과 시연 보고서를 문서 화면 계약으로 맞춘다."""
     if s.real_mode and s.pipeline_result:
-        r = s.pipeline_result
+        from src.pipeline import PipelineReport
+        from pydantic import ValidationError
+
+        try:
+            r = PipelineReport.model_validate(s.pipeline_result.model_dump())
+        except (ValidationError, AttributeError, TypeError):
+            return None
+        s.pipeline_result = r
         from frontend.decision_trace import decision_trace
+        from frontend.report_reading import grounded_review_result
+
+        summary_result, unsupported_count = grounded_review_result(r)
 
         rows = [
             {
@@ -148,6 +158,7 @@ def report_payload(s):
             for x in r.links
         ]
         return {
+            "unsupported_count": unsupported_count,
             "title": s.research_title or r.title,
             "raw": s.raw,
             "markdown": r.markdown,
@@ -155,7 +166,7 @@ def report_payload(s):
             "patent_count": len(r.patent.evidence),
             "market_count": len(r.market.evidence),
             "demo": False,
-            "dashboard": dashboard_data(r),
+            "dashboard": dashboard_data(summary_result),
             "decision_trace": decision_trace(r),
             "swot": r.swot.model_dump() if getattr(r, "swot", None) else None,
         }
@@ -192,12 +203,22 @@ def report_payload(s):
 
 
 def render_report(s, payload, archived=False):
+    if payload is None:
+        st.warning(
+            "이전 버전의 분석 결과를 현재 보고서 형식으로 읽을 수 없습니다. 아이디어를 유지한 채 분석을 다시 실행해 주세요."
+        )
+        return
     payload = deepcopy(payload)
     st.title(payload["title"])
     st.caption(
         "종합 보고서 / "
         + ("시연용 가상 자료" if payload["demo"] else "실제 조사 결과 · 원문 검토 필요")
     )
+    if payload.get("unsupported_count"):
+        st.warning(
+            f"원문 인용 연결을 확인하지 못한 판단 {payload['unsupported_count']}개는 요약 결론에서 제외했습니다. "
+            "보고서 원문은 분석 당시 출력이므로 판단 근거와 함께 확인하세요."
+        )
     summary, original = st.tabs(["보고서 요약", "보고서 원문"])
 
     with summary:
@@ -237,7 +258,7 @@ def render_report(s, payload, archived=False):
                 with st.container(height=140, border=True):
                     st.write(payload["rows"][selected_question]["기존 분석 결과"])
 
-    with original:
+    with summary:
         if payload.get("decision_trace"):
             from frontend.decision_trace import render_decision_trace
 
@@ -246,6 +267,7 @@ def render_report(s, payload, archived=False):
         else:
             st.info("이 기록에는 판단별 원문 연결이 없습니다.")
 
+    with original:
         cost_rows = s.cost_rows
         if not archived and s.real_mode and s.pipeline_result:
             from frontend.cost_view import render_cost_estimate
@@ -409,11 +431,35 @@ def render_history(s):
         if not s.records:
             st.info("보고서에서 ‘내 기록에 보관’을 눌러 기록을 남겨보세요.")
             return
+        record_titles = tuple(record["title"] for record in s.records)
         selected = st.radio(
             "보관한 조사",
             range(len(s.records)),
-            format_func=lambda i: s.records[i]["title"],
+            format_func=lambda i: record_titles[i],
         )
         st.caption(s.records[selected]["saved_at"])
+        record = s.records[selected]
+        pdf_text = record["markdown"] + record.get("appendix", "")
+        pdf_digest = sha256(pdf_text.encode()).hexdigest()
+        if st.button("선택한 기록 PDF 준비", key="history_prepare_pdf"):
+            from frontend.report_export import make_pdf
+
+            with st.spinner("선택한 기록을 PDF로 만드는 중…"):
+                s.history_pdf = {
+                    "digest": pdf_digest,
+                    "data": make_pdf(record["title"], pdf_text),
+                }
+        prepared = s.get("history_pdf")
+        if prepared and prepared["digest"] == pdf_digest:
+            st.download_button(
+                "선택한 기록 PDF 다운로드 ↓",
+                prepared["data"],
+                file_name="idealens-saved-report.pdf",
+                mime="application/pdf",
+                key="history_download_pdf",
+            )
+        st.caption(
+            "PDF는 읽기·공유용이며, 앱에서 기록을 복원하려면 JSON 파일을 사용하세요."
+        )
     with detail:
         render_report(s, s.records[selected], archived=True)

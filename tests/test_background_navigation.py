@@ -18,6 +18,80 @@ FIELDS = dict(
 )
 
 
+def test_refresh_reconnects_only_saved_job_without_starting_worker(monkeypatch):
+    import frontend.workflow_resume as resume
+    import time
+
+    draft = IdeaDraft(original_text=IDEA, **FIELDS, revenue="구독", status="complete")
+    context = dict(
+        draft=draft.model_dump(),
+        parts=["진동 분석"],
+        questions=[],
+        area=None,
+        raw=IDEA,
+        title="설비 검토",
+    )
+    with WORKFLOW_JOBS_LOCK:
+        WORKFLOW_JOBS["saved-private-job"] = dict(
+            resume_context=context,
+            phase="patent",
+            done=False,
+            result=None,
+            error=None,
+            started_at=time.monotonic(),
+        )
+    monkeypatch.setattr(resume, "browser_workflow", lambda active: "saved-private-job")
+    try:
+        app = AppTest.from_file(str(APP), default_timeout=30).run()
+        assert app.button(key="header_about")
+        app.button(key="resume_previous_workflow").click().run()
+        assert not app.exception
+        assert app.session_state.analysis_workflow_id == "saved-private-job"
+        assert app.session_state.raw == IDEA
+        assert app.session_state.stage == 2
+        assert app.button(key="nav_2")
+        assert app.button(key="subnav_3")
+        assert len(WORKFLOW_JOBS) == 1
+    finally:
+        with WORKFLOW_JOBS_LOCK:
+            WORKFLOW_JOBS.pop("saved-private-job", None)
+
+
+def test_unknown_tab_token_does_not_expose_other_users_job(monkeypatch):
+    import frontend.workflow_resume as resume
+
+    monkeypatch.setattr(resume, "browser_workflow", lambda active: "unknown-job")
+    with WORKFLOW_JOBS_LOCK:
+        WORKFLOW_JOBS["other-private-job"] = {
+            "done": False,
+            "resume_context": {"raw": "private"},
+        }
+    try:
+        app = AppTest.from_file(str(APP), default_timeout=30).run()
+        assert not app.exception
+        assert not any(b.key == "resume_previous_workflow" for b in app.button)
+    finally:
+        with WORKFLOW_JOBS_LOCK:
+            WORKFLOW_JOBS.pop("other-private-job", None)
+
+
+def test_expired_finished_jobs_are_removed_without_removing_active_jobs():
+    import time
+    from frontend.workflow import prune_finished_jobs
+
+    with WORKFLOW_JOBS_LOCK:
+        WORKFLOW_JOBS["old-job"] = {"done": True, "updated_at": time.monotonic() - 1201}
+        WORKFLOW_JOBS["active-job"] = {"done": False, "updated_at": 0}
+    try:
+        prune_finished_jobs()
+        assert "old-job" not in WORKFLOW_JOBS
+        assert "active-job" in WORKFLOW_JOBS
+    finally:
+        with WORKFLOW_JOBS_LOCK:
+            WORKFLOW_JOBS.pop("old-job", None)
+            WORKFLOW_JOBS.pop("active-job", None)
+
+
 @pytest.mark.parametrize("page", ["about", "difference", "history", "home"])
 def test_public_navigation_preserves_running_job_and_collects_completion(page):
     app = AppTest.from_file(str(APP), default_timeout=30).run()
