@@ -6,28 +6,28 @@
       "verdict": "signal_only",
       "claims": [
         {
-          "statement": "공장에너지관리시스템(FEMS)을 구축해 설비별 전력 사용량을 실시간으로 모니터링하는 수요가 증가하고 있다.",
+          "statement": "공장에너지관리시스템(FEMS)의 구축이 필요하다는 신호가 있다.",
           "claim_type": "fact",
           "citation_ids": [
             1
           ]
         },
         {
-          "statement": "FEMS를 통해 공장 내 에너지 흐름을 한눈에 확인할 수 있는 수요가 확인되었다.",
+          "statement": "FEMS를 통해 설비별 전력 사용량을 실시간으로 계측하고 데이터 수집이 이루어지고 있다.",
           "claim_type": "fact",
           "citation_ids": [
             2
           ]
         },
         {
-          "statement": "전력기기 수요가 증가하는 추세로, FEMS와 같은 시스템의 필요성이 높아질 가능성이 있다.",
+          "statement": "전력기기 수요가 증가하는 추세라는 보도가 있다.",
           "claim_type": "ai_hypothesis",
           "citation_ids": []
         }
       ],
       "next_check": null,
       "evidence_status": "sufficient",
-      "relevant_count": 5,
+      "relevant_count": 6,
       "limitation": "수요 확인에는 고객 검증 자료(인터뷰·설문·파일럿·LOI)가 필요하며 기사·공시로는 확인할 수 없음"
     },
     {
@@ -35,7 +35,7 @@
       "verdict": "signal_only",
       "claims": [
         {
-          "statement": "FEMS를 구축해 설비별 전력 사용량을 모니터링하는 경쟁 솔루션이 존재한다.",
+          "statement": "FEMS를 구축하여 설비별 전력 사용량을 모니터링하는 사례가 증가하고 있다.",
           "claim_type": "fact",
           "citation_ids": [
             1
@@ -45,11 +45,11 @@
           "statement": "다양한 기업들이 FEMS를 통해 에너지 효율화를 추진하고 있다.",
           "claim_type": "fact",
           "citation_ids": [
-            6
+            7
           ]
         },
         {
-          "statement": "FEMS와 유사한 시스템이 시장에 존재할 가능성이 있다.",
+          "statement": "FEMS와 유사한 에너지관리시스템이 시장에 존재할 가능성이 있다.",
           "claim_type": "ai_hypothesis",
           "citation_ids": []
         }
@@ -61,68 +61,24 @@
     },
     {
       "dimension": "price",
-      "verdict": "signal_only",
+      "verdict": "confirmed",
       "claims": [
         {
-          "statement": "FEMS는 고객사가 초기 설비 투자비를 한꺼번에 부담하지 않는 리스 형태로 제공될 수 있다.",
+          "statement": "2026년 4월부터 9월까지 나라장터에 공개된 FEMS 관련 공고의 배정예산 중앙값은 5,066만원이다.",
+          "claim_type": "fact",
+          "citation_ids": [
+            11
+          ]
+        },
+        {
+          "statement": "FEMS의 초기 투자비 부담 없이 리스 형태로 제공되는 사례가 있다.",
           "claim_type": "fact",
           "citation_ids": [
             3
           ]
         },
         {
-          "statement": "FEMS 구축에 따른 초기 투자비 부담이 낮아질 가능성이 있다.",
-          "claim_type": "ai_hypothesis",
-          "citation_ids": []
-        }
-      ],
-      "next_check": "FEMS 공급사 2곳의 견적으로 실제 가격대 확인",
-      "evidence_status": "sufficient",
-      "relevant_count": 2,
-      "limitation": "관련 자료 2건이 모두 사업 신호·기업 주장·추정치라 확인할 수 없음"
-    },
-    {
-      "dimension": "buyer",
-      "verdict": "signal_only",
-      "claims": [
-        {
-          "statement": "LS일렉트릭이 에너지통합관리시스템(FEMS)을 구축한 사례가 있다.",
-          "claim_type": "fact",
-          "citation_ids": [
-            9
-          ]
-        },
-        {
-          "statement": "FEMS를 운영 중인 기업들이 에너지 소비량을 확인하고 있다.",
-          "claim_type": "fact",
-          "citation_ids": [
-            4
-          ]
-        },
-        {
-          "statement": "중소·중견 제조사가 FEMS를 도입할 가능성이 있다.",
-          "claim_type": "ai_hypothesis",
-          "citation_ids": []
-        }
-      ],
-      "next_check": null,
-      "evidence_status": "sufficient",
-      "relevant_count": 4,
-      "limitation": "구매·조사 근거가 있으나 분석 단계에서 판단에 충분하지 않다고 봄"
-    },
-    {
-      "dimension": "adoption_barrier",
-      "verdict": "signal_only",
-      "claims": [
-        {
-          "statement": "FEMS 구축에 따른 초기 투자비 부담이 도입장벽으로 작용할 수 있다.",
-          "claim_type": "fact",
-          "citation_ids": [
-            3
-          ]
-        },
-        {
-          "statement": "FEMS 도입을 위한 기술적 이해도가 필요할 수 있다.",
+          "statement": "FEMS의 가격대가 다양할 가능성이 있다.",
           "claim_type": "ai_hypothesis",
           "citation_ids": []
         }
@@ -130,7 +86,58 @@
       "next_check": null,
       "evidence_status": "sufficient",
       "relevant_count": 6,
-      "limitation": "관련 자료 6건이 모두 사업 신호·기업 주장·추정치라 확인할 수 없음"
+      "limitation": null
+    },
+    {
+      "dimension": "buyer",
+      "verdict": "confirmed",
+      "claims": [
+        {
+          "statement": "나라장터 입찰공고(2026년 4월~2026년 9월) 기준 FEMS의 구매자는 주로 민간 기업과 공공기관으로 확인된다.",
+          "claim_type": "fact",
+          "citation_ids": [
+            11
+          ]
+        },
+        {
+          "statement": "HD건설기계가 FEMS를 운영 중이라는 보도가 있다.",
+          "claim_type": "fact",
+          "citation_ids": [
+            4
+          ]
+        },
+        {
+          "statement": "FEMS의 구매가 제조업체와 공공기관에서 이루어질 가능성이 있다.",
+          "claim_type": "ai_hypothesis",
+          "citation_ids": []
+        }
+      ],
+      "next_check": null,
+      "evidence_status": "sufficient",
+      "relevant_count": 7,
+      "limitation": null
+    },
+    {
+      "dimension": "adoption_barrier",
+      "verdict": "signal_only",
+      "claims": [
+        {
+          "statement": "FEMS를 통해 에너지 소비량을 확인하는 사례가 증가하고 있다.",
+          "claim_type": "fact",
+          "citation_ids": [
+            4
+          ]
+        },
+        {
+          "statement": "FEMS 도입에 따른 초기 투자비 부담이 존재할 가능성이 있다.",
+          "claim_type": "ai_hypothesis",
+          "citation_ids": []
+        }
+      ],
+      "next_check": null,
+      "evidence_status": "sufficient",
+      "relevant_count": 4,
+      "limitation": "관련 자료 4건이 모두 사업 신호·기업 주장·추정치라 확인할 수 없음"
     }
   ],
   "evidence": [
@@ -221,6 +228,23 @@
     },
     {
       "citation_id": 6,
+      "source_id": "dart-20260318000419-5-0",
+      "source_type": "dart",
+      "title": "누리플렉스 사업보고서(FY2025) 7. 기타 참고사항",
+      "publisher": "누리플렉스 (DART 사업보고서)",
+      "quote": "가. 누리플렉스의 산업의 개요\n1)스마트미터링\n글로벌 스마트미터링 시장은 노후 전력망 교체 수요, 전력망의 디지털화, 규제 및 인증 강화에 따른 스마트미터 보급 확대, 데이터 기반 전력관리 및 서비스시장 확대 등에 힘입어 꾸준한 성장세가 예상됩니다.\n조사기관에 따르면, 스마트미터링 시장은 2032년까지 연평균 성장률(CAGR) 7.23% 증가할 것으로 예상되며, 스마트미터 시장은 2032년까지 연평균 성장률 16.3%로 증가할 것으로 예상됩니다.\n(출처: : Fortune Business Insights)\n국내 스마트미터링 시장은 2024년부터 2030년까지 연평균 성장률 약11.1% 증가하여 2030년에는 약 2.84억 달러 시장이 형성될 것으로 예상됩니다\n.\n(출처:Grand View Research)\n당사는 1998년에 국내 첫 원격검침 모뎀의 국산화를 시작으로 다양한 유무선 통신방식의 AMI 시스템을 개발해 국내 공공시장에서 고압(산업용 및 상업용 공장/빌딩) 및 저압 (가정용) 시장에 약 432만대를 포함해 국내외 AMI 시스템의 공급실적은 653만대에 달합니다. 특히 해외시장에서는 노르웨이 SORIA (노르웨이 전력배전사 27개사 연합) 프로젝트를 비롯하여 51 개 해외 전력사에 공급함으로써 북유럽, 아프리카, 아시아, 중남미 등 글로벌 시장확대를 위해 국가별, 지역별 고객니즈에 맞춘 맞춤형 솔루션을 공급하는 등 차별화된 영업활동을 추진하고 있습니다.",
+      "section": "II. 사업의 내용 > 7. 기타 참고사항 (본문, 표 제외)",
+      "url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260318000419",
+      "published_at": 20260318,
+      "period": "FY2025",
+      "reliability": "high",
+      "recency": "high",
+      "directness": "medium",
+      "evidence_nature": "company_claim",
+      "similarity": 0.4286
+    },
+    {
+      "citation_id": 7,
       "source_id": "news-ef1ba1d9912b",
       "source_type": "news",
       "title": "HD건설기계, 재생에너지 조달·공장 효율화 '투트랙'…RE100 속도",
@@ -237,7 +261,7 @@
       "similarity": 0.5338
     },
     {
-      "citation_id": 7,
+      "citation_id": 8,
       "source_id": "news-33f1f2af1e89",
       "source_type": "news",
       "title": "[ESG실무] ④탄소 1톤 감축비용 제각각... 로드맵은 '최소비용 조합'으로",
@@ -254,7 +278,7 @@
       "similarity": 0.5283
     },
     {
-      "citation_id": 8,
+      "citation_id": 9,
       "source_id": "news-02729d50bc89",
       "source_type": "news",
       "title": "티엠씨솔루션즈, 이노비즈 A등급 인증 획득…무효전력공급장치 기반 FE...",
@@ -265,13 +289,98 @@
       "published_at": 20251029,
       "period": null,
       "reliability": "medium",
-      "recency": "high",
+      "recency": "medium",
       "directness": "medium",
       "evidence_nature": "business_signal",
       "similarity": 0.5243
     },
     {
-      "citation_id": 9,
+      "citation_id": 10,
+      "source_id": "news-2c404475e72c",
+      "source_type": "news",
+      "title": "LS일렉트릭, 에너지 30% 절감 '스마트 무선 조명' 사업 박차",
+      "publisher": "news1.kr",
+      "quote": "한편 FEMS는 공장에너지관리시스템(Factory Energy Management System)의 약자로 공장의 전력 사용을 실시간으로 모니터링·분석·제어해 에너지 효율을 높이는 시스템이다. FEMS 리스 사업은 기업이 초기 투자비 부담 없이...",
+      "section": "title+description",
+      "url": "https://www.news1.kr/industry/general-industry/6178449",
+      "published_at": 20260527,
+      "period": null,
+      "reliability": "medium",
+      "recency": "high",
+      "directness": "medium",
+      "evidence_nature": "business_signal",
+      "similarity": 0.5922000000000001
+    },
+    {
+      "citation_id": 11,
+      "source_id": "g2b-summary-에너지관리시스템-FEMS",
+      "source_type": "procurement",
+      "title": "나라장터 '에너지관리시스템, FEMS' 입찰공고 집계 (2026년 4월~2026년 9월)",
+      "publisher": "조달청 나라장터",
+      "quote": "2026년 4월~2026년 9월 나라장터 입찰공고 중 '에너지관리시스템, FEMS' 관련 공고는 41건이다. 예산이 공개된 공고의 배정예산 중앙값은 5,066만원, 범위는 2,090만원~19.8억원이다. 수요기관 유형은 민간 기업 30건, 대학·학교 10건, 공공기관 1건이다.",
+      "section": "입찰공고",
+      "url": null,
+      "published_at": 20260928,
+      "period": "2026년 4월~2026년 9월",
+      "reliability": "high",
+      "recency": "high",
+      "directness": "high",
+      "evidence_nature": "purchase_signal",
+      "similarity": null
+    },
+    {
+      "citation_id": 12,
+      "source_id": "g2b-R26BK01745515-000",
+      "source_type": "procurement",
+      "title": "2026년 중소기업 탄소중립 설비투자 지원사업-FEMS",
+      "publisher": "조달청 나라장터",
+      "quote": "(주)그린광학(민간 기업)가 2026년 9월 28일 나라장터에 '2026년 중소기업 탄소중립 설비투자 지원사업-FEMS' 물품 입찰을 공고했다. 배정예산 6,930만원(69,300,000원), 계약 방법 수의계약 · 수의시담-수의시담.",
+      "section": "입찰공고",
+      "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01745515&bidPbancOrd=000",
+      "published_at": 20260928,
+      "period": "2026년 9월",
+      "reliability": "high",
+      "recency": "high",
+      "directness": "high",
+      "evidence_nature": "purchase_signal",
+      "similarity": null
+    },
+    {
+      "citation_id": 13,
+      "source_id": "g2b-R26BK01743135-000",
+      "source_type": "procurement",
+      "title": "2026년 탄소중립 설비투자지원사업 에너지관리시스템 구매의건",
+      "publisher": "조달청 나라장터",
+      "quote": "주식회사 와이엔프린팅(민간 기업)가 2026년 9월 23일 나라장터에 '2026년 탄소중립 설비투자지원사업 에너지관리시스템 구매의건' 물품 입찰을 공고했다. 배정예산 2,090만원(20,900,000원), 계약 방법 일반경쟁 · 종합낙찰제-종합낙찰제-일반.",
+      "section": "입찰공고",
+      "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01743135&bidPbancOrd=000",
+      "published_at": 20260923,
+      "period": "2026년 9월",
+      "reliability": "high",
+      "recency": "high",
+      "directness": "high",
+      "evidence_nature": "purchase_signal",
+      "similarity": null
+    },
+    {
+      "citation_id": 14,
+      "source_id": "g2b-R26BK01727109-000",
+      "source_type": "procurement",
+      "title": "에너지관리시스템 규격서",
+      "publisher": "조달청 나라장터",
+      "quote": "주식회사 와이엔프린팅(민간 기업)가 2026년 9월 14일 나라장터에 '에너지관리시스템 규격서' 물품 입찰을 공고했다. 배정예산 2,090만원(20,900,000원), 계약 방법 일반경쟁 · 종합낙찰제-종합낙찰제-일반.",
+      "section": "입찰공고",
+      "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01727109&bidPbancOrd=000",
+      "published_at": 20260914,
+      "period": "2026년 9월",
+      "reliability": "high",
+      "recency": "high",
+      "directness": "high",
+      "evidence_nature": "purchase_signal",
+      "similarity": null
+    },
+    {
+      "citation_id": 15,
       "source_id": "news-c6a8911b71b4",
       "source_type": "news",
       "title": "LS ELECTRIC, 에이스침대 공장에 태양광 연계 FEMS 구축…RE100 이행 지원",
@@ -286,40 +395,6 @@
       "directness": "high",
       "evidence_nature": "purchase_signal",
       "similarity": 0.5533
-    },
-    {
-      "citation_id": 10,
-      "source_id": "dart-20260323001123-5-11",
-      "source_type": "dart",
-      "title": "이삭엔지니어링 사업보고서(FY2025) 7. 기타 참고사항",
-      "publisher": "이삭엔지니어링 (DART 사업보고서)",
-      "quote": "다만 현재 초고압 전력 설비 예방 진단 솔루션 시장은 외산 예방 진단 솔루션이 도입되어 설치되고 있으며, 국산화 개발이 진행되고 있는 상황입니다\n당사는 다수의 센서 및 분석 장비를 자체 개발하여 현대일렉트릭㈜에 OEM 납품 중에 있으며 예방 진단 센서를 한국 전력 연구원, 현대일렉트릭㈜의 과제로 개발 완료하였습니다. 또한 한국전력연구원에서 3종 가스 분석기의 기술 이전을 받아 상용화 작업중에 있습니다.\n초고압 전력설비를 보유한 민간기업의 경우도(이하 \"민수시장\") 고장 예방에 대한 요구는 증가하고 있습니다. 삼성전자, SK하이닉스 등 대형 공장의 경우 고장으로 인해 정전이 발생할 경우 막대한 매출 손실이 발생합니다. 현재 당사의 주요 고객인 SK하이닉스, 현대제철, POSCO, 현대자동차, 현대중공업을 대상으로 전력설비 예방진단시스템의 도입을 제안하고 있으며, 한국전력공사 시장의 reference를 시작으로 민수시장으로의 확대를 목표하고 있습니다.\n7-4-5-2. 국내외 시장 규모 추이 및 성장 예측\nQY Research에 따르면 세계 변압기 예방 진단 솔루션 시장은 2020년 약 21억달러에서 2026년 약 27억달러 규모로 연평균 3.8%로 성장할 것으로 예상됩니다.\n반면 국내 초고압 전력기기 예방 진단 시장은 초기 형성 단계로 국내 시장 규모를 전망한 자료는 없습니다. 다만, 본 사업은 주로 154kv 변전소를 대상으로 이루어지고 있으며, 154kv 변전소의 대부분은 한국 전력이 운용, 관리하고 있습니다.",
-      "section": "II. 사업의 내용 > 7. 기타 참고사항 (본문, 표 제외)",
-      "url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260323001123",
-      "published_at": 20260323,
-      "period": "FY2025",
-      "reliability": "high",
-      "recency": "high",
-      "directness": "medium",
-      "evidence_nature": "company_claim",
-      "similarity": 0.4716
-    },
-    {
-      "citation_id": 11,
-      "source_id": "news-2c404475e72c",
-      "source_type": "news",
-      "title": "LS일렉트릭, 에너지 30% 절감 '스마트 무선 조명' 사업 박차",
-      "publisher": "news1.kr",
-      "quote": "한편 FEMS는 공장에너지관리시스템(Factory Energy Management System)의 약자로 공장의 전력 사용을 실시간으로 모니터링·분석·제어해 에너지 효율을 높이는 시스템이다. FEMS 리스 사업은 기업이 초기 투자비 부담 없이...",
-      "section": "title+description",
-      "url": "https://www.news1.kr/industry/general-industry/6178449",
-      "published_at": 20260527,
-      "period": null,
-      "reliability": "medium",
-      "recency": "high",
-      "directness": "medium",
-      "evidence_nature": "business_signal",
-      "similarity": 0.6012
     }
   ],
   "opportunity_review": {
@@ -329,7 +404,7 @@
     "reasons": [
       {
         "topic": "수요",
-        "statement": "수요 판단은 signal_only이며, 현재 확정 아이디어의 고객·문제 범위 안에서 해석해야 합니다.",
+        "statement": "수요 판단: 신호만 확인. 현재 확정 아이디어의 고객·문제 범위 안에서 해석해야 합니다.",
         "citation_ids": [
           1,
           2
@@ -337,32 +412,33 @@
       },
       {
         "topic": "경쟁·대체재",
-        "statement": "경쟁·대체재 판단은 signal_only이며, 현재 확정 아이디어의 고객·문제 범위 안에서 해석해야 합니다.",
+        "statement": "경쟁·대체재 판단: 신호만 확인. 현재 확정 아이디어의 고객·문제 범위 안에서 해석해야 합니다.",
         "citation_ids": [
           1,
-          6
+          7
         ]
       },
       {
         "topic": "가격·수익모델",
-        "statement": "가격·수익모델 판단은 signal_only이며, 현재 확정 아이디어의 고객·문제 범위 안에서 해석해야 합니다.",
+        "statement": "가격·수익모델 판단: 확인됨. 현재 확정 아이디어의 고객·문제 범위 안에서 해석해야 합니다.",
         "citation_ids": [
+          11,
           3
         ]
       },
       {
         "topic": "구매자",
-        "statement": "구매자 판단은 signal_only이며, 현재 확정 아이디어의 고객·문제 범위 안에서 해석해야 합니다.",
+        "statement": "구매자 판단: 확인됨. 현재 확정 아이디어의 고객·문제 범위 안에서 해석해야 합니다.",
         "citation_ids": [
-          9,
+          11,
           4
         ]
       },
       {
         "topic": "도입장벽",
-        "statement": "도입장벽 판단은 signal_only이며, 현재 확정 아이디어의 고객·문제 범위 안에서 해석해야 합니다.",
+        "statement": "도입장벽 판단: 신호만 확인. 현재 확정 아이디어의 고객·문제 범위 안에서 해석해야 합니다.",
         "citation_ids": [
-          3
+          4
         ]
       }
     ],
@@ -389,53 +465,32 @@
     ]
   },
   "commercial_analysis": {
-    "user": "전력 사용량이 많은 중소·중견 제조사",
-    "buyer": "미확인",
-    "budget_owner": "미확인",
-    "use_case": "공정별 전력 사용량을 모니터링하고 낭비를 줄이기 위한 시스템",
+    "user": "미확인",
+    "buyer": "공공 부문(나라장터 공고 기준): 대학·학교 10건, 민간 기업 30건 / 목표 고객(전력 사용량이 많은 중소·중견 제조사)은 미확인",
+    "budget_owner": "공공 부문: 수요기관(대학·민간 기업) 배정예산 / 목표 고객(전력 사용량이 많은 중소·중견 제조사)은 미확인",
+    "use_case": "미확인",
     "current_alternative": "미확인",
-    "switching_trigger": "전기요금 상승에 따른 비용 절감 필요성",
-    "purchase_process": "미확인",
+    "switching_trigger": "미확인",
+    "purchase_process": "공공 부문: 나라장터 전자입찰 공고 / 목표 고객(전력 사용량이 많은 중소·중견 제조사)은 미확인",
     "adoption_requirements": [],
-    "pricing_hypothesis": "계측 장비 설치비와 분석 소프트웨어 구독료로 수익을 창출할 것",
+    "pricing_hypothesis": "배정예산 중앙값 5,066만원, 범위 2,090만원~19.8억원 (2026년 4월~2026년 9월 기준)",
     "critical_assumptions": [],
     "citation_ids": [
-      1,
-      2,
-      3,
-      4,
-      5,
-      6,
-      7,
-      8,
-      9,
-      10,
-      11
+      11,
+      12,
+      13
     ],
     "unknowns": [],
     "hypotheses": [
       {
         "question": "누가 구매를 승인하는가?",
-        "hypothesis": "구매 결정자는 공장 운영 관리자 또는 재무 담당자일 가능성이 높다.",
-        "basis": "전력 사용량을 관리하고 비용 절감을 목표로 하는 중소·중견 제조사에서의 일반적인 구조를 고려함.",
+        "hypothesis": "검증 전의 가능한 설명",
+        "basis": "입력 아이디어와 근거에서 무엇을 추론했고 무엇이 비어 있는지",
         "assumptions": [],
         "citation_ids": [],
-        "validation_target": "중소·중견 제조사의 구매 결정자",
+        "validation_target": "확인할 고객/자료",
         "validation_method": "인터뷰·조달 문서 확인 등",
-        "success_criterion": "구매 승인 프로세스의 명확한 이해 및 확인",
-        "numeric_value": null,
-        "numeric_unit": "",
-        "numeric_basis": ""
-      },
-      {
-        "question": "현재 대안은 무엇인가?",
-        "hypothesis": "기존의 전력 관리 시스템이나 수동적인 모니터링 방법이 대안일 수 있다.",
-        "basis": "입력 아이디어에서 현재 대안이 명시되지 않았고, 일반적으로 전력 관리 시스템이 존재함.",
-        "assumptions": [],
-        "citation_ids": [],
-        "validation_target": "경쟁사 제품 및 서비스 분석",
-        "validation_method": "시장 조사 및 경쟁사 분석",
-        "success_criterion": "현재 대안의 기능 및 가격 비교",
+        "success_criterion": "판단 가능한 관찰 기준",
         "numeric_value": null,
         "numeric_unit": "",
         "numeric_basis": ""
@@ -446,9 +501,9 @@
     "status": "completed",
     "keywords": [
       "에너지관리시스템",
-      "FEMS",
-      "공장에너지관리시스템"
+      "FEMS"
     ],
+    "fallback_from": [],
     "reference_keywords": [
       "스마트공장",
       "스마트팩토리"
@@ -474,9 +529,9 @@
       },
       {
         "period": "2025-01",
-        "theme_ratio": 6.14255,
+        "theme_ratio": 6.09608,
         "reference_ratio": 61.23966,
-        "relative_index": 10.03
+        "relative_index": 9.95
       },
       {
         "period": "2025-02",
@@ -492,9 +547,9 @@
       },
       {
         "period": "2025-04",
-        "theme_ratio": 8.22414,
+        "theme_ratio": 8.11262,
         "reference_ratio": 82.90121,
-        "relative_index": 9.92
+        "relative_index": 9.79
       },
       {
         "period": "2025-05",
@@ -609,640 +664,535 @@
     "document_count": 100,
     "nodes": [
       {
-        "term": "절감",
-        "document_count": 59,
-        "cluster": 1,
-        "x": 0.0095,
-        "y": 0.0633
+        "term": "에너지",
+        "document_count": 58,
+        "cluster": 0,
+        "x": 0.0371,
+        "y": 0.1505
       },
       {
-        "term": "공장",
-        "document_count": 42,
-        "cluster": 0,
-        "x": -0.0945,
-        "y": -0.3085
+        "term": "절감",
+        "document_count": 52,
+        "cluster": 1,
+        "x": -0.0647,
+        "y": -0.2246
       },
       {
         "term": "전력",
-        "document_count": 40,
+        "document_count": 38,
         "cluster": 0,
-        "x": 0.1007,
-        "y": -0.1305
-      },
-      {
-        "term": "공장에너지관리시스템",
-        "document_count": 37,
-        "cluster": 0,
-        "x": 0.1093,
-        "y": -0.3741
+        "x": 0.0857,
+        "y": -0.0641
       },
       {
         "term": "비용",
-        "document_count": 37,
-        "cluster": 2,
-        "x": -0.1613,
-        "y": -0.1047
+        "document_count": 35,
+        "cluster": 1,
+        "x": -0.2326,
+        "y": -0.065
+      },
+      {
+        "term": "공장에너지관리시스템",
+        "document_count": 31,
+        "cluster": 0,
+        "x": -0.1615,
+        "y": 0.245
+      },
+      {
+        "term": "공장",
+        "document_count": 30,
+        "cluster": 0,
+        "x": 0.0406,
+        "y": 0.38
       },
       {
         "term": "제조업",
         "document_count": 30,
         "cluster": 1,
-        "x": -0.0915,
-        "y": 0.2521
-      },
-      {
-        "term": "LS일렉트릭",
-        "document_count": 19,
-        "cluster": 2,
-        "x": -0.3581,
-        "y": -0.0202
-      },
-      {
-        "term": "전기료",
-        "document_count": 18,
-        "cluster": 1,
-        "x": 0.2537,
-        "y": 0.5286
-      },
-      {
-        "term": "효율",
-        "document_count": 18,
-        "cluster": 0,
-        "x": 0.2887,
-        "y": -0.233
-      },
-      {
-        "term": "사용량",
-        "document_count": 17,
-        "cluster": 0,
-        "x": 0.2087,
-        "y": -0.5638
-      },
-      {
-        "term": "태양광",
-        "document_count": 17,
-        "cluster": 2,
-        "x": -0.3326,
-        "y": 0.3644
-      },
-      {
-        "term": "모니터링",
-        "document_count": 16,
-        "cluster": 2,
-        "x": -0.3891,
-        "y": -0.298
+        "x": -0.2716,
+        "y": -0.2994
       },
       {
         "term": "전력비",
+        "document_count": 23,
+        "cluster": 1,
+        "x": -0.2288,
+        "y": -0.5152
+      },
+      {
+        "term": "부담",
+        "document_count": 16,
+        "cluster": 1,
+        "x": -0.526,
+        "y": -0.3557
+      },
+      {
+        "term": "사용량",
+        "document_count": 16,
+        "cluster": 0,
+        "x": 0.251,
+        "y": 0.2021
+      },
+      {
+        "term": "효율",
+        "document_count": 16,
+        "cluster": 0,
+        "x": -0.1371,
+        "y": 0.5097
+      },
+      {
+        "term": "경쟁력",
+        "document_count": 15,
+        "cluster": 1,
+        "x": -0.3341,
+        "y": -0.7084
+      },
+      {
+        "term": "전기료",
         "document_count": 14,
         "cluster": 1,
-        "x": 0.2773,
-        "y": 0.3149
-      },
-      {
-        "term": "에이스침대",
-        "document_count": 13,
-        "cluster": 2,
-        "x": -0.4481,
-        "y": 0.1841
-      },
-      {
-        "term": "패턴",
-        "document_count": 13,
-        "cluster": 2,
-        "x": -0.6652,
-        "y": -0.1837
+        "x": -0.5121,
+        "y": -0.5753
       },
       {
         "term": "전기요금",
-        "document_count": 12,
+        "document_count": 13,
         "cluster": 1,
-        "x": 0.4668,
-        "y": 0.2152
+        "x": -0.0847,
+        "y": -0.6814
       },
       {
-        "term": "피크",
-        "document_count": 12,
-        "cluster": 1,
-        "x": 0.0486,
-        "y": 0.5901
-      },
-      {
-        "term": "효율화",
-        "document_count": 12,
+        "term": "태양광",
+        "document_count": 13,
         "cluster": 0,
-        "x": -0.1371,
-        "y": -0.5187
+        "x": 0.5064,
+        "y": 0.1707
       },
       {
-        "term": "감축",
+        "term": "LS일렉트릭",
         "document_count": 11,
-        "cluster": 0,
-        "x": 0.4116,
-        "y": -0.4836
-      },
-      {
-        "term": "가동",
-        "document_count": 10,
-        "cluster": 1,
-        "x": 0.258,
-        "y": 0.7805
-      },
-      {
-        "term": "에너지통합관리시스템",
-        "document_count": 9,
         "cluster": 2,
-        "x": -0.5704,
-        "y": 0.0083
+        "x": 0.4155,
+        "y": -0.0296
       },
       {
         "term": "재생에너지",
-        "document_count": 9,
+        "document_count": 11,
         "cluster": 2,
-        "x": -0.5491,
-        "y": -0.5228
+        "x": 0.4874,
+        "y": -0.2729
       },
       {
-        "term": "준공식",
-        "document_count": 9,
-        "cluster": 2,
-        "x": -0.6612,
-        "y": 0.2054
+        "term": "효율화",
+        "document_count": 11,
+        "cluster": 0,
+        "x": 0.2625,
+        "y": 0.4218
       },
       {
-        "term": "시간대",
+        "term": "탄소",
+        "document_count": 9,
+        "cluster": 0,
+        "x": -0.4495,
+        "y": 0.4825
+      },
+      {
+        "term": "산업단지",
         "document_count": 8,
+        "cluster": 0,
+        "x": -0.0696,
+        "y": 0.7995
+      },
+      {
+        "term": "연간",
+        "document_count": 8,
+        "cluster": 2,
+        "x": 0.6526,
+        "y": -0.4849
+      },
+      {
+        "term": "비중",
+        "document_count": 7,
         "cluster": 1,
-        "x": 0.0051,
-        "y": 0.7998
+        "x": 0.1309,
+        "y": -0.6377
+      },
+      {
+        "term": "에너지관리시스템",
+        "document_count": 7,
+        "cluster": 0,
+        "x": 0.218,
+        "y": 0.8074
       },
       {
         "term": "온실가스",
-        "document_count": 8,
-        "cluster": 0,
-        "x": 0.7115,
-        "y": -0.487
-      },
-      {
-        "term": "배출",
         "document_count": 7,
         "cluster": 0,
-        "x": 0.6478,
-        "y": -0.1963
+        "x": 0.292,
+        "y": -0.374
       },
       {
-        "term": "ETRI",
+        "term": "볼보그룹코리아",
+        "document_count": 6,
+        "cluster": 2,
+        "x": 0.9861,
+        "y": -0.0626
+      },
+      {
+        "term": "저감",
         "document_count": 6,
         "cluster": 0,
-        "x": 0.2332,
-        "y": -0.8955
+        "x": -0.7074,
+        "y": 0.2428
+      },
+      {
+        "term": "생산비",
+        "document_count": 5,
+        "cluster": 1,
+        "x": -0.734,
+        "y": -0.6726
       },
       {
         "term": "설비별",
-        "document_count": 6,
+        "document_count": 5,
         "cluster": 0,
-        "x": -0.1095,
-        "y": -0.8483
+        "x": -0.4615,
+        "y": 0.2628
       },
       {
-        "term": "스케줄링",
-        "document_count": 6,
-        "cluster": 1,
-        "x": 0.0812,
+        "term": "스마트에너지플랫폼",
+        "document_count": 5,
+        "cluster": 0,
+        "x": -0.2916,
         "y": 1.0
       },
       {
-        "term": "미라콤",
+        "term": "창원공장",
         "document_count": 5,
-        "cluster": 1,
-        "x": 0.4559,
-        "y": 0.8622
+        "cluster": 2,
+        "x": 0.901,
+        "y": 0.3486
       }
     ],
     "edges": [
       {
+        "source": "에너지",
+        "target": "절감",
+        "weight": 29
+      },
+      {
+        "source": "공장",
+        "target": "에너지",
+        "weight": 27
+      },
+      {
         "source": "비용",
         "target": "절감",
-        "weight": 30
+        "weight": 26
+      },
+      {
+        "source": "공장에너지관리시스템",
+        "target": "에너지",
+        "weight": 24
       },
       {
         "source": "전력",
         "target": "절감",
-        "weight": 24
+        "weight": 23
       },
       {
         "source": "절감",
         "target": "제조업",
-        "weight": 24
+        "weight": 22
       },
       {
-        "source": "공장",
-        "target": "공장에너지관리시스템",
-        "weight": 20
-      },
-      {
-        "source": "공장",
-        "target": "절감",
-        "weight": 20
-      },
-      {
-        "source": "비용",
+        "source": "에너지",
         "target": "전력",
-        "weight": 17
+        "weight": 19
       },
       {
-        "source": "비용",
+        "source": "전력비",
+        "target": "절감",
+        "weight": 19
+      },
+      {
+        "source": "전력비",
         "target": "제조업",
-        "weight": 17
+        "weight": 19
       },
       {
-        "source": "LS일렉트릭",
-        "target": "절감",
-        "weight": 16
+        "source": "비용",
+        "target": "에너지",
+        "weight": 18
       },
       {
-        "source": "전기료",
-        "target": "절감",
-        "weight": 16
-      },
-      {
-        "source": "LS일렉트릭",
-        "target": "비용",
-        "weight": 15
-      },
-      {
-        "source": "공장에너지관리시스템",
-        "target": "절감",
-        "weight": 15
-      },
-      {
-        "source": "공장에너지관리시스템",
+        "source": "비용",
         "target": "전력",
+        "weight": 16
+      },
+      {
+        "source": "전력",
+        "target": "제조업",
+        "weight": 16
+      },
+      {
+        "source": "부담",
+        "target": "절감",
         "weight": 14
       },
       {
-        "source": "공장",
-        "target": "비용",
-        "weight": 13
-      },
-      {
-        "source": "공장",
-        "target": "전력",
-        "weight": 13
-      },
-      {
-        "source": "절감",
-        "target": "태양광",
-        "weight": 13
-      },
-      {
-        "source": "LS일렉트릭",
-        "target": "공장",
-        "weight": 12
-      },
-      {
-        "source": "LS일렉트릭",
-        "target": "모니터링",
-        "weight": 12
+        "source": "에너지",
+        "target": "효율",
+        "weight": 14
       },
       {
         "source": "공장에너지관리시스템",
-        "target": "비용",
-        "weight": 12
-      },
-      {
-        "source": "모니터링",
         "target": "절감",
-        "weight": 12
-      },
-      {
-        "source": "전력",
-        "target": "효율",
-        "weight": 12
-      },
-      {
-        "source": "전력비",
-        "target": "절감",
-        "weight": 12
-      },
-      {
-        "source": "전력비",
-        "target": "제조업",
-        "weight": 12
-      },
-      {
-        "source": "공장",
-        "target": "모니터링",
-        "weight": 11
-      },
-      {
-        "source": "모니터링",
-        "target": "비용",
-        "weight": 11
-      },
-      {
-        "source": "에이스침대",
-        "target": "절감",
-        "weight": 11
-      },
-      {
-        "source": "에이스침대",
-        "target": "태양광",
-        "weight": 11
-      },
-      {
-        "source": "전력",
-        "target": "제조업",
-        "weight": 11
-      },
-      {
-        "source": "LS일렉트릭",
-        "target": "에이스침대",
-        "weight": 10
-      },
-      {
-        "source": "LS일렉트릭",
-        "target": "제조업",
-        "weight": 10
+        "weight": 13
       },
       {
         "source": "비용",
-        "target": "에이스침대",
-        "weight": 10
-      },
-      {
-        "source": "사용량",
-        "target": "전력",
-        "weight": 10
-      },
-      {
-        "source": "에이스침대",
         "target": "제조업",
-        "weight": 10
+        "weight": 13
+      },
+      {
+        "source": "에너지",
+        "target": "제조업",
+        "weight": 13
+      },
+      {
+        "source": "부담",
+        "target": "전력비",
+        "weight": 12
+      },
+      {
+        "source": "부담",
+        "target": "제조업",
+        "weight": 12
+      },
+      {
+        "source": "전기료",
+        "target": "절감",
+        "weight": 12
       },
       {
         "source": "전기료",
         "target": "제조업",
-        "weight": 10
+        "weight": 12
       },
       {
-        "source": "LS일렉트릭",
-        "target": "에너지통합관리시스템",
-        "weight": 9
+        "source": "공장",
+        "target": "공장에너지관리시스템",
+        "weight": 11
       },
       {
-        "source": "LS일렉트릭",
-        "target": "준공식",
-        "weight": 9
-      },
-      {
-        "source": "LS일렉트릭",
-        "target": "패턴",
-        "weight": 9
-      },
-      {
-        "source": "가동",
+        "source": "공장",
         "target": "절감",
-        "weight": 9
-      },
-      {
-        "source": "공장",
-        "target": "패턴",
-        "weight": 9
-      },
-      {
-        "source": "공장",
-        "target": "효율",
-        "weight": 9
-      },
-      {
-        "source": "공장에너지관리시스템",
-        "target": "효율",
-        "weight": 9
-      },
-      {
-        "source": "공장에너지관리시스템",
-        "target": "효율화",
-        "weight": 9
-      },
-      {
-        "source": "비용",
-        "target": "에너지통합관리시스템",
-        "weight": 9
-      },
-      {
-        "source": "비용",
-        "target": "준공식",
-        "weight": 9
-      },
-      {
-        "source": "비용",
-        "target": "태양광",
-        "weight": 9
-      },
-      {
-        "source": "비용",
-        "target": "패턴",
-        "weight": 9
+        "weight": 11
       },
       {
         "source": "사용량",
-        "target": "절감",
-        "weight": 9
+        "target": "에너지",
+        "weight": 11
       },
       {
-        "source": "에너지통합관리시스템",
-        "target": "에이스침대",
-        "weight": 9
-      },
-      {
-        "source": "에너지통합관리시스템",
-        "target": "절감",
-        "weight": 9
-      },
-      {
-        "source": "에너지통합관리시스템",
-        "target": "제조업",
-        "weight": 9
-      },
-      {
-        "source": "에너지통합관리시스템",
-        "target": "패턴",
-        "weight": 9
-      },
-      {
-        "source": "에이스침대",
-        "target": "패턴",
-        "weight": 9
+        "source": "에너지",
+        "target": "효율화",
+        "weight": 11
       },
       {
         "source": "전기요금",
         "target": "제조업",
-        "weight": 9
+        "weight": 11
       },
       {
-        "source": "절감",
-        "target": "준공식",
-        "weight": 9
-      },
-      {
-        "source": "절감",
-        "target": "피크",
-        "weight": 9
-      },
-      {
-        "source": "제조업",
-        "target": "태양광",
-        "weight": 9
-      },
-      {
-        "source": "LS일렉트릭",
-        "target": "태양광",
-        "weight": 8
-      },
-      {
-        "source": "가동",
-        "target": "시간대",
-        "weight": 8
-      },
-      {
-        "source": "가동",
-        "target": "전기료",
-        "weight": 8
-      },
-      {
-        "source": "감축",
-        "target": "공장에너지관리시스템",
-        "weight": 8
-      },
-      {
-        "source": "공장",
-        "target": "사용량",
-        "weight": 8
-      },
-      {
-        "source": "공장에너지관리시스템",
-        "target": "사용량",
-        "weight": 8
-      },
-      {
-        "source": "모니터링",
-        "target": "에너지통합관리시스템",
-        "weight": 8
-      },
-      {
-        "source": "시간대",
-        "target": "절감",
-        "weight": 8
-      },
-      {
-        "source": "에너지통합관리시스템",
-        "target": "준공식",
-        "weight": 8
-      },
-      {
-        "source": "에이스침대",
-        "target": "준공식",
-        "weight": 8
-      },
-      {
-        "source": "전기요금",
+        "source": "사용량",
         "target": "전력",
-        "weight": 8
-      },
-      {
-        "source": "절감",
-        "target": "효율화",
-        "weight": 8
-      },
-      {
-        "source": "가동",
-        "target": "피크",
-        "weight": 7
-      },
-      {
-        "source": "공장",
-        "target": "효율화",
-        "weight": 7
-      },
-      {
-        "source": "시간대",
-        "target": "전기료",
-        "weight": 7
-      },
-      {
-        "source": "시간대",
-        "target": "피크",
-        "weight": 7
+        "weight": 10
       },
       {
         "source": "전기료",
         "target": "전력비",
-        "weight": 7
+        "weight": 10
       },
       {
-        "source": "전기료",
-        "target": "피크",
-        "weight": 7
+        "source": "전력",
+        "target": "전력비",
+        "weight": 10
+      },
+      {
+        "source": "LS일렉트릭",
+        "target": "에너지",
+        "weight": 9
+      },
+      {
+        "source": "경쟁력",
+        "target": "절감",
+        "weight": 9
+      },
+      {
+        "source": "공장",
+        "target": "전력",
+        "weight": 9
+      },
+      {
+        "source": "공장에너지관리시스템",
+        "target": "비용",
+        "weight": 9
+      },
+      {
+        "source": "공장에너지관리시스템",
+        "target": "전력",
+        "weight": 9
+      },
+      {
+        "source": "부담",
+        "target": "비용",
+        "weight": 9
+      },
+      {
+        "source": "부담",
+        "target": "전기료",
+        "weight": 9
+      },
+      {
+        "source": "경쟁력",
+        "target": "제조업",
+        "weight": 8
+      },
+      {
+        "source": "공장에너지관리시스템",
+        "target": "효율화",
+        "weight": 8
+      },
+      {
+        "source": "사용량",
+        "target": "절감",
+        "weight": 8
+      },
+      {
+        "source": "에너지",
+        "target": "태양광",
+        "weight": 8
+      },
+      {
+        "source": "전기요금",
+        "target": "전력",
+        "weight": 8
       },
       {
         "source": "전기요금",
         "target": "절감",
+        "weight": 8
+      },
+      {
+        "source": "경쟁력",
+        "target": "비용",
+        "weight": 7
+      },
+      {
+        "source": "경쟁력",
+        "target": "전기요금",
+        "weight": 7
+      },
+      {
+        "source": "경쟁력",
+        "target": "전력비",
+        "weight": 7
+      },
+      {
+        "source": "공장",
+        "target": "효율",
+        "weight": 7
+      },
+      {
+        "source": "공장에너지관리시스템",
+        "target": "사용량",
+        "weight": 7
+      },
+      {
+        "source": "전기요금",
+        "target": "전력비",
         "weight": 7
       },
       {
         "source": "전력",
-        "target": "피크",
+        "target": "효율",
         "weight": 7
       },
       {
-        "source": "전력",
+        "source": "절감",
         "target": "효율화",
         "weight": 7
       },
       {
-        "source": "ETRI",
-        "target": "공장에너지관리시스템",
+        "source": "LS일렉트릭",
+        "target": "비용",
         "weight": 6
       },
       {
-        "source": "가동",
-        "target": "스케줄링",
-        "weight": 6
-      },
-      {
-        "source": "감축",
-        "target": "절감",
-        "weight": 6
-      },
-      {
-        "source": "비용",
-        "target": "효율화",
-        "weight": 6
-      },
-      {
-        "source": "설비별",
+        "source": "LS일렉트릭",
         "target": "전력",
         "weight": 6
       },
       {
-        "source": "스케줄링",
-        "target": "시간대",
-        "weight": 6
-      },
-      {
-        "source": "스케줄링",
-        "target": "전기료",
-        "weight": 6
-      },
-      {
-        "source": "스케줄링",
+        "source": "LS일렉트릭",
         "target": "절감",
         "weight": 6
       },
       {
-        "source": "스케줄링",
-        "target": "피크",
+        "source": "공장",
+        "target": "사용량",
+        "weight": 6
+      },
+      {
+        "source": "공장",
+        "target": "효율화",
+        "weight": 6
+      },
+      {
+        "source": "공장에너지관리시스템",
+        "target": "효율",
+        "weight": 6
+      },
+      {
+        "source": "비중",
+        "target": "제조업",
+        "weight": 6
+      },
+      {
+        "source": "산업단지",
+        "target": "에너지",
+        "weight": 6
+      },
+      {
+        "source": "에너지",
+        "target": "에너지관리시스템",
+        "weight": 6
+      },
+      {
+        "source": "에너지",
+        "target": "온실가스",
+        "weight": 6
+      },
+      {
+        "source": "에너지",
+        "target": "탄소",
+        "weight": 6
+      },
+      {
+        "source": "연간",
+        "target": "절감",
+        "weight": 6
+      },
+      {
+        "source": "전력",
+        "target": "태양광",
+        "weight": 6
+      },
+      {
+        "source": "전력",
+        "target": "효율화",
         "weight": 6
       },
       {
@@ -1252,46 +1202,66 @@
       },
       {
         "source": "LS일렉트릭",
-        "target": "효율",
+        "target": "공장에너지관리시스템",
         "weight": 5
       },
       {
-        "source": "가동",
-        "target": "미라콤",
+        "source": "LS일렉트릭",
+        "target": "볼보그룹코리아",
         "weight": 5
       },
       {
-        "source": "감축",
-        "target": "공장",
-        "weight": 5
-      },
-      {
-        "source": "미라콤",
-        "target": "시간대",
-        "weight": 5
-      },
-      {
-        "source": "미라콤",
+        "source": "경쟁력",
         "target": "전기료",
         "weight": 5
       },
       {
-        "source": "미라콤",
+        "source": "공장",
+        "target": "에너지관리시스템",
+        "weight": 5
+      },
+      {
+        "source": "공장",
+        "target": "탄소",
+        "weight": 5
+      },
+      {
+        "source": "볼보그룹코리아",
+        "target": "창원공장",
+        "weight": 5
+      },
+      {
+        "source": "부담",
+        "target": "생산비",
+        "weight": 5
+      },
+      {
+        "source": "비중",
         "target": "절감",
         "weight": 5
       },
       {
-        "source": "미라콤",
-        "target": "피크",
+        "source": "생산비",
+        "target": "절감",
         "weight": 5
       },
       {
-        "source": "배출",
-        "target": "온실가스",
+        "source": "생산비",
+        "target": "제조업",
         "weight": 5
       },
       {
-        "source": "비용",
+        "source": "설비별",
+        "target": "에너지",
+        "weight": 5
+      },
+      {
+        "source": "설비별",
+        "target": "전력",
+        "weight": 5
+      },
+      {
+        "source": "에너지",
         "target": "재생에너지",
         "weight": 5
       },
@@ -1306,154 +1276,872 @@
         "weight": 5
       },
       {
-        "source": "전기요금",
-        "target": "전력비",
+        "source": "재생에너지",
+        "target": "태양광",
         "weight": 5
       },
       {
-        "source": "전력",
-        "target": "전력비",
+        "source": "저감",
+        "target": "절감",
         "weight": 5
       },
       {
-        "source": "ETRI",
-        "target": "공장",
+        "source": "절감",
+        "target": "태양광",
+        "weight": 5
+      },
+      {
+        "source": "LS일렉트릭",
+        "target": "창원공장",
         "weight": 4
       },
       {
         "source": "공장에너지관리시스템",
-        "target": "배출",
+        "target": "산업단지",
         "weight": 4
+      },
+      {
+        "source": "공장에너지관리시스템",
+        "target": "탄소",
+        "weight": 4
+      },
+      {
+        "source": "공장에너지관리시스템",
+        "target": "태양광",
+        "weight": 4
+      },
+      {
+        "source": "비용",
+        "target": "비중",
+        "weight": 4
+      },
+      {
+        "source": "비중",
+        "target": "에너지",
+        "weight": 4
+      },
+      {
+        "source": "산업단지",
+        "target": "스마트에너지플랫폼",
+        "weight": 4
+      },
+      {
+        "source": "산업단지",
+        "target": "효율",
+        "weight": 4
+      },
+      {
+        "source": "생산비",
+        "target": "전기료",
+        "weight": 4
+      },
+      {
+        "source": "생산비",
+        "target": "전력비",
+        "weight": 4
+      },
+      {
+        "source": "스마트에너지플랫폼",
+        "target": "에너지",
+        "weight": 4
+      },
+      {
+        "source": "에너지",
+        "target": "저감",
+        "weight": 4
+      },
+      {
+        "source": "연간",
+        "target": "전력",
+        "weight": 4
+      },
+      {
+        "source": "재생에너지",
+        "target": "전력",
+        "weight": 4
+      },
+      {
+        "source": "재생에너지",
+        "target": "전력비",
+        "weight": 4
+      },
+      {
+        "source": "절감",
+        "target": "탄소",
+        "weight": 4
+      },
+      {
+        "source": "공장에너지관리시스템",
+        "target": "스마트에너지플랫폼",
+        "weight": 3
       },
       {
         "source": "공장에너지관리시스템",
         "target": "온실가스",
-        "weight": 4
+        "weight": 3
       },
       {
-        "source": "배출",
-        "target": "절감",
-        "weight": 4
+        "source": "볼보그룹코리아",
+        "target": "에너지",
+        "weight": 3
+      },
+      {
+        "source": "볼보그룹코리아",
+        "target": "연간",
+        "weight": 3
+      },
+      {
+        "source": "볼보그룹코리아",
+        "target": "재생에너지",
+        "weight": 3
+      },
+      {
+        "source": "비용",
+        "target": "탄소",
+        "weight": 3
+      },
+      {
+        "source": "비중",
+        "target": "전기요금",
+        "weight": 3
       },
       {
         "source": "사용량",
         "target": "설비별",
-        "weight": 4
-      },
-      {
-        "source": "전기료",
-        "target": "전기요금",
-        "weight": 4
-      },
-      {
-        "source": "ETRI",
-        "target": "절감",
         "weight": 3
       },
       {
-        "source": "LS일렉트릭",
-        "target": "재생에너지",
-        "weight": 3
-      },
-      {
-        "source": "감축",
-        "target": "비용",
-        "weight": 3
-      },
-      {
-        "source": "감축",
-        "target": "온실가스",
-        "weight": 3
-      },
-      {
-        "source": "공장",
-        "target": "설비별",
-        "weight": 3
-      },
-      {
-        "source": "공장에너지관리시스템",
-        "target": "설비별",
-        "weight": 3
-      },
-      {
-        "source": "공장에너지관리시스템",
-        "target": "재생에너지",
-        "weight": 3
-      },
-      {
-        "source": "모니터링",
-        "target": "설비별",
-        "weight": 3
-      },
-      {
-        "source": "모니터링",
-        "target": "재생에너지",
-        "weight": 3
-      },
-      {
-        "source": "배출",
-        "target": "비용",
-        "weight": 3
-      },
-      {
-        "source": "배출",
+        "source": "산업단지",
         "target": "전력",
         "weight": 3
       },
       {
-        "source": "사용량",
-        "target": "온실가스",
+        "source": "스마트에너지플랫폼",
+        "target": "효율",
         "weight": 3
       },
       {
-        "source": "ETRI",
-        "target": "사용량",
+        "source": "에너지",
+        "target": "창원공장",
+        "weight": 3
+      },
+      {
+        "source": "에너지관리시스템",
+        "target": "효율",
+        "weight": 3
+      },
+      {
+        "source": "연간",
+        "target": "재생에너지",
+        "weight": 3
+      },
+      {
+        "source": "온실가스",
+        "target": "재생에너지",
+        "weight": 3
+      },
+      {
+        "source": "온실가스",
+        "target": "전력",
+        "weight": 3
+      },
+      {
+        "source": "저감",
+        "target": "탄소",
+        "weight": 3
+      },
+      {
+        "source": "창원공장",
+        "target": "태양광",
+        "weight": 3
+      },
+      {
+        "source": "LS일렉트릭",
+        "target": "연간",
+        "weight": 2
+      },
+      {
+        "source": "공장",
+        "target": "설비별",
+        "weight": 2
+      },
+      {
+        "source": "공장",
+        "target": "저감",
+        "weight": 2
+      },
+      {
+        "source": "공장",
+        "target": "창원공장",
+        "weight": 2
+      },
+      {
+        "source": "공장에너지관리시스템",
+        "target": "설비별",
+        "weight": 2
+      },
+      {
+        "source": "공장에너지관리시스템",
+        "target": "저감",
+        "weight": 2
+      },
+      {
+        "source": "비용",
+        "target": "에너지관리시스템",
+        "weight": 2
+      },
+      {
+        "source": "산업단지",
+        "target": "에너지관리시스템",
         "weight": 2
       }
     ],
     "clusters": [
       [
-        "공장",
+        "에너지",
         "전력",
         "공장에너지관리시스템",
-        "효율",
+        "공장",
         "사용량",
+        "효율",
+        "태양광",
         "효율화",
-        "감축",
+        "탄소",
+        "산업단지",
+        "에너지관리시스템",
         "온실가스",
-        "배출",
-        "ETRI",
-        "설비별"
+        "저감",
+        "설비별",
+        "스마트에너지플랫폼"
       ],
       [
         "절감",
+        "비용",
         "제조업",
-        "전기료",
         "전력비",
+        "부담",
+        "경쟁력",
+        "전기료",
         "전기요금",
-        "피크",
-        "가동",
-        "시간대",
-        "스케줄링",
-        "미라콤"
+        "비중",
+        "생산비"
       ],
       [
-        "비용",
         "LS일렉트릭",
-        "태양광",
-        "모니터링",
-        "에이스침대",
-        "패턴",
-        "에너지통합관리시스템",
         "재생에너지",
-        "준공식"
+        "연간",
+        "볼보그룹코리아",
+        "창원공장"
       ]
     ],
     "note": "아이디어와 가까운 뉴스 제목·요약에서 같은 기사에 함께 나온 명사를 이은 것이며, 시장 수요나 인과관계의 근거가 아닙니다.",
     "error_message": null
   },
+  "company_financials": {
+    "status": "completed",
+    "companies": [
+      {
+        "company": "그리드위즈",
+        "stock_code": "453450",
+        "statement": "연결",
+        "rcept_no": "20260619000475",
+        "years": [
+          {
+            "year": 2023,
+            "revenue": 131870602109,
+            "operating_income": 1591501114,
+            "net_income": 4156327772,
+            "rnd_expense": 4103124000
+          },
+          {
+            "year": 2024,
+            "revenue": 124674395185,
+            "operating_income": -4342600272,
+            "net_income": -2790149667,
+            "rnd_expense": 2662801000
+          },
+          {
+            "year": 2025,
+            "revenue": 125608613271,
+            "operating_income": 816318926,
+            "net_income": 2019339165,
+            "rnd_expense": 2455261000
+          }
+        ],
+        "rnd_basis": "사업보고서 연구개발활동 표 '소계' (천원)"
+      },
+      {
+        "company": "엘에스일렉트릭",
+        "stock_code": "010120",
+        "statement": "연결",
+        "rcept_no": "20260318001243",
+        "years": [
+          {
+            "year": 2023,
+            "revenue": 4230482628448,
+            "operating_income": 324877723039,
+            "net_income": 207672688149,
+            "rnd_expense": 147071000000
+          },
+          {
+            "year": 2024,
+            "revenue": 4551837252467,
+            "operating_income": 389717122317,
+            "net_income": 242237998768,
+            "rnd_expense": 141359000000
+          },
+          {
+            "year": 2025,
+            "revenue": 4965798552980,
+            "operating_income": 426407143017,
+            "net_income": 284256733172,
+            "rnd_expense": 158055000000
+          }
+        ],
+        "rnd_basis": "사업보고서 연구개발활동 표 '연구개발비용합계정부보조금차감전지출총액임' (백만원)"
+      },
+      {
+        "company": "누리플렉스",
+        "stock_code": "040160",
+        "statement": "연결",
+        "rcept_no": "20260318000419",
+        "years": [
+          {
+            "year": 2023,
+            "revenue": 132719404842,
+            "operating_income": 1980004088,
+            "net_income": 2497486550,
+            "rnd_expense": 3764565000
+          },
+          {
+            "year": 2024,
+            "revenue": 129314325926,
+            "operating_income": -8153266432,
+            "net_income": -4404635225,
+            "rnd_expense": 3957872000
+          },
+          {
+            "year": 2025,
+            "revenue": 101571127227,
+            "operating_income": -6086630452,
+            "net_income": -6665576227,
+            "rnd_expense": 3677415000
+          }
+        ],
+        "rnd_basis": "사업보고서 연구개발활동 표 '연구개발비용계' (천원)"
+      }
+    ],
+    "missing": [],
+    "note": "DART 사업보고서의 주요 재무 계정입니다. 아이디어와 같은 사업 범주로 검색한 기업의 실적이며, 시장 규모나 고객 수요의 근거가 아닙니다.",
+    "error_message": null
+  },
+  "procurement": {
+    "status": "completed",
+    "keywords": [
+      "에너지관리시스템",
+      "FEMS"
+    ],
+    "period": "2026-04 ~ 2026-09",
+    "searched_count": 79,
+    "notices": [
+      {
+        "notice_no": "R26BK01745515-000",
+        "title": "2026년 중소기업 탄소중립 설비투자 지원사업-FEMS",
+        "buyer": "(주)그린광학",
+        "buyer_type": "민간 기업",
+        "kind": "물품",
+        "notice_date": 20260928,
+        "budget": 69300000,
+        "product": "모니터링장치",
+        "contract_method": "수의계약 · 수의시담-수의시담",
+        "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01745515&bidPbancOrd=000"
+      },
+      {
+        "notice_no": "R26BK01743135-000",
+        "title": "2026년 탄소중립 설비투자지원사업 에너지관리시스템 구매의건",
+        "buyer": "주식회사 와이엔프린팅",
+        "buyer_type": "민간 기업",
+        "kind": "물품",
+        "notice_date": 20260923,
+        "budget": 20900000,
+        "product": "모니터링장치",
+        "contract_method": "일반경쟁 · 종합낙찰제-종합낙찰제-일반",
+        "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01743135&bidPbancOrd=000"
+      },
+      {
+        "notice_no": "R26BK01727109-000",
+        "title": "에너지관리시스템 규격서",
+        "buyer": "주식회사 와이엔프린팅",
+        "buyer_type": "민간 기업",
+        "kind": "물품",
+        "notice_date": 20260914,
+        "budget": 20900000,
+        "product": "모니터링장치",
+        "contract_method": "일반경쟁 · 종합낙찰제-종합낙찰제-일반",
+        "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01727109&bidPbancOrd=000"
+      },
+      {
+        "notice_no": "R26BK01725625-000",
+        "title": "2026 산업계 에너지관리시스템 보급 지원사업_계측_주식회사 에이치피에스피",
+        "buyer": "주식회사 에이치피에스피",
+        "buyer_type": "민간 기업",
+        "kind": "물품",
+        "notice_date": 20260911,
+        "budget": 26083409,
+        "product": "전력량계",
+        "contract_method": "수의계약 · 수의시담-수의시담",
+        "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01725625&bidPbancOrd=000"
+      },
+      {
+        "notice_no": "R26BK01717054-000",
+        "title": "2026년 산업계 에너지관리시스템 보급지원사업_선진뷰티사이언스(주) 장항공장_계측",
+        "buyer": "선진뷰티사이언스(주) 장항공장",
+        "buyer_type": "민간 기업",
+        "kind": "물품",
+        "notice_date": 20260908,
+        "budget": 26985200,
+        "product": "전력량계",
+        "contract_method": "일반경쟁 · 협상에의한계약-협상에 의한 낙찰자 결정",
+        "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01717054&bidPbancOrd=000"
+      },
+      {
+        "notice_no": "R26BK01716062-000",
+        "title": "FEMS 통합 모니터링 시스템",
+        "buyer": "(주)대흥섬유",
+        "buyer_type": "민간 기업",
+        "kind": "물품",
+        "notice_date": 20260907,
+        "budget": 143000000,
+        "product": "모니터링장치",
+        "contract_method": "일반경쟁 · 협상에의한계약-협상에 의한 낙찰자 결정",
+        "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01716062&bidPbancOrd=000"
+      },
+      {
+        "notice_no": "R26BK01701212-000",
+        "title": "2026년 산업계 에너지관리시스템 보급 지원사업_선진뷰티사이언스(주) 장항공장_시스템",
+        "buyer": "선진뷰티사이언스(주) 장항공장",
+        "buyer_type": "민간 기업",
+        "kind": "용역",
+        "notice_date": 20260827,
+        "budget": 86900000,
+        "product": "",
+        "contract_method": "일반경쟁 · 협상에의한계약-협상에 의한 낙찰자 결정",
+        "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01701212&bidPbancOrd=000"
+      },
+      {
+        "notice_no": "R26BK01688867-000",
+        "title": "2026년 산업계에너지관리시스템보급지원사업 시스템",
+        "buyer": "주식회사 세운아이엔티",
+        "buyer_type": "민간 기업",
+        "kind": "용역",
+        "notice_date": 20260825,
+        "budget": 42574400,
+        "product": "",
+        "contract_method": "일반경쟁 · 협상에의한계약-협상에 의한 낙찰자 결정",
+        "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01688867&bidPbancOrd=000"
+      },
+      {
+        "notice_no": "R26BK01697650-000",
+        "title": "2026년 산업계 에너지관리시스템 콜렉터신영 에너지관리시스템 구축",
+        "buyer": "콜렉터신영(주)",
+        "buyer_type": "민간 기업",
+        "kind": "용역",
+        "notice_date": 20260825,
+        "budget": 49514300,
+        "product": "",
+        "contract_method": "일반경쟁 · 협상에의한계약-협상에 의한 낙찰자 결정",
+        "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01697650&bidPbancOrd=000"
+      },
+      {
+        "notice_no": "R26BK01695261-000",
+        "title": "(삼화전기) 산업계 에너지관리시스템 보급 지원사업_시스템인프라",
+        "buyer": "삼화전기(주)",
+        "buyer_type": "민간 기업",
+        "kind": "용역",
+        "notice_date": 20260824,
+        "budget": 79499200,
+        "product": "",
+        "contract_method": "일반경쟁 · 협상에의한계약-협상에 의한 낙찰자 결정",
+        "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01695261&bidPbancOrd=000"
+      },
+      {
+        "notice_no": "R26BK01688026-000",
+        "title": "2026년 산업계에너지관리시스템보급지원사업 시스템",
+        "buyer": "주식회사 마린텍",
+        "buyer_type": "민간 기업",
+        "kind": "용역",
+        "notice_date": 20260821,
+        "budget": 45717100,
+        "product": "",
+        "contract_method": "일반경쟁 · 협상에의한계약-협상에 의한 낙찰자 결정",
+        "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01688026&bidPbancOrd=000"
+      },
+      {
+        "notice_no": "R26BK01686782-000",
+        "title": "2026년 산업계 에너지관리시스템 보급 지원사업_모니터링시스템 구축 용역_㈜화신 하이테크파크 공장",
+        "buyer": "(주)화신",
+        "buyer_type": "민간 기업",
+        "kind": "용역",
+        "notice_date": 20260820,
+        "budget": 48326300,
+        "product": "",
+        "contract_method": "일반경쟁 · 협상에의한계약-협상에 의한 낙찰자 결정",
+        "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01686782&bidPbancOrd=000"
+      },
+      {
+        "notice_no": "R26BK01689981-000",
+        "title": "2026 산업계 에너지관리시스템 보급 지원사업_시스템_주식회사 에이치피에스피",
+        "buyer": "주식회사 에이치피에스피",
+        "buyer_type": "민간 기업",
+        "kind": "용역",
+        "notice_date": 20260820,
+        "budget": 44000000,
+        "product": "",
+        "contract_method": "일반경쟁 · 협상에의한계약-협상에 의한 낙찰자 결정",
+        "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01689981&bidPbancOrd=000"
+      },
+      {
+        "notice_no": "R26BK01686762-000",
+        "title": "2026년 산업계 에너지관리시스템 보급 지원사업_모니터링시스템 구축 용역_(주)케이에스엠",
+        "buyer": "주식회사 케이에스엠",
+        "buyer_type": "민간 기업",
+        "kind": "용역",
+        "notice_date": 20260819,
+        "budget": 47309900,
+        "product": "",
+        "contract_method": "일반경쟁 · 협상에의한계약-협상에 의한 낙찰자 결정",
+        "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01686762&bidPbancOrd=000"
+      },
+      {
+        "notice_no": "R26BK01686898-000",
+        "title": "2026년 산업계 에너지관리시스템 보급 지원사업_모니터링시스템 구축 용역_삼보모터스(주)",
+        "buyer": "삼보모터스주식회사",
+        "buyer_type": "민간 기업",
+        "kind": "용역",
+        "notice_date": 20260819,
+        "budget": 70989600,
+        "product": "",
+        "contract_method": "일반경쟁 · 협상에의한계약-협상에 의한 낙찰자 결정",
+        "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01686898&bidPbancOrd=000"
+      },
+      {
+        "notice_no": "R26BK01687570-000",
+        "title": "2026년 산업계 에너지관리시스템 보급 지원사업_모니터링시스템 구축 용역_현대포리텍 김해",
+        "buyer": "(주)현대포리텍 김해",
+        "buyer_type": "민간 기업",
+        "kind": "용역",
+        "notice_date": 20260819,
+        "budget": 36775200,
+        "product": "",
+        "contract_method": "일반경쟁 · 협상에의한계약-협상에 의한 낙찰자 결정",
+        "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01687570&bidPbancOrd=000"
+      },
+      {
+        "notice_no": "R26BK01687950-000",
+        "title": "2026년 산업계에너지관리시스템보급지원사업 시스템",
+        "buyer": "(주)모팜",
+        "buyer_type": "민간 기업",
+        "kind": "용역",
+        "notice_date": 20260819,
+        "budget": 40097200,
+        "product": "",
+        "contract_method": "일반경쟁 · 협상에의한계약-협상에 의한 낙찰자 결정",
+        "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01687950&bidPbancOrd=000"
+      },
+      {
+        "notice_no": "R26BK01688626-000",
+        "title": "2026년 산업계 에너지관리시스템 보급 지원사업_모니터링시스템 구축 용역_세영테크놀러지",
+        "buyer": "주식회사 세영테크놀러지",
+        "buyer_type": "민간 기업",
+        "kind": "용역",
+        "notice_date": 20260819,
+        "budget": 37215200,
+        "product": "",
+        "contract_method": "일반경쟁 · 협상에의한계약-협상에 의한 낙찰자 결정",
+        "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01688626&bidPbancOrd=000"
+      },
+      {
+        "notice_no": "R26BK01684507-000",
+        "title": "2026년 산업계 에너지관리시스템_혜성산업주식회사_에너지관리시스템 구축",
+        "buyer": "혜성산업주식회사",
+        "buyer_type": "민간 기업",
+        "kind": "용역",
+        "notice_date": 20260818,
+        "budget": 46105400,
+        "product": "",
+        "contract_method": "일반경쟁 · 협상에의한계약-협상에 의한 낙찰자 결정",
+        "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01684507&bidPbancOrd=000"
+      },
+      {
+        "notice_no": "R26BK01684671-000",
+        "title": "하나마이크론 2026년 산업계 에너지관리시스템 보급 지원사업_시스템",
+        "buyer": "하나마이크론 주식회사",
+        "buyer_type": "민간 기업",
+        "kind": "용역",
+        "notice_date": 20260818,
+        "budget": 59400000,
+        "product": "",
+        "contract_method": "일반경쟁 · 협상에의한계약-협상에 의한 낙찰자 결정",
+        "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01684671&bidPbancOrd=000"
+      },
+      {
+        "notice_no": "R26BK01684894-000",
+        "title": "2026년 중소기업 탄소중립 설비투자 지원사업_FEMS",
+        "buyer": "(주)보원케미칼",
+        "buyer_type": "민간 기업",
+        "kind": "물품",
+        "notice_date": 20260818,
+        "budget": 63800000,
+        "product": "모니터링장치",
+        "contract_method": "일반경쟁 · 규격가격동시입찰-제안적격자 중 예가 내 최저가 투찰자",
+        "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01684894&bidPbancOrd=000"
+      },
+      {
+        "notice_no": "R26BK01685004-000",
+        "title": "2026년 산업계 에너지관리시스템 구축",
+        "buyer": "한국에스케이에프씰 주식회사",
+        "buyer_type": "민간 기업",
+        "kind": "용역",
+        "notice_date": 20260818,
+        "budget": 97274100,
+        "product": "",
+        "contract_method": "일반경쟁 · 협상에의한계약-협상에 의한 낙찰자 결정(SW사업)",
+        "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01685004&bidPbancOrd=000"
+      },
+      {
+        "notice_no": "R26BK01685499-000",
+        "title": "2026년 산업계 에너지관리시스템_(주)지엠에스_에너지관리시스템 구축",
+        "buyer": "(주)지엠에스",
+        "buyer_type": "민간 기업",
+        "kind": "용역",
+        "notice_date": 20260818,
+        "budget": 50661600,
+        "product": "",
+        "contract_method": "일반경쟁 · 협상에의한계약-협상에 의한 낙찰자 결정",
+        "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01685499&bidPbancOrd=000"
+      },
+      {
+        "notice_no": "R26BK01685650-000",
+        "title": "2026년 산업계 에너지관리시스템 보급 지원사업_시스템",
+        "buyer": "한국산노프코(주)",
+        "buyer_type": "민간 기업",
+        "kind": "용역",
+        "notice_date": 20260818,
+        "budget": 21183800,
+        "product": "",
+        "contract_method": "수의계약 · 수의시담-수의시담",
+        "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01685650&bidPbancOrd=000"
+      },
+      {
+        "notice_no": "R26BK01685699-000",
+        "title": "2026년 산업계에너지관리시스템보급지원사업 시스템",
+        "buyer": "(주)대양정기",
+        "buyer_type": "민간 기업",
+        "kind": "용역",
+        "notice_date": 20260818,
+        "budget": 41945200,
+        "product": "",
+        "contract_method": "일반경쟁 · 협상에의한계약-협상에 의한 낙찰자 결정",
+        "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01685699&bidPbancOrd=000"
+      },
+      {
+        "notice_no": "R26BK01686087-000",
+        "title": "2026년도 중소기업 탄소중립 설비투자 지원사업 - 공장에너지관리시스템(FEMS) 구매·설치",
+        "buyer": "주식회사 평안",
+        "buyer_type": "민간 기업",
+        "kind": "물품",
+        "notice_date": 20260818,
+        "budget": 68200000,
+        "product": "모니터링장치",
+        "contract_method": "일반경쟁 · 협상에의한계약-협상에 의한 낙찰자 결정",
+        "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01686087&bidPbancOrd=000"
+      },
+      {
+        "notice_no": "R26BK01673937-000",
+        "title": "2026년 스마트 생태공장 구축사업_ICT모니터링 FEMS",
+        "buyer": "송월(주)",
+        "buyer_type": "민간 기업",
+        "kind": "물품",
+        "notice_date": 20260810,
+        "budget": 104500000,
+        "product": "산업관리소프트웨어",
+        "contract_method": "수의계약 · 수의시담-수의시담",
+        "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01673937&bidPbancOrd=000"
+      },
+      {
+        "notice_no": "R26BK01656727-000",
+        "title": "2026년 중소기업 탄소중립 설비투자 지원사업_FEMS",
+        "buyer": "해동무역 (주)",
+        "buyer_type": "민간 기업",
+        "kind": "용역",
+        "notice_date": 20260729,
+        "budget": 60500000,
+        "product": "",
+        "contract_method": "일반경쟁 · 협상에의한계약-협상에 의한 낙찰자 결정",
+        "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01656727&bidPbancOrd=000"
+      },
+      {
+        "notice_no": "R26BK01651351-000",
+        "title": "2026년 탄소중립 시설투자 지원사업_에너지환경 기본패키지 소프트웨어(FEMS)",
+        "buyer": "주식회사 대안",
+        "buyer_type": "민간 기업",
+        "kind": "물품",
+        "notice_date": 20260727,
+        "budget": 68200000,
+        "product": "모니터링장치",
+        "contract_method": "일반경쟁 · 협상에의한계약-협상에 의한 낙찰자 결정",
+        "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01651351&bidPbancOrd=000"
+      },
+      {
+        "notice_no": "R26BK01645647-000",
+        "title": "2026년 탄소중립 설비투자 지원사업 에너지관리시스템 구매",
+        "buyer": "경진기계주식회사",
+        "buyer_type": "민간 기업",
+        "kind": "물품",
+        "notice_date": 20260722,
+        "budget": 20900000,
+        "product": "모니터링장치",
+        "contract_method": "일반경쟁 · 종합낙찰제-종합낙찰제-일반",
+        "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01645647&bidPbancOrd=000"
+      },
+      {
+        "notice_no": "R26BK01613657-000",
+        "title": "(가칭)첨단1고등학교 신축공사 관급자재(건물에너지관리시스템(BEMS))",
+        "buyer": "인천광역시교육청",
+        "buyer_type": "대학·학교",
+        "kind": "물품",
+        "notice_date": 20260702,
+        "budget": 50490000,
+        "product": "산업관리소프트웨어",
+        "contract_method": "수의계약 · 소액수의견적-소액수의견적(2인 이상 견적 제출)",
+        "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01613657&bidPbancOrd=000"
+      },
+      {
+        "notice_no": "R26BK01600240-000",
+        "title": "(가칭)검단3고등학교 신축공사 관급자재(건물에너지관리시스템(BEMS))",
+        "buyer": "인천광역시교육청",
+        "buyer_type": "대학·학교",
+        "kind": "물품",
+        "notice_date": 20260624,
+        "budget": 50490000,
+        "product": "산업관리소프트웨어",
+        "contract_method": "수의계약 · 소액수의견적-소액수의견적(2인 이상 견적 제출)",
+        "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01600240&bidPbancOrd=000"
+      },
+      {
+        "notice_no": "R26BK01600533-000",
+        "title": "건물에너지관리시스템(BEMS) 구축 자동제어 공사",
+        "buyer": "충북대학교",
+        "buyer_type": "대학·학교",
+        "kind": "물품",
+        "notice_date": 20260624,
+        "budget": 911067540,
+        "product": "빌딩자동제어장치",
+        "contract_method": "수의계약 · 수의시담-수의시담",
+        "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01600533&bidPbancOrd=000"
+      },
+      {
+        "notice_no": "R26BK01598224-000",
+        "title": "(가칭)용현학익유치원 신축공사 관급자재(건물에너지관리시스템(BEMS))",
+        "buyer": "인천광역시교육청",
+        "buyer_type": "대학·학교",
+        "kind": "물품",
+        "notice_date": 20260623,
+        "budget": 39875000,
+        "product": "산업관리소프트웨어",
+        "contract_method": "수의계약 · 소액수의견적-소액수의견적(2인 이상 견적 제출)",
+        "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01598224&bidPbancOrd=000"
+      },
+      {
+        "notice_no": "R26BK01559998-000",
+        "title": "국립군산대학교 건물에너지관리시스템(BEMS) 2차 구매 설치",
+        "buyer": "국립군산대학교",
+        "buyer_type": "대학·학교",
+        "kind": "물품",
+        "notice_date": 20260608,
+        "budget": 1183529950,
+        "product": "빌딩자동제어장치",
+        "contract_method": "수의계약 · 수의시담-수의시담",
+        "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01559998&bidPbancOrd=000"
+      },
+      {
+        "notice_no": "R26BK01547969-000",
+        "title": "청사 건물 에너지관리시스템 구매 설치",
+        "buyer": "대구공공시설관리공단",
+        "buyer_type": "공공기관",
+        "kind": "물품",
+        "notice_date": 20260529,
+        "budget": 247373520,
+        "product": "빌딩자동제어장치",
+        "contract_method": "지명경쟁 · 적격심사제-추정가격이 고시금액 미만인 중소기업자간 경쟁물품",
+        "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01547969&bidPbancOrd=000"
+      },
+      {
+        "notice_no": "R26BK01534362-000",
+        "title": "(가칭)호명중학교 교사 신축 전기공사 관급자재(빌딩에너지관리시스템:BEMS) 구매 설치",
+        "buyer": "경상북도교육청 경상북도예천교육지원청",
+        "buyer_type": "대학·학교",
+        "kind": "물품",
+        "notice_date": 20260520,
+        "budget": 114185500,
+        "product": "빌딩자동제어장치",
+        "contract_method": "제한경쟁 · 적격심사제-추정가격 고시금액 미만",
+        "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01534362&bidPbancOrd=000"
+      },
+      {
+        "notice_no": "R26BK01512591-000",
+        "title": "(가칭)청라4고등학교 신축공사 건물에너지관리시스템(BEMS)",
+        "buyer": "인천광역시교육청",
+        "buyer_type": "대학·학교",
+        "kind": "물품",
+        "notice_date": 20260519,
+        "budget": 54773400,
+        "product": "산업관리소프트웨어",
+        "contract_method": "수의계약 · 소액수의견적-소액수의견적(2인 이상 견적 제출)",
+        "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01512591&bidPbancOrd=000"
+      },
+      {
+        "notice_no": "R26BK01516778-000",
+        "title": "(가칭)탕정8초등학교 신축 기계설비공사 건축물에너지관리시스템 제작구매설치",
+        "buyer": "충청남도교육청 충청남도아산교육지원청",
+        "buyer_type": "대학·학교",
+        "kind": "물품",
+        "notice_date": 20260514,
+        "budget": 302590000,
+        "product": "빌딩자동제어장치",
+        "contract_method": "수의계약 · 수의시담-수의시담",
+        "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01516778&bidPbancOrd=000"
+      },
+      {
+        "notice_no": "R26BK01523207-000",
+        "title": "충남대학교 캠퍼스 에너지관리시스템(CEMS)구축 3차",
+        "buyer": "충남대학교",
+        "buyer_type": "대학·학교",
+        "kind": "물품",
+        "notice_date": 20260514,
+        "budget": 1982566000,
+        "product": "빌딩자동제어장치",
+        "contract_method": "수의계약 · 수의시담-수의시담",
+        "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01523207&bidPbancOrd=000"
+      },
+      {
+        "notice_no": "R26BK01432337-000",
+        "title": "전주교대 건물에너지관리시스템(BEMS) 구축 공사",
+        "buyer": "전주교육대학교",
+        "buyer_type": "대학·학교",
+        "kind": "물품",
+        "notice_date": 20260402,
+        "budget": 1185759600,
+        "product": "빌딩자동제어장치",
+        "contract_method": "수의계약 · 수의시담-수의시담",
+        "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01432337&bidPbancOrd=000"
+      }
+    ],
+    "note": "나라장터 공공 입찰공고입니다. 공공기관·대학·연구기관의 구매가 대부분이어서 민간 고객 수요의 근거가 아니며, 공공 구매 사례와 예산 수준을 참고하는 자료입니다.",
+    "error_message": null
+  },
   "unknowns": [],
-  "search_scope": "네이버 뉴스 검색 API로 사전 수집한 스마트팩토리 기사 1976건(제목·요약, 발행일 20240102~20261029) · DART 사업보고서 '사업의 내용' 발췌 348건(기업 14곳, FY2025), 전체 수집 범위 · 아이디어와 가까워 검색한 DART 기업: 그리드위즈, 이삭엔지니어링, 엘에스일렉트릭",
-  "data_as_of": 20261029,
+  "search_scope": "네이버 뉴스 검색 API로 사전 수집한 스마트팩토리 기사 1976건(제목·요약, 발행일 20240102~20261029) · DART 사업보고서 '사업의 내용' 발췌 348건(기업 14곳, FY2025), 전체 수집 범위 · 검색한 DART 기업(아이디어와 같은 사업 범주): 그리드위즈, 엘에스일렉트릭, 누리플렉스",
+  "data_as_of": 20261030,
   "error_message": null
 }

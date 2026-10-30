@@ -138,112 +138,188 @@ GUIDES = {
 }
 
 
-def _select_step(track, index):
-    st.session_state[f"process_step_{track}"] = index
-
-
 def render_process_guide(track):
+    from html import escape
+
     guide = GUIDES[track]
-    st.caption(
-        "분석 방식 안내 · 아래 단계를 눌러도 조사나 API 호출은 실행되지 않습니다."
+    label = "특허 조사" if track == "patent" else "시장 조사"
+    with st.container(key="info_hero"):
+        words, picture = st.columns([1.35, 1], gap="large", vertical_alignment="center")
+        with words:
+            st.html(f'<div class="info-kicker">HOW IT WORKS / {label}</div>')
+            st.title(
+                "기술의 근거를 찾고, 구성으로 비교합니다."
+                if track == "patent"
+                else "시장의 신호를 찾고, 내 고객의 맥락으로 읽습니다."
+            )
+            st.write(guide["summary"])
+        with picture:
+            st.html(_flow_diagram(track))
+    sections = (
+        [
+            (1, "검색 질문"),
+            (2, "문헌·원문 확보"),
+            (4, "구성 비교·설계 대안"),
+            (6, "보고서와 검증"),
+        ]
+        if track == "patent"
+        else [
+            (1, "검토 질문"),
+            (2, "자료 검색·관련성 확인"),
+            (4, "분석과 인용 검증"),
+            (6, "결과와 다음 행동"),
+        ]
     )
-    st.title(guide["title"])
-    st.write(guide["summary"])
-    with st.expander("먼저 준비하는 자료와 실시간 조사는 어떻게 다른가요?"):
+    st.html(
+        '<nav class="info-route" aria-label="조사 설명 바로가기">'
+        + "".join(
+            f'<a href="#guide-{track}-step-{step}" target="_self"><small>{number:02}</small>{escape(label)}<span aria-hidden="true">↓</span></a>'
+            for number, (step, label) in enumerate(sections, 1)
+        )
+        + "</nav>"
+    )
+    st.subheader("조사는 이렇게 진행됩니다")
+    st.caption(
+        "위 목차를 누르면 해당 설명으로 이동합니다. 각 단계를 펼쳐 하는 일과 결과를 확인하세요."
+    )
+    with st.expander("00  자료 수집과 색인 준비"):
         st.write(guide["preparation"])
         st.caption(
-            "수집·정제·임베딩·색인 준비와, 입력한 아이디어로 검색하는 요청은 별개입니다. 매번 모든 자료를 다시 수집하지 않습니다. 설명은 현재 코드의 경로이며 이 서버의 자료·키 준비 상태를 점검한 결과는 아닙니다."
+            "자료를 미리 준비하는 과정입니다. 아이디어를 입력할 때마다 전체 자료를 다시 수집하지 않습니다."
         )
-    st.html(
-        """<div class="rag-explainer" aria-label="RAG의 세 단계"><span><b>찾기</b> 관련 자료 검색</span><i>→</i><span><b>근거 넣기</b> 출처와 문맥 구성</span><i>→</i><span><b>설명하기</b> 생성 후 인용 검증</span></div>"""
-    )
-    st.subheader("어떤 단계가 궁금한가요?")
-    index = st.session_state.get(f"process_step_{track}", 0)
-    if not isinstance(index, int) or not 0 <= index < len(guide["steps"]):
-        index = 0
-    for start in (0, 3):
-        cols = st.columns(3)
-        for i in range(start, start + 3):
-            cols[i - start].button(
-                f"{i + 1:02} {guide['steps'][i][0]}",
-                key=f"process_{track}_{i}",
-                type="primary" if i == index else "secondary",
-                width="stretch",
-                on_click=_select_step,
-                args=(track, i),
-            )
-    title, incoming, outgoing, action, reason, tool, sources = guide["steps"][index]
-    with st.container(border=True, key="process_detail"):
-        st.caption(
-            f"설명 단계 {index + 1} / {len(guide['steps'])} · 실행 진행률이 아닙니다"
-        )
-        st.subheader(title)
-        left, right = st.columns(2)
-        with left:
-            st.markdown("**입력받는 것**")
-            st.write(incoming)
-        with right:
-            st.markdown("**다음에 넘기는 것**")
-            st.write(outgoing)
-        st.divider()
-        st.write(action)
-        st.info("이렇게 하는 이유 · " + reason)
-        with st.expander("사용 기술과 구현 근거"):
-            st.write(tool)
-            for source in sources:
-                st.markdown(
-                    f"[{source}](https://github.com/LG-CNS-RAG-Project1/LG-CNS-RAG-Project/blob/develop/{source})"
+    for index, step in enumerate(guide["steps"]):
+        title, incoming, outgoing, action, reason, tool, sources = step
+        st.html(f'<div id="guide-{track}-step-{index + 1}" class="guide-anchor"></div>')
+        with st.expander(f"{index + 1:02}  {title}", expanded=index == 0):
+            st.html(
+                '<div class="process-detail">'
+                f'<p class="process-action">{escape(action)}</p>'
+                f'<div class="process-transfer"><div><small>시작 자료</small><p>{escape(incoming)}</p></div><span aria-hidden="true">→</span><div><small>확인할 결과</small><p><strong>{escape(outgoing)}</strong></p></div></div>'
+                f'<p class="process-reason"><b>왜 필요한가요?</b> {escape(reason)}</p>'
+                f'<details class="guide-sources"><summary>사용 기술 · 구현 자료</summary><p>{escape(tool)}</p>'
+                + " · ".join(
+                    f'<a href="https://github.com/LG-CNS-RAG-Project1/LG-CNS-RAG-Project/blob/develop/{source}" target="_blank" rel="noopener noreferrer">{escape(source.rsplit("/", 1)[-1])}</a>'
+                    for source in sources
                 )
-    with st.expander("검색·분석 품질은 어떻게 확인하나요?"):
+                + "</details></div>"
+            )
+    st.divider()
+    st.html('<div class="info-kicker">METHOD</div>')
+    st.subheader("어떤 방식으로 근거를 찾나요?")
+    methods = (
+        [
+            (
+                "Dense",
+                "표현이 달라도 의미가 가까운 기술을 찾습니다. 기본 검색 방식입니다.",
+            ),
+            ("BM25", "기술명과 구성 용어가 직접 등장하는 문헌을 찾습니다."),
+            (
+                "Hybrid",
+                "두 검색의 순위를 결합합니다. 설정에 따라 선택하며 재정렬은 별도 단계입니다.",
+            ),
+        ]
+        if track == "patent"
+        else [
+            (
+                "출처별 검색",
+                "뉴스와 기업 공시를 구분하고 같은 보도는 중복 근거로 세지 않습니다.",
+            ),
+            (
+                "관련성 확인",
+                "주제가 비슷한지보다 내 질문에 답하는 근거인지를 확인합니다.",
+            ),
+            (
+                "인용 검증",
+                "분석 문장이 원문에 연결되는지 살피고 근거가 없는 내용은 미확인으로 남깁니다.",
+            ),
+        ]
+    )
+    st.html(
+        '<div class="info-methods">'
+        + "".join(
+            f"<article><small>0{i + 1}</small><h3>{escape(name)}</h3><p>{escape(body)}</p></article>"
+            for i, (name, body) in enumerate(methods)
+        )
+        + "</div>"
+    )
+    st.divider()
+    st.html('<div class="info-kicker">EVALUATION</div>')
+    st.subheader("검색과 답변, 따로 검증합니다")
+    st.write("같은 질문과 자료 범위에서 검색 품질과 인용의 정확성을 나눠 확인합니다.")
+    measures = (
+        [
+            ("후보 탐색", "관련 문헌을 후보로 찾았는가"),
+            ("상위 순위", "관련 문헌이 앞에 놓였는가"),
+            ("답변 근거", "비교 문장이 실제 인용으로 뒷받침되는가"),
+        ]
+        if track == "patent"
+        else [
+            ("검색 품질", "질문에 답하는 자료를 찾았는가"),
+            ("관련성 판정", "관련·비관련 판단이 사람 검토와 맞는가"),
+            ("인용 정확도", "답변의 사실과 수치가 출처에 있는가"),
+        ]
+    )
+    st.html(
+        '<div class="info-evaluation"><div>'
+        + "".join(
+            f'<div class="evaluation-row"><b>{escape(name)}</b><span>{escape(body)}</span></div>'
+            for name, body in measures
+        )
+        + "</div><aside><small>COMPARISON CONDITIONS</small><h3>같은 조건에서 비교합니다.</h3><p>자료 범위·모델·실행 시점·사람 검토 여부를 함께 확인합니다. 표본과 라벨이 준비되지 않은 성능 점수는 표시하지 않습니다.</p></aside></div>"
+    )
+    with st.expander("평가 기준과 구현 자료"):
         st.write(guide["evaluation"])
         for source in guide["evaluation_sources"]:
             st.markdown(
                 f"[{source}](https://github.com/LG-CNS-RAG-Project1/LG-CNS-RAG-Project/blob/develop/{source})"
             )
         st.caption(
-            "안내 화면은 평가나 재학습을 실행하지 않습니다. 현재 운영 색인 건수나 성능 점수를 추정해 표시하지 않습니다."
+            "이 안내는 분석이나 평가를 실행하지 않습니다. 운영 자료 수와 성능 점수는 추정하지 않습니다."
         )
-    if track == "patent":
-        with st.expander("Dense·BM25·Hybrid와 재정렬은 무엇이 다른가요?"):
-            cols = st.columns(3)
-            for col, name, role in zip(
-                cols,
-                ("Dense", "BM25", "Hybrid · RRF"),
-                (
-                    "표현이 달라도 문맥상 가까운 기술을 찾습니다. 기본 검색 경로입니다.",
-                    "기술명이나 구성 용어가 본문에 직접 등장하는 후보를 찾습니다.",
-                    "Dense와 BM25의 후보 순위를 결합합니다. 서로 다른 점수 자체를 더하지 않습니다.",
-                ),
-            ):
-                with col.container(border=True):
-                    st.markdown(f"**{name}**")
-                    st.write(role)
-            st.write(
-                "후보를 모은 뒤 문헌 단위로 집계하고, 선택적 재정렬로 상위 순서를 다시 정교화할 수 있습니다. 후보 생성과 재정렬 효과는 분리해서 평가합니다."
-            )
-            st.caption(
-                "분야 필터 결과와 전체 색인 보충 경로도 구분합니다. 여러 청크가 한 문헌에서 나왔다면 독립적인 특허 여러 건으로 세지 않습니다."
-            )
-            st.link_button(
-                "참고한 특허 조사 지도 ↗",
-                "https://astounding-syrniki-4326f2.netlify.app/",
-            )
-    st.caption(guide["limits"])
-    st.markdown("**두 조사는 마지막에 어떻게 만나나요?**")
+    st.html(
+        f'<aside class="info-footnote"><b>해석의 범위</b><p>{escape(guide["limits"])}</p></aside>'
+    )
+    st.markdown("**특허와 시장은 같은 아이디어에서 만납니다.**")
     st.write(
-        "같은 아이디어를 기준으로 특허의 기술적 관련성과 시장의 고객·도입 맥락을 함께 검토합니다. 서로 다른 점수를 단순 합산하지 않고, 확인된 근거·해석·가설·미확인과 다음 검증을 구분해 종합 보고서에 담습니다."
+        "기술의 관련성과 고객·도입 조건을 함께 검토합니다. 점수를 단순 합산하지 않고, 확인한 근거와 다음에 확인할 것을 종합 보고서에 남깁니다."
     )
 
 
 def process_styles():
-    return """<style>
-    .st-key-introduction button[kind="primary"]{background:#176b60;border-color:#176b60;color:white;}
-    .rag-explainer{display:flex;gap:14px;align-items:center;justify-content:space-between;margin:25px 0;padding:22px;background:#fffdf3;border:1px solid #dbe5d5;border-radius:16px;}
-    .rag-explainer span{display:flex;flex-direction:column;gap:6px;color:#58746a;font-size:14px;}.rag-explainer b{font-size:19px;color:#1f4943;}.rag-explainer i{color:#86a295;font-style:normal;}
-    .st-key-process_detail{background:#fffef8;border-radius:16px;padding:24px!important;margin:20px 0;}
-    .st-key-intro_journey [data-testid="stVerticalBlockBorderWrapper"]{height:100%;}
-    [class*="st-key-intro_card_"]{min-height:300px;background:#fffef8;border-radius:18px;padding:24px!important;}
-    .st-key-intro_card_evidence .st-key-intro_open_patent button{background:#e6f1e7;color:#1d5c50;border-color:#bcd3c5;min-height:70px;}
-    .st-key-intro_card_evidence .st-key-intro_open_market button{background:#f7f0d8;color:#65552b;border-color:#ded1a2;min-height:70px;}
-    @media(max-width:700px){.rag-explainer{gap:8px;padding:15px;}.rag-explainer span{font-size:11px}.rag-explainer b{font-size:15px;}[class*="st-key-intro_card_"]{min-height:0;}.st-key-process_detail{padding:16px!important;}}
-    </style>"""
+    from pathlib import Path
+
+    return (
+        "<style>"
+        + Path(__file__).with_name("information.css").read_text(encoding="utf-8")
+        + "</style>"
+    )
+
+
+def _flow_diagram(track):
+    labels = (
+        ("기술 질의", "특허 문헌", "청구항 비교")
+        if track == "patent"
+        else ("검토 질문", "뉴스 · 공시", "인용 검증")
+    )
+    markup = f"""<figure class="info-diagram" aria-label="{' → '.join(labels)}">
+    <figcaption>{'PATENT' if track == 'patent' else 'MARKET'} / EVIDENCE FLOW</figcaption>
+    <svg viewBox="0 0 420 205" role="img" aria-label="질문에서 근거를 찾아 검증하는 흐름">
+    <defs><marker id="{track}-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10" fill="none" stroke="#799487" stroke-width="1.4"/></marker></defs>
+    <g stroke="#a9bdb1" fill="none" stroke-width="1.2"><path d="M85 90 H168 M234 90 H317" marker-end="url(#{track}-arrow)"/><path d="M85 90 H168" marker-end="url(#{track}-arrow)"/><circle cx="53" cy="90" r="31"/><rect x="169" y="57" width="64" height="66" rx="4"/><circle cx="349" cy="90" r="31"/></g>
+    <g stroke="#2c6654" fill="none" stroke-width="2"><circle cx="50" cy="86" r="10"/><path d="M57 94 L65 103 M185 75 H218 M185 87 H218 M185 99 H207 M336 90 L346 100 L363 79"/></g>
+    <g fill="#375f4f" font-size="13" text-anchor="middle" font-family="sans-serif"><text x="53" y="155">{labels[0]}</text><text x="201" y="155">{labels[1]}</text><text x="349" y="155">{labels[2]}</text></g>
+    </svg><p>검색 경로와 원문 근거를 함께 확인합니다.</p></figure>"""
+
+    import base64
+
+    start = markup.index("<svg")
+    end = markup.index("</svg>") + len("</svg>")
+    svg = markup[start:end].replace(
+        "<svg ", '<svg xmlns="http://www.w3.org/2000/svg" ', 1
+    )
+    encoded = base64.b64encode(svg.encode("utf-8")).decode("ascii")
+    return (
+        markup[:start]
+        + f'<img src="data:image/svg+xml;base64,{encoded}" alt="{' → '.join(labels)}" />'
+        + markup[end:]
+    )
