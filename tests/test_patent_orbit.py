@@ -32,6 +32,21 @@ def test_patent_similarity_uses_highest_dense_score_and_preserves_missing():
 
 
 @pytest.mark.parametrize(
+    "score", [float("nan"), "NaN", "nan", "None", "bad", -0.1, 1.1]
+)
+def test_patent_evidence_normalizes_invalid_similarity(score):
+    evidence = PatentEvidence(
+        citation_id=1,
+        patent_id="P1",
+        title="특허",
+        section="abstract",
+        quote="검색 근거",
+        similarity=score,
+    )
+    assert evidence.similarity is None
+
+
+@pytest.mark.parametrize(
     ("score", "expected_radius"), [(0, 2.8), (1, 1.45), (None, 3.0)]
 )
 def test_orbit_radius_boundaries(score, expected_radius):

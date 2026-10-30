@@ -178,7 +178,12 @@ def patent_detail_dialog(patent, patent_id):
         kipris_application_search_url,
     )
     from src.generation.report_builder import safe_url
-    from frontend.patent_orbit import fetch_first_kipris_drawing, kipris_drawing_url
+    from frontend.patent_orbit import (
+        drawing_image_metadata,
+        fetch_first_kipris_drawing,
+        kipris_drawing_url,
+        tooltip_text,
+    )
 
     review = next(
         (item for item in patent.patent_reviews if item.patent_id == patent_id), None
@@ -210,7 +215,9 @@ def patent_detail_dialog(patent, patent_id):
         ),
         None,
     )
-    st.markdown("#### 대표도면")
+    image_bytes = None
+    image_status = "missing_url"
+    loaded_url = None
     if drawing_evidence:
         image_bytes, image_status, loaded_url = fetch_first_kipris_drawing(
             (
@@ -218,36 +225,56 @@ def patent_detail_dialog(patent, patent_id):
                 drawing_evidence.representative_thumbnail_url,
             )
         )
-        if image_bytes:
-            from frontend.patent_orbit import drawing_image_metadata
+    full_drawing_url = (
+        kipris_drawing_url(
+            drawing_evidence.representative_drawing_url
+            or drawing_evidence.representative_thumbnail_url
+        )
+        if drawing_evidence
+        else None
+    )
 
-            caption = drawing_evidence.representative_drawing_caption or (
-                f"KIPRIS 대표도면 · 출원번호 "
-                f"{drawing_evidence.application_number or patent_id}"
-            )
+    left, right = st.columns([3, 1.15], gap="large", vertical_alignment="top")
+    with left:
+        if review:
+            reason = tooltip_text(review.relevance_reason, "우선 확인 이유 미제공")
+            st.info(f"**관련성: {review.relevance}** · {reason}")
+            if review.overall_summary:
+                st.write(review.overall_summary)
+        else:
+            st.info("원문은 확보했지만 이 문헌의 비교 분석 결과는 제공되지 않았습니다.")
+
+    with right:
+        st.markdown("#### 대표도면")
+        if image_bytes:
             try:
-                image_width, image_height, display_width, image_format = (
-                    drawing_image_metadata(image_bytes)
+                image_width, image_height, _, image_format = drawing_image_metadata(
+                    image_bytes
                 )
                 original_url = kipris_drawing_url(
                     drawing_evidence.representative_drawing_url
                 )
                 is_original = loaded_url == original_url
-                resolution_note = (
-                    "원본 도면"
-                    if is_original
-                    else "썸네일 · 원본을 가져오지 못해 저해상도 이미지를 표시"
+                resolution_note = "원본 도면" if is_original else "썸네일 · 저해상도"
+                caption = drawing_evidence.representative_drawing_caption or (
+                    f"KIPRIS 대표도면 · 출원번호 "
+                    f"{drawing_evidence.application_number or patent_id}"
                 )
-                st.image(image_bytes, caption=caption, width=display_width)
+                st.image(image_bytes, caption=caption, width=min(image_width, 240))
                 st.caption(
                     f"{resolution_note} · {image_width}×{image_height} px · {image_format}"
                 )
+                with st.popover("도면 크게 보기"):
+                    st.image(image_bytes, caption=caption, width=min(image_width, 1200))
+                    st.caption(f"{image_width}×{image_height} px · {image_format}")
+                    if full_drawing_url:
+                        st.link_button("KIPRIS 대표도면 원문 열기", full_drawing_url)
+                st.caption("출처: KIPRIS Plus · 선택한 문헌")
             except Exception:
                 st.info(
                     "대표도면 형식을 표시할 수 없습니다. KIPRIS 원문 링크에서 확인해 주세요."
                 )
-            st.caption("출처: KIPRIS Plus 검색 결과 · 선택한 문헌의 대표도면 경로")
-        else:
+        elif drawing_evidence:
             failure_messages = {
                 "invalid_source": "저장된 도면 주소가 KIPRIS 공식 호스트가 아니어서 표시하지 않았습니다.",
                 "redirect": "도면 서버가 다른 주소로 안내했습니다. 안전 검증을 위해 자동 이동하지 않았습니다.",
@@ -264,25 +291,10 @@ def patent_detail_dialog(patent, patent_id):
                     image_status, "이미지 응답을 확인할 수 없습니다."
                 )
             )
-        full_drawing_url = kipris_drawing_url(
-            drawing_evidence.representative_drawing_url
-            or drawing_evidence.representative_thumbnail_url
-        )
+        else:
+            st.info("이 문헌에는 대표도면 경로가 없습니다.")
         if full_drawing_url:
-            st.link_button("KIPRIS 대표도면 파일 열기", full_drawing_url)
-    else:
-        st.info(
-            "이 문헌에는 대표도면 경로가 없습니다. 최신 KIPRIS 검색 결과를 수집해 색인을 갱신하면 확인할 수 있습니다."
-        )
-    if review:
-        st.info(
-            f"**관련성: {review.relevance}** · "
-            f"{review.relevance_reason or review.overall_summary or '비교 판단 근거가 제한적입니다.'}"
-        )
-        if review.overall_summary:
-            st.write(review.overall_summary)
-    else:
-        st.info("원문은 확보했지만 이 문헌의 비교 분석 결과는 제공되지 않았습니다.")
+            st.link_button("KIPRIS 도면 원문", full_drawing_url)
 
     st.markdown("#### 아이디어 구성요소별 비교")
     status_labels = {

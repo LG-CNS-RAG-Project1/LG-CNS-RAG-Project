@@ -10,11 +10,14 @@ from PIL import Image
 
 def patent_dense_similarity(evidence) -> float | None:
     """문헌에 연결된 Dense 검색 점수 중 최고값을 반환한다."""
-    scores = [
-        float(item.similarity)
-        for item in evidence
-        if item.similarity is not None and math.isfinite(float(item.similarity))
-    ]
+    scores = []
+    for item in evidence:
+        try:
+            score = float(item.similarity)
+        except (TypeError, ValueError):
+            continue
+        if math.isfinite(score) and 0 <= score <= 1:
+            scores.append(score)
     return max(scores) if scores else None
 
 

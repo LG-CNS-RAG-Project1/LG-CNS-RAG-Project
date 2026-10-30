@@ -324,6 +324,7 @@ def test_direct_input_runs_followup_and_reaches_report(live, monkeypatch):
     detail = app.get("dialog")[0]
     assert any("진동 기반 고장 예측 장치" in item.value for item in detail.subheader)
     assert any("대표도면 경로가 없습니다" in item.value for item in detail.info)
+    assert any("우선 확인 이유 미제공" in item.value for item in detail.info)
     assert any("아이디어 구성요소별 비교" in item.value for item in detail.markdown)
     assert any(
         "<mark><u>진동 센서 분석</u></mark>" in item.value for item in detail.markdown
@@ -373,11 +374,11 @@ def test_direct_input_runs_followup_and_reaches_report(live, monkeypatch):
             "https://plus.kipris.or.kr/thumb?arg=fixture",
         )
     ]
-    assert any("선택한 문헌의 대표도면 경로" in item.value for item in detail.caption)
+    assert any("원본 도면 · 2×2 px · PNG" in item.value for item in detail.caption)
     assert not any(
         "대표도면 형식을 표시할 수 없습니다" in item.value for item in detail.info
     )
-    assert any("KIPRIS 대표도면 파일 열기" in item.label for item in detail.link_button)
+    assert any("KIPRIS 도면 원문" in item.label for item in detail.link_button)
 
     click(app, "시장성 보고서 →")
     assert app.session_state.stage == 3
