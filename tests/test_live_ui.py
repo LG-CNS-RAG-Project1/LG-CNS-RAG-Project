@@ -291,7 +291,8 @@ def test_direct_input_runs_followup_and_reaches_report(live, monkeypatch):
     )
     charts = app.get("vega_lite_chart")
     assert len(charts) == 1
-    assert json.loads(charts[0].proto.spec)["padding"] == {
+    chart_spec = json.loads(charts[0].proto.spec)
+    assert chart_spec["padding"] == {
         "top": 12,
         "right": 12,
         "bottom": 12,
@@ -305,6 +306,7 @@ def test_direct_input_runs_followup_and_reaches_report(live, monkeypatch):
     assert "Dense 검색 점수" in serialized
     assert "dense_score_display" in serialized
     assert "priority_reason_display" in serialized
+    assert '"format": "s"' not in serialized
     assert '"미제공"' in serialized
     assert "우선 확인 이유 미제공" in serialized
     assert "핵심 요약" not in serialized

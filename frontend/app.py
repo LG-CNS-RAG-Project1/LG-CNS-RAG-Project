@@ -1327,12 +1327,10 @@ def render_patent_report(patent, *, widget_suffix="", preview=False):
                             alt.Tooltip(
                                 "dense_score_display:N",
                                 title="Dense 검색 점수",
-                                format="s",
                             ),
                             alt.Tooltip(
                                 "priority_reason_display:N",
                                 title="우선 확인 이유",
-                                format="s",
                             ),
                         ],
                         opacity=alt.condition(hover, alt.value(1), alt.value(0.88)),
