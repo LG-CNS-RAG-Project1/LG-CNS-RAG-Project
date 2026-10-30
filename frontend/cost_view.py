@@ -65,6 +65,7 @@ def render_cost_estimate(result):
                     cost_totals=totals,
                     market=result.market,
                     swot=getattr(result, "swot", None),
+                    canvas=getattr(result, "canvas", None),
                 )
                 c1, c2 = st.columns(2)
                 c1.metric(

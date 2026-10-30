@@ -249,6 +249,39 @@ def _undefined_claim_valid(text: str, missing_fields: set[str]) -> bool:
     return named <= missing_fields
 
 
+def check_item(
+    text: str,
+    basis: str,
+    citation_ids: list,
+    allowed: dict[str, str],
+    idea_text: str,
+    trend_direction: str | None = None,
+    missing_fields: set[str] | None = None,
+) -> list[str] | None:
+    """항목 하나를 검증해 정리된 근거 ID 목록을, 버려야 하면 None을 반환한다.
+
+    알 수 없는 근거 ID는 지우고, 다음 항목은 버린다: 근거 항목에 남은 ID가 없음, 숫자가 인용
+    원문·아이디어에 없음, 수요 확인·증가·시장 성장 단정 표현, 검색 관심도(T)를 인용하면서 실제
+    방향(trend_direction)과 반대 표현, 채워진 아이디어 항목을 '정하지 않았다'고 씀.
+    user_claim은 근거 ID를 쓰지 않는다. 길이 제한은 호출부가 검사한다.
+    """
+    ids = [str(i).strip() for i in citation_ids]
+    ids = [i for i in dict.fromkeys(ids) if i in allowed]
+    if basis == "user_claim":
+        ids = []
+    corpus = idea_text + " " + " ".join(allowed[i] for i in ids)
+    if (
+        not text
+        or (basis == "evidence" and not ids)
+        or OVERCLAIM_RE.search(text)
+        or not _numbers_supported(text, corpus)
+        or not _trend_consistent(text, ids, trend_direction)
+        or not _undefined_claim_valid(text, missing_fields or set())
+    ):
+        return None
+    return ids
+
+
 def validate_items(
     raw_items,
     allowed: dict[str, str],
@@ -256,14 +289,7 @@ def validate_items(
     trend_direction: str | None = None,
     missing_fields: set[str] | None = None,
 ) -> tuple[list[SwotItem], int]:
-    """LLM 항목을 검증해 (통과 항목 최대 MAX_ITEMS개, 버린 수)를 반환한다.
-
-    알 수 없는 근거 ID는 지우고, 다음 항목은 버린다: 근거 항목에 남은 ID가 없음, 숫자가 인용
-    원문·아이디어에 없음, 수요 확인·증가·시장 성장 단정 표현, 검색 관심도(T)를 인용하면서 실제
-    방향(trend_direction)과 반대 표현, 채워진 아이디어 항목을 '정하지 않았다'고 씀.
-    user_claim은 근거 ID를 쓰지 않는다.
-    """
-    missing_fields = missing_fields or set()
+    """LLM 항목을 check_item·길이 제한으로 검증해 (통과 항목 최대 MAX_ITEMS개, 버린 수)를 반환한다."""
     kept, dropped = [], 0
     for raw in raw_items if isinstance(raw_items, list) else []:
         try:
@@ -272,20 +298,16 @@ def validate_items(
             dropped += 1
             continue
         text = " ".join(item.text.split())
-        ids = [str(i).strip() for i in item.citation_ids]
-        ids = [i for i in dict.fromkeys(ids) if i in allowed]
-        if item.basis == "user_claim":
-            ids = []
-        corpus = idea_text + " " + " ".join(allowed[i] for i in ids)
-        if (
-            not text
-            or len(text) > MAX_TEXT
-            or (item.basis == "evidence" and not ids)
-            or OVERCLAIM_RE.search(text)
-            or not _numbers_supported(text, corpus)
-            or not _trend_consistent(text, ids, trend_direction)
-            or not _undefined_claim_valid(text, missing_fields)
-        ):
+        ids = check_item(
+            text,
+            item.basis,
+            item.citation_ids,
+            allowed,
+            idea_text,
+            trend_direction,
+            missing_fields,
+        )
+        if ids is None or len(text) > MAX_TEXT:
             dropped += 1
             continue
         kept.append(SwotItem(text=text, basis=item.basis, citation_ids=ids))

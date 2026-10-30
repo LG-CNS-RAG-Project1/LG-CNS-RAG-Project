@@ -17,6 +17,8 @@ REQUIRED_CANDIDATE_FIELDS = {
     "url",
     "relevant",
 }
+REVIEW_STATUSES = {"", "to_review", "reviewed", "hold"}
+LABEL_SOURCES = {"", "unreviewed", "human", "ai_draft"}
 
 
 def sha256_file(path: Path) -> str:
@@ -44,6 +46,9 @@ def inspect_patent_evaluation(
     duplicates = []
     seen = set()
     labeled = 0
+    held = 0
+    ai_drafts = 0
+    human_reviewed = 0
     missing_urls = 0
     for row in rows:
         key = (row.get("case_id", ""), row.get("source_id", ""))
@@ -57,10 +62,23 @@ def inspect_patent_evaluation(
         if not row.get("url", "").strip():
             missing_urls += 1
         relevance = row.get("relevant", "").strip()
-        if relevance in {"0", "1"}:
-            labeled += 1
-        elif relevance:
+        status = row.get("review_status", "").strip()
+        source = row.get("label_source", "").strip()
+        if status not in REVIEW_STATUSES:
+            errors.append(f"invalid review_status: {key}")
+        if source not in LABEL_SOURCES:
+            errors.append(f"invalid label_source: {key}")
+        if relevance and relevance not in {"0", "1"}:
             errors.append(f"relevant must be blank, 0, or 1: {key}")
+        if status == "reviewed" and (source != "human" or relevance not in {"0", "1"}):
+            errors.append(f"reviewed candidate requires a human 0/1 label: {key}")
+        if status == "reviewed" and source == "human" and relevance in {"0", "1"}:
+            labeled += 1
+            human_reviewed += 1
+        elif status == "hold":
+            held += 1
+        elif source == "ai_draft":
+            ai_drafts += 1
 
     if missing_fields:
         errors.append(f"missing CSV fields: {', '.join(missing_fields)}")
@@ -85,6 +103,9 @@ def inspect_patent_evaluation(
         "case_count": len(cases),
         "candidate_count": len(rows),
         "labeled_count": labeled,
+        "human_reviewed_count": human_reviewed,
+        "held_count": held,
+        "ai_draft_count": ai_drafts,
         "pending_count": len(rows) - labeled,
         "missing_url_count": missing_urls,
         "case_candidate_counts": dict(sorted(counts.items())),
@@ -106,6 +127,9 @@ def main() -> None:
         print(f"cases: {report['case_count']}")
         print(f"candidates: {report['candidate_count']}")
         print(f"labeled: {report['labeled_count']}")
+        print(f"human_reviewed: {report['human_reviewed_count']}")
+        print(f"held: {report['held_count']}")
+        print(f"ai_drafts: {report['ai_draft_count']}")
         print(f"pending: {report['pending_count']}")
         print(f"missing_urls: {report['missing_url_count']}")
         print(f"cases_sha256: {report['cases_sha256']}")

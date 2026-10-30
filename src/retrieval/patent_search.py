@@ -17,6 +17,7 @@ from src.retrieval.schemas import RetrievalResult, SearchDocument
 from src.retrieval.engine import RetrievalConfig, retrieve
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
+PATENT_CHUNK_OVERFETCH = 4
 
 LLM_MODEL = "gpt-4o-mini"
 
@@ -159,9 +160,13 @@ def search_patents(
     dense_results = []
     if retrieval_mode in {"dense", "hybrid"}:
         query_vector = embed_fn([query])[0]
+        chunk_candidate_k = min(
+            config.candidate_k * PATENT_CHUNK_OVERFETCH,
+            matching_count,
+        )
         results = collection.query(
             query_embeddings=[query_vector],
-            n_results=min(config.candidate_k, matching_count),
+            n_results=chunk_candidate_k,
             where=where,
             include=["distances"],
         )
