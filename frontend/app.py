@@ -178,6 +178,7 @@ def patent_detail_dialog(patent, patent_id):
         kipris_application_search_url,
     )
     from src.generation.report_builder import safe_url
+    from frontend.patent_orbit import fetch_kipris_drawing, kipris_drawing_url
 
     review = next(
         (item for item in patent.patent_reviews if item.patent_id == patent_id), None
@@ -201,6 +202,55 @@ def patent_detail_dialog(patent, patent_id):
             )
         )
     )
+    drawing_evidence = next(
+        (
+            item
+            for item in evidence_by_id.values()
+            if item.representative_thumbnail_url or item.representative_drawing_url
+        ),
+        None,
+    )
+    st.markdown("#### 대표도면")
+    if drawing_evidence:
+        image_bytes = next(
+            (
+                image
+                for url in dict.fromkeys(
+                    (
+                        drawing_evidence.representative_thumbnail_url,
+                        drawing_evidence.representative_drawing_url,
+                    )
+                )
+                if (image := fetch_kipris_drawing(url))
+            ),
+            None,
+        )
+        if image_bytes:
+            caption = drawing_evidence.representative_drawing_caption or (
+                f"KIPRIS 대표도면 · 출원번호 "
+                f"{drawing_evidence.application_number or patent_id}"
+            )
+            try:
+                st.image(image_bytes, caption=caption, use_container_width=True)
+            except Exception:
+                st.info(
+                    "대표도면 형식을 표시할 수 없습니다. KIPRIS 원문 링크에서 확인해 주세요."
+                )
+            if drawing_evidence.representative_drawing_url:
+                full_drawing_url = kipris_drawing_url(
+                    drawing_evidence.representative_drawing_url
+                )
+                if full_drawing_url:
+                    st.link_button("KIPRIS 원본 도면 열기", full_drawing_url)
+            st.caption("출처: KIPRIS Plus 검색 결과 · 선택한 문헌의 대표도면 경로")
+        else:
+            st.info(
+                "대표도면을 불러오지 못했습니다. KIPRIS 원문 링크에서 확인하거나 색인을 갱신해 주세요."
+            )
+    else:
+        st.info(
+            "이 문헌에는 대표도면 경로가 없습니다. 최신 KIPRIS 검색 결과를 수집해 색인을 갱신하면 확인할 수 있습니다."
+        )
     if review:
         st.info(
             f"**관련성: {review.relevance}** · "
@@ -1251,7 +1301,9 @@ def render_patent_report(patent, *, widget_suffix="", preview=False):
                 )
 
             selected_patent = s.get("selected_patent_detail_id") or selected_patent
-            if not preview and selected_patent in reviews_by_patent:
+            if not preview and selected_patent in {
+                item["patent_id"] for item in documents
+            }:
                 patent_detail_dialog(patent, selected_patent)
 
         else:

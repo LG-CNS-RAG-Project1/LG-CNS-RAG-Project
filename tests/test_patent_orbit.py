@@ -1,6 +1,12 @@
 import pytest
+from unittest.mock import Mock, patch
 
-from frontend.patent_orbit import patent_dense_similarity, patent_orbit_position
+from frontend.patent_orbit import (
+    kipris_drawing_url,
+    fetch_kipris_drawing,
+    patent_dense_similarity,
+    patent_orbit_position,
+)
 from src.schemas import PatentEvidence
 
 
@@ -34,6 +40,34 @@ def test_higher_similarity_is_closer_to_center():
     low_x, low_y = patent_orbit_position(1, 4, 0.2)
     high_x, high_y = patent_orbit_position(1, 4, 0.9)
     assert (high_x**2 + high_y**2) < (low_x**2 + low_y**2)
+
+
+def test_kipris_drawing_url_requires_kipris_host_and_uses_https():
+    assert (
+        kipris_drawing_url("http://plus.kipris.or.kr/openapi/fileToss.jsp?arg=figure")
+        == "https://plus.kipris.or.kr/openapi/fileToss.jsp?arg=figure"
+    )
+    assert kipris_drawing_url("https://example.com/figure.png") is None
+    assert kipris_drawing_url("javascript:alert(1)") is None
+
+
+@patch("frontend.patent_orbit.requests.get")
+def test_fetch_kipris_drawing_checks_image_type_and_size(mock_get):
+    response = Mock(status_code=200)
+    response.headers = {"Content-Type": "image/png"}
+    response.iter_content.return_value = [b"png-data"]
+    mock_get.return_value = response
+    assert fetch_kipris_drawing("https://plus.kipris.or.kr/figure") == b"png-data"
+    mock_get.assert_called_once_with(
+        "https://plus.kipris.or.kr/figure",
+        timeout=(3, 8),
+        stream=True,
+        allow_redirects=False,
+    )
+    response.close.assert_called_once()
+
+    response.iter_content.return_value = [b"12345"]
+    assert fetch_kipris_drawing("https://plus.kipris.or.kr/figure", max_bytes=4) is None
 
 
 @pytest.mark.parametrize("score", [-0.01, 1.01])
