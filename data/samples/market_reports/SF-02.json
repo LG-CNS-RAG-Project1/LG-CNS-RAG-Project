@@ -6,16 +6,18 @@
       "verdict": "signal_only",
       "claims": [
         {
-          "statement": "2차전지 외관검사 장비의 수요가 증가하고 있다.",
+          "statement": "2차전지 외관검사 장비는 2차전지 셀의 외관을 꼼꼼히 살펴보고 불량 여부를 판단하는 주요 사업으로 영위되고 있다.",
           "claim_type": "fact",
           "citation_ids": [
             2
           ]
         },
         {
-          "statement": "2차전지 시장의 성장에 따라 외관 검사 솔루션의 수요가 증가하고 있다.",
-          "claim_type": "ai_hypothesis",
-          "citation_ids": []
+          "statement": "AI 비전 검사 도입을 검토하는 제조기업이 증가하고 있다.",
+          "claim_type": "fact",
+          "citation_ids": [
+            4
+          ]
         }
       ],
       "next_check": null,
@@ -28,21 +30,14 @@
       "verdict": "signal_only",
       "claims": [
         {
-          "statement": "AI 비전 검사 장비 시장에서 다양한 기업들이 경쟁하고 있다.",
+          "statement": "AI 비전 검사 장비와 3D 형상측정 장비, 로봇 기반 자동검사 시스템으로 사업을 넓히고 있는 기업들이 있다.",
           "claim_type": "fact",
           "citation_ids": [
             9
           ]
         },
         {
-          "statement": "라온피플 사업보고서(FY2025)에 따르면 기존의 Rule 기반 비전 검사에서 AI 비전 검사로의 전환이 이루어지고 있다.",
-          "claim_type": "fact",
-          "citation_ids": [
-            6
-          ]
-        },
-        {
-          "statement": "AI 비전 검사 장비의 도입이 증가하면서 경쟁이 치열해질 가능성이 있다.",
+          "statement": "AI 비전 검사 장비는 다양한 산업 분야에서 활용되고 있으며, 경쟁이 치열할 가능성이 있다.",
           "claim_type": "ai_hypothesis",
           "citation_ids": []
         }
@@ -54,18 +49,20 @@
     },
     {
       "dimension": "price",
-      "verdict": "unverified",
+      "verdict": "confirmed",
       "claims": [
         {
-          "statement": "2차전지 생산 업체들은 공정 개선을 위해 외관 검사 장비 도입을 고려하고 있다.",
-          "claim_type": "ai_hypothesis",
-          "citation_ids": []
+          "statement": "2026년 4월~9월 나라장터 입찰공고의 비전검사 관련 배정예산 중앙값은 2.0억원이다.",
+          "claim_type": "fact",
+          "citation_ids": [
+            15
+          ]
         }
       ],
-      "next_check": "비전 검사 장비의 가격대와 공급사 견적을 확인하기 위해 2곳의 공급사에 문의",
+      "next_check": null,
       "evidence_status": "sufficient",
-      "relevant_count": 2,
-      "limitation": "관련 자료 2건이 모두 사업 신호·기업 주장·추정치라 확인할 수 없음"
+      "relevant_count": 5,
+      "limitation": null
     },
     {
       "dimension": "buyer",
@@ -75,47 +72,35 @@
           "statement": "HB테크놀러지는 2차전지 외관 검사 장비를 주요 사업으로 영위하고 있다.",
           "claim_type": "fact",
           "citation_ids": [
-            15
+            18
           ]
         },
         {
-          "statement": "인텍플러스 사업보고서(FY2025)에 따르면 2차전지 제조업체들이 외관 검사 장비를 도입하고 있다.",
+          "statement": "인텍플러스 사업보고서(FY2025)에 따르면 2차전지 생산 업체들은 공정 개선을 위해 머신 비전을 이용한 자동 외관 검사 장비를 도입하고 있다.",
           "claim_type": "fact",
           "citation_ids": [
             14
           ]
-        },
-        {
-          "statement": "2차전지 시장의 성장에 따라 고객사들의 검사 솔루션 수요가 증가할 가능성이 있다.",
-          "claim_type": "ai_hypothesis",
-          "citation_ids": []
         }
       ],
       "next_check": null,
       "evidence_status": "sufficient",
-      "relevant_count": 5,
-      "limitation": "관련 자료 5건이 모두 사업 신호·기업 주장·추정치라 확인할 수 없음"
+      "relevant_count": 9,
+      "limitation": "구매·조사 근거가 있으나 분석 단계에서 판단에 충분하지 않다고 봄"
     },
     {
       "dimension": "adoption_barrier",
       "verdict": "signal_only",
       "claims": [
         {
-          "statement": "중소 제조기업에서 AI 도입 비용과 전문인력 문제가 도입장벽으로 확인되었다.",
+          "statement": "중소 제조기업에서는 AI 도입 비용과 전문인력 문제가 가장 큰 장벽으로 확인되었다.",
           "claim_type": "fact",
           "citation_ids": [
-            17
+            20
           ]
         },
         {
-          "statement": "라온피플 사업보고서(FY2025)에 따르면 AI 비전 검사의 도입이 기존 육안 검사 방식의 한계를 극복할 수 있다.",
-          "claim_type": "fact",
-          "citation_ids": [
-            6
-          ]
-        },
-        {
-          "statement": "AI 비전 검사 장비의 도입이 증가하면서 도입장벽이 낮아질 가능성이 있다.",
+          "statement": "AI 비전 검사는 육안검사의 한계를 극복할 수 있는 가능성이 있다.",
           "claim_type": "ai_hypothesis",
           "citation_ids": []
         }
@@ -311,7 +296,7 @@
       "reliability": "medium",
       "recency": "high",
       "directness": "medium",
-      "evidence_nature": "company_claim",
+      "evidence_nature": "business_signal",
       "similarity": 0.5594
     },
     {
@@ -367,6 +352,57 @@
     },
     {
       "citation_id": 15,
+      "source_id": "g2b-summary-비전검사-머신비전",
+      "source_type": "procurement",
+      "title": "나라장터 '비전검사, 머신비전' 입찰공고 집계 (2026년 4월~2026년 9월)",
+      "publisher": "조달청 나라장터",
+      "quote": "2026년 4월~2026년 9월 나라장터 입찰공고 중 '비전검사, 머신비전' 관련 공고는 2건이다. 예산이 공개된 공고의 배정예산 중앙값은 2.0억원, 범위는 1.6억원~2.3억원이다. 수요기관 유형은 민간 기업 2건이다.",
+      "section": "입찰공고",
+      "url": null,
+      "published_at": 20260528,
+      "period": "2026년 4월~2026년 9월",
+      "reliability": "high",
+      "recency": "high",
+      "directness": "high",
+      "evidence_nature": "purchase_signal",
+      "similarity": null
+    },
+    {
+      "citation_id": 16,
+      "source_id": "g2b-R26BK01549728-000",
+      "source_type": "procurement",
+      "title": "[지역 주도형 AI 대전환 사업] AI 비전 검사 시스템 구축",
+      "publisher": "조달청 나라장터",
+      "quote": "주식회사 동우글로벌(민간 기업)가 2026년 5월 28일 나라장터에 '[지역 주도형 AI 대전환 사업] AI 비전 검사 시스템 구축' 용역 입찰을 공고했다. 배정예산 1.6억원(165,000,000원), 계약 방법 일반경쟁 · 협상에의한계약-협상에 의한 낙찰자 결정.",
+      "section": "입찰공고",
+      "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01549728&bidPbancOrd=000",
+      "published_at": 20260528,
+      "period": "2026년 5월",
+      "reliability": "high",
+      "recency": "high",
+      "directness": "high",
+      "evidence_nature": "purchase_signal",
+      "similarity": null
+    },
+    {
+      "citation_id": 17,
+      "source_id": "g2b-R26BK01454040-000",
+      "source_type": "procurement",
+      "title": "[긴급] [지역 주도형 AI대전환] AI 비전 검사 시스템 구축",
+      "publisher": "조달청 나라장터",
+      "quote": "주식회사 디인사이트(민간 기업)가 2026년 4월 9일 나라장터에 '[긴급] [지역 주도형 AI대전환] AI 비전 검사 시스템 구축' 물품 입찰을 공고했다. 배정예산 2.3억원(231,000,000원), 계약 방법 제한경쟁 · 협상에의한계약-협상에 의한 낙찰자 결정.",
+      "section": "입찰공고",
+      "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01454040&bidPbancOrd=000",
+      "published_at": 20260409,
+      "period": "2026년 4월",
+      "reliability": "high",
+      "recency": "high",
+      "directness": "high",
+      "evidence_nature": "purchase_signal",
+      "similarity": null
+    },
+    {
+      "citation_id": 18,
       "source_id": "news-eccb5335617c",
       "source_type": "news",
       "title": "2차전지 장비 관련주, '웃음꽃'  한빛레이저·필옵틱스·HB테크놀러지·...",
@@ -383,7 +419,7 @@
       "similarity": 0.575
     },
     {
-      "citation_id": 16,
+      "citation_id": 19,
       "source_id": "news-60a4b11433f3",
       "source_type": "news",
       "title": "[수익 내비게이터] 2차전지 통합외관검사기 장비 생산 'HB테크놀러지'",
@@ -400,7 +436,7 @@
       "similarity": 0.5647
     },
     {
-      "citation_id": 17,
+      "citation_id": 20,
       "source_id": "news-21aff78b05a2",
       "source_type": "news",
       "title": "스마트공장 구축기업 절반 \"제조공정 AI 도입 필요\"",
@@ -424,41 +460,46 @@
     "reasons": [
       {
         "topic": "수요",
-        "statement": "수요 판단은 signal_only이며, 현재 확정 아이디어의 고객·문제 범위 안에서 해석해야 합니다.",
+        "statement": "수요 판단: 신호만 확인. 현재 확정 아이디어의 고객·문제 범위 안에서 해석해야 합니다.",
         "citation_ids": [
-          2
+          2,
+          4
         ]
       },
       {
         "topic": "경쟁·대체재",
-        "statement": "경쟁·대체재 판단은 signal_only이며, 현재 확정 아이디어의 고객·문제 범위 안에서 해석해야 합니다.",
+        "statement": "경쟁·대체재 판단: 신호만 확인. 현재 확정 아이디어의 고객·문제 범위 안에서 해석해야 합니다.",
         "citation_ids": [
-          9,
-          6
+          9
+        ]
+      },
+      {
+        "topic": "가격·수익모델",
+        "statement": "가격·수익모델 판단: 확인됨. 현재 확정 아이디어의 고객·문제 범위 안에서 해석해야 합니다.",
+        "citation_ids": [
+          15
         ]
       },
       {
         "topic": "구매자",
-        "statement": "구매자 판단은 signal_only이며, 현재 확정 아이디어의 고객·문제 범위 안에서 해석해야 합니다.",
+        "statement": "구매자 판단: 신호만 확인. 현재 확정 아이디어의 고객·문제 범위 안에서 해석해야 합니다.",
         "citation_ids": [
-          15,
+          18,
           14
         ]
       },
       {
         "topic": "도입장벽",
-        "statement": "도입장벽 판단은 signal_only이며, 현재 확정 아이디어의 고객·문제 범위 안에서 해석해야 합니다.",
+        "statement": "도입장벽 판단: 신호만 확인. 현재 확정 아이디어의 고객·문제 범위 안에서 해석해야 합니다.",
         "citation_ids": [
-          17,
-          6
+          20
         ]
       }
     ],
     "unknowns": [
       "고객의 현재 해결 방식과 대체재",
       "고객 인터뷰·구매 검토·파일럿 등 직접 수요 증거",
-      "고객 가치와 ROI를 계산할 측정 변수",
-      "price 차원 추가 근거"
+      "고객 가치와 ROI를 계산할 측정 변수"
     ],
     "validation_actions": [
       {
@@ -479,27 +520,31 @@
   },
   "commercial_analysis": {
     "user": "미확인",
-    "buyer": "미확인",
-    "budget_owner": "미확인",
+    "buyer": "공공 부문(나라장터 공고 기준): 민간 기업 2건 / 목표 고객(2차전지·전자부품 제조사 품질 부서)은 미확인",
+    "budget_owner": "공공 부문: 민간 기업 배정예산 / 목표 고객(2차전지·전자부품 제조사 품질 부서)은 미확인",
     "use_case": "미확인",
     "current_alternative": "미확인",
     "switching_trigger": "미확인",
-    "purchase_process": "미확인",
+    "purchase_process": "공공 부문: 나라장터 전자입찰 공고 / 목표 고객(2차전지·전자부품 제조사 품질 부서)은 미확인",
     "adoption_requirements": [],
-    "pricing_hypothesis": "미확인",
+    "pricing_hypothesis": "공공 부문: 배정예산 중앙값 2.0억원, 범위 1.6억원~2.3억원 (2026년 4월~9월 기준) / 목표 고객(2차전지·전자부품 제조사 품질 부서)은 미확인",
     "critical_assumptions": [],
-    "citation_ids": [],
+    "citation_ids": [
+      15,
+      16,
+      17
+    ],
     "unknowns": [],
     "hypotheses": [
       {
         "question": "누가 구매를 승인하는가?",
-        "hypothesis": "구매 승인자는 품질 부서의 책임자일 가능성이 높다.",
-        "basis": "입력 아이디어에서 고객이 2차전지 및 전자부품 제조사의 품질 부서라고 명시되어 있으나, 구매 승인자의 구체적인 정보는 제공되지 않음.",
+        "hypothesis": "검증 전의 가능한 설명",
+        "basis": "입력 아이디어와 근거에서 무엇을 추론했고 무엇이 비어 있는지",
         "assumptions": [],
         "citation_ids": [],
-        "validation_target": "품질 부서의 조직 구조 및 구매 승인 프로세스",
+        "validation_target": "확인할 고객/자료",
         "validation_method": "인터뷰·조달 문서 확인 등",
-        "success_criterion": "구매 승인자의 역할 및 책임이 명확히 정의됨",
+        "success_criterion": "판단 가능한 관찰 기준",
         "numeric_value": null,
         "numeric_unit": "",
         "numeric_basis": ""
@@ -510,9 +555,9 @@
     "status": "completed",
     "keywords": [
       "비전검사",
-      "머신비전",
-      "외관검사"
+      "머신비전"
     ],
+    "fallback_from": [],
     "reference_keywords": [
       "스마트공장",
       "스마트팩토리"
@@ -520,111 +565,111 @@
     "points": [
       {
         "period": "2024-10",
-        "theme_ratio": 16.33677,
+        "theme_ratio": 15.19375,
         "reference_ratio": 83.40302,
-        "relative_index": 19.59
+        "relative_index": 18.22
       },
       {
         "period": "2024-11",
-        "theme_ratio": 12.04349,
+        "theme_ratio": 10.76108,
         "reference_ratio": 85.64259,
-        "relative_index": 14.06
+        "relative_index": 12.57
       },
       {
         "period": "2024-12",
-        "theme_ratio": 9.59947,
+        "theme_ratio": 8.42858,
         "reference_ratio": 68.22785,
-        "relative_index": 14.07
+        "relative_index": 12.35
       },
       {
         "period": "2025-01",
-        "theme_ratio": 9.59947,
+        "theme_ratio": 8.94898,
         "reference_ratio": 61.23966,
-        "relative_index": 15.68
+        "relative_index": 14.61
       },
       {
         "period": "2025-02",
-        "theme_ratio": 11.49521,
+        "theme_ratio": 10.35219,
         "reference_ratio": 72.93002,
-        "relative_index": 15.76
+        "relative_index": 14.19
       },
       {
         "period": "2025-03",
-        "theme_ratio": 11.93197,
+        "theme_ratio": 11.00269,
         "reference_ratio": 100.0,
-        "relative_index": 11.93
+        "relative_index": 11.0
       },
       {
         "period": "2025-04",
-        "theme_ratio": 9.96189,
+        "theme_ratio": 9.3114,
         "reference_ratio": 82.90121,
-        "relative_index": 12.02
+        "relative_index": 11.23
       },
       {
         "period": "2025-05",
-        "theme_ratio": 9.19059,
+        "theme_ratio": 8.57726,
         "reference_ratio": 67.53089,
-        "relative_index": 13.61
+        "relative_index": 12.7
       },
       {
         "period": "2025-06",
-        "theme_ratio": 8.44717,
+        "theme_ratio": 7.61081,
         "reference_ratio": 66.82464,
-        "relative_index": 12.64
+        "relative_index": 11.39
       },
       {
         "period": "2025-07",
-        "theme_ratio": 8.59585,
+        "theme_ratio": 8.10333,
         "reference_ratio": 63.30266,
-        "relative_index": 13.58
+        "relative_index": 12.8
       },
       {
         "period": "2025-08",
-        "theme_ratio": 6.74658,
+        "theme_ratio": 6.40275,
         "reference_ratio": 55.05064,
-        "relative_index": 12.26
+        "relative_index": 11.63
       },
       {
         "period": "2025-09",
-        "theme_ratio": 8.28919,
+        "theme_ratio": 7.61081,
         "reference_ratio": 72.3074,
-        "relative_index": 11.46
+        "relative_index": 10.53
       },
       {
         "period": "2025-10",
-        "theme_ratio": 4.82297,
+        "theme_ratio": 4.63711,
         "reference_ratio": 61.43481,
-        "relative_index": 7.85
+        "relative_index": 7.55
       },
       {
         "period": "2025-11",
-        "theme_ratio": 7.52718,
+        "theme_ratio": 7.03466,
         "reference_ratio": 76.36836,
-        "relative_index": 9.86
+        "relative_index": 9.21
       },
       {
         "period": "2025-12",
-        "theme_ratio": 5.18539,
+        "theme_ratio": 4.95307,
         "reference_ratio": 67.71675,
-        "relative_index": 7.66
+        "relative_index": 7.31
       },
       {
         "period": "2026-01",
-        "theme_ratio": 6.28194,
+        "theme_ratio": 5.99386,
         "reference_ratio": 69.724,
-        "relative_index": 9.01
+        "relative_index": 8.6
       },
       {
         "period": "2026-02",
-        "theme_ratio": 4.93448,
+        "theme_ratio": 4.72075,
         "reference_ratio": 52.79249,
-        "relative_index": 9.35
+        "relative_index": 8.94
       },
       {
         "period": "2026-03",
-        "theme_ratio": 6.59789,
+        "theme_ratio": 6.2076,
         "reference_ratio": 71.15509,
-        "relative_index": 9.27
+        "relative_index": 8.72
       },
       {
         "period": "2026-04",
@@ -634,36 +679,36 @@
       },
       {
         "period": "2026-05",
-        "theme_ratio": 3.56844,
+        "theme_ratio": 3.45692,
         "reference_ratio": 67.28928,
-        "relative_index": 5.3
+        "relative_index": 5.14
       },
       {
         "period": "2026-06",
-        "theme_ratio": 4.55348,
+        "theme_ratio": 4.35833,
         "reference_ratio": 57.3088,
-        "relative_index": 7.95
+        "relative_index": 7.6
       },
       {
         "period": "2026-07",
-        "theme_ratio": 4.15388,
+        "theme_ratio": 3.96803,
         "reference_ratio": 43.30452,
-        "relative_index": 9.59
+        "relative_index": 9.16
       },
       {
         "period": "2026-08",
-        "theme_ratio": 3.42904,
+        "theme_ratio": 3.32682,
         "reference_ratio": 32.8501,
-        "relative_index": 10.44
+        "relative_index": 10.13
       },
       {
         "period": "2026-09",
-        "theme_ratio": 3.57773,
+        "theme_ratio": 3.53127,
         "reference_ratio": 34.21615,
-        "relative_index": 10.46
+        "relative_index": 10.32
       }
     ],
-    "recent_change_pct": 0.9,
+    "recent_change_pct": 3.5,
     "direction": "stable",
     "note": "네이버 검색 관심도를 기준 주제어 검색량 대비 지수로 나타낸 것이며, 시장 규모나 고객 수요의 근거가 아닙니다.",
     "error_message": null
@@ -674,409 +719,224 @@
     "nodes": [
       {
         "term": "검사",
-        "document_count": 42,
+        "document_count": 43,
         "cluster": 0,
-        "x": -0.5671,
-        "y": 0.2435
-      },
-      {
-        "term": "설비",
-        "document_count": 34,
-        "cluster": 1,
-        "x": 0.1456,
-        "y": -0.2272
-      },
-      {
-        "term": "예지보전",
-        "document_count": 29,
-        "cluster": 1,
-        "x": 0.3412,
-        "y": -0.2956
+        "x": -0.1966,
+        "y": -0.0643
       },
       {
         "term": "비전",
-        "document_count": 26,
-        "cluster": 0,
-        "x": -0.6376,
-        "y": 0.4384
+        "document_count": 29,
+        "cluster": 1,
+        "x": -0.1791,
+        "y": 0.1551
       },
       {
-        "term": "분석",
+        "term": "예지보전",
         "document_count": 21,
         "cluster": 2,
-        "x": 0.1355,
-        "y": -0.0201
+        "x": 0.6155,
+        "y": -0.0028
       },
       {
         "term": "장비",
         "document_count": 20,
         "cluster": 0,
-        "x": -0.3662,
-        "y": 0.1925
-      },
-      {
-        "term": "징후",
-        "document_count": 17,
-        "cluster": 1,
-        "x": 0.5198,
-        "y": -0.4164
-      },
-      {
-        "term": "에이전트",
-        "document_count": 16,
-        "cluster": 2,
-        "x": 0.6804,
-        "y": -0.2745
+        "x": -0.0815,
+        "y": -0.2518
       },
       {
         "term": "품질",
-        "document_count": 16,
+        "document_count": 17,
         "cluster": 0,
-        "x": -0.0932,
-        "y": -0.0135
-      },
-      {
-        "term": "평가",
-        "document_count": 15,
-        "cluster": 1,
-        "x": 0.447,
-        "y": -0.6416
-      },
-      {
-        "term": "LG전자",
-        "document_count": 14,
-        "cluster": 1,
-        "x": 0.6459,
-        "y": -0.5834
+        "x": 0.1406,
+        "y": -0.0618
       },
       {
         "term": "비전검사",
-        "document_count": 14,
+        "document_count": 13,
         "cluster": 0,
-        "x": -0.179,
-        "y": 0.2878
-      },
-      {
-        "term": "상태",
-        "document_count": 13,
-        "cluster": 1,
-        "x": 0.7995,
-        "y": -0.4442
-      },
-      {
-        "term": "손실",
-        "document_count": 13,
-        "cluster": 2,
-        "x": 0.5564,
-        "y": 0.0338
+        "x": -0.0864,
+        "y": -0.6913
       },
       {
         "term": "외관",
         "document_count": 13,
         "cluster": 0,
-        "x": -0.8106,
-        "y": 0.3167
+        "x": -0.3407,
+        "y": -0.242
       },
       {
-        "term": "위험성",
-        "document_count": 13,
-        "cluster": 1,
-        "x": 0.2972,
-        "y": -0.4982
-      },
-      {
-        "term": "발전량",
+        "term": "2차전지",
         "document_count": 12,
-        "cluster": 2,
-        "x": 0.5034,
-        "y": -0.1666
-      },
-      {
-        "term": "원인",
-        "document_count": 12,
-        "cluster": 2,
-        "x": 0.3416,
-        "y": 0.0015
-      },
-      {
-        "term": "점검",
-        "document_count": 12,
-        "cluster": 1,
-        "x": 0.1016,
-        "y": -0.4297
+        "cluster": 0,
+        "x": -0.4387,
+        "y": -0.439
       },
       {
         "term": "카메라",
         "document_count": 12,
-        "cluster": 0,
-        "x": -0.736,
-        "y": 0.1233
+        "cluster": 1,
+        "x": -0.3989,
+        "y": 0.1641
       },
       {
-        "term": "일정",
+        "term": "검증",
         "document_count": 11,
-        "cluster": 1,
-        "x": 0.1447,
-        "y": -0.6385
+        "cluster": 3,
+        "x": 0.2569,
+        "y": -0.2485
       },
       {
         "term": "불량",
         "document_count": 10,
         "cluster": 0,
-        "x": -0.3625,
-        "y": -0.0148
-      },
-      {
-        "term": "탐지",
-        "document_count": 10,
-        "cluster": 2,
-        "x": 0.4403,
-        "y": 0.2055
+        "x": 0.0212,
+        "y": -0.4463
       },
       {
         "term": "3D",
         "document_count": 9,
-        "cluster": 0,
-        "x": -0.4303,
-        "y": 0.4422
+        "cluster": 1,
+        "x": 0.0399,
+        "y": 0.1338
       },
       {
         "term": "결함",
         "document_count": 9,
         "cluster": 0,
-        "x": -1.0,
-        "y": 0.4032
+        "x": -0.4486,
+        "y": -0.0502
+      },
+      {
+        "term": "센서",
+        "document_count": 9,
+        "cluster": 2,
+        "x": 0.2849,
+        "y": 0.2644
+      },
+      {
+        "term": "확인",
+        "document_count": 9,
+        "cluster": 0,
+        "x": -0.24,
+        "y": -0.5338
+      },
+      {
+        "term": "LG전자",
+        "document_count": 8,
+        "cluster": 2,
+        "x": 1.0,
+        "y": -0.0652
       },
       {
         "term": "기아",
-        "document_count": 9,
-        "cluster": 0,
-        "x": -0.8267,
-        "y": 0.5233
+        "document_count": 8,
+        "cluster": 1,
+        "x": 0.0383,
+        "y": 0.3538
+      },
+      {
+        "term": "에이전트",
+        "document_count": 8,
+        "cluster": 2,
+        "x": 0.3993,
+        "y": 0.0657
       },
       {
         "term": "외관검사",
         "document_count": 8,
-        "cluster": 0,
-        "x": -0.6939,
-        "y": 0.6914
+        "cluster": 1,
+        "x": -0.3001,
+        "y": 0.3634
       },
       {
-        "term": "기상",
-        "document_count": 7,
-        "cluster": 2,
-        "x": 0.7764,
-        "y": -0.0908
+        "term": "현대차",
+        "document_count": 8,
+        "cluster": 1,
+        "x": -0.2686,
+        "y": 0.5812
       },
       {
-        "term": "해수면",
+        "term": "디지털트윈",
+        "document_count": 7,
+        "cluster": 3,
+        "x": 0.931,
+        "y": -0.4746
+      },
+      {
+        "term": "상태",
         "document_count": 7,
         "cluster": 2,
-        "x": 0.7353,
-        "y": 0.1385
+        "x": 0.5664,
+        "y": 0.2117
+      },
+      {
+        "term": "징후",
+        "document_count": 7,
+        "cluster": 2,
+        "x": 0.8738,
+        "y": 0.201
+      },
+      {
+        "term": "시뮬레이션",
+        "document_count": 6,
+        "cluster": 1,
+        "x": 0.4553,
+        "y": -0.1535
       },
       {
         "term": "터널형",
         "document_count": 6,
+        "cluster": 1,
+        "x": -0.0501,
+        "y": 0.5553
+      },
+      {
+        "term": "HB테크놀러지",
+        "document_count": 5,
         "cluster": 0,
-        "x": -0.9087,
-        "y": 0.7137
+        "x": -0.5263,
+        "y": -0.6408
+      },
+      {
+        "term": "검사기",
+        "document_count": 5,
+        "cluster": 1,
+        "x": -0.6683,
+        "y": -0.04
+      },
+      {
+        "term": "품질검사",
+        "document_count": 5,
+        "cluster": 1,
+        "x": -0.8108,
+        "y": 0.1604
+      },
+      {
+        "term": "오차",
+        "document_count": 4,
+        "cluster": 1,
+        "x": 0.1434,
+        "y": 0.6598
+      },
+      {
+        "term": "흠집",
+        "document_count": 3,
+        "cluster": 1,
+        "x": -0.7315,
+        "y": 0.5361
       }
     ],
     "edges": [
       {
-        "source": "설비",
-        "target": "예지보전",
-        "weight": 24
-      },
-      {
         "source": "검사",
         "target": "비전",
-        "weight": 18
-      },
-      {
-        "source": "예지보전",
-        "target": "징후",
-        "weight": 17
-      },
-      {
-        "source": "분석",
-        "target": "설비",
-        "weight": 16
-      },
-      {
-        "source": "분석",
-        "target": "예지보전",
-        "weight": 16
-      },
-      {
-        "source": "설비",
-        "target": "징후",
-        "weight": 16
-      },
-      {
-        "source": "분석",
-        "target": "징후",
-        "weight": 14
-      },
-      {
-        "source": "설비",
-        "target": "평가",
-        "weight": 14
-      },
-      {
-        "source": "LG전자",
-        "target": "설비",
-        "weight": 13
-      },
-      {
-        "source": "LG전자",
-        "target": "예지보전",
-        "weight": 13
-      },
-      {
-        "source": "설비",
-        "target": "손실",
-        "weight": 13
-      },
-      {
-        "source": "설비",
-        "target": "에이전트",
-        "weight": 13
-      },
-      {
-        "source": "설비",
-        "target": "위험성",
-        "weight": 13
-      },
-      {
-        "source": "손실",
-        "target": "예지보전",
-        "weight": 13
-      },
-      {
-        "source": "예지보전",
-        "target": "위험성",
-        "weight": 13
-      },
-      {
-        "source": "예지보전",
-        "target": "평가",
-        "weight": 13
-      },
-      {
-        "source": "위험성",
-        "target": "평가",
-        "weight": 13
-      },
-      {
-        "source": "LG전자",
-        "target": "위험성",
-        "weight": 12
-      },
-      {
-        "source": "LG전자",
-        "target": "징후",
-        "weight": 12
-      },
-      {
-        "source": "LG전자",
-        "target": "평가",
-        "weight": 12
-      },
-      {
-        "source": "발전량",
-        "target": "분석",
-        "weight": 12
-      },
-      {
-        "source": "발전량",
-        "target": "설비",
-        "weight": 12
-      },
-      {
-        "source": "발전량",
-        "target": "손실",
-        "weight": 12
-      },
-      {
-        "source": "발전량",
-        "target": "예지보전",
-        "weight": 12
-      },
-      {
-        "source": "발전량",
-        "target": "원인",
-        "weight": 12
-      },
-      {
-        "source": "발전량",
-        "target": "징후",
-        "weight": 12
-      },
-      {
-        "source": "분석",
-        "target": "손실",
-        "weight": 12
-      },
-      {
-        "source": "분석",
-        "target": "에이전트",
-        "weight": 12
-      },
-      {
-        "source": "분석",
-        "target": "원인",
-        "weight": 12
-      },
-      {
-        "source": "설비",
-        "target": "원인",
-        "weight": 12
-      },
-      {
-        "source": "손실",
-        "target": "원인",
-        "weight": 12
-      },
-      {
-        "source": "에이전트",
-        "target": "예지보전",
-        "weight": 12
-      },
-      {
-        "source": "예지보전",
-        "target": "원인",
-        "weight": 12
-      },
-      {
-        "source": "위험성",
-        "target": "징후",
-        "weight": 12
-      },
-      {
-        "source": "징후",
-        "target": "평가",
-        "weight": 12
-      },
-      {
-        "source": "LG전자",
-        "target": "에이전트",
-        "weight": 11
+        "weight": 19
       },
       {
         "source": "검사",
         "target": "장비",
-        "weight": 11
-      },
-      {
-        "source": "발전량",
-        "target": "에이전트",
-        "weight": 11
-      },
-      {
-        "source": "분석",
-        "target": "점검",
         "weight": 11
       },
       {
@@ -1085,79 +945,19 @@
         "weight": 11
       },
       {
-        "source": "상태",
-        "target": "예지보전",
-        "weight": 11
-      },
-      {
-        "source": "설비",
-        "target": "일정",
-        "weight": 11
-      },
-      {
-        "source": "설비",
-        "target": "점검",
-        "weight": 11
-      },
-      {
-        "source": "예지보전",
-        "target": "일정",
-        "weight": 11
-      },
-      {
-        "source": "예지보전",
-        "target": "점검",
-        "weight": 11
-      },
-      {
-        "source": "위험성",
-        "target": "일정",
-        "weight": 11
-      },
-      {
-        "source": "위험성",
-        "target": "점검",
-        "weight": 11
-      },
-      {
-        "source": "일정",
-        "target": "점검",
-        "weight": 11
-      },
-      {
-        "source": "일정",
-        "target": "평가",
-        "weight": 11
-      },
-      {
         "source": "검사",
         "target": "외관",
         "weight": 10
       },
       {
-        "source": "발전량",
-        "target": "탐지",
+        "source": "검사",
+        "target": "품질",
         "weight": 10
       },
       {
-        "source": "분석",
-        "target": "탐지",
-        "weight": 10
-      },
-      {
-        "source": "설비",
-        "target": "탐지",
-        "weight": 10
-      },
-      {
-        "source": "손실",
-        "target": "탐지",
-        "weight": 10
-      },
-      {
-        "source": "에이전트",
-        "target": "탐지",
-        "weight": 10
+        "source": "2차전지",
+        "target": "외관",
+        "weight": 9
       },
       {
         "source": "검사",
@@ -1165,24 +965,24 @@
         "weight": 9
       },
       {
-        "source": "검사",
-        "target": "품질",
-        "weight": 9
+        "source": "2차전지",
+        "target": "검사",
+        "weight": 8
       },
       {
         "source": "기아",
         "target": "비전",
-        "weight": 9
+        "weight": 8
       },
       {
-        "source": "상태",
-        "target": "설비",
-        "weight": 9
+        "source": "기아",
+        "target": "현대차",
+        "weight": 8
       },
       {
-        "source": "상태",
-        "target": "징후",
-        "weight": 9
+        "source": "비전",
+        "target": "현대차",
+        "weight": 8
       },
       {
         "source": "3D",
@@ -1195,56 +995,6 @@
         "weight": 7
       },
       {
-        "source": "기상",
-        "target": "발전량",
-        "weight": 7
-      },
-      {
-        "source": "기상",
-        "target": "분석",
-        "weight": 7
-      },
-      {
-        "source": "기상",
-        "target": "설비",
-        "weight": 7
-      },
-      {
-        "source": "기상",
-        "target": "손실",
-        "weight": 7
-      },
-      {
-        "source": "기상",
-        "target": "에이전트",
-        "weight": 7
-      },
-      {
-        "source": "기상",
-        "target": "해수면",
-        "weight": 7
-      },
-      {
-        "source": "기아",
-        "target": "외관검사",
-        "weight": 7
-      },
-      {
-        "source": "발전량",
-        "target": "해수면",
-        "weight": 7
-      },
-      {
-        "source": "분석",
-        "target": "상태",
-        "weight": 7
-      },
-      {
-        "source": "분석",
-        "target": "해수면",
-        "weight": 7
-      },
-      {
         "source": "비전",
         "target": "외관검사",
         "weight": 7
@@ -1255,18 +1005,13 @@
         "weight": 7
       },
       {
-        "source": "설비",
-        "target": "해수면",
+        "source": "예지보전",
+        "target": "징후",
         "weight": 7
       },
       {
-        "source": "손실",
-        "target": "해수면",
-        "weight": 7
-      },
-      {
-        "source": "LG전자",
-        "target": "상태",
+        "source": "2차전지",
+        "target": "장비",
         "weight": 6
       },
       {
@@ -1276,7 +1021,7 @@
       },
       {
         "source": "기아",
-        "target": "터널형",
+        "target": "외관검사",
         "weight": 6
       },
       {
@@ -1285,18 +1030,28 @@
         "weight": 6
       },
       {
-        "source": "설비",
-        "target": "품질",
-        "weight": 6
-      },
-      {
         "source": "외관검사",
         "target": "터널형",
         "weight": 6
       },
       {
+        "source": "외관검사",
+        "target": "현대차",
+        "weight": 6
+      },
+      {
+        "source": "2차전지",
+        "target": "HB테크놀러지",
+        "weight": 5
+      },
+      {
         "source": "3D",
         "target": "비전",
+        "weight": 5
+      },
+      {
+        "source": "LG전자",
+        "target": "예지보전",
         "weight": 5
       },
       {
@@ -1306,12 +1061,32 @@
       },
       {
         "source": "검사",
-        "target": "기아",
+        "target": "센서",
+        "weight": 5
+      },
+      {
+        "source": "검사",
+        "target": "확인",
+        "weight": 5
+      },
+      {
+        "source": "검증",
+        "target": "비전",
+        "weight": 5
+      },
+      {
+        "source": "기아",
+        "target": "터널형",
         "weight": 5
       },
       {
         "source": "비전",
         "target": "외관",
+        "weight": 5
+      },
+      {
+        "source": "상태",
+        "target": "예지보전",
         "weight": 5
       },
       {
@@ -1325,8 +1100,33 @@
         "weight": 5
       },
       {
+        "source": "터널형",
+        "target": "현대차",
+        "weight": 5
+      },
+      {
         "source": "3D",
         "target": "기아",
+        "weight": 4
+      },
+      {
+        "source": "3D",
+        "target": "센서",
+        "weight": 4
+      },
+      {
+        "source": "3D",
+        "target": "현대차",
+        "weight": 4
+      },
+      {
+        "source": "HB테크놀러지",
+        "target": "장비",
+        "weight": 4
+      },
+      {
+        "source": "검사",
+        "target": "에이전트",
         "weight": 4
       },
       {
@@ -1335,8 +1135,13 @@
         "weight": 4
       },
       {
-        "source": "분석",
-        "target": "장비",
+        "source": "검사기",
+        "target": "비전",
+        "weight": 4
+      },
+      {
+        "source": "검사기",
+        "target": "카메라",
         "weight": 4
       },
       {
@@ -1345,13 +1150,63 @@
         "weight": 4
       },
       {
+        "source": "비전",
+        "target": "품질",
+        "weight": 4
+      },
+      {
+        "source": "예지보전",
+        "target": "장비",
+        "weight": 4
+      },
+      {
         "source": "예지보전",
         "target": "품질",
         "weight": 4
       },
       {
+        "source": "2차전지",
+        "target": "결함",
+        "weight": 3
+      },
+      {
         "source": "3D",
         "target": "결함",
+        "weight": 3
+      },
+      {
+        "source": "3D",
+        "target": "시뮬레이션",
+        "weight": 3
+      },
+      {
+        "source": "3D",
+        "target": "오차",
+        "weight": 3
+      },
+      {
+        "source": "LG전자",
+        "target": "에이전트",
+        "weight": 3
+      },
+      {
+        "source": "LG전자",
+        "target": "징후",
+        "weight": 3
+      },
+      {
+        "source": "검사",
+        "target": "검사기",
+        "weight": 3
+      },
+      {
+        "source": "검사",
+        "target": "검증",
+        "weight": 3
+      },
+      {
+        "source": "검증",
+        "target": "품질",
         "weight": 3
       },
       {
@@ -1366,12 +1221,12 @@
       },
       {
         "source": "기아",
-        "target": "카메라",
+        "target": "오차",
         "weight": 3
       },
       {
-        "source": "분석",
-        "target": "품질",
+        "source": "기아",
+        "target": "카메라",
         "weight": 3
       },
       {
@@ -1385,96 +1240,356 @@
         "weight": 3
       },
       {
-        "source": "외관",
-        "target": "외관검사",
+        "source": "비전",
+        "target": "센서",
         "weight": 3
       },
       {
-        "source": "외관",
-        "target": "카메라",
+        "source": "비전",
+        "target": "에이전트",
         "weight": 3
       },
       {
-        "source": "3D",
-        "target": "설비",
-        "weight": 2
+        "source": "비전",
+        "target": "오차",
+        "weight": 3
       },
       {
-        "source": "3D",
-        "target": "터널형",
-        "weight": 2
+        "source": "비전",
+        "target": "품질검사",
+        "weight": 3
       },
       {
-        "source": "검사",
-        "target": "터널형",
-        "weight": 2
+        "source": "비전",
+        "target": "확인",
+        "weight": 3
       },
       {
-        "source": "결함",
-        "target": "기아",
-        "weight": 2
+        "source": "비전",
+        "target": "흠집",
+        "weight": 3
       },
       {
-        "source": "분석",
+        "source": "상태",
+        "target": "징후",
+        "weight": 3
+      },
+      {
+        "source": "센서",
+        "target": "예지보전",
+        "weight": 3
+      },
+      {
+        "source": "센서",
+        "target": "오차",
+        "weight": 3
+      },
+      {
+        "source": "에이전트",
+        "target": "예지보전",
+        "weight": 3
+      },
+      {
+        "source": "오차",
+        "target": "현대차",
+        "weight": 3
+      },
+      {
+        "source": "터널형",
+        "target": "품질",
+        "weight": 3
+      },
+      {
+        "source": "2차전지",
         "target": "불량",
         "weight": 2
       },
       {
-        "source": "비전검사",
-        "target": "설비",
+        "source": "2차전지",
+        "target": "확인",
         "weight": 2
       },
       {
-        "source": "비전검사",
+        "source": "HB테크놀러지",
+        "target": "검사",
+        "weight": 2
+      },
+      {
+        "source": "HB테크놀러지",
+        "target": "외관",
+        "weight": 2
+      },
+      {
+        "source": "LG전자",
+        "target": "디지털트윈",
+        "weight": 2
+      },
+      {
+        "source": "검사",
+        "target": "상태",
+        "weight": 2
+      },
+      {
+        "source": "검사",
+        "target": "품질검사",
+        "weight": 2
+      },
+      {
+        "source": "검사기",
+        "target": "외관",
+        "weight": 2
+      },
+      {
+        "source": "검사기",
         "target": "장비",
+        "weight": 2
+      },
+      {
+        "source": "검증",
+        "target": "기아",
+        "weight": 2
+      },
+      {
+        "source": "검증",
+        "target": "디지털트윈",
+        "weight": 2
+      },
+      {
+        "source": "기아",
+        "target": "시뮬레이션",
+        "weight": 2
+      },
+      {
+        "source": "기아",
+        "target": "에이전트",
+        "weight": 2
+      },
+      {
+        "source": "디지털트윈",
+        "target": "시뮬레이션",
+        "weight": 2
+      },
+      {
+        "source": "비전",
+        "target": "시뮬레이션",
+        "weight": 2
+      },
+      {
+        "source": "상태",
+        "target": "센서",
+        "weight": 2
+      },
+      {
+        "source": "상태",
+        "target": "장비",
+        "weight": 2
+      },
+      {
+        "source": "센서",
+        "target": "징후",
+        "weight": 2
+      },
+      {
+        "source": "시뮬레이션",
+        "target": "예지보전",
+        "weight": 2
+      },
+      {
+        "source": "에이전트",
+        "target": "징후",
+        "weight": 2
+      },
+      {
+        "source": "외관",
+        "target": "확인",
+        "weight": 2
+      },
+      {
+        "source": "카메라",
+        "target": "흠집",
         "weight": 2
       }
     ],
     "clusters": [
       [
         "검사",
-        "비전",
         "장비",
         "품질",
         "비전검사",
         "외관",
-        "카메라",
+        "2차전지",
         "불량",
-        "3D",
         "결함",
+        "확인",
+        "HB테크놀러지"
+      ],
+      [
+        "비전",
+        "카메라",
+        "3D",
         "기아",
         "외관검사",
-        "터널형"
+        "현대차",
+        "시뮬레이션",
+        "터널형",
+        "검사기",
+        "품질검사",
+        "오차",
+        "흠집"
       ],
       [
-        "설비",
         "예지보전",
-        "징후",
-        "평가",
+        "센서",
         "LG전자",
+        "에이전트",
         "상태",
-        "위험성",
-        "점검",
-        "일정"
+        "징후"
       ],
       [
-        "분석",
-        "에이전트",
-        "손실",
-        "발전량",
-        "원인",
-        "탐지",
-        "기상",
-        "해수면"
+        "검증",
+        "디지털트윈"
       ]
     ],
     "note": "아이디어와 가까운 뉴스 제목·요약에서 같은 기사에 함께 나온 명사를 이은 것이며, 시장 수요나 인과관계의 근거가 아닙니다.",
     "error_message": null
   },
-  "unknowns": [
-    "가격 근거 미확인: 관련 자료 2건이 모두 사업 신호·기업 주장·추정치라 확인할 수 없음"
-  ],
-  "search_scope": "네이버 뉴스 검색 API로 사전 수집한 스마트팩토리 기사 1976건(제목·요약, 발행일 20240102~20261029) · DART 사업보고서 '사업의 내용' 발췌 348건(기업 14곳, FY2025), 전체 수집 범위 · 아이디어와 가까워 검색한 DART 기업: 인텍플러스, 라온피플, 고영",
-  "data_as_of": 20261029,
+  "company_financials": {
+    "status": "completed",
+    "companies": [
+      {
+        "company": "인텍플러스",
+        "stock_code": "064290",
+        "statement": "연결",
+        "rcept_no": "20260318001550",
+        "years": [
+          {
+            "year": 2023,
+            "revenue": 74802246295,
+            "operating_income": -11091735610,
+            "net_income": -10791254820,
+            "rnd_expense": 7017876000
+          },
+          {
+            "year": 2024,
+            "revenue": 83873419602,
+            "operating_income": -15587344842,
+            "net_income": -11868660825,
+            "rnd_expense": 9532869000
+          },
+          {
+            "year": 2025,
+            "revenue": 89765092570,
+            "operating_income": -3734628764,
+            "net_income": -3318912698,
+            "rnd_expense": 3922996000
+          }
+        ],
+        "rnd_basis": "사업보고서 연구개발활동 표 '연구개발비용총계' (천원)"
+      },
+      {
+        "company": "라온피플",
+        "stock_code": "300120",
+        "statement": "연결",
+        "rcept_no": "20260323001204",
+        "years": [
+          {
+            "year": 2023,
+            "revenue": 11244331687,
+            "operating_income": -11135373701,
+            "net_income": -8716360432,
+            "rnd_expense": 9298000000
+          },
+          {
+            "year": 2024,
+            "revenue": 220225561052,
+            "operating_income": -16249271324,
+            "net_income": -13936042786,
+            "rnd_expense": 12714000000
+          },
+          {
+            "year": 2025,
+            "revenue": 223808325905,
+            "operating_income": -16192262465,
+            "net_income": -20435617608,
+            "rnd_expense": 12445000000
+          }
+        ],
+        "rnd_basis": "사업보고서 연구개발활동 표 '연구개발비용총계' (백만원)"
+      },
+      {
+        "company": "고영",
+        "stock_code": "098460",
+        "statement": "연결",
+        "rcept_no": "20260312000804",
+        "years": [
+          {
+            "year": 2023,
+            "revenue": 225630691398,
+            "operating_income": 20372226090,
+            "net_income": 21925959777,
+            "rnd_expense": 44648017000
+          },
+          {
+            "year": 2024,
+            "revenue": 202538127214,
+            "operating_income": 3322352718,
+            "net_income": 20998990602,
+            "rnd_expense": 46035778000
+          },
+          {
+            "year": 2025,
+            "revenue": 232647218656,
+            "operating_income": 17342338477,
+            "net_income": 14756087568,
+            "rnd_expense": 41884061000
+          }
+        ],
+        "rnd_basis": "사업보고서 연구개발활동 표 '연구개발비용총계' (천원)"
+      }
+    ],
+    "missing": [],
+    "note": "DART 사업보고서의 주요 재무 계정입니다. 아이디어와 같은 사업 범주로 검색한 기업의 실적이며, 시장 규모나 고객 수요의 근거가 아닙니다.",
+    "error_message": null
+  },
+  "procurement": {
+    "status": "completed",
+    "keywords": [
+      "비전검사",
+      "머신비전"
+    ],
+    "period": "2026-04 ~ 2026-09",
+    "searched_count": 12,
+    "notices": [
+      {
+        "notice_no": "R26BK01549728-000",
+        "title": "[지역 주도형 AI 대전환 사업] AI 비전 검사 시스템 구축",
+        "buyer": "주식회사 동우글로벌",
+        "buyer_type": "민간 기업",
+        "kind": "용역",
+        "notice_date": 20260528,
+        "budget": 165000000,
+        "product": "",
+        "contract_method": "일반경쟁 · 협상에의한계약-협상에 의한 낙찰자 결정",
+        "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01549728&bidPbancOrd=000"
+      },
+      {
+        "notice_no": "R26BK01454040-000",
+        "title": "[긴급] [지역 주도형 AI대전환] AI 비전 검사 시스템 구축",
+        "buyer": "주식회사 디인사이트",
+        "buyer_type": "민간 기업",
+        "kind": "물품",
+        "notice_date": 20260409,
+        "budget": 231000000,
+        "product": "융복합디지털이미지촬영기",
+        "contract_method": "제한경쟁 · 협상에의한계약-협상에 의한 낙찰자 결정",
+        "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01454040&bidPbancOrd=000"
+      }
+    ],
+    "note": "나라장터 공공 입찰공고입니다. 공공기관·대학·연구기관의 구매가 대부분이어서 민간 고객 수요의 근거가 아니며, 공공 구매 사례와 예산 수준을 참고하는 자료입니다.",
+    "error_message": null
+  },
+  "unknowns": [],
+  "search_scope": "네이버 뉴스 검색 API로 사전 수집한 스마트팩토리 기사 1976건(제목·요약, 발행일 20240102~20261029) · DART 사업보고서 '사업의 내용' 발췌 348건(기업 14곳, FY2025), 전체 수집 범위 · 검색한 DART 기업(아이디어와 같은 사업 범주): 인텍플러스, 라온피플, 고영",
+  "data_as_of": 20261030,
   "error_message": null
 }

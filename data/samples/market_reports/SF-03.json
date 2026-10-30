@@ -18,11 +18,16 @@
           "citation_ids": [
             2
           ]
+        },
+        {
+          "statement": "예지보전 기술에 대한 관심이 높아지고 있는 것으로 보인다.",
+          "claim_type": "ai_hypothesis",
+          "citation_ids": []
         }
       ],
       "next_check": null,
       "evidence_status": "sufficient",
-      "relevant_count": 3,
+      "relevant_count": 2,
       "limitation": "수요 확인에는 고객 검증 자료(인터뷰·설문·파일럿·LOI)가 필요하며 기사·공시로는 확인할 수 없음"
     },
     {
@@ -30,76 +35,76 @@
       "verdict": "signal_only",
       "claims": [
         {
-          "statement": "디플리가 산업용 로봇의 예지보전 시장에 진출하고 있다.",
+          "statement": "디플리가 소리로 산업용 로봇의 이상 징후를 찾아내는 예지보전 시장에 진출했다.",
           "claim_type": "fact",
           "citation_ids": [
-            4
+            3
           ]
         },
         {
-          "statement": "삼성전자가 예지보전 기반 'AI 자율 공장' 구축에 나선다.",
-          "claim_type": "fact",
-          "citation_ids": [
-            6
-          ]
+          "statement": "여러 기업들이 예지보전 기술을 활용하여 경쟁하고 있다.",
+          "claim_type": "ai_hypothesis",
+          "citation_ids": []
         }
       ],
       "next_check": null,
       "evidence_status": "sufficient",
-      "relevant_count": 5,
-      "limitation": "관련 자료 5건이 모두 사업 신호·기업 주장·추정치라 확인할 수 없음"
+      "relevant_count": 6,
+      "limitation": "관련 자료 6건이 모두 사업 신호·기업 주장·추정치라 확인할 수 없음"
     },
     {
       "dimension": "price",
       "verdict": "unverified",
-      "claims": [
-        {
-          "statement": "인텍플러스의 제품 가격은 고객사의 요청 사양에 따라 차이가 있다.",
-          "claim_type": "fact",
-          "citation_ids": [
-            9
-          ]
-        }
-      ],
+      "claims": [],
       "next_check": "수익모델(판매·구독 등)을 정한 뒤 공급사 견적으로 가격대 확인",
-      "evidence_status": "limited",
-      "relevant_count": 1,
-      "limitation": "관련 자료가 1건뿐이라 확인할 수 없음 (최대 신호 수준)"
+      "evidence_status": "insufficient",
+      "relevant_count": 0,
+      "limitation": "검색된 자료 7건이 모두 이 차원과 무관하다고 판정됨"
     },
     {
       "dimension": "buyer",
       "verdict": "signal_only",
       "claims": [
         {
-          "statement": "삼성전자가 예지보전 기능을 요구하고 있다.",
+          "statement": "엠아이큐브솔루션 사업보고서(FY2025)에 따르면 삼성전기가 주요 고객으로 언급되었다.",
           "claim_type": "fact",
           "citation_ids": [
-            1
+            9
           ]
+        },
+        {
+          "statement": "중소기업 및 대기업이 주요 고객이 될 가능성이 있다.",
+          "claim_type": "ai_hypothesis",
+          "citation_ids": []
         }
       ],
       "next_check": null,
-      "evidence_status": "limited",
-      "relevant_count": 1,
-      "limitation": "관련 자료가 1건뿐이라 확인할 수 없음 (최대 신호 수준)"
+      "evidence_status": "sufficient",
+      "relevant_count": 2,
+      "limitation": "관련 자료 2건이 모두 사업 신호·기업 주장·추정치라 확인할 수 없음"
     },
     {
       "dimension": "adoption_barrier",
       "verdict": "signal_only",
       "claims": [
         {
-          "statement": "AI 기반 설비진단 기술이 산업 전반에 긍정적인 변화를 이끌 것이라고 보도되었다.",
+          "statement": "AI 기반 예지보전 시스템이 산업 전반에 긍정적인 변화를 이끌 것이라는 전망이 있다.",
           "claim_type": "fact",
           "citation_ids": [
             10
           ]
         },
         {
-          "statement": "중기중앙회가 기술 도입과 현장 검증을 지원하는 방안을 제시했다.",
+          "statement": "기술 도입과 현장 검증을 지원하는 방안이 필요하다는 의견이 있다.",
           "claim_type": "fact",
           "citation_ids": [
             11
           ]
+        },
+        {
+          "statement": "데이터 전문가가 없어도 시스템을 활용할 수 있다는 점이 도입 장벽을 낮출 가능성이 있다.",
+          "claim_type": "ai_hypothesis",
+          "citation_ids": []
         }
       ],
       "next_check": null,
@@ -145,23 +150,6 @@
     },
     {
       "citation_id": 3,
-      "source_id": "news-20d13c5ea510",
-      "source_type": "news",
-      "title": "LG전자·K-water, 시화조력발전소 AI 전환 업무협약",
-      "publisher": "tournews21.com",
-      "quote": "AI 에이전트는 발전량 손실 원인을 분석하고 설비 이상 징후를 찾아내며, 고장을 미리 예측하는 예지보전과 위험성 평가, 점검 일정 조정 등을 돕는다. 기상과 해수면 변화, 설비 상태, 발전 데이터를 종합해 운영 방안을...",
-      "section": "title+description",
-      "url": "https://www.tournews21.com/news/articleView.html?idxno=146410",
-      "published_at": 20261022,
-      "period": null,
-      "reliability": "medium",
-      "recency": "high",
-      "directness": "medium",
-      "evidence_nature": "business_signal",
-      "similarity": 0.5467
-    },
-    {
-      "citation_id": 4,
       "source_id": "news-cf14734f4b14",
       "source_type": "news",
       "title": "디플리, 소리로 로봇 고장 잡는다…다축 로봇 예지보전 공급",
@@ -178,7 +166,7 @@
       "similarity": 0.5603
     },
     {
-      "citation_id": 5,
+      "citation_id": 4,
       "source_id": "news-f6981f3c7bca",
       "source_type": "news",
       "title": "설비 고장만 보던 AI, 공장 전체 본다···원프레딕트 FIX서 'AI 네이티...",
@@ -195,7 +183,7 @@
       "similarity": 0.5562
     },
     {
-      "citation_id": 6,
+      "citation_id": 5,
       "source_id": "news-3c217c0f3e4d",
       "source_type": "news",
       "title": "AI가 장비 고장 먼저 잡는다...반도체 ‘자율형 팹’ 경쟁 본격화",
@@ -212,7 +200,7 @@
       "similarity": 0.5466
     },
     {
-      "citation_id": 7,
+      "citation_id": 6,
       "source_id": "news-a4b97e2c185b",
       "source_type": "news",
       "title": "디플리, 소리로 로봇 고장 징후 찾는다…부품 제조사에 '리슨 AI' 공급",
@@ -229,7 +217,7 @@
       "similarity": 0.5351
     },
     {
-      "citation_id": 8,
+      "citation_id": 7,
       "source_id": "news-cd15f97ec68b",
       "source_type": "news",
       "title": "오픈인, AI로 설비고장 10분 전 예측…'설비건전성 예측 플랫폼' 구축",
@@ -246,21 +234,38 @@
       "similarity": 0.5266
     },
     {
-      "citation_id": 9,
-      "source_id": "dart-20260318001550-2-0",
+      "citation_id": 8,
+      "source_id": "dart-20260320000616-5-18",
       "source_type": "dart",
-      "title": "인텍플러스 사업보고서(FY2025) 2. 주요 제품 및 서비스",
-      "publisher": "인텍플러스 (DART 사업보고서)",
-      "quote": "가. 주요제품 현황\n나. 주요제품 가격변동 추이\n당사의 제품은 산업용 장비라는 특성 때문에 대부분 고객사의 Needs에 따라 제작되므로 가격은 해당제품의 고객사 요청 사양에 따라 차이가 있습니다. 아래 수치는 해당기간의 매출액을 수량(EA)으로 나눈 단순평균가격 입니다.",
-      "section": "II. 사업의 내용 > 2. 주요 제품 및 서비스 (본문, 표 제외)",
-      "url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260318001550",
-      "published_at": 20260318,
+      "title": "엠아이큐브솔루션 사업보고서(FY2025) 7. 기타 참고사항",
+      "publisher": "엠아이큐브솔루션 (DART 사업보고서)",
+      "quote": "MLOps 플랫폼으로 고도화된 당사는 과학기술정보통신부에서 지원하는 'AI 바우처 지원사업'의 솔루션 공급기업으로 지정되었으며 주요 고객사와 제조 현장을 지능화하기 위한 후속 사업을 지속하여 논의 중에 있습니다. 수 년 간 구축해 온 당사의 제조 지능화 전담 인력 Pool을 토대로 수행해 온 다양한 사업 경험은 국내에서 가장 앞선 수준으로, 특정 업종에 한정적으로 구축사례를 보유한 경쟁사 대비 전기ㆍ전자, 2차전지, 제철, 세라믹, 광학, 케이블, 기계, 식품, 포장, 금속(도금) 등 폭넓은 업종에서의 제조 특화 AI 솔루션 공급 사례와 노하우는 이미 AI EXPO나 스마트공장자동화산업전(SF+AW) 등 국내 유수의 관련 전시회를 통해 소개되어 시장 인지도를 높이고 있습니다. 또한 당사는 한국인공지능협회, 한국산업지능화협회 등 제조업 분야 인공지능 관련 협단체 활동과 관련 정책 연구에도 적극 참여하여 산학ㆍ연ㆍ관 협력을 통한 미래지향적 제조 현장을 실현할 스마트 제조 생태계 내 선두주자 역할을 자임하고 있습니다.\n(다) 상시 유지보수 및 A/S 체계\n당사는 스마트팩토리 및 제조 지능화 시스템 구축 이후에도 운영과 유지보수를 위하여 수행본부 내 O&M팀을 운영하여 고객의 기술지원 요청에 대응하기 위한 Help Desk를 마련해 두었습니다. 고객과의 시스템 정기 운영 계약을 통해 프로젝트 수행이 완전히 종료된 이후에도 밀착 관리 서비스를 제공합니다.",
+      "section": "II. 사업의 내용 > 7. 기타 참고사항 (본문, 표 제외)",
+      "url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260320000616",
+      "published_at": 20260320,
       "period": "FY2025",
       "reliability": "high",
       "recency": "high",
       "directness": "medium",
       "evidence_nature": "company_claim",
-      "similarity": 0.4507
+      "similarity": 0.3687
+    },
+    {
+      "citation_id": 9,
+      "source_id": "dart-20260320000616-3-0",
+      "source_type": "dart",
+      "title": "엠아이큐브솔루션 사업보고서(FY2025) 4. 매출 및 수주상황",
+      "publisher": "엠아이큐브솔루션 (DART 사업보고서)",
+      "quote": "가. 매출실적\n나. 판매조직\n당사의 영업 조직은 각 사업부 내의 별도의 영업부서를 운영하고 있습니다. S&S사업부 내 영업팀은 당사의 주요 고객인 삼성전기, 삼성SDI 등 대형 고객들의 SI 프로젝트의 영업을 담당하고 있습니다. 그 외 사업부는 당사의 솔루션을 기반으로 B2B 및 B2G 영업 업무를 담당하며 LE사업부 영업팀, SMB사업부 영업팀, AM사업부 영업팀으로 구성됩니다. LE사업부 영업팀은 대기업 등의 신규 및 잠재고객 발굴, 영업 전략 수립, 솔루션 영업등 당사의 수주 및 판매와 관련된 업무를 수행하고 있으며, SMB사업부 영업팀은 Cloud MES 솔루션을 기반으로 식품업종 고객 및 중소기업의 신규 및 잠재고객 발굴을 중점적으로 수행하고 있습니다. AM사업부 영업팀은 AI/DT 솔루션을 기반으로 신규 및 잠재 고객 발굴 및 대외 네트워킹을 통한 과제 기획 등의 업무를 수행하고 있습니다. 최근에는 남부(영호남) 지역의 영업력 확대 및 빠른 고객 대응을 위하여 남부 지역을 전담할 수 있는 인력을 운영하고 있습니다.\n다. 판매경로\n라. 판매전략\n당사는 전기/전자, 반도체, 식품, 제철, 2차 전지, 항공우주 등 폭넓은 제조 산업군에 대하여 제조 현장의 디지털화, 지능화를 목표로 전통적인 스마트공장 솔루션인 MES, EES 등의 시스템 공급 및 구축/운영 서비스를 제공하고 하고 있습니다.",
+      "section": "II. 사업의 내용 > 4. 매출 및 수주상황 (본문, 표 제외)",
+      "url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260320000616",
+      "published_at": 20260320,
+      "period": "FY2025",
+      "reliability": "high",
+      "recency": "high",
+      "directness": "medium",
+      "evidence_nature": "company_claim",
+      "similarity": 0.3889
     },
     {
       "citation_id": 10,
@@ -321,7 +326,7 @@
     "reasons": [
       {
         "topic": "수요",
-        "statement": "수요 판단은 signal_only이며, 현재 확정 아이디어의 고객·문제 범위 안에서 해석해야 합니다.",
+        "statement": "수요 판단: 신호만 확인. 현재 확정 아이디어의 고객·문제 범위 안에서 해석해야 합니다.",
         "citation_ids": [
           1,
           2
@@ -329,29 +334,21 @@
       },
       {
         "topic": "경쟁·대체재",
-        "statement": "경쟁·대체재 판단은 signal_only이며, 현재 확정 아이디어의 고객·문제 범위 안에서 해석해야 합니다.",
+        "statement": "경쟁·대체재 판단: 신호만 확인. 현재 확정 아이디어의 고객·문제 범위 안에서 해석해야 합니다.",
         "citation_ids": [
-          4,
-          6
+          3
         ]
       },
       {
-        "topic": "가격·수익모델",
-        "statement": "가격·수익모델 판단은 unverified이며, 현재 확정 아이디어의 고객·문제 범위 안에서 해석해야 합니다.",
+        "topic": "구매자",
+        "statement": "구매자 판단: 신호만 확인. 현재 확정 아이디어의 고객·문제 범위 안에서 해석해야 합니다.",
         "citation_ids": [
           9
         ]
       },
       {
-        "topic": "구매자",
-        "statement": "구매자 판단은 signal_only이며, 현재 확정 아이디어의 고객·문제 범위 안에서 해석해야 합니다.",
-        "citation_ids": [
-          1
-        ]
-      },
-      {
         "topic": "도입장벽",
-        "statement": "도입장벽 판단은 signal_only이며, 현재 확정 아이디어의 고객·문제 범위 안에서 해석해야 합니다.",
+        "statement": "도입장벽 판단: 신호만 확인. 현재 확정 아이디어의 고객·문제 범위 안에서 해석해야 합니다.",
         "citation_ids": [
           10,
           11
@@ -383,49 +380,53 @@
   },
   "commercial_analysis": {
     "user": "중소·중견 제조사 설비 보전 담당자",
-    "buyer": "미확인",
-    "budget_owner": "미확인",
-    "use_case": "설비 고장 예측 및 유지보수 비용 절감",
-    "current_alternative": "기존의 사후 정비 방식",
-    "switching_trigger": "설비 고장으로 인한 생산 중단 및 높은 유지보수 비용",
-    "purchase_process": "미확인",
+    "buyer": "미확인 / 목표 고객: 중소·중견 제조사",
+    "budget_owner": "미확인 / 목표 고객: 중소·중견 제조사",
+    "use_case": "설비 고장 예방 및 유지보수 비용 절감",
+    "current_alternative": "미확인",
+    "switching_trigger": "설비 돌발 고장으로 인한 생산 중단 및 비용 증가",
+    "purchase_process": "미확인 / 목표 고객: 중소·중견 제조사",
     "adoption_requirements": [],
-    "pricing_hypothesis": "센서 키트 판매와 월 구독료 모델",
+    "pricing_hypothesis": "미확인 / 목표 고객: 중소·중견 제조사",
     "critical_assumptions": [],
-    "citation_ids": [
-      1,
-      2,
-      3,
-      4,
-      5,
-      6,
-      10,
-      12
-    ],
+    "citation_ids": [],
     "unknowns": [],
     "hypotheses": [
       {
         "question": "누가 구매를 승인하는가?",
         "hypothesis": "설비 보전 담당자가 구매를 승인할 가능성이 높다.",
-        "basis": "입력 아이디어에서 고객이 중소·중견 제조사 설비 보전 담당자라고 명시되어 있으나, 구매 결정자에 대한 정보는 부족하다.",
+        "basis": "중소·중견 제조사의 설비 보전 담당자가 예지보전 솔루션의 필요성을 느낄 것으로 추론됨. 그러나 구체적인 구매 승인 절차는 미확인.",
         "assumptions": [],
         "citation_ids": [],
         "validation_target": "중소·중견 제조사 설비 보전 담당자",
         "validation_method": "인터뷰·조달 문서 확인 등",
-        "success_criterion": "구매 승인 절차에 대한 명확한 정보 확보",
+        "success_criterion": "구매 승인 절차 및 담당자 확인",
         "numeric_value": null,
         "numeric_unit": "",
         "numeric_basis": ""
       },
       {
-        "question": "예산 보유자는 누구인가?",
-        "hypothesis": "예산 보유자는 제조사 내 재무 담당자일 가능성이 있다.",
-        "basis": "예산 보유자에 대한 정보가 제공되지 않았으며, 일반적으로 재무 담당자가 예산을 관리한다는 가정에 기반한다.",
+        "question": "예산은 어떻게 배정되는가?",
+        "hypothesis": "예산은 각 제조사의 운영 예산에서 배정될 가능성이 있다.",
+        "basis": "중소·중견 제조사의 예산 배정 방식에 대한 정보가 부족함.",
         "assumptions": [],
         "citation_ids": [],
-        "validation_target": "제조사 내 재무 담당자",
+        "validation_target": "중소·중견 제조사 재무 담당자",
+        "validation_method": "인터뷰·재무 문서 확인 등",
+        "success_criterion": "예산 배정 방식 확인",
+        "numeric_value": null,
+        "numeric_unit": "",
+        "numeric_basis": ""
+      },
+      {
+        "question": "구매 절차는 어떻게 되는가?",
+        "hypothesis": "구매 절차는 각 제조사마다 상이할 수 있으며, 일반적으로 내부 승인 절차를 거칠 것이다.",
+        "basis": "구체적인 구매 절차에 대한 정보가 부족함.",
+        "assumptions": [],
+        "citation_ids": [],
+        "validation_target": "중소·중견 제조사 구매 담당자",
         "validation_method": "인터뷰·조달 문서 확인 등",
-        "success_criterion": "예산 승인 절차에 대한 명확한 정보 확보",
+        "success_criterion": "구매 절차 확인",
         "numeric_value": null,
         "numeric_unit": "",
         "numeric_basis": ""
@@ -438,6 +439,7 @@
       "예지보전",
       "예측정비"
     ],
+    "fallback_from": [],
     "reference_keywords": [
       "스마트공장",
       "스마트팩토리"
@@ -598,435 +600,260 @@
     "document_count": 100,
     "nodes": [
       {
-        "term": "설비",
-        "document_count": 58,
+        "term": "예지보전",
+        "document_count": 57,
         "cluster": 0,
-        "x": 0.0477,
-        "y": -0.0535
+        "x": 0.0076,
+        "y": 0.0793
       },
       {
-        "term": "고장",
-        "document_count": 31,
-        "cluster": 0,
-        "x": 0.1226,
-        "y": -0.5956
+        "term": "설비",
+        "document_count": 46,
+        "cluster": 1,
+        "x": 0.0526,
+        "y": -0.1361
       },
       {
         "term": "비용",
-        "document_count": 31,
+        "document_count": 28,
         "cluster": 0,
-        "x": 0.3672,
-        "y": -0.6035
+        "x": -0.1943,
+        "y": 0.1665
       },
       {
-        "term": "데이터",
-        "document_count": 30,
-        "cluster": 0,
-        "x": 0.1533,
-        "y": -0.358
+        "term": "고장",
+        "document_count": 24,
+        "cluster": 1,
+        "x": 0.2174,
+        "y": 0.0128
       },
       {
         "term": "솔루션",
-        "document_count": 29,
+        "document_count": 22,
         "cluster": 0,
-        "x": 0.5054,
-        "y": -0.4262
+        "x": -0.2682,
+        "y": -0.0599
       },
       {
-        "term": "징후",
-        "document_count": 28,
-        "cluster": 2,
-        "x": -0.1736,
-        "y": -0.0399
-      },
-      {
-        "term": "분석",
-        "document_count": 27,
-        "cluster": 2,
-        "x": -0.0736,
-        "y": -0.2371
-      },
-      {
-        "term": "LG전자",
-        "document_count": 21,
-        "cluster": 1,
-        "x": -0.1481,
-        "y": 0.398
-      },
-      {
-        "term": "평가",
-        "document_count": 21,
-        "cluster": 1,
-        "x": 0.0733,
-        "y": 0.3071
-      },
-      {
-        "term": "위험성",
-        "document_count": 19,
-        "cluster": 1,
-        "x": 0.0326,
-        "y": 0.5235
-      },
-      {
-        "term": "손실",
+        "term": "비전",
         "document_count": 18,
-        "cluster": 2,
-        "x": -0.369,
-        "y": -0.1654
+        "cluster": 0,
+        "x": -0.5707,
+        "y": -0.3096
       },
       {
-        "term": "에이전트",
-        "document_count": 18,
-        "cluster": 1,
-        "x": -0.3102,
-        "y": 0.2492
-      },
-      {
-        "term": "발전량",
-        "document_count": 17,
-        "cluster": 2,
-        "x": -0.0952,
-        "y": 0.1657
-      },
-      {
-        "term": "상태",
+        "term": "절감",
         "document_count": 17,
         "cluster": 0,
-        "x": 0.3135,
-        "y": -0.2073
-      },
-      {
-        "term": "점검",
-        "document_count": 17,
-        "cluster": 1,
-        "x": -0.212,
-        "y": 0.6085
+        "x": -0.408,
+        "y": 0.114
       },
       {
         "term": "예측",
-        "document_count": 16,
-        "cluster": 0,
-        "x": -0.1034,
-        "y": -0.5859
-      },
-      {
-        "term": "원인",
-        "document_count": 16,
-        "cluster": 2,
-        "x": -0.4423,
-        "y": 0.0733
-      },
-      {
-        "term": "조력발전소",
         "document_count": 15,
         "cluster": 1,
-        "x": 0.2608,
-        "y": 0.4322
+        "x": 0.168,
+        "y": 0.2303
       },
       {
-        "term": "일정",
+        "term": "장비",
         "document_count": 14,
-        "cluster": 1,
-        "x": 0.0073,
-        "y": 0.742
+        "cluster": 0,
+        "x": -0.3507,
+        "y": -0.3061
       },
       {
-        "term": "탐지",
-        "document_count": 14,
-        "cluster": 2,
-        "x": 0.1855,
-        "y": 0.1179
-      },
-      {
-        "term": "발전소",
-        "document_count": 13,
+        "term": "디지털",
+        "document_count": 12,
         "cluster": 1,
-        "x": -0.436,
-        "y": 0.4296
+        "x": 0.1327,
+        "y": 0.4607
       },
       {
         "term": "사전",
         "document_count": 12,
-        "cluster": 0,
-        "x": -0.275,
-        "y": -0.7236
+        "cluster": 1,
+        "x": 0.3602,
+        "y": -0.1545
       },
       {
-        "term": "발전",
-        "document_count": 11,
-        "cluster": 0,
-        "x": 0.4772,
-        "y": -0.0603
+        "term": "징후",
+        "document_count": 12,
+        "cluster": 1,
+        "x": 0.3894,
+        "y": 0.15
       },
       {
-        "term": "기상",
+        "term": "센서",
         "document_count": 10,
-        "cluster": 2,
-        "x": -0.5916,
-        "y": -0.0883
+        "cluster": 0,
+        "x": -0.4853,
+        "y": -0.0954
       },
       {
-        "term": "해수면",
-        "document_count": 10,
+        "term": "LG전자",
+        "document_count": 9,
         "cluster": 2,
-        "x": -0.5289,
-        "y": -0.3266
+        "x": 0.3363,
+        "y": -0.3732
+      },
+      {
+        "term": "상태",
+        "document_count": 9,
+        "cluster": 1,
+        "x": -0.0342,
+        "y": 0.3173
       },
       {
         "term": "유지보수",
-        "document_count": 9,
+        "document_count": 8,
         "cluster": 0,
-        "x": 0.662,
-        "y": -0.6801
+        "x": -0.1403,
+        "y": -0.2418
       },
       {
         "term": "전류",
         "document_count": 8,
-        "cluster": 0,
-        "x": 0.229,
-        "y": -1.0
+        "cluster": 3,
+        "x": 0.3421,
+        "y": 0.3648
       },
       {
-        "term": "대시보드",
+        "term": "정비",
         "document_count": 7,
         "cluster": 1,
-        "x": 0.4525,
-        "y": 0.5402
+        "x": -0.2296,
+        "y": 0.419
       },
       {
-        "term": "시화조력발전소",
+        "term": "트윈",
         "document_count": 7,
         "cluster": 1,
-        "x": 0.2381,
-        "y": 0.7333
+        "x": -0.0653,
+        "y": 0.5652
       },
       {
-        "term": "엑사원",
+        "term": "평가",
+        "document_count": 7,
+        "cluster": 2,
+        "x": 0.1179,
+        "y": -0.3462
+      },
+      {
+        "term": "발전소",
+        "document_count": 6,
+        "cluster": 2,
+        "x": 0.5765,
+        "y": -0.1949
+      },
+      {
+        "term": "위험",
         "document_count": 6,
         "cluster": 1,
-        "x": -0.369,
-        "y": 0.8306
+        "x": 0.3462,
+        "y": 0.5848
+      },
+      {
+        "term": "조력발전소",
+        "document_count": 6,
+        "cluster": 2,
+        "x": 0.5524,
+        "y": -0.414
+      },
+      {
+        "term": "진동",
+        "document_count": 6,
+        "cluster": 3,
+        "x": 0.5525,
+        "y": 0.2976
+      },
+      {
+        "term": "온도",
+        "document_count": 5,
+        "cluster": 3,
+        "x": 0.5707,
+        "y": 0.0254
+      },
+      {
+        "term": "위험성",
+        "document_count": 5,
+        "cluster": 2,
+        "x": 0.1602,
+        "y": -0.5621
+      },
+      {
+        "term": "중단",
+        "document_count": 5,
+        "cluster": 0,
+        "x": -0.0749,
+        "y": -0.4521
+      },
+      {
+        "term": "방지",
+        "document_count": 4,
+        "cluster": 0,
+        "x": -0.4338,
+        "y": 0.3371
+      },
+      {
+        "term": "PdM",
+        "document_count": 3,
+        "cluster": 0,
+        "x": -0.6275,
+        "y": 0.1281
+      },
+      {
+        "term": "세이지",
+        "document_count": 3,
+        "cluster": 0,
+        "x": -1.0,
+        "y": -0.6067
       }
     ],
     "edges": [
       {
-        "source": "데이터",
-        "target": "설비",
-        "weight": 25
+        "source": "설비",
+        "target": "예지보전",
+        "weight": 38
       },
       {
-        "source": "설비",
-        "target": "징후",
-        "weight": 24
+        "source": "고장",
+        "target": "예지보전",
+        "weight": 23
+      },
+      {
+        "source": "비용",
+        "target": "예지보전",
+        "weight": 22
       },
       {
         "source": "고장",
         "target": "설비",
-        "weight": 22
-      },
-      {
-        "source": "분석",
-        "target": "설비",
-        "weight": 22
-      },
-      {
-        "source": "분석",
-        "target": "징후",
-        "weight": 20
+        "weight": 19
       },
       {
         "source": "비용",
         "target": "설비",
-        "weight": 20
-      },
-      {
-        "source": "설비",
-        "target": "평가",
-        "weight": 20
-      },
-      {
-        "source": "위험성",
-        "target": "평가",
-        "weight": 19
-      },
-      {
-        "source": "설비",
-        "target": "위험성",
         "weight": 18
       },
       {
-        "source": "LG전자",
-        "target": "설비",
-        "weight": 17
-      },
-      {
-        "source": "LG전자",
-        "target": "위험성",
-        "weight": 17
-      },
-      {
-        "source": "LG전자",
-        "target": "평가",
-        "weight": 17
-      },
-      {
-        "source": "설비",
-        "target": "손실",
-        "weight": 17
-      },
-      {
-        "source": "위험성",
-        "target": "징후",
-        "weight": 17
-      },
-      {
-        "source": "징후",
-        "target": "평가",
-        "weight": 17
-      },
-      {
-        "source": "LG전자",
-        "target": "발전량",
+        "source": "솔루션",
+        "target": "예지보전",
         "weight": 16
       },
       {
-        "source": "LG전자",
-        "target": "징후",
-        "weight": 16
-      },
-      {
-        "source": "데이터",
-        "target": "분석",
-        "weight": 16
-      },
-      {
-        "source": "발전량",
-        "target": "분석",
-        "weight": 16
-      },
-      {
-        "source": "발전량",
-        "target": "설비",
-        "weight": 16
-      },
-      {
-        "source": "발전량",
-        "target": "손실",
-        "weight": 16
-      },
-      {
-        "source": "발전량",
-        "target": "원인",
-        "weight": 16
-      },
-      {
-        "source": "발전량",
-        "target": "위험성",
-        "weight": 16
-      },
-      {
-        "source": "발전량",
-        "target": "평가",
-        "weight": 16
-      },
-      {
-        "source": "분석",
-        "target": "손실",
-        "weight": 16
-      },
-      {
-        "source": "분석",
-        "target": "원인",
-        "weight": 16
-      },
-      {
-        "source": "상태",
-        "target": "설비",
-        "weight": 16
-      },
-      {
-        "source": "설비",
-        "target": "솔루션",
-        "weight": 16
-      },
-      {
-        "source": "설비",
-        "target": "에이전트",
-        "weight": 16
-      },
-      {
-        "source": "설비",
-        "target": "점검",
-        "weight": 16
-      },
-      {
-        "source": "손실",
-        "target": "원인",
-        "weight": 16
-      },
-      {
-        "source": "손실",
-        "target": "징후",
-        "weight": 16
-      },
-      {
-        "source": "에이전트",
-        "target": "위험성",
-        "weight": 16
-      },
-      {
-        "source": "에이전트",
-        "target": "징후",
-        "weight": 16
-      },
-      {
-        "source": "에이전트",
-        "target": "평가",
-        "weight": 16
-      },
-      {
-        "source": "원인",
-        "target": "징후",
-        "weight": 16
-      },
-      {
-        "source": "LG전자",
-        "target": "에이전트",
+        "source": "예지보전",
+        "target": "예측",
         "weight": 15
       },
       {
-        "source": "LG전자",
-        "target": "원인",
+        "source": "예지보전",
+        "target": "절감",
         "weight": 15
       },
       {
-        "source": "데이터",
-        "target": "상태",
-        "weight": 15
-      },
-      {
-        "source": "데이터",
-        "target": "징후",
-        "weight": 15
-      },
-      {
-        "source": "위험성",
-        "target": "점검",
-        "weight": 15
-      },
-      {
-        "source": "점검",
-        "target": "평가",
-        "weight": 15
-      },
-      {
-        "source": "LG전자",
-        "target": "조력발전소",
-        "weight": 14
-      },
-      {
-        "source": "상태",
-        "target": "징후",
+        "source": "비용",
+        "target": "절감",
         "weight": 14
       },
       {
@@ -1035,384 +862,414 @@
         "weight": 14
       },
       {
-        "source": "설비",
-        "target": "일정",
-        "weight": 14
+        "source": "예지보전",
+        "target": "징후",
+        "weight": 12
+      },
+      {
+        "source": "사전",
+        "target": "예지보전",
+        "weight": 11
       },
       {
         "source": "설비",
-        "target": "탐지",
-        "weight": 14
-      },
-      {
-        "source": "에이전트",
-        "target": "점검",
-        "weight": 14
-      },
-      {
-        "source": "에이전트",
-        "target": "탐지",
-        "weight": 14
-      },
-      {
-        "source": "위험성",
-        "target": "일정",
-        "weight": 14
-      },
-      {
-        "source": "일정",
-        "target": "점검",
-        "weight": 14
-      },
-      {
-        "source": "일정",
-        "target": "평가",
-        "weight": 14
-      },
-      {
-        "source": "징후",
-        "target": "탐지",
-        "weight": 14
-      },
-      {
-        "source": "LG전자",
-        "target": "일정",
-        "weight": 13
+        "target": "솔루션",
+        "weight": 11
       },
       {
         "source": "고장",
         "target": "비용",
-        "weight": 13
+        "weight": 10
       },
       {
-        "source": "발전량",
-        "target": "탐지",
-        "weight": 13
+        "source": "사전",
+        "target": "설비",
+        "weight": 10
       },
       {
-        "source": "분석",
-        "target": "탐지",
-        "weight": 13
+        "source": "설비",
+        "target": "절감",
+        "weight": 10
+      },
+      {
+        "source": "설비",
+        "target": "징후",
+        "weight": 10
+      },
+      {
+        "source": "고장",
+        "target": "사전",
+        "weight": 9
+      },
+      {
+        "source": "고장",
+        "target": "예측",
+        "weight": 9
+      },
+      {
+        "source": "사전",
+        "target": "예측",
+        "weight": 9
+      },
+      {
+        "source": "상태",
+        "target": "예지보전",
+        "weight": 9
+      },
+      {
+        "source": "디지털",
+        "target": "설비",
+        "weight": 8
+      },
+      {
+        "source": "디지털",
+        "target": "예지보전",
+        "weight": 8
+      },
+      {
+        "source": "비용",
+        "target": "유지보수",
+        "weight": 8
+      },
+      {
+        "source": "상태",
+        "target": "설비",
+        "weight": 8
+      },
+      {
+        "source": "예지보전",
+        "target": "유지보수",
+        "weight": 8
+      },
+      {
+        "source": "예지보전",
+        "target": "전류",
+        "weight": 8
+      },
+      {
+        "source": "디지털",
+        "target": "트윈",
+        "weight": 7
+      },
+      {
+        "source": "설비",
+        "target": "평가",
+        "weight": 7
+      },
+      {
+        "source": "센서",
+        "target": "예지보전",
+        "weight": 7
+      },
+      {
+        "source": "LG전자",
+        "target": "예지보전",
+        "weight": 6
+      },
+      {
+        "source": "LG전자",
+        "target": "조력발전소",
+        "weight": 6
+      },
+      {
+        "source": "고장",
+        "target": "상태",
+        "weight": 6
+      },
+      {
+        "source": "고장",
+        "target": "정비",
+        "weight": 6
+      },
+      {
+        "source": "고장",
+        "target": "징후",
+        "weight": 6
+      },
+      {
+        "source": "비용",
+        "target": "솔루션",
+        "weight": 6
+      },
+      {
+        "source": "비전",
+        "target": "솔루션",
+        "weight": 6
+      },
+      {
+        "source": "상태",
+        "target": "징후",
+        "weight": 6
+      },
+      {
+        "source": "설비",
+        "target": "유지보수",
+        "weight": 6
+      },
+      {
+        "source": "예지보전",
+        "target": "장비",
+        "weight": 6
+      },
+      {
+        "source": "예지보전",
+        "target": "정비",
+        "weight": 6
+      },
+      {
+        "source": "예지보전",
+        "target": "평가",
+        "weight": 6
+      },
+      {
+        "source": "유지보수",
+        "target": "절감",
+        "weight": 6
       },
       {
         "source": "LG전자",
         "target": "발전소",
-        "weight": 12
-      },
-      {
-        "source": "분석",
-        "target": "상태",
-        "weight": 12
-      },
-      {
-        "source": "고장",
-        "target": "분석",
-        "weight": 11
-      },
-      {
-        "source": "데이터",
-        "target": "평가",
-        "weight": 11
-      },
-      {
-        "source": "발전",
-        "target": "분석",
-        "weight": 11
-      },
-      {
-        "source": "발전",
-        "target": "설비",
-        "weight": 11
-      },
-      {
-        "source": "발전소",
-        "target": "설비",
-        "weight": 11
-      },
-      {
-        "source": "발전소",
-        "target": "위험성",
-        "weight": 11
-      },
-      {
-        "source": "발전소",
-        "target": "평가",
-        "weight": 11
-      },
-      {
-        "source": "비용",
-        "target": "솔루션",
-        "weight": 11
-      },
-      {
-        "source": "설비",
-        "target": "조력발전소",
-        "weight": 11
-      },
-      {
-        "source": "위험성",
-        "target": "조력발전소",
-        "weight": 11
-      },
-      {
-        "source": "조력발전소",
-        "target": "평가",
-        "weight": 11
-      },
-      {
-        "source": "고장",
-        "target": "데이터",
-        "weight": 10
-      },
-      {
-        "source": "고장",
-        "target": "예측",
-        "weight": 10
-      },
-      {
-        "source": "기상",
-        "target": "발전량",
-        "weight": 10
-      },
-      {
-        "source": "기상",
-        "target": "분석",
-        "weight": 10
-      },
-      {
-        "source": "기상",
-        "target": "설비",
-        "weight": 10
-      },
-      {
-        "source": "기상",
-        "target": "손실",
-        "weight": 10
-      },
-      {
-        "source": "기상",
-        "target": "에이전트",
-        "weight": 10
-      },
-      {
-        "source": "기상",
-        "target": "해수면",
-        "weight": 10
-      },
-      {
-        "source": "데이터",
-        "target": "발전",
-        "weight": 10
-      },
-      {
-        "source": "발전",
-        "target": "발전량",
-        "weight": 10
-      },
-      {
-        "source": "발전",
-        "target": "상태",
-        "weight": 10
-      },
-      {
-        "source": "발전량",
-        "target": "조력발전소",
-        "weight": 10
-      },
-      {
-        "source": "발전량",
-        "target": "해수면",
-        "weight": 10
-      },
-      {
-        "source": "발전소",
-        "target": "징후",
-        "weight": 10
-      },
-      {
-        "source": "분석",
-        "target": "해수면",
-        "weight": 10
-      },
-      {
-        "source": "사전",
-        "target": "설비",
-        "weight": 10
-      },
-      {
-        "source": "설비",
-        "target": "해수면",
-        "weight": 10
-      },
-      {
-        "source": "손실",
-        "target": "해수면",
-        "weight": 10
-      },
-      {
-        "source": "고장",
-        "target": "사전",
-        "weight": 9
-      },
-      {
-        "source": "데이터",
-        "target": "비용",
-        "weight": 9
-      },
-      {
-        "source": "데이터",
-        "target": "솔루션",
-        "weight": 9
-      },
-      {
-        "source": "비용",
-        "target": "유지보수",
-        "weight": 9
-      },
-      {
-        "source": "사전",
-        "target": "예측",
-        "weight": 9
-      },
-      {
-        "source": "데이터",
-        "target": "예측",
-        "weight": 8
+        "weight": 5
       },
       {
         "source": "LG전자",
-        "target": "대시보드",
-        "weight": 7
-      },
-      {
-        "source": "LG전자",
-        "target": "시화조력발전소",
-        "weight": 7
-      },
-      {
-        "source": "대시보드",
-        "target": "발전량",
-        "weight": 7
-      },
-      {
-        "source": "대시보드",
         "target": "설비",
-        "weight": 7
-      },
-      {
-        "source": "대시보드",
-        "target": "위험성",
-        "weight": 7
-      },
-      {
-        "source": "대시보드",
-        "target": "평가",
-        "weight": 7
-      },
-      {
-        "source": "데이터",
-        "target": "유지보수",
-        "weight": 7
-      },
-      {
-        "source": "발전량",
-        "target": "시화조력발전소",
-        "weight": 7
-      },
-      {
-        "source": "설비",
-        "target": "시화조력발전소",
-        "weight": 7
-      },
-      {
-        "source": "설비",
-        "target": "유지보수",
-        "weight": 7
-      },
-      {
-        "source": "시화조력발전소",
-        "target": "위험성",
-        "weight": 7
-      },
-      {
-        "source": "시화조력발전소",
-        "target": "평가",
-        "weight": 7
+        "weight": 5
       },
       {
         "source": "고장",
-        "target": "솔루션",
-        "weight": 6
+        "target": "온도",
+        "weight": 5
       },
       {
-        "source": "엑사원",
+        "source": "고장",
+        "target": "전류",
+        "weight": 5
+      },
+      {
+        "source": "디지털",
+        "target": "예측",
+        "weight": 5
+      },
+      {
+        "source": "발전소",
+        "target": "예지보전",
+        "weight": 5
+      },
+      {
+        "source": "비용",
+        "target": "장비",
+        "weight": 5
+      },
+      {
+        "source": "설비",
+        "target": "센서",
+        "weight": 5
+      },
+      {
+        "source": "설비",
         "target": "위험성",
-        "weight": 6
+        "weight": 5
       },
       {
-        "source": "엑사원",
-        "target": "평가",
-        "weight": 6
+        "source": "설비",
+        "target": "전류",
+        "weight": 5
+      },
+      {
+        "source": "설비",
+        "target": "정비",
+        "weight": 5
+      },
+      {
+        "source": "센서",
+        "target": "솔루션",
+        "weight": 5
+      },
+      {
+        "source": "솔루션",
+        "target": "절감",
+        "weight": 5
+      },
+      {
+        "source": "예지보전",
+        "target": "온도",
+        "weight": 5
+      },
+      {
+        "source": "예지보전",
+        "target": "위험성",
+        "weight": 5
+      },
+      {
+        "source": "예지보전",
+        "target": "조력발전소",
+        "weight": 5
+      },
+      {
+        "source": "예지보전",
+        "target": "중단",
+        "weight": 5
+      },
+      {
+        "source": "예지보전",
+        "target": "진동",
+        "weight": 5
       },
       {
         "source": "예측",
         "target": "징후",
-        "weight": 6
+        "weight": 5
+      },
+      {
+        "source": "위험성",
+        "target": "평가",
+        "weight": 5
       },
       {
         "source": "LG전자",
-        "target": "엑사원",
-        "weight": 5
+        "target": "위험성",
+        "weight": 4
+      },
+      {
+        "source": "LG전자",
+        "target": "평가",
+        "weight": 4
       },
       {
         "source": "고장",
-        "target": "전류",
-        "weight": 5
+        "target": "디지털",
+        "weight": 4
       },
       {
-        "source": "데이터",
+        "source": "고장",
+        "target": "진동",
+        "weight": 4
+      },
+      {
+        "source": "고장",
+        "target": "평가",
+        "weight": 4
+      },
+      {
+        "source": "발전소",
+        "target": "설비",
+        "weight": 4
+      },
+      {
+        "source": "발전소",
+        "target": "조력발전소",
+        "weight": 4
+      },
+      {
+        "source": "비용",
         "target": "사전",
-        "weight": 5
+        "weight": 4
       },
       {
-        "source": "분석",
-        "target": "솔루션",
-        "weight": 5
+        "source": "비용",
+        "target": "센서",
+        "weight": 4
       },
       {
         "source": "비용",
         "target": "전류",
-        "weight": 5
+        "weight": 4
       },
       {
-        "source": "사전",
-        "target": "징후",
-        "weight": 5
+        "source": "비용",
+        "target": "정비",
+        "weight": 4
       },
       {
-        "source": "설비",
-        "target": "엑사원",
-        "weight": 5
+        "source": "비용",
+        "target": "중단",
+        "weight": 4
       },
       {
-        "source": "에이전트",
-        "target": "엑사원",
-        "weight": 5
+        "source": "비전",
+        "target": "설비",
+        "weight": 4
       },
       {
-        "source": "데이터",
-        "target": "전류",
+        "source": "비전",
+        "target": "장비",
+        "weight": 4
+      },
+      {
+        "source": "상태",
+        "target": "예측",
+        "weight": 4
+      },
+      {
+        "source": "상태",
+        "target": "정비",
         "weight": 4
       },
       {
         "source": "설비",
-        "target": "전류",
+        "target": "온도",
+        "weight": 4
+      },
+      {
+        "source": "설비",
+        "target": "조력발전소",
+        "weight": 4
+      },
+      {
+        "source": "설비",
+        "target": "진동",
+        "weight": 4
+      },
+      {
+        "source": "센서",
+        "target": "장비",
         "weight": 4
       },
       {
         "source": "솔루션",
-        "target": "유지보수",
+        "target": "장비",
         "weight": 4
+      },
+      {
+        "source": "예지보전",
+        "target": "트윈",
+        "weight": 4
+      },
+      {
+        "source": "온도",
+        "target": "전류",
+        "weight": 4
+      },
+      {
+        "source": "온도",
+        "target": "진동",
+        "weight": 4
+      },
+      {
+        "source": "전류",
+        "target": "진동",
+        "weight": 4
+      },
+      {
+        "source": "PdM",
+        "target": "예지보전",
+        "weight": 3
+      },
+      {
+        "source": "고장",
+        "target": "발전소",
+        "weight": 3
+      },
+      {
+        "source": "고장",
+        "target": "위험",
+        "weight": 3
+      },
+      {
+        "source": "고장",
+        "target": "위험성",
+        "weight": 3
       },
       {
         "source": "고장",
@@ -1420,56 +1277,228 @@
         "weight": 3
       },
       {
-        "source": "분석",
-        "target": "전류",
+        "source": "고장",
+        "target": "중단",
         "weight": 3
+      },
+      {
+        "source": "방지",
+        "target": "비용",
+        "weight": 3
+      },
+      {
+        "source": "방지",
+        "target": "설비",
+        "weight": 3
+      },
+      {
+        "source": "방지",
+        "target": "예지보전",
+        "weight": 3
+      },
+      {
+        "source": "비전",
+        "target": "세이지",
+        "weight": 3
+      },
+      {
+        "source": "비전",
+        "target": "센서",
+        "weight": 3
+      },
+      {
+        "source": "설비",
+        "target": "위험",
+        "weight": 3
+      },
+      {
+        "source": "설비",
+        "target": "중단",
+        "weight": 3
+      },
+      {
+        "source": "설비",
+        "target": "트윈",
+        "weight": 3
+      },
+      {
+        "source": "위험성",
+        "target": "조력발전소",
+        "weight": 3
+      },
+      {
+        "source": "PdM",
+        "target": "고장",
+        "weight": 2
+      },
+      {
+        "source": "PdM",
+        "target": "비용",
+        "weight": 2
+      },
+      {
+        "source": "PdM",
+        "target": "설비",
+        "weight": 2
+      },
+      {
+        "source": "고장",
+        "target": "트윈",
+        "weight": 2
+      },
+      {
+        "source": "디지털",
+        "target": "중단",
+        "weight": 2
+      },
+      {
+        "source": "방지",
+        "target": "솔루션",
+        "weight": 2
+      },
+      {
+        "source": "방지",
+        "target": "절감",
+        "weight": 2
+      },
+      {
+        "source": "비용",
+        "target": "트윈",
+        "weight": 2
+      },
+      {
+        "source": "예지보전",
+        "target": "위험",
+        "weight": 2
       }
     ],
     "clusters": [
       [
+        "예지보전",
+        "비용",
+        "솔루션",
+        "비전",
+        "절감",
+        "장비",
+        "센서",
+        "유지보수",
+        "중단",
+        "방지",
+        "PdM",
+        "세이지"
+      ],
+      [
         "설비",
         "고장",
-        "비용",
-        "데이터",
-        "솔루션",
-        "상태",
         "예측",
+        "디지털",
         "사전",
-        "발전",
-        "유지보수",
-        "전류"
+        "징후",
+        "상태",
+        "정비",
+        "트윈",
+        "위험"
       ],
       [
         "LG전자",
         "평가",
-        "위험성",
-        "에이전트",
-        "점검",
-        "조력발전소",
-        "일정",
         "발전소",
-        "대시보드",
-        "시화조력발전소",
-        "엑사원"
+        "조력발전소",
+        "위험성"
       ],
       [
-        "징후",
-        "분석",
-        "손실",
-        "발전량",
-        "원인",
-        "탐지",
-        "기상",
-        "해수면"
+        "전류",
+        "진동",
+        "온도"
       ]
     ],
     "note": "아이디어와 가까운 뉴스 제목·요약에서 같은 기사에 함께 나온 명사를 이은 것이며, 시장 수요나 인과관계의 근거가 아닙니다.",
     "error_message": null
   },
+  "company_financials": {
+    "status": "completed",
+    "companies": [
+      {
+        "company": "이삭엔지니어링",
+        "stock_code": "351330",
+        "statement": "연결",
+        "rcept_no": "20260323001123",
+        "years": [
+          {
+            "year": 2023,
+            "revenue": 100515237200,
+            "operating_income": 134144976,
+            "net_income": -462680769,
+            "rnd_expense": 860547000
+          },
+          {
+            "year": 2024,
+            "revenue": 68450229130,
+            "operating_income": -4543528819,
+            "net_income": -7020949893,
+            "rnd_expense": 1680131000
+          },
+          {
+            "year": 2025,
+            "revenue": 78986196809,
+            "operating_income": -7182250667,
+            "net_income": -8907834071,
+            "rnd_expense": 1605731000
+          }
+        ],
+        "rnd_basis": "사업보고서 연구개발활동 표 '합계' (천원)"
+      },
+      {
+        "company": "엠아이큐브솔루션",
+        "stock_code": "373170",
+        "statement": "별도",
+        "rcept_no": "20260320000616",
+        "years": [
+          {
+            "year": 2023,
+            "revenue": 24152183801,
+            "operating_income": 1756064734,
+            "net_income": 2498542535,
+            "rnd_expense": 1548313000
+          },
+          {
+            "year": 2024,
+            "revenue": 29636481104,
+            "operating_income": -1069721190,
+            "net_income": -142685510,
+            "rnd_expense": 2009210000
+          },
+          {
+            "year": 2025,
+            "revenue": 25620442016,
+            "operating_income": 885921750,
+            "net_income": 1630786561,
+            "rnd_expense": 1016506000
+          }
+        ],
+        "rnd_basis": "사업보고서 연구개발활동 표 '합계(매출액대비비율)' (천원)"
+      }
+    ],
+    "missing": [],
+    "note": "DART 사업보고서의 주요 재무 계정입니다. 아이디어와 같은 사업 범주로 검색한 기업의 실적이며, 시장 규모나 고객 수요의 근거가 아닙니다.",
+    "error_message": null
+  },
+  "procurement": {
+    "status": "completed",
+    "keywords": [
+      "예지보전",
+      "예측정비"
+    ],
+    "period": "2026-04 ~ 2026-09",
+    "searched_count": 4,
+    "notices": [],
+    "note": "나라장터 공공 입찰공고입니다. 공공기관·대학·연구기관의 구매가 대부분이어서 민간 고객 수요의 근거가 아니며, 공공 구매 사례와 예산 수준을 참고하는 자료입니다.",
+    "error_message": null
+  },
   "unknowns": [
-    "가격 근거 미확인: 관련 자료가 1건뿐이라 확인할 수 없음 (최대 신호 수준)"
+    "가격 근거 미확인: 검색된 자료 7건이 모두 이 차원과 무관하다고 판정됨"
   ],
-  "search_scope": "네이버 뉴스 검색 API로 사전 수집한 스마트팩토리 기사 1976건(제목·요약, 발행일 20240102~20261029) · DART 사업보고서 '사업의 내용' 발췌 348건(기업 14곳, FY2025), 전체 수집 범위 · 아이디어와 가까워 검색한 DART 기업: 이삭엔지니어링, 인텍플러스, 라온피플",
-  "data_as_of": 20261029,
+  "search_scope": "네이버 뉴스 검색 API로 사전 수집한 스마트팩토리 기사 1976건(제목·요약, 발행일 20240102~20261029) · DART 사업보고서 '사업의 내용' 발췌 348건(기업 14곳, FY2025), 전체 수집 범위 · 검색한 DART 기업(아이디어와 같은 사업 범주): 이삭엔지니어링, 엠아이큐브솔루션",
+  "data_as_of": 20261030,
   "error_message": null
 }
