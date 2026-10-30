@@ -20,7 +20,7 @@ from evaluation.evaluate import (
     reciprocal_rank,
 )
 from evaluation.patent_labeling import load_cases
-from src.schemas import PatentDocument
+from src.schemas import PatentChunk, PatentClaim, PatentDocument
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 PATENTS_PATH = ROOT_DIR / "data" / "patents" / "processed" / "patent_docs.jsonl"
@@ -125,6 +125,89 @@ def write_inventory(output_dir: Path = OUTPUT_DIR) -> dict:
         json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
     return result
+
+
+def _claim_map(patent: PatentDocument) -> dict[int, PatentClaim]:
+    """Return the claims indexed by number for dependency context assembly."""
+    return {claim.claim_number: claim for claim in patent.claim_items}
+
+
+def _ancestor_numbers(claim_number: int, claims: dict[int, PatentClaim]) -> list[int]:
+    """Resolve available parent claims without looping on malformed references."""
+    pending = list(claims[claim_number].depends_on)
+    seen = set()
+    while pending:
+        number = pending.pop(0)
+        if number in seen or number == claim_number or number not in claims:
+            continue
+        seen.add(number)
+        pending.extend(claims[number].depends_on)
+    return sorted(seen)
+
+
+def build_experiment_chunks(
+    patents: list[PatentDocument], area: str, strategy: str
+) -> list[PatentChunk]:
+    """Build baseline, independent-only, or ancestor-context claim chunks.
+
+    ``independent`` indexes independent claims for candidate retrieval; dependent
+    claims remain available in the source document as auxiliary evidence.
+    ``parent_context`` keeps every claim's exact text and adds referenced parent
+    claim text to dependent claim chunks.
+    """
+    if strategy not in {"baseline", "independent", "parent_context"}:
+        raise ValueError("strategy must be baseline, independent, or parent_context")
+    chunks = []
+    for patent in patents:
+        if area not in patent.technology_area_ids:
+            continue
+        if patent.abstract.strip():
+            chunks.append(
+                PatentChunk(
+                    chunk_id=f"{patent.patent_id}_{patent.claim_version_id or 'noversion'}_abstract_0",
+                    patent_id=patent.patent_id,
+                    section="abstract",
+                    text=patent.abstract.strip(),
+                    chunk_index=0,
+                    version_id=patent.claim_version_id,
+                )
+            )
+        claim_map = _claim_map(patent)
+        selected = [
+            claim
+            for claim in patent.claim_items
+            if strategy != "independent" or claim.claim_type == "independent"
+        ]
+        for index, claim in enumerate(selected):
+            content = claim.text
+            if strategy == "parent_context" and claim.claim_type == "dependent":
+                ancestors = _ancestor_numbers(claim.claim_number, claim_map)
+                context = [
+                    f"상위 청구항 {number} 원문: {claim_map[number].text}"
+                    for number in ancestors
+                ]
+                if context:
+                    content = "\n".join(
+                        context
+                        + [f"현재 청구항 {claim.claim_number} 원문: {claim.text}"]
+                    )
+            chunks.append(
+                PatentChunk(
+                    chunk_id=(
+                        f"{patent.patent_id}_{claim.version_id or patent.claim_version_id or 'noversion'}"
+                        f"_claim_{claim.claim_number}_{strategy}"
+                    ),
+                    patent_id=patent.patent_id,
+                    section="claims",
+                    text=content,
+                    chunk_index=index,
+                    claim_number=claim.claim_number,
+                    claim_type=claim.claim_type,
+                    depends_on=claim.depends_on,
+                    version_id=claim.version_id or patent.claim_version_id,
+                )
+            )
+    return chunks
 
 
 def main() -> None:
