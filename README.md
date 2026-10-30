@@ -389,6 +389,7 @@ python -m evaluation.patent_domain_experiment run   # SF-05 질문을 SF-05·SF-
 python -m evaluation.patent_domain_experiment score # 후보 사람 라벨 완료 후 지표 계산
 python -m evaluation.patent_index_effect --rebuild-cache # SF-05 사전색인과 매 요청 임베딩 시간 비교
 python -m evaluation.patent_candidate_budget run --limit 150 # 확장 코퍼스에서 고정 배치 후보 수 비교
+python -m evaluation.patent_candidate_budget run --resume # 저장된 코퍼스·색인 재사용 후 비교 재개
 python -m evaluation.patent_candidate_budget score # 후보 사람 라벨 완료 후 후보 제한별 품질 비교
 ```
 
@@ -396,7 +397,7 @@ python -m evaluation.patent_candidate_budget score # 후보 사람 라벨 완료
 - SF-05 평가 질의와 동일한 Top-20 후보 풀에서 Dense·BM25·Hybrid를 비교한다. 검색 순위가 포함된 `rankings.csv`와 순위·방식을 감춘 `candidates.csv`는 Git 제외 경로 `data/patents/processed/domain_experiment/`에 생성된다. 재실행할 때 같은 문헌의 기존 라벨과 검토 메모를 보존한다. 각 후보는 `relevant=0/1`, `review_status=reviewed`, `label_source=human`으로 표시하고, 애매한 후보는 `hold`로 남긴 뒤 `score`를 실행한다.
 - Hit@5·Recall@5·Precision@5·MRR@5·nDCG@5와 실제 후보 풀 Recall을 사람 검토된 후보만으로 계산한다. Recall의 분모는 방식별 결과 합집합에서 판정한 관련 문헌이므로 전체 특허 코퍼스 기준 재현율이 아니다. 평가 문항과 특허 표본이 작으므로 결과는 해당 색인·질의의 예비 비교로 해석한다. Dense·Hybrid 검색은 질의 임베딩에 `OPENAI_API_KEY`가 필요하다.
 - `patent_index_effect`는 SF-05 특허 청크를 실험 전용 로컬 Chroma에 한 번 색인한 경로와, 질의마다 문서 전체를 다시 임베딩하는 경로의 임베딩 입력 수·API 요청 수·시간·Top-5 순위 일치도를 비교한다. 전자는 색인 구축 시간을 별도로 기록하고, 실측 질의 시간 절감으로 단순 손익분기 질의 수를 계산한다. 결과는 Git 제외 경로 `data/patents/processed/domain_experiment/index_effect.json`에 저장된다. 비교 실행은 특허 본문을 임베딩 API로 보낸다. 단일 실행 시간은 네트워크 변동을 포함하며, 검색 품질 지표는 사람 라벨을 완료한 뒤 해석한다.
-- `patent_candidate_budget`은 SF-05 설정 검색어당 KIPRIS 최대 150건을 수집해 별도 로컬 색인을 만든다. 질의마다 한 임베딩 배치(최대 100개 입력)로 제한한 무색인 방식은 BM25 상위 99개 후보를 재임베딩하고, 사전색인 방식은 전체 특허 임베딩을 검색한다. 두 방식의 후보 수와 순위를 비교하고, 블라인드 후보 CSV를 사람이 라벨한 뒤 Hit@5·Recall@5·Precision@5·MRR@5·nDCG@5를 계산한다. 특허 원문·색인·결과는 Git 제외 `data/patents/processed/domain_experiment/candidate_budget/`에 보관한다. 수집·임베딩은 각각 KIPRIS·OpenAI API를 사용하고 공유 Chroma에는 쓰지 않는다.
+- `patent_candidate_budget`은 SF-05 설정 검색어당 KIPRIS 최대 150건을 수집해 별도 로컬 색인을 만든다. 질의마다 임베딩 API 입력을 최대 100개로 제한한 비교에서 무색인 경로는 BM25 상위 99개 후보와 질의를 함께 임베딩하고, 사전색인 경로는 미리 저장한 전체 특허 벡터를 검색한다. 따라서 이 실험은 고정된 쿼리 임베딩 예산에서 전체 벡터 후보를 검색할 때의 효과를 평가한다. 전체 코퍼스를 매 질의 임베딩할 수 있는 무색인 방식과 비교하면 후보 수와 의미 순위는 원칙적으로 같아야 하며, 사전색인 자체가 검색 품질을 자동으로 높인다고 해석하지 않는다. 각 방식의 Top-20 합집합만 블라인드 후보 CSV에 담아 사람이 판정한 뒤 Hit@5·Precision@5·MRR@5·nDCG@5와 판정 후보 풀 기준 Recall@5를 계산한다. 판정 후보 풀 밖의 문헌 수는 미판정으로 별도 기록한다. 특허 원문·색인·결과는 Git 제외 `data/patents/processed/domain_experiment/candidate_budget/`에 보관한다. 수집·임베딩은 각각 KIPRIS·OpenAI API를 사용하고 공유 Chroma에는 쓰지 않는다. 중단 후에는 `--resume`으로 저장된 코퍼스와 동일한 로컬 색인을 확인해 재사용한다.
 
 ### 특허 청킹·문헌 집계·리랭킹 실험
 
