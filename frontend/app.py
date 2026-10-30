@@ -1221,16 +1221,16 @@ def render_patent_report(patent, *, widget_suffix="", preview=False):
             for index, (review, document_evidence) in enumerate(orbit_reviews):
                 category = patent_orbit_category(review, evidence_by_id)
                 reason = tooltip_text(review.relevance_reason, "우선 확인 이유 미제공")
-                similarity = patent_dense_similarity(document_evidence)
+                dense_similarity = patent_dense_similarity(document_evidence)
                 semantic_similarity = patent_semantic_similarity(document_evidence)
-                x, y = patent_orbit_position(index, count, similarity)
+                x, y = patent_orbit_position(index, count, semantic_similarity)
                 points.append(
                     {
                         "patent_id": review.patent_id,
                         "title": review.title,
                         "number": f"P{index + 1}",
                         "priority_reason_display": reason[:180],
-                        "dense_score_display": dense_similarity_text(similarity),
+                        "dense_score_display": dense_similarity_text(dense_similarity),
                         "semantic_similarity_display": semantic_similarity_text(
                             semantic_similarity
                         ),
@@ -1827,7 +1827,7 @@ def can_visit(number):
         if number == 2:
             return job.get("patent_report") is not None
         if number == 3:
-            return job.get("market_report") is not None
+            return True
         if number == 4:
             return job.get("result") is not None
     if number == 1:
@@ -2150,7 +2150,7 @@ def review_navigation(number, label, column, key, *, icon=None):
         key=key,
         type=(
             "primary"
-            if s.stage == number or (key in {"rail_2", "nav_2"} and s.stage == 3)
+            if s.stage == number or (key == "rail_2" and s.stage == 3)
             else "secondary"
         ),
         disabled=not can_visit(number)
@@ -2159,6 +2159,10 @@ def review_navigation(number, label, column, key, *, icon=None):
         icon=icon,
     ):
         if active_job is not None:
+            if number == 3:
+                s.stage = 3
+                s.workflow_preview_stage = None
+                st.rerun(scope="app")
             s.workflow_preview_stage = number
             st.rerun(scope="app")
         else:
@@ -2166,18 +2170,6 @@ def review_navigation(number, label, column, key, *, icon=None):
             st.rerun(scope="app")
 
 
-with st.container(key="stage_navigation"):
-    for column, number, label in zip(
-        st.columns(3),
-        (1, 2, 4),
-        ("1 아이디어 구체화", "2 특허·시장 검토", "3 종합 보고서"),
-    ):
-        review_navigation(number, label, column, f"nav_{number}")
-if s.stage in (2, 3):
-    for column, number, label in zip(
-        st.columns(2), (2, 3), ("특허 비교", "시장성 분석")
-    ):
-        review_navigation(number, label, column, f"subnav_{number}")
 render_quick_nav(review_navigation, open_page)
 
 
@@ -2544,9 +2536,14 @@ with st.container(key=f"workspace_{1 if s.stage == 1 else 3 if s.stage == 4 else
         )
         workflow_job = current_workflow_job()
         if s.real_mode and workflow_job and not workflow_job.get("market_report"):
-            st.caption(
-                "특허 결과를 확인할 수 있습니다. 시장 결과가 준비되면 이 화면에 이어서 표시합니다."
-            )
+            if workflow_job.get("phase") == "patent":
+                st.caption(
+                    "시장 분석은 특허 조사 후 시작됩니다. 완료되면 이 화면에 표시합니다."
+                )
+            else:
+                st.caption(
+                    "시장성 분석이 진행 중입니다. 완료되면 이 화면에 표시합니다."
+                )
         elif s.real_mode and s.pipeline_result:
             market = s.pipeline_result.market
             render_market_report(market, s.idea_draft)

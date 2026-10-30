@@ -57,7 +57,7 @@ def semantic_similarity_text(value) -> str:
 
 
 def patent_orbit_position(index: int, count: int, similarity: float | None):
-    """Dense 점수가 높을수록 안쪽에 배치하고 미제공 점수는 외곽에 둔다."""
+    """의미 유사도가 높을수록 안쪽에 배치하고 미제공 점수는 외곽에 둔다."""
     if count < 1:
         raise ValueError("count must be positive")
     if similarity is None:

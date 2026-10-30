@@ -66,6 +66,4 @@ def render_quick_nav(render_stage, open_page):
             (4, "보고서", ":material/summarize:"),
         ):
             render_stage(number, label, st, f"rail_{number}", icon=icon)
-        st.html('<div class="rail-divider" aria-hidden="true"></div>')
-        _page_button("history", "내 기록", ":material/history:", "workspace", open_page)
         _top_link()

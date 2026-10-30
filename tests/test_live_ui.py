@@ -314,6 +314,23 @@ def test_direct_input_runs_followup_and_reaches_report(live, monkeypatch):
     assert '"미제공"' in serialized
     assert "우선 확인 이유 미제공" in serialized
     assert '"0.720"' in serialized
+
+    def walk(value):
+        if isinstance(value, dict):
+            yield value
+            for child in value.values():
+                yield from walk(child)
+        elif isinstance(value, list):
+            for child in value:
+                yield from walk(child)
+
+    plotted_point = next(
+        item
+        for item in walk(chart_spec)
+        if item.get("semantic_similarity_display") == "0.720"
+    )
+    assert plotted_point["dense_score_display"] == "미제공"
+    assert plotted_point["y"] == pytest.approx(-1.42584)
     assert "핵심 요약" not in serialized
     assert '"nan"' not in serialized.lower()
     assert "외곽 배치" in " ".join(item.value for item in app.caption)
@@ -407,10 +424,13 @@ def test_direct_input_runs_followup_and_reaches_report(live, monkeypatch):
         assert app.session_state.stage == stage
         assert app.session_state.pipeline_result == previous
     assert live == previous_calls
-    for page in ("history", "about", "difference", "home"):
-        app.button(key=f"rail_{page}").click().run()
+    for key in ("header_about", "header_difference", "rail_home"):
+        app.button(key=key).click().run()
         assert not app.exception
         assert app.session_state.pipeline_result == previous
+    app.button(key="header_history").click().run()
+    assert app.session_state.page == "history"
+    assert app.session_state.pipeline_result == previous
     app.button(key="rail_resume").click().run()
     assert not app.exception
     assert app.session_state.stage == 4
