@@ -9,7 +9,9 @@ from frontend.patent_orbit import (
     drawing_image_metadata,
     dense_similarity_text,
     patent_dense_similarity,
+    patent_semantic_similarity,
     patent_orbit_position,
+    semantic_similarity_text,
     tooltip_text,
 )
 from src.schemas import PatentEvidence
@@ -30,6 +32,18 @@ def test_patent_similarity_uses_highest_dense_score_and_preserves_missing():
     assert patent_dense_similarity([_evidence(0.4), _evidence(0.8)]) == 0.8
     assert patent_dense_similarity([_evidence(None)]) is None
     assert patent_dense_similarity([]) is None
+
+
+def test_semantic_similarity_value_and_text_are_numeric_and_safe():
+    evidence = [
+        _evidence(0.4).model_copy(update={"semantic_similarity": 0.72}),
+        _evidence(0.8).model_copy(update={"semantic_similarity": 0.65}),
+    ]
+
+    assert patent_semantic_similarity(evidence) == 0.72
+    assert semantic_similarity_text(0.72) == "0.720"
+    assert semantic_similarity_text(float("nan")) == "계산 불가"
+    assert semantic_similarity_text(None) == "계산 불가"
 
 
 @pytest.mark.parametrize(
@@ -61,6 +75,19 @@ def test_patent_evidence_normalizes_invalid_similarity(score):
         similarity=score,
     )
     assert evidence.similarity is None
+
+
+@pytest.mark.parametrize("score", [float("nan"), "NaN", -0.1, 1.1])
+def test_patent_evidence_normalizes_invalid_semantic_similarity(score):
+    evidence = PatentEvidence(
+        citation_id=1,
+        patent_id="P1",
+        title="특허",
+        section="abstract",
+        quote="검색 근거",
+        semantic_similarity=score,
+    )
+    assert evidence.semantic_similarity is None
 
 
 @pytest.mark.parametrize(

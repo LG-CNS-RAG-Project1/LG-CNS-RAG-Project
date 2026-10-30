@@ -270,7 +270,9 @@ def test_direct_input_runs_followup_and_reaches_report(live, monkeypatch):
     )
     report = app.session_state.pipeline_result
     patent = report.patent
-    evidence = patent.evidence[0].model_copy(update={"similarity": float("nan")})
+    evidence = patent.evidence[0].model_copy(
+        update={"similarity": float("nan"), "semantic_similarity": 0.72}
+    )
     patent = patent.model_copy(update={"evidence": [evidence]})
     review = patent.patent_reviews[0].model_copy(update={"relevance_reason": "NaN"})
     app.session_state.pipeline_result = report.model_copy(
@@ -304,14 +306,17 @@ def test_direct_input_runs_followup_and_reaches_report(live, monkeypatch):
     serialized = json.dumps(json.loads(charts[0].proto.spec), ensure_ascii=False)
     assert "우선 확인 이유" in serialized
     assert "Dense 검색 점수" in serialized
+    assert "의미 유사도 (0~1)" in serialized
     assert "dense_score_display" in serialized
+    assert "semantic_similarity_display" in serialized
     assert "priority_reason_display" in serialized
     assert '"format": "s"' not in serialized
     assert '"미제공"' in serialized
     assert "우선 확인 이유 미제공" in serialized
+    assert '"0.720"' in serialized
     assert "핵심 요약" not in serialized
     assert '"nan"' not in serialized.lower()
-    assert "2.8−1.35×점수" in " ".join(item.value for item in app.caption)
+    assert "외곽 배치" in " ".join(item.value for item in app.caption)
     assert not any("문헌 요약 선택" in item.label for item in app.selectbox)
     assert '"name": "patent_click"' in serialized
 

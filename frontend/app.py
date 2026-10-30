@@ -1104,6 +1104,8 @@ def render_patent_report(patent, *, widget_suffix="", preview=False):
         dense_similarity_text,
         patent_dense_similarity,
         patent_orbit_position,
+        patent_semantic_similarity,
+        semantic_similarity_text,
         tooltip_text,
     )
 
@@ -1220,6 +1222,7 @@ def render_patent_report(patent, *, widget_suffix="", preview=False):
                 category = patent_orbit_category(review, evidence_by_id)
                 reason = tooltip_text(review.relevance_reason, "우선 확인 이유 미제공")
                 similarity = patent_dense_similarity(document_evidence)
+                semantic_similarity = patent_semantic_similarity(document_evidence)
                 x, y = patent_orbit_position(index, count, similarity)
                 points.append(
                     {
@@ -1228,6 +1231,9 @@ def render_patent_report(patent, *, widget_suffix="", preview=False):
                         "number": f"P{index + 1}",
                         "priority_reason_display": reason[:180],
                         "dense_score_display": dense_similarity_text(similarity),
+                        "semantic_similarity_display": semantic_similarity_text(
+                            semantic_similarity
+                        ),
                         "category": category,
                         "color": PATENT_ORBIT_COLORS[category],
                         "x": x,
@@ -1237,7 +1243,7 @@ def render_patent_report(patent, *, widget_suffix="", preview=False):
 
             st.subheader("특허 비교 궤도")
             st.caption(
-                "Dense 점수(1−cosine distance를 0~1로 제한한 문헌별 최고값)는 hover에서 확인할 수 있으며 관련성 확률이 아닙니다. 점수가 높을수록 중심에 가깝게 배치합니다(반경 2.8−1.35×점수, 미제공은 외곽). KIPRIS 보충 문헌은 Dense 검색 점수가 없으므로 hover에 미제공으로 표시합니다. 색상은 구성 비교 근거에 따른 검토 우선순위이며 법률상 위험 등급이 아닙니다."
+                "의미 유사도는 아이디어 기술 내용과 특허 제목·초록·확보 청구항을 text-embedding-3-small로 임베딩해 cosine 유사도(0~1, 음수는 0으로 제한)로 계산합니다. 분석마다 한 번의 추가 임베딩 API 호출이 발생합니다. Dense 검색 점수와 다른 지표이며 관련성 확률이 아닙니다. 궤도는 Dense 점수가 있으면 이를, 없으면 외곽 배치를 사용합니다. 색상은 구성 비교 근거에 따른 검토 우선순위이며 법률상 위험 등급이 아닙니다."
             )
             legend = st.columns(4)
             for column, category in zip(legend, ("red", "yellow", "green", "blue")):
@@ -1324,6 +1330,10 @@ def render_patent_report(patent, *, widget_suffix="", preview=False):
                         ),
                         tooltip=[
                             alt.Tooltip("title:N", title="문헌"),
+                            alt.Tooltip(
+                                "semantic_similarity_display:N",
+                                title="의미 유사도 (0~1)",
+                            ),
                             alt.Tooltip(
                                 "dense_score_display:N",
                                 title="Dense 검색 점수",

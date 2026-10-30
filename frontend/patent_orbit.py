@@ -32,6 +32,30 @@ def dense_similarity_text(value) -> str:
     return f"{score:.3f} · Dense 검색 점수 (확률 아님)"
 
 
+def patent_semantic_similarity(evidence) -> float | None:
+    """문헌에 저장된 공통 임베딩 의미 유사도 중 최고값을 반환한다."""
+    scores = []
+    for item in evidence:
+        try:
+            score = float(item.semantic_similarity)
+        except (AttributeError, TypeError, ValueError):
+            continue
+        if math.isfinite(score) and 0 <= score <= 1:
+            scores.append(score)
+    return max(scores) if scores else None
+
+
+def semantic_similarity_text(value) -> str:
+    """공통 임베딩 cosine 유사도를 0~1 숫자로 표시한다."""
+    try:
+        score = float(value)
+    except (TypeError, ValueError):
+        return "계산 불가"
+    if not math.isfinite(score) or not 0 <= score <= 1:
+        return "계산 불가"
+    return f"{score:.3f}"
+
+
 def patent_orbit_position(index: int, count: int, similarity: float | None):
     """Dense 점수가 높을수록 안쪽에 배치하고 미제공 점수는 외곽에 둔다."""
     if count < 1:
