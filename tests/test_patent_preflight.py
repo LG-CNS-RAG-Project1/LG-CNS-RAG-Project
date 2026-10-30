@@ -57,3 +57,50 @@ def test_preflight_rejects_duplicate_candidates_and_invalid_labels(tmp_path):
     assert report["status"] == "invalid"
     assert any("duplicate" in error for error in report["errors"])
     assert any("0, or 1" in error for error in report["errors"])
+
+
+def test_preflight_counts_only_human_reviewed_labels(tmp_path):
+    cases_path = tmp_path / "cases.json"
+    candidates_path = tmp_path / "candidates.csv"
+    cases_path.write_text(json.dumps([{"case_id": "Q1"}]), encoding="utf-8")
+    fields = [
+        "case_id",
+        "source_id",
+        "title",
+        "url",
+        "relevant",
+        "review_status",
+        "label_source",
+    ]
+    with candidates_path.open("w", encoding="utf-8-sig", newline="") as file:
+        writer = csv.DictWriter(file, fieldnames=fields)
+        writer.writeheader()
+        writer.writerows(
+            [
+                {
+                    "case_id": "Q1",
+                    "source_id": "P1",
+                    "title": "Human reviewed",
+                    "url": "https://example.test/P1",
+                    "relevant": "1",
+                    "review_status": "reviewed",
+                    "label_source": "human",
+                },
+                {
+                    "case_id": "Q1",
+                    "source_id": "P2",
+                    "title": "AI draft",
+                    "url": "https://example.test/P2",
+                    "relevant": "0",
+                    "review_status": "to_review",
+                    "label_source": "ai_draft",
+                },
+            ]
+        )
+
+    report = inspect_patent_evaluation(cases_path, candidates_path)
+
+    assert report["labeled_count"] == 1
+    assert report["human_reviewed_count"] == 1
+    assert report["ai_draft_count"] == 1
+    assert report["pending_count"] == 1

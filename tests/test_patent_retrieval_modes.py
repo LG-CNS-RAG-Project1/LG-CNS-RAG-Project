@@ -1,5 +1,6 @@
 ### PR충돌 때문에 따로 빼둠 추후에 test_patent.py에 병합예정
 
+from src.retrieval.engine import RetrievalConfig
 from src.retrieval.patent_search import bi_encoder_reranker, search_patents
 from src.retrieval.schemas import SearchDocument
 from src.retrieval.patent_store import build_index, get_collection
@@ -76,3 +77,61 @@ def test_bi_encoder_reranker_sorts_by_query_document_cosine_similarity():
 
     assert scores[0] > scores[1]
     assert calls == ["질의", "정답\n설명", "무관\n설명"]
+
+
+def test_dense_search_overfetches_chunks_to_return_distinct_patents():
+    documents = [
+        SearchDocument(
+            chunk_id=f"p1-{index}",
+            source_id="p1",
+            source_type="patent",
+            title="Patent one",
+            content=f"claim {index}",
+        )
+        for index in range(4)
+    ] + [
+        SearchDocument(
+            chunk_id="p2-abstract",
+            source_id="p2",
+            source_type="patent",
+            title="Patent two",
+            content="abstract",
+        )
+    ]
+
+    class Collection:
+        def get(self, **kwargs):
+            return {
+                "ids": [item.chunk_id for item in documents],
+                "documents": [item.content for item in documents],
+                "metadatas": [
+                    {
+                        "source_id": item.source_id,
+                        "source_type": item.source_type,
+                        "title": item.title,
+                    }
+                    for item in documents
+                ],
+            }
+
+        def query(self, *, n_results, **kwargs):
+            self.requested_n_results = n_results
+            selected = documents[:n_results]
+            return {
+                "ids": [[item.chunk_id for item in selected]],
+                "distances": [[index / 100 for index, _ in enumerate(selected)]],
+            }
+
+    collection = Collection()
+    results = search_patents(
+        "query",
+        collection=collection,
+        embed_fn=lambda texts: [[1.0, 0.0] for _ in texts],
+        top_k=2,
+        retrieval_config=RetrievalConfig(
+            candidate_k=2, top_k=2, deduplicate_by_source=True
+        ),
+    )
+
+    assert collection.requested_n_results == 5
+    assert [item.document.source_id for item in results] == ["p1", "p2"]
