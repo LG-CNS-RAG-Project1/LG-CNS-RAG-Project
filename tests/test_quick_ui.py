@@ -88,6 +88,9 @@ def test_intro_is_prepared_before_home_markup_and_runs_only_on_first_visit():
     hero_html = next(value for value in html if '<div class="hero-copy">' in value)
     assert hero_html.index("introFallback") < hero_html.index('<div class="hero-copy">')
     assert sum("title.animate(" in value for value in html) == 1
+    app.run()
+    assert not app.session_state.get("home_intro_played", False)
+    assert any("title.animate(" in item.value for item in app.html)
     app.button(key="rail_about").click().run()
     app.button(key="rail_home").click().run()
     assert not any("title.animate(" in item.value for item in app.html)
