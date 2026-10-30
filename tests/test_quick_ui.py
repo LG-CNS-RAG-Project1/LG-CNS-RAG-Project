@@ -40,6 +40,10 @@ def test_landing_preserves_home_and_enters_compact_analysis():
     )
     assert not app.button(key="rail_1").disabled
     assert all(app.button(key=f"rail_{i}").disabled for i in (2, 3, 4))
+    assert all(
+        app.button(key=f"rail_{i}").icon == ":material/radio_button_unchecked:"
+        for i in (1, 2, 3, 4)
+    )
     assert any('href="#research-top"' in item.value for item in app.html)
 
 
@@ -162,3 +166,14 @@ def test_component_validation_and_legacy_report_helpers():
     output = report(DEMO_TEXT, "<script>", DEMO_PARTS, ["P1", "P2"], "<img>")
     assert "선택 근거 없음" in output
     assert "<script>" not in output and "<img>" not in output
+
+
+def test_research_rail_uses_distinct_mounts_and_nonshrinking_mobile_layout():
+    root = APP.parents[1]
+    nav_source = (root / "frontend" / "quick_nav.py").read_text(encoding="utf-8")
+    styles = (root / "frontend" / "styles.css").read_text(encoding="utf-8")
+    assert 'key="research_rail_public"' in nav_source
+    assert 'key="research_rail_workspace"' in nav_source
+    assert "overflow-x:auto" in styles
+    assert "flex:0 0 58px" in styles
+    assert "padding-bottom:calc(110px + env(safe-area-inset-bottom))" in styles

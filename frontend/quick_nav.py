@@ -24,7 +24,7 @@ def _top_link():
 
 def render_page_nav(page, open_page, resume_research, *, has_research=False):
     """공개 안내 화면에서는 단계 대신 페이지 이동과 진행 중 조사 복귀를 제공한다."""
-    with st.container(key="research_rail"):
+    with st.container(key="research_rail_public"):
         st.html('<div class="rail-caption">바로가기</div>')
         for target, label, icon in (
             ("home", "홈", ":material/home:"),
@@ -55,8 +55,8 @@ def render_page_nav(page, open_page, resume_research, *, has_research=False):
 
 
 def render_quick_nav(render_stage, open_page):
-    """기존 단계 이동의 잠금·분석 중 미리보기 규칙을 그대로 사용한다."""
-    with st.container(key="research_rail"):
+    """조사 화면 전용 이동 바를 공개 화면과 분리된 컨테이너로 렌더링한다."""
+    with st.container(key="research_rail_workspace"):
         st.html('<div class="rail-caption">바로가기</div>')
         _page_button("home", "홈", ":material/home:", "workspace", open_page)
         for number, label, icon in (
