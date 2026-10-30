@@ -11,6 +11,8 @@
   결제 조건·판매 전략 같은 기업 설명이고, 실제 판매 실적은 표에 있다.
   공시일(published_at)과 보고 대상 사업연도(period)를 구분해 저장한다.
 - 출력: data/market/processed/dart_docs.jsonl
+- 시장 재무 현황용으로 '연구개발활동' 섹션의 연구개발비용 표에서 3개 연도 금액을 뽑는다
+  (extract_rnd_expense).
 
 사용 예:
     python -m src.ingestion.dart_processor
@@ -53,6 +55,89 @@ def xml_to_text(fragment: str) -> str:
     text = html.unescape(_TAG_RE.sub("", _BREAK_RE.sub("\n", fragment)))
     lines = (" ".join(line.split()) for line in text.splitlines())
     return "\n".join(line for line in lines if line)
+
+
+_RND_SECTION_RE = re.compile(
+    r"<SECTION-2[^>]*>\s*<TITLE[^>]*>[^<]*연구개발[^<]*</TITLE>(.*?)</SECTION-2>", re.S
+)
+_ROW_RE = re.compile(r"<TR\b.*?</TR>", re.S)
+_CELL_RE = re.compile(r"<T[DHE]\b[^>]*>(.*?)</T[DHE]>", re.S)
+_AMOUNT_RE = re.compile(r"^\(?-?[\d,]+\)?")
+_UNIT_RE = re.compile(r"단위\s*[:：]?\s*(백만원|천원|억원|원)")
+UNIT_WON = {"원": 1, "천원": 1_000, "백만원": 1_000_000, "억원": 100_000_000}
+# 연구개발비용 합계 행의 이름(공백 제거). 정부보조금 차감 전 총액을 앞에 둔다.
+_RND_TOTAL_LABELS = [
+    re.compile(r"정부보조금차감전"),
+    re.compile(r"^연구개발비용?(총계|합계)"),
+    re.compile(r"^연구개발비용?계"),
+    re.compile(r"^(합계|소계|계)"),
+]
+
+
+def _cell_text(cell: str) -> str:
+    return " ".join(html.unescape(_TAG_RE.sub(" ", cell)).split())
+
+
+def _amount(text: str) -> int | None:
+    """'8,411,060'·'(64,470)'·'1,016,506(4.0%)'의 앞 금액을 정수로 바꾼다. '-'나 숫자가 아니면 None."""
+    match = _AMOUNT_RE.match(text.replace(" ", ""))
+    if not match or not any(c.isdigit() for c in match.group()):
+        return None
+    value = match.group().strip("()").replace(",", "")
+    return -int(value) if match.group().startswith("(") else int(value)
+
+
+def extract_rnd_expense(
+    xml: str, fiscal_year: int
+) -> tuple[dict[int, int], str] | None:
+    """사업보고서 '연구개발활동' 섹션 표에서 연구개발비용 합계를 연도별 원 단위로 뽑는다.
+
+    반환: ({사업연도: 금액(원)}, 근거 설명). 정부보조금 차감 전 총액 행을 우선하고, 차감 후 행은 쓰지
+    않는다. 표 안이나 바로 위 제목에 '연구개발'이 나오는 표만 보고, 표 앞뒤의 '단위'로 원 단위로 바꾼다. 단위·합계 행·3개 연도
+    금액을 갖춘 표가 없으면 None.
+    연도는 표 머리의 'YYYY년'을 쓰고, 없으면 fiscal_year부터 최신순으로 본다.
+    """
+    section = _RND_SECTION_RE.search(xml)
+    if not section:
+        return None
+    body = section.group(1)
+    for table in re.finditer(r"<TABLE\b.*?</TABLE>", body, re.S):
+        rows = [
+            [_cell_text(c) for c in _CELL_RE.findall(row)]
+            for row in _ROW_RE.findall(table.group())
+        ]
+        # 단위는 표 바로 위 문단이나 단위만 적은 작은 표에 있어, 표를 지우지 않고 태그만 뺀다.
+        around = _cell_text(body[max(0, table.start() - 600) : table.start()])
+        title = "".join(around[-150:].split()) + "".join("".join(r) for r in rows)
+        if "연구개발" not in title.replace(" ", ""):
+            continue  # 같은 섹션의 주요계약 표 등
+        found = []
+        for index, cells in enumerate(rows):
+            amounts = [a for a in (_amount(c) for c in cells) if a is not None]
+            label_cells = [c for c in cells if _amount(c) is None and c != "-"]
+            label = "".join("".join(label_cells).split())
+            if len(amounts) < 3 or "차감후" in label or "비율" in label[:6]:
+                continue
+            for rank, pattern in enumerate(_RND_TOTAL_LABELS):
+                if pattern.search(label):
+                    found.append((rank, index, label, amounts[:3]))
+                    break
+        if not found:
+            continue
+        _, index, label, amounts = min(found)
+        unit = _UNIT_RE.findall(around) or _UNIT_RE.findall(
+            " ".join(" ".join(r) for r in rows)
+        )
+        if not unit:
+            continue
+        header = " ".join(" ".join(r) for r in rows[:index])
+        years = [int(y) for y in dict.fromkeys(re.findall(r"(20\d\d)년", header))]
+        if len(years) < 3:
+            years = [fiscal_year, fiscal_year - 1, fiscal_year - 2]
+        scale = UNIT_WON[unit[-1]]
+        basis = f"사업보고서 연구개발활동 표 '{label}' ({unit[-1]})"
+        return {y: a * scale for y, a in zip(years[:3], amounts)}, basis
+    return None
 
 
 def business_sections(xml: str, keywords: list[str]) -> list[tuple[str, str]]:
