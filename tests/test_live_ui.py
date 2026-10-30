@@ -247,7 +247,7 @@ def confirm_draft(app):
     return app
 
 
-def test_direct_input_runs_followup_and_reaches_report(live):
+def test_direct_input_runs_followup_and_reaches_report(live, monkeypatch):
     app = structured_app()
     assert app.session_state.stage == 1 and live["parse"] == 1
     assert live["analyze"] == 0
@@ -292,8 +292,10 @@ def test_direct_input_runs_followup_and_reaches_report(live):
         "궤도 차트를 표시하지 못했습니다" in item.value for item in app.warning
     )
     serialized = json.dumps(json.loads(charts[0].proto.spec), ensure_ascii=False)
-    assert "핵심 요약" in serialized and "우선 확인 이유" in serialized
-    assert "Dense 유사도" in serialized
+    assert "우선 확인 이유" in serialized
+    assert "핵심 요약" not in serialized
+    assert "Dense 유사도" not in serialized
+    assert '"nan"' not in serialized.lower()
     assert "2.8−1.35×점수" in " ".join(item.value for item in app.caption)
     assert not any("문헌 요약 선택" in item.label for item in app.selectbox)
     assert '"name": "patent_click"' in serialized
@@ -319,6 +321,50 @@ def test_direct_input_runs_followup_and_reaches_report(live):
     )
     assert any("KIPRIS에서 출원번호 검색" in item.label for item in detail.link_button)
     assert any("P:1" in item.value for item in detail.caption)
+
+    from io import BytesIO
+    from PIL import Image
+    from frontend import patent_orbit
+
+    drawing = BytesIO()
+    Image.new("RGB", (2, 2), color="white").save(drawing, format="PNG")
+    report = app.session_state.pipeline_result
+    evidence = report.patent.evidence[0].model_copy(
+        update={
+            "representative_thumbnail_url": "https://plus.kipris.or.kr/thumb?arg=fixture",
+            "representative_drawing_url": "https://plus.kipris.or.kr/drawing?arg=fixture",
+        }
+    )
+    foreign_evidence = PatentEvidence(
+        citation_id=2,
+        patent_id="OTHER-PATENT",
+        title="다른 특허",
+        section="abstract",
+        quote="다른 특허의 도면 연결 여부를 확인한다.",
+        representative_thumbnail_url="https://plus.kipris.or.kr/other?arg=foreign",
+    )
+    patent = report.patent.model_copy(update={"evidence": [evidence, foreign_evidence]})
+    app.session_state.pipeline_result = report.model_copy(update={"patent": patent})
+    drawing_calls = []
+    monkeypatch.setattr(
+        patent_orbit,
+        "fetch_first_kipris_drawing",
+        lambda urls: (drawing_calls.append(urls) or drawing.getvalue(), "ok"),
+    )
+    app.session_state.selected_patent_detail_id = "1020200000001"
+    app.run()
+    detail = app.get("dialog")[0]
+    assert drawing_calls == [
+        (
+            "https://plus.kipris.or.kr/thumb?arg=fixture",
+            "https://plus.kipris.or.kr/drawing?arg=fixture",
+        )
+    ]
+    assert any("선택한 문헌의 대표도면 경로" in item.value for item in detail.caption)
+    assert not any(
+        "대표도면 형식을 표시할 수 없습니다" in item.value for item in detail.info
+    )
+    assert any("KIPRIS 대표도면 파일 열기" in item.label for item in detail.link_button)
 
     click(app, "시장성 보고서 →")
     assert app.session_state.stage == 3

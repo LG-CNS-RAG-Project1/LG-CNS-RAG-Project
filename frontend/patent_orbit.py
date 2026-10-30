@@ -49,26 +49,79 @@ def kipris_drawing_url(value: str | None) -> str | None:
         return None
 
 
-def fetch_kipris_drawing(value: str | None, max_bytes: int = 8_000_000) -> bytes | None:
-    """허용된 KIPRIS 이미지 링크에서 제한된 크기의 그림만 가져온다."""
+def fetch_kipris_drawing(
+    value: str | None, max_bytes: int = 8_000_000
+) -> tuple[bytes | None, str]:
+    """허용된 KIPRIS 이미지 링크에서 그림을 가져오고 실패 유형을 반환한다."""
     url = kipris_drawing_url(value)
     if not url:
-        return None
+        return None, "invalid_source"
     response = None
     try:
         response = requests.get(url, timeout=(3, 8), stream=True, allow_redirects=False)
-        if response.status_code != 200 or not response.headers.get(
-            "Content-Type", ""
-        ).lower().startswith("image/"):
-            return None
+        if 300 <= response.status_code < 400:
+            return None, "redirect"
+        if response.status_code != 200:
+            return None, "http_error"
+        content_type = response.headers.get("Content-Type", "").split(";", 1)[0]
+        content_type = content_type.strip().lower()
+        if not (
+            content_type.startswith("image/")
+            or content_type in {"application/octet-stream", "binary/octet-stream"}
+        ):
+            return None, "non_image_response"
+        content_length = response.headers.get("Content-Length", "")
+        if content_length.isdigit() and int(content_length) > max_bytes:
+            return None, "too_large"
         content = bytearray()
         for chunk in response.iter_content(chunk_size=64_000):
             content.extend(chunk)
             if len(content) > max_bytes:
-                return None
-        return bytes(content) if content else None
+                return None, "too_large"
+        image = bytes(content)
+        return (image, "ok") if _has_image_signature(image) else (None, "invalid_image")
     except requests.RequestException:
-        return None
+        return None, "network_error"
     finally:
         if response is not None:
             response.close()
+
+
+def _has_image_signature(content: bytes) -> bool:
+    """HTML 오류 페이지나 임의 바이너리를 걸러내고 지원 이미지 서명을 확인한다."""
+    if content.startswith(b"\xff\xd8\xff"):
+        return True
+    if content.startswith(b"\x89PNG\r\n\x1a\n"):
+        return True
+    if content.startswith((b"GIF87a", b"GIF89a", b"BM")):
+        return True
+    if content.startswith((b"II*\x00", b"MM\x00*")):
+        return True
+    return (
+        len(content) >= 12 and content.startswith(b"RIFF") and content[8:12] == b"WEBP"
+    )
+
+
+def fetch_first_kipris_drawing(
+    urls: tuple[str | None, ...], max_bytes: int = 8_000_000
+) -> tuple[bytes | None, str]:
+    """썸네일을 먼저 시도하고 실패하면 같은 문헌의 다음 도면 URL을 확인한다."""
+    last_status = "missing_url"
+    for url in dict.fromkeys(value for value in urls if value):
+        image, status = fetch_kipris_drawing(url, max_bytes=max_bytes)
+        if image:
+            return image, "ok"
+        last_status = status
+    return None, last_status
+
+
+def tooltip_text(value, fallback: str) -> str:
+    """Altair hover 텍스트에서 null·NaN 값이 문자열로 노출되지 않게 정리한다."""
+    if value is None:
+        return fallback
+    if isinstance(value, (int, float)) and not math.isfinite(float(value)):
+        return fallback
+    text = str(value).strip()
+    if text.casefold() in {"", "nan", "none", "null"}:
+        return fallback
+    return text

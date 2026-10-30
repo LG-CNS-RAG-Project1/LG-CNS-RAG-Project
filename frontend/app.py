@@ -178,7 +178,7 @@ def patent_detail_dialog(patent, patent_id):
         kipris_application_search_url,
     )
     from src.generation.report_builder import safe_url
-    from frontend.patent_orbit import fetch_kipris_drawing, kipris_drawing_url
+    from frontend.patent_orbit import fetch_first_kipris_drawing, kipris_drawing_url
 
     review = next(
         (item for item in patent.patent_reviews if item.patent_id == patent_id), None
@@ -212,18 +212,11 @@ def patent_detail_dialog(patent, patent_id):
     )
     st.markdown("#### 대표도면")
     if drawing_evidence:
-        image_bytes = next(
+        image_bytes, image_status = fetch_first_kipris_drawing(
             (
-                image
-                for url in dict.fromkeys(
-                    (
-                        drawing_evidence.representative_thumbnail_url,
-                        drawing_evidence.representative_drawing_url,
-                    )
-                )
-                if (image := fetch_kipris_drawing(url))
-            ),
-            None,
+                drawing_evidence.representative_thumbnail_url,
+                drawing_evidence.representative_drawing_url,
+            )
         )
         if image_bytes:
             caption = drawing_evidence.representative_drawing_caption or (
@@ -231,22 +224,35 @@ def patent_detail_dialog(patent, patent_id):
                 f"{drawing_evidence.application_number or patent_id}"
             )
             try:
-                st.image(image_bytes, caption=caption, use_container_width=True)
+                st.image(image_bytes, caption=caption, width="stretch")
             except Exception:
                 st.info(
                     "대표도면 형식을 표시할 수 없습니다. KIPRIS 원문 링크에서 확인해 주세요."
                 )
-            if drawing_evidence.representative_drawing_url:
-                full_drawing_url = kipris_drawing_url(
-                    drawing_evidence.representative_drawing_url
-                )
-                if full_drawing_url:
-                    st.link_button("KIPRIS 원본 도면 열기", full_drawing_url)
             st.caption("출처: KIPRIS Plus 검색 결과 · 선택한 문헌의 대표도면 경로")
         else:
+            failure_messages = {
+                "invalid_source": "저장된 도면 주소가 KIPRIS 공식 호스트가 아니어서 표시하지 않았습니다.",
+                "redirect": "도면 서버가 다른 주소로 안내했습니다. 안전 검증을 위해 자동 이동하지 않았습니다.",
+                "http_error": "KIPRIS 도면 서버에서 이미지 파일을 가져오지 못했습니다.",
+                "non_image_response": "KIPRIS 도면 서버가 이미지가 아닌 응답을 반환했습니다.",
+                "invalid_image": "KIPRIS 응답이 유효한 이미지 파일이 아닙니다.",
+                "too_large": "도면 파일이 허용 크기인 8MB를 초과했습니다.",
+                "network_error": "KIPRIS 도면 서버에 연결하지 못했습니다.",
+                "missing_url": "이미지 경로를 찾을 수 없습니다.",
+            }
             st.info(
-                "대표도면을 불러오지 못했습니다. KIPRIS 원문 링크에서 확인하거나 색인을 갱신해 주세요."
+                "대표도면을 불러오지 못했습니다. "
+                + failure_messages.get(
+                    image_status, "이미지 응답을 확인할 수 없습니다."
+                )
             )
+        full_drawing_url = kipris_drawing_url(
+            drawing_evidence.representative_drawing_url
+            or drawing_evidence.representative_thumbnail_url
+        )
+        if full_drawing_url:
+            st.link_button("KIPRIS 대표도면 파일 열기", full_drawing_url)
     else:
         st.info(
             "이 문헌에는 대표도면 경로가 없습니다. 최신 KIPRIS 검색 결과를 수집해 색인을 갱신하면 확인할 수 있습니다."
@@ -1068,6 +1074,7 @@ def render_patent_report(patent, *, widget_suffix="", preview=False):
     from frontend.patent_orbit import (
         patent_dense_similarity,
         patent_orbit_position,
+        tooltip_text,
     )
 
     from src.generation.patent_analysis import (
@@ -1181,12 +1188,7 @@ def render_patent_report(patent, *, widget_suffix="", preview=False):
             points = []
             for index, (review, document_evidence) in enumerate(orbit_reviews):
                 category = patent_orbit_category(review, evidence_by_id)
-                summary = (
-                    review.overall_summary
-                    or review.relevance_reason
-                    or "요약 근거 미제공"
-                ).strip()
-                reason = (review.relevance_reason or "우선 확인 이유 미제공").strip()
+                reason = tooltip_text(review.relevance_reason, "우선 확인 이유 미제공")
                 similarity = patent_dense_similarity(document_evidence)
                 x, y = patent_orbit_position(index, count, similarity)
                 points.append(
@@ -1194,15 +1196,8 @@ def render_patent_report(patent, *, widget_suffix="", preview=False):
                         "patent_id": review.patent_id,
                         "title": review.title,
                         "number": f"P{index + 1}",
-                        "summary": summary[:240],
                         "reason": reason[:180],
-                        "similarity": (
-                            f"{similarity:.3f} · Dense 검색 점수 (확률 아님)"
-                            if similarity is not None
-                            else "미제공 · Dense 검색 점수 없음"
-                        ),
                         "category": category,
-                        "label": PATENT_ORBIT_LABELS[category],
                         "color": PATENT_ORBIT_COLORS[category],
                         "x": x,
                         "y": y,
@@ -1298,8 +1293,6 @@ def render_patent_report(patent, *, widget_suffix="", preview=False):
                         ),
                         tooltip=[
                             alt.Tooltip("title:N", title="문헌"),
-                            alt.Tooltip("similarity:N", title="Dense 유사도"),
-                            alt.Tooltip("summary:N", title="핵심 요약", format="s"),
                             alt.Tooltip("reason:N", title="우선 확인 이유", format="s"),
                         ],
                         opacity=alt.condition(hover, alt.value(1), alt.value(0.88)),
