@@ -210,6 +210,87 @@ def build_experiment_chunks(
     return chunks
 
 
+AGGREGATION_WEIGHTS = {
+    "abstract": 1.0,
+    "independent": 1.5,
+    "dependent": 0.75,
+    "unclassified": 1.0,
+}
+
+
+def aggregate_patent_scores(
+    rows: list[dict], strategy: str, top_n: int = 3
+) -> list[dict]:
+    """Aggregate chunk scores without merging distinct patent publication versions.
+
+    Returned rows retain the best evidence chunk and all matched sections and
+    claim coordinates so a rank can be audited against its source.
+    """
+    if strategy not in {"max", "top_n_mean", "section_weighted"}:
+        raise ValueError("strategy must be max, top_n_mean, or section_weighted")
+    if top_n < 1:
+        raise ValueError("top_n must be at least 1")
+    grouped = defaultdict(list)
+    for row in rows:
+        version = row.get("version_id") or row.get("publication_number") or "unknown"
+        grouped[(row["patent_id"], version)].append(row)
+    output = []
+    for (patent_id, version), chunks in grouped.items():
+        ordered = sorted(chunks, key=lambda item: float(item["score"]), reverse=True)
+        if strategy == "max":
+            score = float(ordered[0]["score"])
+        elif strategy == "top_n_mean":
+            score = sum(float(item["score"]) for item in ordered[:top_n]) / min(
+                top_n, len(ordered)
+            )
+        else:
+            section_scores = {}
+            for item in ordered:
+                section = item.get("section", "unknown")
+                claim_type = item.get("claim_type") or "unclassified"
+                key = "abstract" if section == "abstract" else claim_type
+                section_scores[key] = max(
+                    section_scores.get(key, float("-inf")), float(item["score"])
+                )
+            numerator = sum(
+                value * AGGREGATION_WEIGHTS.get(section, 1.0)
+                for section, value in section_scores.items()
+            )
+            denominator = sum(
+                AGGREGATION_WEIGHTS.get(section, 1.0) for section in section_scores
+            )
+            score = numerator / denominator
+        representative = ordered[0]
+        output.append(
+            {
+                "patent_id": patent_id,
+                "version_id": version,
+                "score": score,
+                "representative_chunk_id": representative["chunk_id"],
+                "representative_section": representative.get("section", "unknown"),
+                "matched_sections": sorted(
+                    {item.get("section", "unknown") for item in chunks}
+                ),
+                "claim_numbers": sorted(
+                    {
+                        int(item["claim_number"])
+                        for item in chunks
+                        if item.get("claim_number")
+                    }
+                ),
+                "depends_on": {
+                    str(item["claim_number"]): sorted(set(item.get("depends_on", [])))
+                    for item in chunks
+                    if item.get("claim_number")
+                },
+                "chunk_count": len(chunks),
+            }
+        )
+    return sorted(
+        output, key=lambda item: (-item["score"], item["patent_id"], item["version_id"])
+    )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="특허 청킹·집계·리랭킹 통제 실험")
     subparsers = parser.add_subparsers(dest="command", required=True)

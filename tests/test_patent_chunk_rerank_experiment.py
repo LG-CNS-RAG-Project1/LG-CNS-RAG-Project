@@ -1,4 +1,5 @@
 from evaluation.patent_chunk_rerank_experiment import (
+    aggregate_patent_scores,
     build_experiment_chunks,
     corpus_fingerprint,
     corpus_inventory,
@@ -70,3 +71,56 @@ def test_parent_context_ignores_missing_and_cyclic_dependency_references():
     chunks = build_experiment_chunks([patent], "SF-05", "parent_context")
 
     assert len(chunks) == 3
+
+
+def test_aggregation_limits_duplicate_chunk_influence_and_preserves_evidence():
+    rows = [
+        {
+            "patent_id": "P-1",
+            "version_id": "V1",
+            "chunk_id": "abstract",
+            "score": 1.0,
+            "section": "abstract",
+            "claim_type": None,
+        },
+        {
+            "patent_id": "P-1",
+            "version_id": "V1",
+            "chunk_id": "claim-1",
+            "score": 0.9,
+            "section": "claims",
+            "claim_type": "independent",
+            "claim_number": 1,
+        },
+        {
+            "patent_id": "P-1",
+            "version_id": "V1",
+            "chunk_id": "claim-2",
+            "score": 0.8,
+            "section": "claims",
+            "claim_type": "dependent",
+            "claim_number": 2,
+            "depends_on": [1],
+        },
+        {
+            "patent_id": "P-1",
+            "version_id": "V2",
+            "chunk_id": "claim-v2",
+            "score": 0.7,
+            "section": "claims",
+            "claim_type": "independent",
+            "claim_number": 1,
+        },
+    ]
+
+    maximum = aggregate_patent_scores(rows, "max")
+    top_mean = aggregate_patent_scores(rows[:3], "top_n_mean", top_n=2)
+    weighted = aggregate_patent_scores(rows[:3], "section_weighted")
+
+    assert len(maximum) == 2
+    assert maximum[0]["version_id"] == "V1"
+    assert maximum[0]["representative_chunk_id"] == "abstract"
+    assert maximum[0]["claim_numbers"] == [1, 2]
+    assert maximum[0]["depends_on"]["2"] == [1]
+    assert top_mean[0]["score"] == 0.95
+    assert weighted[0]["matched_sections"] == ["abstract", "claims"]
