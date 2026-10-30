@@ -126,6 +126,37 @@ def test_analysis_limits_to_eight_patents_and_keeps_claim_citations(monkeypatch)
     assert len(fetched) == 8
 
 
+def test_service_passes_selected_retrieval_mode_and_reranker_to_search(monkeypatch):
+    import src.services.patent_service as service
+
+    monkeypatch.setattr(service, "judge_patent_candidates", judge_all)
+    calls = []
+    reranker = lambda query, documents: [0.8 for _ in documents]
+
+    def search(query, **kwargs):
+        calls.append(kwargs)
+        return [result("P1")]
+
+    monkeypatch.setattr(service, "search_patents", search)
+    report = analyze_patents(
+        request(top_k=1),
+        collection=object(),
+        query_llm_fn=query_plan,
+        claim_fetcher=lambda _: [],
+        kipris_search_fn=lambda *_: [],
+        comparison_fn=compare_all,
+        candidate_k=3,
+        retrieval_mode="hybrid",
+        reranker=reranker,
+    )
+
+    assert report.status == "completed"
+    assert calls
+    assert all(call["retrieval_mode"] == "hybrid" for call in calls)
+    assert all(call["reranker"] is reranker for call in calls)
+    assert all(call["retrieval_config"].candidate_k == 3 for call in calls)
+
+
 def test_indexed_candidate_fallback_uses_exact_abstract_and_marks_claim_unknown(
     monkeypatch,
 ):
@@ -362,6 +393,13 @@ def test_selected_area_broadens_to_global_index_when_local_candidates_are_irrele
 
     assert report.status == "completed"
     assert {item.patent_id for item in report.evidence} == {"P2"}
+    assert report.evidence[0].retrieval_scopes == ["global_fallback"]
+    assert report.evidence[0].matched_sections == ["abstract"]
+    assert report.evidence[0].matched_queries == [
+        "비전 검사 장치",
+        "visual inspection system",
+    ]
+    assert report.evidence[0].matched_technical_elements == ["비전 검사"]
     assert "전체 색인 보충" in report.search_scope
 
 

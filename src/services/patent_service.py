@@ -1,6 +1,8 @@
 """특허 검색, 청구항 근거 보강 및 아이디어 비교의 서비스 경계."""
 
 from collections import defaultdict
+import os
+from pathlib import Path
 from typing import Callable
 
 from src.generation.patent_analysis import review_patents_by_component
@@ -12,6 +14,7 @@ from src.analysis.patent_statistics import (
 from src.ingestion.kipris_client import KiprisAPIError, fetch_patent_claims
 from src.retrieval.patent_search import build_patent_queries, search_patents
 from src.retrieval.patent_relevance import judge_patent_candidates
+from src.retrieval.engine import RetrievalConfig
 from src.retrieval.schemas import RetrievalResult, SearchDocument
 from src.schemas import (
     PatentComparison,
@@ -22,6 +25,8 @@ from src.schemas import (
     PatentSearchRequest,
 )
 from src.ingestion.patent_processor import structure_claims
+
+ROOT_DIR = Path(__file__).resolve().parents[2]
 
 # 특허 검색어 계획의 기술 요소별 한국어 질의를 최대 5개까지 보충 검색한다.
 # 5건 목표에 못 미칠 때만 호출하고, 후보가 충분해지면 즉시 멈춘다.
@@ -90,6 +95,112 @@ def _supplement_result(record: dict) -> RetrievalResult | None:
         },
     )
     return RetrievalResult(document=document)
+
+
+def _tag_retrieval_result(
+    result: RetrievalResult,
+    *,
+    query: str,
+    technical_element: str,
+    retrieval_scope: str,
+) -> RetrievalResult:
+    """검색 결과에 후보가 발견된 질의·기술 요소·검색 범위를 기록한다."""
+    metadata = dict(result.document.metadata)
+    trace = dict(metadata.get("retrieval_trace") or {})
+    trace["matched_queries"] = list(
+        dict.fromkeys([*trace.get("matched_queries", []), query])
+    )
+    trace["matched_technical_elements"] = list(
+        dict.fromkeys([*trace.get("matched_technical_elements", []), technical_element])
+    )
+    trace["retrieval_scopes"] = list(
+        dict.fromkeys([*trace.get("retrieval_scopes", []), retrieval_scope])
+    )
+    trace["matched_sections"] = list(
+        dict.fromkeys(
+            [*trace.get("matched_sections", []), metadata.get("section", "unknown")]
+        )
+    )
+    metadata["retrieval_trace"] = trace
+    document = result.document.model_copy(update={"metadata": metadata})
+    return result.model_copy(update={"document": document})
+
+
+def _merge_retrieval_results(
+    existing: RetrievalResult | None,
+    candidate: RetrievalResult,
+    retrieval_mode: str = "dense",
+) -> RetrievalResult:
+    """같은 특허의 검색 흔적을 합치고 가장 높은 점수의 청크를 대표로 둔다."""
+    if existing is None:
+        return candidate
+    existing_trace = existing.document.metadata.get("retrieval_trace", {})
+    candidate_trace = candidate.document.metadata.get("retrieval_trace", {})
+    score_field = {
+        "dense": "dense_score",
+        "bm25": "bm25_score",
+        "hybrid": "rrf_score",
+    }[retrieval_mode]
+
+    def score(item):
+        if item.rerank_score is not None:
+            return item.rerank_score
+        value = getattr(item, score_field)
+        return value if value is not None else float("-inf")
+
+    primary = candidate if score(candidate) > score(existing) else existing
+    metadata = dict(primary.document.metadata)
+    trace = {}
+    for key in (
+        "matched_queries",
+        "matched_technical_elements",
+        "retrieval_scopes",
+        "matched_sections",
+    ):
+        trace[key] = list(
+            dict.fromkeys(
+                [
+                    *existing_trace.get(key, []),
+                    *candidate_trace.get(key, []),
+                ]
+            )
+        )
+    metadata["retrieval_trace"] = trace
+    document = primary.document.model_copy(update={"metadata": metadata})
+    return primary.model_copy(update={"document": document})
+
+
+def _candidate_rank_key(
+    item: RetrievalResult, retrieval_mode: str
+) -> tuple[bool, float]:
+    """검색 모드의 점수 기준에 맞는 특허 후보 정렬 키를 만든다."""
+    score_field = {
+        "dense": "dense_score",
+        "bm25": "bm25_score",
+        "hybrid": "rrf_score",
+    }[retrieval_mode]
+    score = (
+        item.rerank_score
+        if item.rerank_score is not None
+        else getattr(item, score_field)
+    )
+    return score is not None, score if score is not None else float("-inf")
+
+
+def _retrieval_trace(metadata: dict) -> dict:
+    """PatentEvidence에 노출할 검색 추적 정보를 반환한다."""
+    return metadata.get("retrieval_trace") or {}
+
+
+def _evidence_search_trace(metadata: dict) -> dict:
+    """검색 질의와 범위 추적 정보를 근거 모델 필드로 변환한다."""
+    trace = _retrieval_trace(metadata)
+    return {
+        "matched_queries": trace.get("matched_queries", []),
+        "matched_technical_elements": trace.get("matched_technical_elements", []),
+        "matched_sections": trace.get("matched_sections", []),
+        "retrieval_scopes": trace.get("retrieval_scopes", []),
+    }
 
 
 def _normalize_quote(value: str) -> str:
@@ -256,12 +367,34 @@ def analyze_patents(
     design_proposal_fn: Callable | None = None,
     relevance_fn: Callable | None = None,
     candidate_k: int = 20,
+    retrieval_mode: str | None = None,
+    reranker: Callable | None = None,
 ) -> PatentReport:
     """특허 후보를 최대 8건 고르고 청구항 원문 근거와 비교 결과를 만든다.
 
     테스트와 다른 배포 환경은 collection 및 KIPRIS/LLM 함수들을 주입할 수 있다.
     """
     from src.ingestion.kipris_client import search_patents as search_kipris_patents
+    from dotenv import load_dotenv
+
+    load_dotenv(ROOT_DIR / ".env")
+    retrieval_mode = (
+        retrieval_mode
+        or os.getenv("IDEALENS_PATENT_RETRIEVAL_MODE", "dense").strip().lower()
+    )
+    if retrieval_mode not in {"dense", "bm25", "hybrid"}:
+        raise ValueError(
+            "IDEALENS_PATENT_RETRIEVAL_MODE must be dense, bm25, or hybrid"
+        )
+    reranker_name = os.getenv("IDEALENS_PATENT_RERANKER", "none").strip().lower()
+    if reranker is None and reranker_name not in {"", "none"}:
+        if reranker_name != "bge-cross-encoder":
+            raise ValueError(
+                "IDEALENS_PATENT_RERANKER must be none or bge-cross-encoder"
+            )
+        from src.retrieval.engine import bge_reranker
+
+        reranker = bge_reranker()
 
     if collection is None:
         from src.retrieval.patent_store import get_collection
@@ -289,40 +422,50 @@ def analyze_patents(
         )
     try:
         plan = build_patent_queries(**plan_kwargs)
-        queries = [
-            query
-            for item in plan.queries
-            for query in item.korean_queries + item.english_queries
-        ]
+        query_specs = []
+        seen_queries = set()
+        for item in plan.queries:
+            for query in item.korean_queries + item.english_queries:
+                normalized = " ".join(query.split()).casefold()
+                if normalized and normalized not in seen_queries:
+                    seen_queries.add(normalized)
+                    query_specs.append(
+                        (item.technical_element, " ".join(query.split()))
+                    )
+        queries = [query for _, query in query_specs]
         retrieved_by_id = {}
-        for query in dict.fromkeys(queries):
+        local_scope = (
+            "technology_area" if request.technology_area_id else "global_index"
+        )
+        for technical_element, query in query_specs:
             for result in search_patents(
                 query,
                 collection=collection,
                 embed_fn=embed_fn,
                 top_k=max(candidate_k, request.top_k),
+                retrieval_mode=retrieval_mode,
+                reranker=reranker,
+                retrieval_config=RetrievalConfig(
+                    candidate_k=candidate_k,
+                    top_k=max(candidate_k, request.top_k),
+                    deduplicate_by_source=True,
+                ),
                 technology_area_id=request.technology_area_id,
             ):
-                previous = retrieved_by_id.get(result.document.source_id)
-                current_score = (
-                    result.dense_score
-                    if result.dense_score is not None
-                    else float("-inf")
+                tagged = _tag_retrieval_result(
+                    result,
+                    query=query,
+                    technical_element=technical_element,
+                    retrieval_scope=local_scope,
                 )
-                previous_score = (
-                    previous.dense_score
-                    if previous and previous.dense_score is not None
-                    else float("-inf")
+                source_id = result.document.source_id
+                retrieved_by_id[source_id] = _merge_retrieval_results(
+                    retrieved_by_id.get(source_id), tagged, retrieval_mode
                 )
-                if previous is None or current_score > previous_score:
-                    retrieved_by_id[result.document.source_id] = result
 
         ordered_candidates = sorted(
             retrieved_by_id.values(),
-            key=lambda item: (
-                item.dense_score is not None,
-                item.dense_score if item.dense_score is not None else 0,
-            ),
+            key=lambda item: _candidate_rank_key(item, retrieval_mode),
             reverse=True,
         )[: max(candidate_k, request.top_k)]
         judgments = relevance_fn(request.idea, ordered_candidates)
@@ -338,37 +481,37 @@ def analyze_patents(
         if request.technology_area_id and len(candidates) < request.top_k:
             used_global_fallback = True
             global_candidates = {}
-            for query in dict.fromkeys(queries):
+            for technical_element, query in query_specs:
                 for result in search_patents(
                     query,
                     collection=collection,
                     embed_fn=embed_fn,
                     top_k=max(candidate_k, request.top_k),
+                    retrieval_mode=retrieval_mode,
+                    reranker=reranker,
+                    retrieval_config=RetrievalConfig(
+                        candidate_k=candidate_k,
+                        top_k=max(candidate_k, request.top_k),
+                        deduplicate_by_source=True,
+                    ),
                     technology_area_id=None,
                 ):
                     source_id = result.document.source_id
                     if source_id not in retrieved_by_id:
-                        previous = global_candidates.get(source_id)
-                        current_score = (
-                            result.dense_score
-                            if result.dense_score is not None
-                            else float("-inf")
+                        tagged = _tag_retrieval_result(
+                            result,
+                            query=query,
+                            technical_element=technical_element,
+                            retrieval_scope="global_fallback",
                         )
-                        previous_score = (
-                            previous.dense_score
-                            if previous and previous.dense_score is not None
-                            else float("-inf")
+                        global_candidates[source_id] = _merge_retrieval_results(
+                            global_candidates.get(source_id), tagged, retrieval_mode
                         )
-                        if previous is None or current_score > previous_score:
-                            global_candidates[source_id] = result
 
             if global_candidates:
                 expanded = sorted(
                     global_candidates.values(),
-                    key=lambda item: (
-                        item.dense_score is not None,
-                        item.dense_score if item.dense_score is not None else 0,
-                    ),
+                    key=lambda item: _candidate_rank_key(item, retrieval_mode),
                     reverse=True,
                 )[: max(candidate_k, request.top_k)]
                 expanded_judgments = relevance_fn(request.idea, expanded)
@@ -394,6 +537,12 @@ def analyze_patents(
                 for record in records:
                     result = _supplement_result(record)
                     if result and result.document.source_id not in retrieved_by_id:
+                        result = _tag_retrieval_result(
+                            result,
+                            query=query,
+                            technical_element="KIPRIS 후보 보충",
+                            retrieval_scope="kipris_supplement",
+                        )
                         retrieved_by_id[result.document.source_id] = result
                         added.append(result)
                 if added:
@@ -421,7 +570,7 @@ def analyze_patents(
                 return PatentReport(
                     status="error",
                     search_scope=(
-                        "로컬 Dense 검색 후 KIPRIS 보충 검색에서 오류 발생; "
+                        f"로컬 {retrieval_mode} 검색 후 KIPRIS 보충 검색에서 오류 발생; "
                         "특허 부재 여부 미확인"
                     ),
                     error_message=kipris_search_error,
@@ -431,9 +580,9 @@ def analyze_patents(
             return PatentReport(
                 status="no_results",
                 search_scope=(
-                    "분야 우선 Dense 검색·전체 색인 보충 후 관련 후보 없음"
+                    f"분야 우선 {retrieval_mode} 검색·전체 색인 보충 후 관련 후보 없음"
                     if used_global_fallback
-                    else "아이디어 기술 요소별 Dense 검색 및 필요 시 KIPRIS 후보 보충"
+                    else f"아이디어 기술 요소별 {retrieval_mode} 검색 및 필요 시 KIPRIS 후보 보충"
                 ),
                 unknowns=unknowns or ["검색된 특허 후보가 없습니다."],
                 indexed_statistics=indexed_statistics,
@@ -442,6 +591,7 @@ def analyze_patents(
         for result in candidates:
             document = result.document
             meta = document.metadata
+            evidence_trace = _evidence_search_trace(meta)
             app_number = str(meta.get("application_number") or document.source_id)
             version_id = (
                 meta.get("claim_version_id")
@@ -526,6 +676,7 @@ def analyze_patents(
                             claim_type=claim.claim_type,
                             depends_on=claim.depends_on,
                             version_id=claim.version_id or version_id,
+                            **evidence_trace,
                         )
                     )
                     source_texts[evidence[-1].citation_id] = claim.text
@@ -553,6 +704,7 @@ def analyze_patents(
                         collected_at=meta.get("collected_at"),
                         claim_type="unclassified",
                         version_id=meta.get("version_id") or version_id,
+                        **evidence_trace,
                     )
                 )
                 source_texts[evidence[-1].citation_id] = local_unclassified_claim
@@ -583,6 +735,7 @@ def analyze_patents(
                         publication_date=meta.get("publication_date"),
                         collected_at=meta.get("collected_at"),
                         version_id=version_id,
+                        **evidence_trace,
                     )
                 )
                 source_texts[evidence[-1].citation_id] = document.content
@@ -728,7 +881,7 @@ def analyze_patents(
             ),
             unknowns=unknowns,
             search_scope=(
-                "아이디어 기술 요소별 Dense 후보 검색·LLM 관련성 판정"
+                f"아이디어 기술 요소별 {retrieval_mode} 후보 검색·LLM 관련성 판정"
                 + (
                     "· 분야 결과 부족으로 전체 색인 보충"
                     if used_global_fallback

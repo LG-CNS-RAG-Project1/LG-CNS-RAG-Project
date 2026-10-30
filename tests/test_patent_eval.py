@@ -57,8 +57,40 @@ def test_evaluate_patents_calculates_document_level_metrics():
     summary = summarize(rows)["all"]
     assert rows[0]["rr"] == 0.5
     assert rows[0]["unjudged"] == 1
+    assert rows[0]["candidate_recall"] == 1.0
+    assert rows[0]["candidate_unjudged"] == 1
     assert rows[0]["rerank_ms"] == 2.0
     assert summary["mrr"] == 0.5
+    assert summary["candidate_recall"] == 1.0
+
+
+def test_evaluate_patents_searches_candidate_pool_and_scores_top_k_separately():
+    cases = [
+        {
+            **CASES[0],
+            "labeled": True,
+            "relevant_source_ids": ["p3"],
+            "judged_source_ids": ["p1", "p2", "p3"],
+        }
+    ]
+    requested = []
+
+    def search(query, top_k, area=None):
+        requested.append(top_k)
+        return [{"source_id": f"p{index}"} for index in range(1, top_k + 1)]
+
+    rows = evaluate_patents(cases, search, k=2, candidate_k=3)
+
+    assert requested == [3]
+    assert rows[0]["retrieved"] == "p1 p2"
+    assert rows[0]["candidate_ids"] == "p1 p2 p3"
+    assert rows[0]["recall"] == 0.0
+    assert rows[0]["candidate_recall"] == 1.0
+
+
+def test_evaluate_patents_requires_candidate_pool_at_least_top_k():
+    with pytest.raises(ValueError, match="candidate_k"):
+        evaluate_patents(CASES, lambda query, top_k: [], k=5, candidate_k=4)
 
 
 def test_evaluate_patents_skips_unlabeled_cases():
@@ -141,11 +173,32 @@ def test_export_candidates_builds_kipris_link_when_source_url_is_missing(tmp_pat
 def test_import_labels_waits_until_every_candidate_is_judged(tmp_path):
     path = tmp_path / "candidates.csv"
     rows = [
-        {"case_id": "SF-01-cobot", "source_id": "p1", "relevant": "1"},
-        {"case_id": "SF-01-cobot", "source_id": "p2", "relevant": ""},
+        {
+            "case_id": "SF-01-cobot",
+            "source_id": "p1",
+            "relevant": "1",
+            "review_status": "reviewed",
+            "label_source": "human",
+        },
+        {
+            "case_id": "SF-01-cobot",
+            "source_id": "p2",
+            "relevant": "",
+            "review_status": "hold",
+            "label_source": "human",
+        },
     ]
     with open(path, "w", encoding="utf-8-sig", newline="") as file:
-        writer = csv.DictWriter(file, fieldnames=["case_id", "source_id", "relevant"])
+        writer = csv.DictWriter(
+            file,
+            fieldnames=[
+                "case_id",
+                "source_id",
+                "relevant",
+                "review_status",
+                "label_source",
+            ],
+        )
         writer.writeheader()
         writer.writerows(rows)
 
@@ -155,8 +208,18 @@ def test_import_labels_waits_until_every_candidate_is_judged(tmp_path):
     assert updated[0]["labeled"] is False
 
     rows[1]["relevant"] = "0"
+    rows[1]["review_status"] = "reviewed"
     with open(path, "w", encoding="utf-8-sig", newline="") as file:
-        writer = csv.DictWriter(file, fieldnames=["case_id", "source_id", "relevant"])
+        writer = csv.DictWriter(
+            file,
+            fieldnames=[
+                "case_id",
+                "source_id",
+                "relevant",
+                "review_status",
+                "label_source",
+            ],
+        )
         writer.writeheader()
         writer.writerows(rows)
     updated, pending = import_labels(CASES, path)
@@ -176,4 +239,32 @@ def test_import_rejects_non_binary_relevance_values(tmp_path):
         )
 
     with pytest.raises(ValueError, match="0 or 1"):
+        import_labels(CASES, path)
+
+
+def test_import_rejects_ai_draft_marked_as_human_reviewed(tmp_path):
+    path = tmp_path / "patent_candidates.csv"
+    with open(path, "w", encoding="utf-8-sig", newline="") as file:
+        writer = csv.DictWriter(
+            file,
+            fieldnames=[
+                "case_id",
+                "source_id",
+                "relevant",
+                "review_status",
+                "label_source",
+            ],
+        )
+        writer.writeheader()
+        writer.writerow(
+            {
+                "case_id": "SF-01-cobot",
+                "source_id": "p1",
+                "relevant": "1",
+                "review_status": "reviewed",
+                "label_source": "ai_draft",
+            }
+        )
+
+    with pytest.raises(ValueError, match="label_source=human"):
         import_labels(CASES, path)
