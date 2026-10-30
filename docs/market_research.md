@@ -53,11 +53,11 @@ flowchart TD
 
   subgraph eval["검색·답변 품질 평가와 개선"]
     direction TB
-    cases["평가셋 25문항<br/>아이디어 5개 × 차원 5개<br/>정답 source_id 라벨"]
+    cases["평가셋 25문항<br/>아이디어 5개 × 차원 5개<br/>정답 source_id 라벨<br/>최신 비교는 SF-01~04 20문항"]
     metrics["Hit@5 · Recall@5 · Precision@5 · MRR · nDCG@5 · 지연<br/>관련성 판정 정밀도·kappa"]
     answer["Citation Accuracy ·<br/>오류 로그 E01–E10"]
     cost["Latency · 비용 측정<br/>응답 시간 · 토큰 · API 호출"]
-    compare["LLM 단독 vs RAG 비교<br/>같은 25문항"]
+    compare["LLM 단독 vs RAG 비교<br/>같은 20문항"]
     improved{"개선 효과 확인?"}
     tune["키워드·질의 템플릿·<br/>판정 기준 조정"]
     fix["설정·데이터 버전 고정<br/>및 회귀 평가"]

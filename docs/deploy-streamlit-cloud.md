@@ -75,9 +75,15 @@ CHROMA_PORT = "443"
 CHROMA_SSL = "true"
 CHROMA_API_KEY = "<호스팅 앱 전용 키>"
 IDEALENS_APP_PASSWORD = "<접속 비밀번호, 비워 두지 않는다>"
+NAVER_TREND_CLIENT_ID = "<NAVER Search Trend Client ID>"
+NAVER_TREND_CLIENT_SECRET = "<NAVER Search Trend Client Secret>"
+DATA_GO_KR_SERVICE_KEY = "<공공데이터포털 일반 인증키(Decoding)>"
+DART_API_KEY = "<OpenDART 인증키>"
 ```
 
-- NAVER·DART 키는 넣지 않는다. 화면은 수집을 하지 않는다.
+- 화면은 뉴스·DART 사업보고서 수집과 색인을 하지 않는다. 뉴스 검색 키(`NAVER_CLIENT_ID`·`NAVER_CLIENT_SECRET`)는 넣지 않는다.
+- 시장 분석은 실행할 때마다 검색 관심도(`NAVER_TREND_*`), 나라장터 입찰공고(`DATA_GO_KR_SERVICE_KEY`), 인접 기업 재무 현황(`DART_API_KEY`)을 직접 조회한다. 키가 없으면 해당 영역만 오류로 표시되고 시장 보고서 본문은 유지된다.
+- 시장 근거는 공용 Chroma의 `news` 컬렉션(뉴스·DART 사업보고서 청크)에서 검색한다. 로컬에서 다시 색인한 내용은 공용 서버에 올려야 배포 앱에 반영된다.
 - `IDEALENS_APP_PASSWORD`가 비면 비밀번호 화면이 사라진다. 스모크 검사는 이 상태를 실패로 잡는다. 팀에는 비밀번호를 개인 메시지로 전달한다.
 
 ## 평소 배포
@@ -98,6 +104,7 @@ IDEALENS_APP_PASSWORD = "<접속 비밀번호, 비워 두지 않는다>"
 - [ ] 특허·시장 영역 상태가 '실행 안 함'이나 '오류'가 아니고 근거 목록이 나온다. 공용 Chroma에 연결하지 못하면 영역별 오류로 표시된다.
 - [ ] 종합 보고서의 PDF·Markdown 다운로드가 동작하고, 파일에 키 문자열(`sk-`, `ServiceKey=` 등)이 없다.
 - [ ] 특허 비교가 구성요소와 청구항 인용을 보여주며 법적 판단으로 단정하지 않는다. 시장 화면은 산업 신호와 직접 고객 수요를 구분한다.
+- [ ] 시장 화면에 검색 관심도 그래프·조달 공고·기업 재무 현황이 나온다. 오류로 표시되면 Secrets의 `NAVER_TREND_*`·`DATA_GO_KR_SERVICE_KEY`·`DART_API_KEY`를 확인한다.
 - [ ] 메모리: 분석 1회를 실행한 뒤 앱이 재시작되지 않는다(SCC 앱 자원은 690MB~2.7GB, 제한은 예고 없이 바뀔 수 있음).
 
 ## 시연 전
