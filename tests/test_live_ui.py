@@ -67,6 +67,7 @@ def sources():
                 application_number="1020200000001",
                 claim_number=1,
                 claim_type="independent",
+                similarity=0.72,
                 source_url="https://example.com/p1",
             )
         ],
@@ -267,6 +268,12 @@ def test_direct_input_runs_followup_and_reaches_report(live, monkeypatch):
         [],
         sources=sources(),
     )
+    report = app.session_state.pipeline_result
+    patent = report.patent
+    review = patent.patent_reviews[0].model_copy(update={"relevance_reason": "NaN"})
+    app.session_state.pipeline_result = report.model_copy(
+        update={"patent": patent.model_copy(update={"patent_reviews": [review]})}
+    )
     app.session_state.stage = 2
     app.run()
     assert any("특허 비교 궤도" in item.value for item in app.subheader)
@@ -293,8 +300,10 @@ def test_direct_input_runs_followup_and_reaches_report(live, monkeypatch):
     )
     serialized = json.dumps(json.loads(charts[0].proto.spec), ensure_ascii=False)
     assert "우선 확인 이유" in serialized
+    assert "Dense 검색 점수" in serialized
+    assert "0.720 · Dense 검색 점수 (확률 아님)" in serialized
+    assert "우선 확인 이유 미제공" in serialized
     assert "핵심 요약" not in serialized
-    assert "Dense 유사도" not in serialized
     assert '"nan"' not in serialized.lower()
     assert "2.8−1.35×점수" in " ".join(item.value for item in app.caption)
     assert not any("문헌 요약 선택" in item.label for item in app.selectbox)
@@ -349,15 +358,19 @@ def test_direct_input_runs_followup_and_reaches_report(live, monkeypatch):
     monkeypatch.setattr(
         patent_orbit,
         "fetch_first_kipris_drawing",
-        lambda urls: (drawing_calls.append(urls) or drawing.getvalue(), "ok"),
+        lambda urls: (
+            drawing_calls.append(urls) or drawing.getvalue(),
+            "ok",
+            urls[0],
+        ),
     )
     app.session_state.selected_patent_detail_id = "1020200000001"
     app.run()
     detail = app.get("dialog")[0]
     assert drawing_calls == [
         (
-            "https://plus.kipris.or.kr/thumb?arg=fixture",
             "https://plus.kipris.or.kr/drawing?arg=fixture",
+            "https://plus.kipris.or.kr/thumb?arg=fixture",
         )
     ]
     assert any("선택한 문헌의 대표도면 경로" in item.value for item in detail.caption)

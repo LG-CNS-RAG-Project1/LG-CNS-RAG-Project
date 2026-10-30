@@ -1,6 +1,7 @@
+import math
 import re
 from typing import Literal
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 # 1. 사용자 아이디어
@@ -254,6 +255,23 @@ class PatentDocumentReview(BaseModel):
         default_factory=list
     )
     unknowns: list[str] = Field(default_factory=list)
+
+    @field_validator("relevance_reason", mode="before")
+    @classmethod
+    def normalize_relevance_reason(cls, value):
+        """모델·저장 데이터의 결측 및 비유한 관련성 이유를 빈 값으로 정규화한다."""
+        if value is None:
+            return ""
+        if isinstance(value, (int, float)):
+            if not math.isfinite(float(value)):
+                return ""
+            value = str(value)
+        if not isinstance(value, str):
+            return ""
+        cleaned = value.strip()
+        if cleaned.casefold() in {"", "nan", "none", "null"}:
+            return ""
+        return cleaned
 
 
 class PatentabilityPrecheck(BaseModel):

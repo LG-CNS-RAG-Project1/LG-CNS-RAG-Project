@@ -6,6 +6,7 @@ from frontend.patent_orbit import (
     kipris_drawing_url,
     fetch_kipris_drawing,
     fetch_first_kipris_drawing,
+    drawing_image_metadata,
     patent_dense_similarity,
     patent_orbit_position,
     tooltip_text,
@@ -108,17 +109,17 @@ def test_fetch_kipris_drawing_rejects_errors_and_redirects(
     "frontend.patent_orbit.fetch_kipris_drawing",
     side_effect=[(None, "http_error"), (b"jpeg", "ok")],
 )
-def test_fetch_first_kipris_drawing_falls_back_from_thumbnail_to_drawing(mock_fetch):
+def test_fetch_first_kipris_drawing_falls_back_from_original_to_thumbnail(mock_fetch):
     result = fetch_first_kipris_drawing(
         (
-            "https://plus.kipris.or.kr/thumbnail",
             "https://plus.kipris.or.kr/drawing",
+            "https://plus.kipris.or.kr/thumbnail",
         )
     )
-    assert result == (b"jpeg", "ok")
+    assert result == (b"jpeg", "ok", "https://plus.kipris.or.kr/thumbnail")
     assert [call.args[0] for call in mock_fetch.call_args_list] == [
-        "https://plus.kipris.or.kr/thumbnail",
         "https://plus.kipris.or.kr/drawing",
+        "https://plus.kipris.or.kr/thumbnail",
     ]
 
 
@@ -127,11 +128,24 @@ def test_fetch_first_kipris_drawing_skips_missing_urls_and_reports_failure(mock_
     assert fetch_first_kipris_drawing(("https://plus.kipris.or.kr/thumb", None)) == (
         None,
         "http_error",
+        None,
     )
     mock_fetch.assert_called_once_with(
         "https://plus.kipris.or.kr/thumb", max_bytes=8_000_000
     )
-    assert fetch_first_kipris_drawing((None, None)) == (None, "missing_url")
+    assert fetch_first_kipris_drawing((None, None)) == (None, "missing_url", None)
+
+
+def test_drawing_image_metadata_limits_display_width_without_upscaling():
+    from io import BytesIO
+    from PIL import Image
+
+    content = BytesIO()
+    Image.new("RGB", (621, 405)).save(content, format="JPEG")
+    assert drawing_image_metadata(content.getvalue()) == (621, 405, 621, "JPEG")
+    content = BytesIO()
+    Image.new("RGB", (1600, 900)).save(content, format="JPEG")
+    assert drawing_image_metadata(content.getvalue()) == (1600, 900, 900, "JPEG")
 
 
 @patch("frontend.patent_orbit.requests.get", side_effect=requests.Timeout)

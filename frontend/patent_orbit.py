@@ -1,9 +1,11 @@
 """특허 검색 점수와 궤도 표시 좌표를 계산한다."""
 
 import math
+from io import BytesIO
 from urllib.parse import urlsplit, urlunsplit
 
 import requests
+from PIL import Image
 
 
 def patent_dense_similarity(evidence) -> float | None:
@@ -104,15 +106,25 @@ def _has_image_signature(content: bytes) -> bool:
 
 def fetch_first_kipris_drawing(
     urls: tuple[str | None, ...], max_bytes: int = 8_000_000
-) -> tuple[bytes | None, str]:
-    """썸네일을 먼저 시도하고 실패하면 같은 문헌의 다음 도면 URL을 확인한다."""
+) -> tuple[bytes | None, str, str | None]:
+    """원본 도면을 우선 확인하고 실패하면 같은 문헌의 썸네일을 반환한다."""
     last_status = "missing_url"
     for url in dict.fromkeys(value for value in urls if value):
         image, status = fetch_kipris_drawing(url, max_bytes=max_bytes)
         if image:
-            return image, "ok"
+            return image, "ok", url
         last_status = status
-    return None, last_status
+    return None, last_status, None
+
+
+def drawing_image_metadata(
+    content: bytes, max_width: int = 900
+) -> tuple[int, int, int, str]:
+    """도면의 실제 픽셀 크기와 확대하지 않는 표시 폭을 반환한다."""
+    with Image.open(BytesIO(content)) as image:
+        width, height = image.size
+        image_format = image.format or "unknown"
+    return width, height, min(width, max_width), image_format
 
 
 def tooltip_text(value, fallback: str) -> str:

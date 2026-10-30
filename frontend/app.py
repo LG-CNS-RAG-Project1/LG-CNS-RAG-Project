@@ -212,19 +212,36 @@ def patent_detail_dialog(patent, patent_id):
     )
     st.markdown("#### 대표도면")
     if drawing_evidence:
-        image_bytes, image_status = fetch_first_kipris_drawing(
+        image_bytes, image_status, loaded_url = fetch_first_kipris_drawing(
             (
-                drawing_evidence.representative_thumbnail_url,
                 drawing_evidence.representative_drawing_url,
+                drawing_evidence.representative_thumbnail_url,
             )
         )
         if image_bytes:
+            from frontend.patent_orbit import drawing_image_metadata
+
             caption = drawing_evidence.representative_drawing_caption or (
                 f"KIPRIS 대표도면 · 출원번호 "
                 f"{drawing_evidence.application_number or patent_id}"
             )
             try:
-                st.image(image_bytes, caption=caption, width="stretch")
+                image_width, image_height, display_width, image_format = (
+                    drawing_image_metadata(image_bytes)
+                )
+                original_url = kipris_drawing_url(
+                    drawing_evidence.representative_drawing_url
+                )
+                is_original = loaded_url == original_url
+                resolution_note = (
+                    "원본 도면"
+                    if is_original
+                    else "썸네일 · 원본을 가져오지 못해 저해상도 이미지를 표시"
+                )
+                st.image(image_bytes, caption=caption, width=display_width)
+                st.caption(
+                    f"{resolution_note} · {image_width}×{image_height} px · {image_format}"
+                )
             except Exception:
                 st.info(
                     "대표도면 형식을 표시할 수 없습니다. KIPRIS 원문 링크에서 확인해 주세요."
@@ -1197,6 +1214,11 @@ def render_patent_report(patent, *, widget_suffix="", preview=False):
                         "title": review.title,
                         "number": f"P{index + 1}",
                         "reason": reason[:180],
+                        "similarity": (
+                            f"{similarity:.3f} · Dense 검색 점수 (확률 아님)"
+                            if similarity is not None
+                            else "미제공"
+                        ),
                         "category": category,
                         "color": PATENT_ORBIT_COLORS[category],
                         "x": x,
@@ -1206,7 +1228,7 @@ def render_patent_report(patent, *, widget_suffix="", preview=False):
 
             st.subheader("특허 비교 궤도")
             st.caption(
-                "Dense 점수는 1−cosine distance를 0~1로 제한해 문헌별 최고값을 표시하며, 관련성 확률이 아닙니다. 점수가 높을수록 중심에 가깝게 배치합니다(반경 2.8−1.35×점수, 미제공은 외곽). 색상은 구성 비교 근거에 따른 검토 우선순위이며 법률상 위험 등급이 아닙니다."
+                "Dense 점수(1−cosine distance를 0~1로 제한한 문헌별 최고값)는 hover에서 확인할 수 있으며 관련성 확률이 아닙니다. 점수가 높을수록 중심에 가깝게 배치합니다(반경 2.8−1.35×점수, 미제공은 외곽). 색상은 구성 비교 근거에 따른 검토 우선순위이며 법률상 위험 등급이 아닙니다."
             )
             legend = st.columns(4)
             for column, category in zip(legend, ("red", "yellow", "green", "blue")):
@@ -1293,6 +1315,9 @@ def render_patent_report(patent, *, widget_suffix="", preview=False):
                         ),
                         tooltip=[
                             alt.Tooltip("title:N", title="문헌"),
+                            alt.Tooltip(
+                                "similarity:N", title="Dense 검색 점수", format="s"
+                            ),
                             alt.Tooltip("reason:N", title="우선 확인 이유", format="s"),
                         ],
                         opacity=alt.condition(hover, alt.value(1), alt.value(0.88)),
