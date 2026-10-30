@@ -32,7 +32,16 @@ def render_page_nav(page, open_page, resume_research, *, has_research=False):
             ("difference", "차별점", ":material/compare_arrows:"),
             ("history", "내 기록", ":material/history:"),
         ):
-            _page_button(target, label, icon, page, open_page)
+            if target in {"about", "difference"}:
+                from frontend.information_nav import render_submenu
+
+                with st.container(key=f"rail_menu_{target}"):
+                    _page_button(target, label, icon, page, open_page)
+                    with st.container(key=f"rail_menu_{target}_dropdown"):
+                        st.caption(label)
+                        render_submenu(target, open_page, scope="rail")
+            else:
+                _page_button(target, label, icon, page, open_page)
         if page != "home" or has_research:
             st.html('<div class="rail-divider" aria-hidden="true"></div>')
             st.button(
