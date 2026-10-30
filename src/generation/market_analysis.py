@@ -94,7 +94,7 @@ MARKET_IDEA_FIELDS = {
 
 
 def call_analysis_llm(system_prompt: str, user_text: str) -> dict:
-    """ANALYSIS_MODEL로 OpenAI 채팅 API를 JSON 모드로 호출한다. OPENAI_API_KEY가 필요하다."""
+    """선택한 LLM provider의 ANALYSIS_MODEL로 JSON 응답을 호출한다."""
     return call_relevance_llm(system_prompt, user_text, model=ANALYSIS_MODEL)
 
 

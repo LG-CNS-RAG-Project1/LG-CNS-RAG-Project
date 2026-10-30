@@ -16,12 +16,12 @@
 
 import argparse
 import json
-import os
 import shutil
 from pathlib import Path
 from typing import Callable
 
 from dotenv import load_dotenv
+from src.llm_client import chat_model, get_openai_client, llm_is_configured
 
 from evaluation.market_labeling import (
     CANDIDATES_PATH,
@@ -43,14 +43,12 @@ JudgeFn = Callable[[str, str], dict]
 
 
 def call_judge(system_prompt: str, user_text: str) -> dict:
-    """OpenAI 채팅 API를 JSON 모드로 호출해 판정 결과를 dict로 반환한다."""
-    from openai import OpenAI
-
+    """선택한 LLM provider의 JSON 채팅 API로 판정 결과를 반환한다."""
     load_dotenv(ROOT_DIR / ".env")
-    if not os.getenv("OPENAI_API_KEY"):
-        raise RuntimeError("OPENAI_API_KEY is not set in .env")
-    response = OpenAI().chat.completions.create(
-        model=JUDGE_MODEL,
+    if not llm_is_configured():
+        raise RuntimeError("Selected LLM provider is not configured")
+    response = get_openai_client().chat.completions.create(
+        model=chat_model(JUDGE_MODEL),
         temperature=0,
         response_format={"type": "json_object"},
         messages=[

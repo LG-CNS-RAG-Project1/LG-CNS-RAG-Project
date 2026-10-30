@@ -4,9 +4,8 @@ import json
 from pathlib import Path
 from typing import Callable
 
-from dotenv import load_dotenv
-from openai import OpenAI
 from pydantic import BaseModel, Field
+from src.llm_client import chat_model, get_openai_client
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 PROMPT_PATH = ROOT_DIR / "prompts" / "patent_relevance_judge.md"
@@ -25,9 +24,8 @@ class RelevanceBatch(BaseModel):
 
 
 def call_relevance_llm(system_prompt: str, user_text: str) -> dict:
-    load_dotenv(ROOT_DIR / ".env")
-    response = OpenAI().chat.completions.create(
-        model=MODEL,
+    response = get_openai_client().chat.completions.create(
+        model=chat_model(MODEL),
         temperature=0,
         response_format={"type": "json_object"},
         messages=[
