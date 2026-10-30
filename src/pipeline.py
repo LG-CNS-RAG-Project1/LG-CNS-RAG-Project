@@ -33,6 +33,7 @@ from pydantic import BaseModel, Field
 
 from src.generation.idea_parser import build_requests
 from src.generation.business_review import BusinessReview, build_business_review
+from src.generation.swot import SwotAnalysis, build_swot
 from src.generation.executive_review import (
     ExecutiveReview,
     build_executive_review,
@@ -141,6 +142,7 @@ class PipelineReport(BaseModel):
     markdown: str = ""
     business_review: BusinessReview | None = None
     executive_review: ExecutiveReview | None = None
+    swot: SwotAnalysis | None = None
     errors: list[str] = Field(default_factory=list)
     patent_run: PartRun | None = None
     market_run: PartRun | None = None
@@ -456,6 +458,7 @@ def _market_defaults(event: threading.Event) -> dict:
     from src.generation.market_analysis import call_analysis_llm
     from src.retrieval.market_relevance import call_relevance_llm
     from src.retrieval.market_search import embed_texts
+    from src.services.market_financials import build_company_financials
     from src.services.market_network import build_keyword_network
     from src.services.market_procurement import build_procurement
     from src.services.market_trend import build_search_trend
@@ -466,6 +469,7 @@ def _market_defaults(event: threading.Event) -> dict:
         "llm_fn": _guard(call_analysis_llm, event),
         "trend_fn": _guard(build_search_trend, event),
         "network_fn": _guard(build_keyword_network, event),
+        "financials_fn": _guard(build_company_financials, event),
         "procurement_fn": _guard(build_procurement, event),
     }
 
@@ -735,10 +739,12 @@ def run_pipeline(
     sources: SourceAnalysis | None = None,
     parallel: bool | None = None,
     cost_llm_fn=None,
+    swot_llm_fn=None,
 ) -> PipelineReport:
     """확정된 IdeaDraft로 두 조사와 질문별 통합 근거 보고서를 실행한다.
 
     sources를 넘기면 조사를 다시 하지 않고 질문 연결과 보고서만 새로 만든다.
+    swot_llm_fn을 주면 두 조사 결과로 예비 SWOT(build_swot)을 만들어 보고서에 붙인다.
     """
     draft.to_structured_idea()
     questions = screen_inputs(technical_components, questions)
@@ -780,6 +786,11 @@ def run_pipeline(
             draft, sources.market, sources.patent, llm_fn=cost_llm_fn
         )
         cost_totals = calculate_scenarios(cost_estimate)
+    swot = (
+        build_swot(draft, sources.patent, sources.market, swot_llm_fn)
+        if swot_llm_fn is not None
+        else None
+    )
     markdown = executive_report_markdown(
         draft.title,
         executive_review,
@@ -787,6 +798,7 @@ def run_pipeline(
         cost_estimate=cost_estimate,
         cost_totals=cost_totals,
         market=sources.market,
+        swot=swot,
     )
     statuses = {sources.patent.status, sources.market.status}
     status = "completed" if statuses == {"completed"} and not errors else "partial"
@@ -799,6 +811,7 @@ def run_pipeline(
         markdown=markdown,
         business_review=business_review,
         executive_review=executive_review,
+        swot=swot,
         errors=errors,
         patent_run=sources.patent_run,
         market_run=sources.market_run,
@@ -869,7 +882,11 @@ def main() -> None:
         if args.questions
         else default_questions(draft)
     )
-    report = run_pipeline(draft, questions, technology_area_id=area)
+    from src.generation.market_analysis import call_analysis_llm
+
+    report = run_pipeline(
+        draft, questions, technology_area_id=area, swot_llm_fn=call_analysis_llm
+    )
     print(
         f"[{report.status}] 특허 {report.patent_run.state}({report.patent_run.seconds}s)"
         f" · 시장 {report.market_run.state}({report.market_run.seconds}s)",
