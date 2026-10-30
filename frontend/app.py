@@ -569,6 +569,7 @@ def run_real_pipeline():
             sources=s.analysis_sources,
             cost_llm_fn=call_cost_llm,
             swot_llm_fn=call_analysis_llm,
+            canvas_llm_fn=call_analysis_llm,
         )
         st.session_state.pipeline_error = None
     except Exception as exc:
@@ -638,6 +639,7 @@ def _workflow_worker(job_id, draft_data, parts, questions, area, cached_sources)
             sources=sources,
             cost_llm_fn=call_cost_llm,
             swot_llm_fn=call_analysis_llm,
+            canvas_llm_fn=call_analysis_llm,
         )
         with WORKFLOW_JOBS_LOCK:
             if job.get("cancelled"):
