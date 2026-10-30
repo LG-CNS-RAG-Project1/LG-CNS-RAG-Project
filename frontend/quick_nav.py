@@ -31,6 +31,7 @@ def render_page_nav(page, open_page, resume_research, *, has_research=False):
             ("about", "서비스 소개", ":material/info:"),
             ("difference", "차별점", ":material/compare_arrows:"),
             ("patent-process", "특허 검색 흐름", ":material/schema:"),
+            ("market-process", "시장 조사 흐름", ":material/monitoring:"),
             ("history", "내 기록", ":material/history:"),
         ):
             _page_button(target, label, icon, page, open_page)
@@ -51,13 +52,6 @@ def render_quick_nav(render_stage, open_page):
     with st.container(key="research_rail"):
         st.html('<div class="rail-caption">바로가기</div>')
         _page_button("home", "홈", ":material/home:", "workspace", open_page)
-        _page_button(
-            "patent-process",
-            "특허 검색 흐름",
-            ":material/schema:",
-            "workspace",
-            open_page,
-        )
         for number, label, icon in (
             (1, "아이디어", ":material/edit_note:"),
             (2, "특허", ":material/find_in_page:"),

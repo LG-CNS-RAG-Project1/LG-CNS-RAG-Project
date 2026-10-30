@@ -56,9 +56,12 @@ def render_patent_process_page():
         )
 
         first, second, third = st.columns(3)
-        first.metric("검색 입력", "기술 구성요소", "한국어 · 영어 질의")
-        second.metric("후보 단위", "특허 문헌", "청크 중복 완화")
-        third.metric("검증 기준", "사람 검토 라벨", "AI 판정은 보조")
+        first.metric("검색 입력", "기술 구성요소")
+        first.caption("한국어 · 영어 질의")
+        second.metric("후보 단위", "특허 문헌")
+        second.caption("청크 중복 완화")
+        third.metric("검증 기준", "사람 검토 라벨")
+        third.caption("AI 판정은 보조")
 
         st.subheader("수집에서 평가까지")
         for title, description, source in _STEPS:

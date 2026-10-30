@@ -63,9 +63,9 @@ st.html("""<style>
 st.html(Path(__file__).with_name("styles.css").read_text(encoding="utf-8"))
 st.html(brand_style())
 _requested_page = st.query_params.get("page", "home")
-if _requested_page not in {"home", "patent-process"}:
+if _requested_page not in {"home", "patent-process", "market-process"}:
     _requested_page = "home"
-if _requested_page == "patent-process":
+if _requested_page in {"patent-process", "market-process"}:
     st.session_state["page"] = _requested_page
 for key, value in {
     "app_view": "landing",
@@ -1808,7 +1808,7 @@ def open_page(page):
     if s.page == "workspace" and s.idea_page_view == "input":
         s.idea_input_buffer = s.get("raw_input", s.raw)
     s.page = page
-    if page == "patent-process":
+    if page in {"patent-process", "market-process"}:
         st.query_params["page"] = page
     else:
         st.query_params.pop("page", None)
@@ -2001,6 +2001,13 @@ if s.page == "patent-process":
     from frontend.patent_process_page import render_patent_process_page
 
     render_patent_process_page()
+    render_page_nav(s.page, open_page, resume_research, has_research=has_research)
+    settle_navigation()
+    st.stop()
+if s.page == "market-process":
+    from frontend.market_process_page import render_market_process_page
+
+    render_market_process_page()
     render_page_nav(s.page, open_page, resume_research, has_research=has_research)
     settle_navigation()
     st.stop()
