@@ -19,11 +19,10 @@ field_sources가 "unknown"인 빈 값으로 확정한다.
 
 import argparse
 import json
-import os
 from pathlib import Path
 from typing import Callable
 
-from dotenv import load_dotenv
+from src.llm_client import chat_model, get_openai_client, llm_is_configured
 
 from src.generation.input_guard import (
     MAX_ANSWER_CHARS,
@@ -66,17 +65,11 @@ LLMFn = Callable[[str, str], dict]
 
 
 def call_llm(system_prompt: str, user_text: str) -> dict:
-    """OpenAI 채팅 API를 JSON 모드로 호출해 응답 객체를 dict로 반환한다.
-
-    .env의 OPENAI_API_KEY가 필요하며, 없으면 RuntimeError를 발생시킨다.
-    """
-    from openai import OpenAI
-
-    load_dotenv(ROOT_DIR / ".env")
-    if not os.getenv("OPENAI_API_KEY"):
-        raise RuntimeError("OPENAI_API_KEY is not set in .env")
-    response = OpenAI().chat.completions.create(
-        model=LLM_MODEL,
+    """선택한 LLM provider의 JSON 채팅 API를 호출해 응답 객체를 반환한다."""
+    if not llm_is_configured():
+        raise RuntimeError("Selected LLM provider is not configured")
+    response = get_openai_client().chat.completions.create(
+        model=chat_model(LLM_MODEL),
         temperature=0,
         response_format={"type": "json_object"},
         messages=[

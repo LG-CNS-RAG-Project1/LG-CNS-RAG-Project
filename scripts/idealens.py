@@ -35,6 +35,7 @@ HEALTH_WAIT_SECONDS = 90
 DEFAULT_PATENT_FIELDS = ["SF-02", "SF-05"]
 SECRET_NAMES = [
     "OPENAI_API_KEY",
+    "OLLAMA_API_KEY",
     "KIPRIS_API_KEY",
     "NAVER_CLIENT_ID",
     "NAVER_CLIENT_SECRET",
@@ -45,9 +46,9 @@ SECRET_NAMES = [
     "CHROMA_API_KEY",
 ]
 COMMAND_KEYS = {
-    "ui(실제 분석)": ["OPENAI_API_KEY", "KIPRIS_API_KEY"],
-    "data market": ["NAVER_CLIENT_ID", "NAVER_CLIENT_SECRET", "OPENAI_API_KEY"],
-    "data patents": ["KIPRIS_API_KEY", "OPENAI_API_KEY"],
+    "ui(실제 분석)": ["KIPRIS_API_KEY"],
+    "data market": ["NAVER_CLIENT_ID", "NAVER_CLIENT_SECRET"],
+    "data patents": ["KIPRIS_API_KEY"],
 }
 _SECRET_PATTERNS = [
     (re.compile(r"(?i)\b((?:access|service)key=)[^&\s'\"]+"), r"\1***"),
@@ -284,7 +285,13 @@ def cmd_doctor(args) -> int:
         state = "설정됨" if env.get(name, "").strip() else "비어 있음"
         print(f"  - {name}: {state}")
     for command, names in COMMAND_KEYS.items():
-        missing = [n for n in names if not env.get(n, "").strip()]
+        required = list(names)
+        if env.get("LLM_PROVIDER", "openai").strip().lower() == "ollama":
+            if not env.get("OLLAMA_BASE_URL", "http://localhost:11434").strip():
+                required.append("OLLAMA_BASE_URL")
+        else:
+            required.append("OPENAI_API_KEY")
+        missing = [n for n in required if not env.get(n, "").strip()]
         if missing:
             report.warn(f"{command}에 필요한 키 없음: {', '.join(missing)}")
     if docker_ready(report):

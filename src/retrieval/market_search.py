@@ -3,7 +3,7 @@
 - 입력: data/market/processed/market_docs.jsonl (뉴스, market_processor 결과)과
   dart_docs.jsonl (DART 사업보고서, dart_processor 결과). 두 파일 모두 있어야 색인한다.
 - 저장소: data/market/chroma/ 의 "news" 컬렉션 (cosine 거리). 출처는 source_type 메타데이터로 구분한다.
-- 임베딩: OpenAI text-embedding-3-small. 문서 1건 = 1청크(`{source_id}#0`)로 색인한다
+- 임베딩: 선택한 LLM provider의 설정 모델. 문서 1건 = 1청크(`{source_id}#0`)로 색인한다
   (DART는 dart_processor가 섹션을 청크로 나눠 청크마다 문서 1건을 만든다).
 - 아이디어 필터를 위해 idea_ids를 `idea_<ID>: True` 메타데이터로도 저장한다.
 - 차원별 검색은 뉴스 top_k건과 DART 사업보고서를 따로 검색해 합친다. DART는 먼저 아이디어
@@ -16,7 +16,6 @@
 
 import argparse
 import json
-import os
 import time
 from dataclasses import replace
 from pathlib import Path
@@ -24,7 +23,6 @@ from typing import Callable
 
 from chromadb.api import ClientAPI
 from src.retrieval.chroma_client import connect_chroma
-from dotenv import load_dotenv
 
 from src.schemas import (
     ALL_DIMENSIONS,
@@ -33,6 +31,7 @@ from src.schemas import (
     MarketSearchRequest,
 )
 from src.retrieval.engine import RetrievalConfig, retrieve
+from src.llm_client import embedding_collection_name, embedding_model, get_openai_client
 from src.retrieval.schemas import RetrievalResult, SearchDocument
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
@@ -61,35 +60,30 @@ EmbedFn = Callable[[list[str]], list[list[float]]]
 
 
 def embed_texts(texts: list[str]) -> list[list[float]]:
-    """OpenAI 임베딩 API로 텍스트 목록을 배치 단위로 임베딩한다.
-
-    .env의 OPENAI_API_KEY가 필요하며, 없으면 RuntimeError를 발생시킨다.
-    """
-    from openai import OpenAI
-
-    load_dotenv(ROOT_DIR / ".env")
-    if not os.getenv("OPENAI_API_KEY"):
-        raise RuntimeError("OPENAI_API_KEY is not set in .env")
-    client = OpenAI()
+    """선택한 LLM provider에서 텍스트 목록을 배치 단위로 임베딩한다."""
+    client = get_openai_client()
+    model = embedding_model(EMBEDDING_MODEL)
     vectors = []
     for start in range(0, len(texts), EMBED_BATCH_SIZE):
         batch = texts[start : start + EMBED_BATCH_SIZE]
-        response = client.embeddings.create(model=EMBEDDING_MODEL, input=batch)
+        response = client.embeddings.create(model=model, input=batch)
         vectors.extend(item.embedding for item in response.data)
     return vectors
 
 
 def get_collection(
-    chroma_dir: Path = CHROMA_DIR,
+    chroma_dir: Path | None = None,
     name: str = COLLECTION_NAME,
     client: ClientAPI | None = None,
 ):
     """cosine 거리를 쓰는 시장 근거 컬렉션을 열거나 생성한다. 임베딩은 항상 직접 전달한다."""
     if client is None:
-        client = connect_chroma(chroma_dir)
+        client = connect_chroma(chroma_dir or CHROMA_DIR)
 
     return client.get_or_create_collection(
-        name, metadata={"hnsw:space": "cosine"}, embedding_function=None
+        embedding_collection_name(name),
+        metadata={"hnsw:space": "cosine"},
+        embedding_function=None,
     )
 
 

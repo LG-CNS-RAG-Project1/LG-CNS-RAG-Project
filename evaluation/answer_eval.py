@@ -16,9 +16,9 @@ import time
 from pathlib import Path
 
 from dotenv import load_dotenv
-from openai import OpenAI
 
 from evaluation.market_labeling import case_query, load_cases, load_ideas
+from src.llm_client import chat_model, get_openai_client
 from src.retrieval.market_search import search_market
 from src.retrieval.market_search import get_collection
 
@@ -51,7 +51,7 @@ FIELDS = [
 def completion(client, system, user):
     started = time.perf_counter()
     response = client.chat.completions.create(
-        model=MODEL,
+        model=chat_model(MODEL),
         temperature=0,
         response_format={"type": "json_object"},
         messages=[
@@ -72,7 +72,7 @@ def prompt_hash(prompt):
 
 def run(limit=5, label="baseline"):
     load_dotenv(ROOT_DIR / ".env")
-    client = OpenAI()
+    client = get_openai_client()
     collection = get_collection()
     if collection.count() == 0:
         raise RuntimeError(

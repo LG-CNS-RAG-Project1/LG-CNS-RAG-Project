@@ -35,13 +35,13 @@ python -m src.ingestion.patent_processor --field-id SF-02 --limit 20 --include-c
 python -m src.ingestion.patent_processor --field-id SF-05 --limit 20 --include-claims
 ```
 
-이 명령은 분야 검색어마다 최대 `--limit`건을 KIPRIS에서 찾아 출원번호로 중복 제거하고, 분야 ID를 문헌과 Chroma 메타데이터에 남긴다. `--include-claims`를 지정하면 청구항 상세 API를 호출하며, 호출이 실패하거나 권한이 없으면 오류를 기록하고 실제 확보된 초록만 색인한다. 새 문서 임베딩은 이 배치 실행 시 생성하고 로컬 `data/patents/chroma/`에 저장한다. 이미 내용과 메타데이터가 같은 청크는 재임베딩하지 않는다. 실행에는 `KIPRIS_API_KEY`, 청구항 조회 권한 및 `OPENAI_API_KEY`가 필요하다.
+이 명령은 분야 검색어마다 최대 `--limit`건을 KIPRIS에서 찾아 출원번호로 중복 제거하고, 분야 ID를 문헌과 Chroma 메타데이터에 남긴다. `--include-claims`를 지정하면 청구항 상세 API를 호출하며, 호출이 실패하거나 권한이 없으면 오류를 기록하고 실제 확보된 초록만 색인한다. 새 문서 임베딩은 선택한 LLM provider로 생성하고 로컬 Chroma에 저장한다. Ollama 임베딩은 OpenAI 색인과 다른 모델별 하위 경로에 저장한다. 이미 내용과 메타데이터가 같은 청크는 재임베딩하지 않는다. 실행에는 `KIPRIS_API_KEY`, 청구항 조회 권한 및 선택한 LLM provider 설정이 필요하다.
 
 아이디어 기술 요소 기반 검색어 계획을 사용하려면 `PatentSearchRequest` JSON을 `scripts.collect_patents`에 입력한다. 계획은 1~5개 기술 요소로 검증되며, 한국어·영어 검색어를 KIPRIS 수집에 사용한다. 수집 단계는 원본 응답을 `data/patents/raw/`에 저장하고, `scripts.build_patent_index`는 저장된 JSONL을 별도로 색인한다. 원본 저장 메타데이터에는 API 키를 기록하지 않는다.
 
 KIPRIS 검색 결과에서 출원일·공개일을 보존한다. 청구항 문구의 `청구항 1에 있어서`와 `제1항에 있어서` 형식을 모두 종속항으로 판정하고 참조 항 번호를 연결한다. `getBibliographyDetailInfoSearch`는 KIPRIS Plus의 특허·실용신안 API 목록에 등재되어 있고, 현재 개발환경의 인증정보로 청구항 상세 응답을 받아 색인한 이력이 있다. 계정별 사용 승인 상태는 KIPRIS Plus 계정에서 별도로 확인해야 한다. [KIPRIS Plus 특허·실용신안 API 목록](https://plus.kipris.or.kr/eng/data/service/DBII_000000000000001/view.do?menuNo=300100&subTab=SC001)
 
-`PatentSearchRequest.technology_area_id`에 `SF-02` 또는 `SF-05`를 지정하면 로컬 검색을 해당 분야로 제한한다. 이 필드를 생략하면 기존처럼 전체 특허 컬렉션을 검색한다. 이 설정은 문서 벡터의 사전 생성을 뜻하며, Dense/Hybrid 검색의 질의 임베딩은 요청마다 별도로 생성된다.
+`PatentSearchRequest.technology_area_id`에 `SF-02` 또는 `SF-05`를 지정하면 로컬 검색을 해당 분야로 제한한다. 이 필드를 생략하면 전체 특허 컬렉션을 검색한다. 이 설정은 문서 벡터의 사전 생성을 뜻하며, Dense/Hybrid 검색의 질의 임베딩은 요청마다 별도로 생성된다.
 
 분석 함수는 함수 인자로 `collection`, `embed_fn`, `query_llm_fn`, `claim_fetcher`, `kipris_search_fn`, `comparison_fn`, `patent_review_fn`, `design_proposal_fn`을 주입할 수 있다. 자동화 테스트는 Mock을 주입해 검색·폴백·인용 계약·설계 대안 생성을 확인한다. 기본 실행은 기존 분석과 설계 대안 생성 단계에서 각각 LLM 호출을 수행할 수 있다. 실제 API 사용 시에는 특허 검색 및 청구항 endpoint의 KIPRIS Plus 상품 이용 권한이 필요하며, 청구항 상세 API는 실제 응답으로 별도 확인했다.
 

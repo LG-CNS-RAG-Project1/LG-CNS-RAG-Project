@@ -134,7 +134,7 @@ def test_custom_input_does_not_show_sample_evidence(monkeypatch):
     click(app, "AI 초안 만들기")
     assert app.session_state.stage == 1
     assert app.session_state.real_mode is False
-    assert any("OPENAI_API_KEY" in item.value for item in app.error)
+    assert any("LLM_PROVIDER" in item.value for item in app.error)
 
 
 def test_blank_input_is_rejected_before_draft_generation():

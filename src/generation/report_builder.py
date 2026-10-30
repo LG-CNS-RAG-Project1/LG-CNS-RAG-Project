@@ -7,9 +7,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Callable
 
-from dotenv import load_dotenv
-from openai import OpenAI
 from pydantic import BaseModel, Field, field_validator
+from src.llm_client import chat_model, get_openai_client
 
 from src.generation.business_review import (
     BusinessReview,
@@ -158,9 +157,8 @@ def hold_link(question_id: str, summary: str = HOLD_SUMMARY) -> QuestionLink:
 
 
 def call_report_llm(system_prompt: str, user_text: str) -> dict:
-    load_dotenv(ROOT_DIR / ".env")
-    response = OpenAI().chat.completions.create(
-        model=MODEL,
+    response = get_openai_client().chat.completions.create(
+        model=chat_model(MODEL),
         temperature=0,
         response_format={"type": "json_object"},
         messages=[

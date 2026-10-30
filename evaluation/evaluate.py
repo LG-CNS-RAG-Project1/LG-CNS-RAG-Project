@@ -50,6 +50,7 @@ from src.retrieval.patent_store import get_collection as get_patent_collection
 from evaluation.market_relevance_eval import evaluate_relevance
 from src.retrieval.market_relevance import RELEVANCE_MODEL, call_relevance_llm
 from src.retrieval.engine import RetrievalConfig
+from src.llm_client import embedding_model
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 RESULTS_DIR = ROOT_DIR / "evaluation" / "results"
@@ -341,7 +342,7 @@ def attach_run_metadata(rows: list[dict], mode: str, rerank: bool) -> list[dict]
     model = (
         "BAAI/bge-reranker-v2-m3"
         if rerank
-        else ("text-embedding-3-small" if mode in {"dense", "hybrid"} else "BM25")
+        else (embedding_model() if mode in {"dense", "hybrid"} else "BM25")
     )
     for row in rows:
         row.update(
@@ -380,7 +381,7 @@ def attach_patent_run_metadata(
     model = reranker_model or (
         "BAAI/bge-reranker-v2-m3"
         if rerank
-        else ("text-embedding-3-small" if mode in {"dense", "hybrid"} else "BM25")
+        else (embedding_model() if mode in {"dense", "hybrid"} else "BM25")
     )
     evaluation_sha256 = ""
     if evaluation_data is not None:
@@ -399,7 +400,7 @@ def attach_patent_run_metadata(
             mode=mode + ("+rerank" if rerank else ""),
             model=model,
             embedding_model=(
-                "text-embedding-3-small" if mode in {"dense", "hybrid"} else "n/a"
+                embedding_model() if mode in {"dense", "hybrid"} else "n/a"
             ),
             reranker_model=(
                 reranker_model or ("BAAI/bge-reranker-v2-m3" if rerank else "none")
@@ -536,7 +537,7 @@ def main() -> None:
             from src.retrieval.market_search import embed_texts
 
             reranker = bi_encoder_reranker(embed_texts)
-            patent_reranker_model = "text-embedding-3-small (bi-encoder)"
+            patent_reranker_model = f"{embedding_model()} (bi-encoder)"
         else:
             patent_reranker_model = "BAAI/bge-reranker-v2-m3 (cross-encoder)"
     if args.rerank or (args.command == "patent" and args.reranker == "cross-encoder"):

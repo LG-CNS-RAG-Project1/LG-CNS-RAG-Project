@@ -6,6 +6,7 @@ from pathlib import Path
 import chromadb
 from chromadb.config import Settings
 from dotenv import load_dotenv
+from src.llm_client import local_chroma_path
 
 
 def connect_chroma(local_path: Path):
@@ -30,6 +31,7 @@ def connect_chroma(local_path: Path):
                 raise ValueError("CHROMA_API_KEY must not contain whitespace")
             options["headers"] = {"Authorization": f"Bearer {api_key}"}
         return chromadb.HttpClient(**options)
+    local_path = local_chroma_path(local_path)
     local_path.mkdir(parents=True, exist_ok=True)
     return chromadb.PersistentClient(
         path=str(local_path), settings=Settings(anonymized_telemetry=False)

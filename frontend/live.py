@@ -90,8 +90,10 @@ def build_version(root: Path) -> str:
 
 
 def live_available() -> bool:
-    """OpenAI 키가 있으면 실제 분석(AI 구조화·조사)을 쓸 수 있다."""
-    return bool(os.getenv("OPENAI_API_KEY", "").strip())
+    """선택한 LLM provider 설정이 있으면 실제 분석을 쓸 수 있다."""
+    from src.llm_client import llm_is_configured
+
+    return llm_is_configured()
 
 
 def analysis_key(draft, parts: list[str], area: str | None) -> str:
@@ -111,14 +113,24 @@ def friendly_error(exc: Exception) -> str:
     from src.pipeline import redact
 
     name = type(exc).__name__
+    from src.llm_client import load_llm_settings
+
+    try:
+        provider = load_llm_settings()
+    except ValueError:
+        provider = "openai"
+    provider_label = "Ollama" if provider == "ollama" else "OpenAI"
     if name == "AuthenticationError":
-        return "OpenAI 인증에 실패했습니다. OPENAI_API_KEY를 확인해 주세요."
+        return f"{provider_label} 인증에 실패했습니다. 설정을 확인해 주세요."
     if name == "RateLimitError":
-        return "OpenAI 사용 한도에 걸렸습니다. 잠시 후 다시 시도해 주세요."
+        return f"{provider_label} 사용 한도에 걸렸습니다. 잠시 후 다시 시도해 주세요."
     if name in ("APIConnectionError", "APITimeoutError", "ConnectionError"):
         return "외부 API에 연결하지 못했습니다. 네트워크를 확인해 주세요."
-    if isinstance(exc, RuntimeError) and "OPENAI_API_KEY" in str(exc):
-        return "OPENAI_API_KEY가 없어 AI 구조화를 실행할 수 없습니다."
+    if isinstance(exc, RuntimeError) and any(
+        token in str(exc).lower()
+        for token in ("provider", "openai_api_key", "ollama_base_url")
+    ):
+        return "선택한 LLM provider 설정이 없어 AI 구조화를 실행할 수 없습니다."
     if isinstance(exc, ValueError):
         return redact(str(exc))[:300]
     return (

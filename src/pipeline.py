@@ -29,6 +29,11 @@ from typing import Callable, Literal
 import requests
 import yaml
 from dotenv import load_dotenv
+from src.llm_client import (
+    embedding_collection_name,
+    llm_is_configured,
+    load_llm_settings,
+)
 from pydantic import BaseModel, Field
 
 from src.generation.idea_parser import build_requests
@@ -68,6 +73,7 @@ PATENT_TIMEOUT = float(os.getenv("IDEALENS_PATENT_TIMEOUT", "180"))
 HEARTBEAT_TIMEOUT = 5.0
 KEY_NAMES = [
     "OPENAI_API_KEY",
+    "OLLAMA_API_KEY",
     "KIPRIS_API_KEY",
     "NAVER_CLIENT_ID",
     "NAVER_CLIENT_SECRET",
@@ -105,7 +111,7 @@ class IndexState(BaseModel):
 
 
 class Readiness(BaseModel):
-    keys: dict[str, bool]  # 키 이름별 설정 여부. 값은 담지 않는다
+    keys: dict[str, bool]  # 인증 정보와 provider 설정 여부. 실제 값은 담지 않는다
     chroma: Literal["local", "remote"]
     market_index: IndexState
     patent_index: IndexState
@@ -248,7 +254,9 @@ def open_collection(name: str, local_dir: Path, client=None):
             reason = remote_heartbeat()
             if reason:
                 return None, IndexState(
-                    location=location, collection=name, reason=reason
+                    location=location,
+                    collection=embedding_collection_name(name),
+                    reason=reason,
                 )
             from src.retrieval.chroma_client import connect_chroma
 
@@ -257,15 +265,20 @@ def open_collection(name: str, local_dir: Path, client=None):
             except Exception as exc:
                 return None, IndexState(
                     location=location,
-                    collection=name,
+                    collection=embedding_collection_name(name),
                     reason=redact(
                         f"공용 Chroma 설정 오류({type(exc).__name__}: {exc})"
                     ),
                 )
         else:
+            from src.llm_client import local_chroma_path
+
+            local_dir = local_chroma_path(local_dir)
             if not (local_dir / "chroma.sqlite3").exists():
                 return None, IndexState(
-                    location=location, collection=name, reason="로컬 색인 없음"
+                    location=location,
+                    collection=embedding_collection_name(name),
+                    reason="로컬 색인 없음",
                 )
             import chromadb
             from chromadb.config import Settings
@@ -274,14 +287,20 @@ def open_collection(name: str, local_dir: Path, client=None):
                 path=str(local_dir), settings=Settings(anonymized_telemetry=False)
             )
     try:
-        collection = client.get_collection(name, embedding_function=None)
+        collection = client.get_collection(
+            embedding_collection_name(name), embedding_function=None
+        )
     except Exception as exc:  # chromadb NotFoundError 등
         reason = (
             "컬렉션 없음"
             if type(exc).__name__ == "NotFoundError" or "does not exist" in str(exc)
             else f"컬렉션을 열 수 없음({type(exc).__name__})"
         )
-        return None, IndexState(location=location, collection=name, reason=reason)
+        return None, IndexState(
+            location=location,
+            collection=embedding_collection_name(name),
+            reason=reason,
+        )
     if location == "remote":
         collection = _GetCountCollection(collection)
     try:
@@ -289,10 +308,14 @@ def open_collection(name: str, local_dir: Path, client=None):
     except Exception as exc:
         return None, IndexState(
             location=location,
-            collection=name,
+            collection=embedding_collection_name(name),
             reason=f"건수 확인 실패({type(exc).__name__})",
         )
-    return collection, IndexState(location=location, collection=name, count=count)
+    return collection, IndexState(
+        location=location,
+        collection=embedding_collection_name(name),
+        count=count,
+    )
 
 
 def _market_dart_count(collection) -> int:
@@ -326,6 +349,8 @@ def prepare_sources(
     if dotenv_path is not None:
         load_dotenv(dotenv_path)
     keys = {name: bool(os.getenv(name, "").strip()) for name in KEY_NAMES}
+    llm_configured = llm_is_configured()
+    keys["LLM_PROVIDER"] = llm_configured
     market, market_state = open_collection(
         MARKET_COLLECTION, MARKET_CHROMA_DIR, market_client
     )
@@ -341,9 +366,12 @@ def prepare_sources(
                 patent_state.area_counts[area_id] = 0
 
     reasons = []
-    if not keys["OPENAI_API_KEY"]:
-        reasons.append("OPENAI_API_KEY 없음: 시장·특허 분석을 실행할 수 없음")
-    market_runnable = keys["OPENAI_API_KEY"] and bool(market_state.count)
+    if not llm_configured:
+        if load_llm_settings() == "ollama":
+            reasons.append("OLLAMA_BASE_URL 설정 필요: Ollama LLM 연결 불가")
+        else:
+            reasons.append("OPENAI_API_KEY 없음: 시장·특허 분석을 실행할 수 없음")
+    market_runnable = llm_configured and bool(market_state.count)
     if not market_state.count:
         reasons.append(f"시장 색인 준비 필요({market_state.reason or '문서 0건'})")
     elif not _market_dart_count(market):
@@ -362,7 +390,7 @@ def prepare_sources(
         reasons.append(
             f"특허 색인에 {technology_area_id} 문서가 없어 전체 특허 색인으로 검색합니다"
         )
-    if not keys["OPENAI_API_KEY"]:
+    if not llm_configured:
         patent_mode = "none"
     elif local_patents and keys["KIPRIS_API_KEY"]:
         patent_mode = "local+kipris"

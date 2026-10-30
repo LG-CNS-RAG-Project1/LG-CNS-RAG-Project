@@ -84,13 +84,15 @@ python3 scripts/idealens.py logs | stop | test
 
 | 명령 | 필요한 키 |
 |---|---|
-| `ui`(실제 분석) | `OPENAI_API_KEY`, `KIPRIS_API_KEY`(특허 실시간 검색), 공용 색인을 쓰면 `CHROMA_*` |
-| `data market` | `NAVER_CLIENT_ID`·`NAVER_CLIENT_SECRET`, `OPENAI_API_KEY` |
-| `data patents` | `KIPRIS_API_KEY`, `OPENAI_API_KEY` |
+| `ui`(실제 분석) | `LLM_PROVIDER=openai`이면 `OPENAI_API_KEY`; `ollama`이면 Ollama와 모델, `KIPRIS_API_KEY`(특허 실시간 검색), 공용 색인을 쓰면 `CHROMA_*` |
+| `data market` | `NAVER_CLIENT_ID`·`NAVER_CLIENT_SECRET`, 선택한 LLM provider 설정 |
+| `data patents` | `KIPRIS_API_KEY`, 선택한 LLM provider 설정 |
 
 - `data market`·`data patents [--field-id SF-02]`는 호출량을 보여 주고 확인을 받은 뒤 실행한다(API 비용 발생). 공용 Chroma에 적재할 때는 `--yes`로도 확인을 생략할 수 없으며, 색인은 한 사람만 실행한다. 시장 수집이 중간에 실패하면 같은 명령으로 오늘 미수집 키워드만 이어서 수집한다.
 - 공용 Chroma 키는 관리자에게 개인 메시지로 받아 개인 `.env`에만 둔다(Notion·GitHub 게시 금지). HTTPS 키 접속은 `CHROMA_PORT=443`·`CHROMA_SSL=true`다.
 - Python이 없으면 `docker compose up -d ui`로 화면만 실행할 수 있다.
+
+OpenAI API 사용 한도 없이 로컬 모델로 개발·평가하려면 Ollama를 설치하고 `ollama pull qwen3:4b`, `ollama pull bge-m3`를 실행한다. `.env`에서 `LLM_PROVIDER=ollama`로 설정한다. Python을 호스트에서 직접 실행하면 기본 주소 `http://localhost:11434`를 쓰고, Docker 컨테이너에서 macOS Ollama에 연결하면 `OLLAMA_BASE_URL=http://host.docker.internal:11434`로 바꾼다. `OLLAMA_CHAT_MODEL`과 `OLLAMA_EMBEDDING_MODEL`은 설치한 모델 이름에 맞춘다. 임베딩 차원이 다르므로 기존 OpenAI 벡터 색인은 Ollama에서 재사용할 수 없다. 시장은 `python -m src.retrieval.market_search build --rebuild`, 특허는 `python -m scripts.build_patent_index --field-id SF-05`로 Ollama 색인을 새로 만든다. 로컬·공용 Chroma 모두 provider·모델별 저장 공간을 사용한다. KIPRIS·NAVER 자료 수집에는 각각 기존 외부 API 키가 계속 필요하다.
 
 **문제 해결**
 
@@ -198,7 +200,7 @@ python -m src.ingestion.patent_processor --field-id SF-05 --limit 20 --include-c
 - `--include-claims`는 문헌별 청구항 상세 API를 조회한다. API에서 확보하지 못한 청구항은 생성하지 않고 초록만 색인한다. `KIPRIS_API_KEY`와 청구항 API 이용 권한이 필요하다.
 - 검색어 계획으로 별도 수집·색인을 하려면 `python -m scripts.collect_patents --request <PatentSearchRequest.json> --field-id SF-02 --include-claims` 후 `python -m scripts.build_patent_index --field-id SF-02`를 실행한다. `PatentQueryPlan`은 기술 요소를 최대 5개까지 허용한다.
 - KIPRIS 검색·청구항 API 원본 XML과 키를 제외한 요청 메타데이터는 `data/patents/raw/`에 저장한다. 해당 폴더는 로컬 전용이며 Git 추적 대상에서 제외된다.
-- 색인 시 문서 임베딩 API 호출이 필요하다(`OPENAI_API_KEY`). 이후 문서 벡터는 로컬 Chroma에서 재사용한다. Dense/Hybrid 검색의 질의 임베딩은 검색 때 별도로 생성된다.
+- 색인 시 선택한 LLM provider로 문서를 임베딩한다. 이후 벡터는 로컬 Chroma에서 재사용하고, Dense/Hybrid 검색의 질의 임베딩은 검색 때 별도로 생성한다.
 - `PatentSearchRequest.technology_area_id`를 지정하면 검색 결과를 해당 분야로 제한한다. 원문 JSONL과 Chroma DB는 로컬에 저장되고 Git에는 포함되지 않는다.
 - `data/samples/ideas.json`의 SF-05와 시장 뉴스·DART 기업 연결은 지능형 공정제어 기준이다. 이전 SF-05(현장 작업자용 LLM 음성 어시스턴트)의 검색어는 `legacy_market_keywords`에 기록만 하며, 그 검색어로 수집한 기사는 정제 단계(`market_processor`)에서 제외한다. 시장 평가 라벨은 아직 이전 SF-05 기준이라 새 SF-05 시장 성능을 평가하려면 다시 라벨링해야 한다.
 
@@ -209,7 +211,7 @@ python -m src.retrieval.market_search build                                     
 python -m src.retrieval.market_search search "협동로봇 도입 확대" --idea-id SF-01   # 질의 검색
 ```
 
-- `data/market/processed/market_docs.jsonl`(뉴스)과 `dart_docs.jsonl`(DART)을 `text-embedding-3-small`로 임베딩해 `data/market/chroma/`의 `news` 컬렉션(cosine)에 저장한다. 출처는 `source_type`(`news`·`dart`)으로 구분한다. `OPENAI_API_KEY`가 필요하다.
+- `data/market/processed/market_docs.jsonl`(뉴스)과 `dart_docs.jsonl`(DART)을 선택한 임베딩 모델로 임베딩해 Chroma의 `news` 컬렉션(cosine)에 저장한다. 출처는 `source_type`(`news`·`dart`)으로 구분한다. 선택한 LLM provider 설정이 필요하다.
 - `search_by_dimensions`는 차원마다 뉴스 5건과 DART를 따로 검색해 합친다. DART는 먼저 기업을 최대 3곳 고르고 차원마다 그 기업에서 기업당 1건씩 가져온다. 기업은 관련성 판정 모델이 아이디어 항목과 기업별 주요 사업(`configs/dart_companies.yaml`의 `reason`)을 보고 같은 제품·공정 범주인 곳을 고르며(`choose_dart_companies`, `prompts/market_dart_companies.md`, 맞는 기업이 없으면 DART 없이 검색), 이 호출이 실패하면 아이디어 전체 문장과 가까운 기업을 쓴다(`route_dart_companies`). 보고서 검색 범위에 검색한 DART 기업을 표시한다. 통합 실행 준비 점검은 시장 색인에 DART가 없으면 사유를 표시한다.
 - 같은 텍스트로 이미 색인된 문서는 다시 임베딩하지 않고 메타데이터만 갱신하며, `--rebuild`로 전체를 다시 임베딩한다.
 - DART 청크를 다시 만들면 청크 수가 달라질 수 있다. `build --prune`은 색인이 끝난 뒤 정제 문서에 없는 ID를 지운다. 임베딩이 중간에 실패하면 기존 색인은 그대로 남는다.
@@ -220,7 +222,7 @@ python -m src.retrieval.market_search search "협동로봇 도입 확대" --idea
 python -m src.retrieval.market_relevance --idea-id SF-01   # 차원별 검색 + 관련성 판정·충분성 상태
 ```
 
-- `search_with_relevance`는 차원별 검색 결과마다 `gpt-4o-mini`로 관련 여부·이유를 판정하고(기준: `prompts/market_label_judge.md`), 관련 건수로 차원별 충분성 상태(`sufficient` 2건 이상 · `limited` 1건 · `insufficient` 0건 · `no_results` · `error`)를 붙여 반환한다. `OPENAI_API_KEY`가 필요하다.
+- `search_with_relevance`는 차원별 검색 결과마다 선택한 채팅 모델로 관련 여부·이유를 판정하고(기준: `prompts/market_label_judge.md`), 관련 건수로 차원별 충분성 상태(`sufficient` 2건 이상 · `limited` 1건 · `insufficient` 0건 · `no_results` · `error`)를 붙여 반환한다.
 - 검색 거리는 관련성을 구분하지 못해(평가 라벨 기준 AUC 0.52) 충분성 판단에 쓰지 않는다. 판정 모델 선택 근거는 [docs/market_research.md](docs/market_research.md#충분성-판정).
 
 ### 시장 조사 실행 (MarketReport)
@@ -239,7 +241,7 @@ python -m src.ingestion.trend_client 예지보전 예측정비                  
 
 - `--idea-id`는 `data/samples/ideas.json`에서 아이디어를 고르는 데 쓴다. 기본 실행은 화면 통합 실행과 같이 전체 색인을 검색하며, `--idea-filter`를 주면 그 아이디어에 연결된 뉴스·DART 기업으로 좁힌다. 답변 평가(`evaluation.market_answer_eval`)는 아이디어 연결 자료로 한정해 실행한다.
 
-- `run_market_research(MarketSearchRequest)`가 차원별 검색 → 관련성 판정 → 시장 분석 생성·인용 검증을 실행해 `MarketReport`(`src/schemas.py`)를 반환한다. 분석 규칙은 `prompts/market_analysis.md`, 생성·검증은 `src/generation/market_analysis.py`에서 관리한다. `OPENAI_API_KEY`가 필요하다.
+- `run_market_research(MarketSearchRequest)`가 차원별 검색 → 관련성 판정 → 시장 분석 생성·인용 검증을 실행해 `MarketReport`(`src/schemas.py`)를 반환한다. 분석 규칙은 `prompts/market_analysis.md`, 생성·검증은 `src/generation/market_analysis.py`에서 관리한다.
 - 사실 문장은 인용 근거(`evidence`의 `citation_id`)가 있어야 하고, 인용 기사·아이디어 입력에 없는 숫자가 있거나 수치에 기준 연도가 없으면 재생성(최대 2회)하거나 해당 문장을 제거한다. 판정은 차원별 충분성 상태와 근거 성격으로 제한하고(근거 1건이거나 사업 신호뿐이면 최대 '신호만 확인'), 기대는 아이디어 항목이 모름이면 미확인으로 둔다(가격 ← 수익모델, 구매자 ← 고객). 뉴스의 근거 성격(구매 신호·간접 수요·사업 신호 등)은 관련성 판정과 같은 호출에서 정하고, 차원마다 확인되지 않은 이유(`limitation`)를 붙인다. DART 사업보고서를 인용한 문장은 "기업 사업보고서(FY연도)에 따르면"처럼 공시 기업을 밝힌다.
 - 검색 관심도 흐름(`MarketReport.search_trend`): 아이디어 5개 항목에서 LLM이 검색 주제어(대표 범주 + 같은 범주의 다른 이름, 최대 3개, `prompts/market_trend_terms.md`)를 고르고, 네이버 검색어 트렌드로 기준 주제어(스마트공장·스마트팩토리)와 함께 최근 24개월 월별 검색량을 조회한다(`src/ingestion/trend_client.py`, 설정 `configs/search_trend.yaml`). 월별 '주제어 ÷ 기준 × 100' 지수의 최근 6개월 평균을 직전 6개월과 비교해 ±10% 이상이면 상승·둔화, 그 사이는 유지로 표시하고, 평균 검색량이 적으면 판단하지 않는다(`src/services/market_trend.py`). 시장 화면에 월별 선 그래프로 나오며(`frontend/market_trend_view.py`), 차원별 판정에는 쓰지 않는다. 화면 통합 실행과 CLI에서만 붙고, 같은 요청은 그날 `data/market/trends/`에 캐시한다. `NAVER_TREND_CLIENT_ID`·`NAVER_TREND_CLIENT_SECRET`이 필요하다.
 - 키워드 동시 출현 네트워크(`MarketReport.keyword_network`): 아이디어 전체 문장과 가까운 뉴스 100건의 제목·요약에서 `kiwipiepy`로 명사를 뽑고(붙어 쓴 명사는 합침), 전체 뉴스보다 이 아이디어 주변에서 두드러진 명사 30개(lift ≥ 1.5, 기사 수 × ln(lift) 순)를 같은 기사에 함께 나온 기사 수로 잇는다. `networkx`로 키워드 묶음(가중 모듈성)과 배치를 계산해 시장 화면에 연결망 그림과 묶음 목록으로 보여 준다(`src/services/market_network.py`, 설정 `configs/keyword_network.yaml`, 화면 `frontend/market_network_view.py`). LLM 없이 질의 임베딩 1회만 쓰며, 함께 나온 것은 같은 기사에서 다뤄졌다는 뜻이라 차원별 판정에는 쓰지 않는다. 화면 통합 실행과 CLI에서만 붙는다.
@@ -260,7 +262,7 @@ python -m src.generation.market_markdown data/samples/market_reports/SF-01.json 
 python -m src.generation.idea_parser "중소 부품 공장에 협동로봇과 비전 카메라를 턴키로 설치해 준다"
 ```
 
-- 아이디어 한 문장을 `gpt-4o-mini`로 문제(`problem`)·기술(`technology`)·고객(`customers`)·차별점(`difference`)·수익모델(`revenue`)로 나눈다. 규칙은 `prompts/idea_parser.md`에서 관리하며, 문장에 없는 항목은 추측하지 않고 비워 둔다. `OPENAI_API_KEY`가 필요하다.
+- 아이디어 한 문장을 선택한 채팅 모델로 문제(`problem`)·기술(`technology`)·고객(`customers`)·차별점(`difference`)·수익모델(`revenue`)로 나눈다. 규칙은 `prompts/idea_parser.md`에서 관리하며, 문장에 없는 항목은 추측하지 않고 비워 둔다.
 - 빈 항목은 사용자에게 최대 2회 재질문한다. 사용자는 빠진 항목을 미확인으로 두고 진행할 수 있다. 항목 출처(`extracted`·`user_answer`·`ai_hypothesis`·`unknown`)를 함께 남기며 AI 가치 가설은 입력 사실과 분리한다.
 - 완성된 결과(`IdeaDraft`)는 `build_requests`로 특허·시장 공통 입력(`StructuredIdea`)과 검색 요청(`PatentSearchRequest`·`MarketSearchRequest`)으로 변환한다.
 - Streamlit에서는 `아이디어 구조화·전체 보고서 시작`으로 구조화·재질문을 시작하고, SF-02/SF-05 특허 색인을 선택할 수 있다. 입력은 1,000자까지다. 초안이 완성되면 특허 보고서 → 시장성 보고서 → 최종 사업 검토 순서로 화면과 결과가 자동 진행한다.
@@ -288,7 +290,12 @@ docker compose run --rm app python -m src.pipeline run --idea-id SF-02 --out rep
 
 | 이름 | 용도 |
 |---|---|
-| `OPENAI_API_KEY` | 앱의 임베딩·답변 생성용 OpenAI API 키 |
+| `OPENAI_API_KEY` | `LLM_PROVIDER=openai`일 때 필요한 OpenAI API 키 |
+| `LLM_PROVIDER` | `openai`(기본) 또는 `ollama` 선택 |
+| `OPENAI_CHAT_MODEL` · `OPENAI_EMBEDDING_MODEL` | (선택) OpenAI 사용 시 채팅·임베딩 모델 덮어쓰기 |
+| `OLLAMA_BASE_URL` | (선택) Ollama 주소. Docker에서 macOS 호스트에 연결할 때 `http://host.docker.internal:11434` |
+| `OLLAMA_API_KEY` | (선택) Ollama 서버 인증이 필요한 경우 사용. 로컬 Ollama는 비워도 됨 |
+| `OLLAMA_CHAT_MODEL` · `OLLAMA_EMBEDDING_MODEL` | Ollama에서 내려받은 채팅·임베딩 모델 이름 |
 | `KIPRIS_API_KEY` | KIPRIS Plus 특허 API 키 |
 | `DART_API_KEY` | DART OpenAPI 공시 API 키 |
 | `NAVER_CLIENT_ID` · `NAVER_CLIENT_SECRET` | NAVER API HUB(네이버클라우드) Application의 Client ID·Secret. 해당 Application에서 뉴스 검색 API 활성화 필요 |
@@ -320,7 +327,7 @@ PR 분석 자동화용 `CODEX_AUTH_JSON`(ChatGPT 구독 로그인, `make review-
 - 백엔드 아이디어·특허·시장 모델(`src/schemas.py`)을 결과 계약으로 유지하고 `src.pipeline.run_pipeline`에서 두 조사와 통합 보고서 생성을 연결한다.
 - 데이터 출처: KIPRIS Plus, NAVER 뉴스 검색 API(교육 목적, 프로젝트 종료 시 폐기), DART, 공공기관·연구기관·기업의 공식 자료. 사내자료 연계는 향후 검토 범위.
 - 원문 구획과 청구항 구조를 보존하고, 각 주장에 출처·문헌 버전·원문 위치·링크를 연결.
-- 검색은 공통 엔진에서 의미 검색(dense)·단어 검색(BM25)·결합(hybrid) 중 선택하며, 임베딩은 `text-embedding-3-small`, 색인은 로컬 Chroma 또는 환경변수로 지정한 공용 Chroma를 사용.
+- 검색은 공통 엔진에서 의미 검색(dense)·단어 검색(BM25)·결합(hybrid) 중 선택한다. 임베딩 provider와 모델은 `LLM_PROVIDER` 설정으로 고르며, 선택한 모델별 로컬 색인을 분리해 OpenAI와 Ollama 벡터가 섞이지 않게 한다. 색인은 로컬 Chroma 또는 환경변수로 지정한 공용 Chroma를 사용.
 - 시연은 Streamlit UI로 하며 Streamlit Community Cloud(`main` 병합 시 자동 배포, 앱 비밀번호, [배포 안내](docs/deploy-streamlit-cloud.md)) 또는 로컬 Docker로 실행한다. 팀 색인은 공용 Chroma, 로컬 Chroma(`data/patents/chroma/`·`data/market/chroma/`)는 개인 실험·테스트용이다.
 - 사실·해석·가설·미확인을 구분하고, 근거가 부족하면 판단을 보류. 최종 판단은 사용자가 수행.
 
@@ -378,7 +385,7 @@ python -m evaluation.patent_labeling export              # SF-02/SF-05 특허 �
 - 실제 `PatentReport` JSON의 구성요소 주장과 연결된 원문 인용을 검토하려면 `python -m evaluation.patent_groundedness export <report.json>`으로 사람 검토 CSV를 만들고, 라벨 입력 후 `python -m evaluation.patent_groundedness score <labels.csv>`로 분포·파일 지문을 저장한다. 라벨 기준은 [특허 주장 근거 지지 검토 가이드](evaluation/patent_groundedness.md)를 따른다.
 - 동일한 문헌 단위 정답셋으로 `python -m evaluation.evaluate patent --mode dense --label baseline`, `--mode bm25`, `--mode hybrid`, `--mode hybrid --reranker bi-encoder`, `--mode hybrid --reranker cross-encoder --candidate-k 40`을 실행해 Hit@5·Recall@5·Precision@5·MRR·nDCG@5와 검색·리랭킹 지연시간을 비교한다. 결과 CSV는 `evaluation/results/`에 저장한다. `--candidate-k` 비교 시 다른 조건은 고정하고, 새 Top-5 문헌이 미판정이면 먼저 추가 라벨링한다.
 - 검색 결과에서 나온 적 없는 문헌이 top-K에 나타나면 `unjudged`로 따로 세므로 라벨 후보를 추가 검토한다. 평가 문항이 라벨되기 전에는 성능 수치를 보고하지 않는다.
-- Dense·Hybrid 검색과 Bi-Encoder 재정렬은 `OPENAI_API_KEY`가 필요하며 후보 문헌을 매 질의 다시 임베딩한다. 평가 도구는 임베딩 비용을 자동 계산하지 않는다. Cross-Encoder는 `sentence-transformers`와 모델 파일을 별도로 설치해야 한다.
+- Dense·Hybrid 검색과 Bi-Encoder 재정렬은 선택한 LLM provider의 임베딩 설정이 필요하며 후보 문헌을 매 질의 다시 임베딩한다. Ollama는 로컬 모델을 사용하므로 OpenAI API 한도와 별도로 실행된다. Cross-Encoder는 `sentence-transformers`와 모델 파일을 별도로 설치해야 한다.
 
 ### 지능형 공정제어 분야 검색 비교
 
@@ -390,7 +397,7 @@ python -m evaluation.patent_index_effect --rebuild-cache # SF-05 사전색인과
 
 - 비교 스크립트는 `data/patents/chroma/`의 로컬 `patents` 컬렉션을 직접 열어 공용 Chroma 설정과 분리한다. 기존 로컬 색인의 SF-05(지능형 공정제어)와 비교 분야 SF-02(AI 비전 품질검사) 임베딩을 분야별 필터로 검색한다. 새 특허를 추가할 때는 수집·정제 및 기존 특허 색인 구축 절차를 따른다.
 - SF-05 평가 질의와 동일한 Top-20 후보 풀에서 Dense·BM25·Hybrid를 비교한다. 검색 순위가 포함된 `rankings.csv`와 순위·방식을 감춘 `candidates.csv`는 Git 제외 경로 `data/patents/processed/domain_experiment/`에 생성된다. 후보의 `relevant`를 사람이 0/1로 판정하고, 기존 [특허 평가 라벨링 가이드](evaluation/patent_labeling.md)에 따라 애매한 후보는 보류한 뒤 `score`를 실행한다.
-- Hit@5·Recall@5·Precision@5·MRR@5·nDCG@5는 라벨 완료된 후보 풀 기준으로만 계산한다. 평가 문항과 특허 표본이 작으므로 결과는 해당 색인·질의의 예비 비교로 해석한다. Dense·Hybrid 검색은 질의 임베딩에 `OPENAI_API_KEY`가 필요하다.
+- Hit@5·Recall@5·Precision@5·MRR@5·nDCG@5는 라벨 완료된 후보 풀 기준으로만 계산한다. 평가 문항과 특허 표본이 작으므로 결과는 해당 색인·질의의 예비 비교로 해석한다. Dense·Hybrid 검색은 선택한 임베딩 provider가 필요하다.
 - `patent_index_effect`는 SF-05 특허 청크를 실험 전용 로컬 Chroma에 한 번 색인한 경로와, 질의마다 문서 전체를 다시 임베딩하는 경로의 임베딩 입력 수·API 요청 수·시간·Top-5 순위 일치도를 비교한다. 전자는 색인 구축 시간을 별도로 기록하고, 실측 질의 시간 절감으로 단순 손익분기 질의 수를 계산한다. 결과는 Git 제외 경로 `data/patents/processed/domain_experiment/index_effect.json`에 저장된다. 비교 실행은 특허 본문을 임베딩 API로 보낸다. 단일 실행 시간은 네트워크 변동을 포함하며, 검색 품질 지표는 사람 라벨을 완료한 뒤 해석한다.
 
 ### 특허 청구항 분석

@@ -24,10 +24,15 @@ from evaluation.evaluate import (
 from evaluation.patent_labeling import load_cases
 from src.generation.patent_analysis import kipris_application_search_url
 from src.retrieval.patent_search import search_patents
+from src.llm_client import (
+    embedding_collection_name,
+    embedding_model,
+    local_chroma_path,
+)
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 OUTPUT_DIR = ROOT_DIR / "data" / "patents" / "processed" / "domain_experiment"
-LOCAL_CHROMA_DIR = ROOT_DIR / "data" / "patents" / "chroma"
+LOCAL_CHROMA_DIR = local_chroma_path(ROOT_DIR / "data" / "patents" / "chroma")
 CASES_PATH = ROOT_DIR / "evaluation" / "patent_cases.json"
 CORPORA = {"A": "SF-05", "B": "SF-02"}
 MODES = ("dense", "bm25", "hybrid")
@@ -81,7 +86,7 @@ def open_local_collection():
     client = chromadb.PersistentClient(
         path=str(LOCAL_CHROMA_DIR), settings=Settings(anonymized_telemetry=False)
     )
-    return client.get_collection("patents")
+    return client.get_collection(embedding_collection_name("patents"))
 
 
 def run_experiment(output_dir: Path = OUTPUT_DIR, top_k: int = POOL_K) -> dict:
@@ -171,7 +176,7 @@ def run_experiment(output_dir: Path = OUTPUT_DIR, top_k: int = POOL_K) -> dict:
         "modes": list(MODES),
         "pool_k": top_k,
         "metric_k": METRIC_K,
-        "embedding_model": "text-embedding-3-small",
+        "embedding_model": embedding_model(),
         "local_chroma_dir": str(LOCAL_CHROMA_DIR.relative_to(ROOT_DIR)),
         "local_collection": "patents",
         "collection_chunk_count": collection.count(),

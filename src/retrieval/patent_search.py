@@ -4,13 +4,12 @@ import json
 import math
 from typing import Callable
 
-from openai import OpenAI
 from pydantic import ValidationError
 
 from src.schemas import PatentSearchRequest
 from src.retrieval.schemas import PatentQueryPlan
 from pathlib import Path
-from dotenv import load_dotenv
+from src.llm_client import chat_model, get_openai_client
 
 from src.retrieval.patent_store import get_collection
 from src.retrieval.schemas import RetrievalResult, SearchDocument
@@ -55,12 +54,11 @@ SYSTEM_PROMPT = """
 
 
 def call_query_llm(system_prompt: str, user_text: str) -> dict:
-    """OpenAI API를 호출하여 검색어 생성 결과를 반환한다."""
-    load_dotenv(ROOT_DIR / ".env")
-    client = OpenAI()
+    """선택한 LLM provider를 호출하여 검색어 생성 결과를 반환한다."""
+    client = get_openai_client()
 
     response = client.chat.completions.create(
-        model=LLM_MODEL,
+        model=chat_model(LLM_MODEL),
         temperature=0,
         response_format={"type": "json_object"},
         messages=[

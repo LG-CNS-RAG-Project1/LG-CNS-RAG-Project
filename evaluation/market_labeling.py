@@ -136,7 +136,7 @@ def default_search_fn(
     reranker=None,
     source_types: list[str] | None = LABELED_SOURCE_TYPES,
 ) -> SearchFn:
-    """로컬 Chroma 색인을 쓰는 검색 함수를 만든다. OPENAI_API_KEY가 필요하다.
+    """로컬 Chroma 색인을 쓰는 검색 함수를 만든다. 임베딩 provider 설정이 필요하다.
 
     기본 검색 대상은 정답 라벨이 있는 뉴스뿐이다. source_types=None이면 모든 출처를 검색한다.
     """

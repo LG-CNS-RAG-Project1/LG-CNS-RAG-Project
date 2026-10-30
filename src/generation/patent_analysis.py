@@ -7,8 +7,7 @@ from pathlib import Path
 from typing import Callable
 from urllib.parse import urlencode
 
-from dotenv import load_dotenv
-from openai import OpenAI
+from src.llm_client import chat_model, get_openai_client
 
 from src.schemas import (
     PatentComparison,
@@ -43,11 +42,10 @@ def load_prompt() -> str:
 
 
 def call_comparison_llm(system_prompt: str, user_text: str) -> dict:
-    """OpenAI JSON 응답을 반환한다."""
-    load_dotenv(ROOT_DIR / ".env")
-    client = OpenAI()
+    """선택한 LLM provider의 JSON 응답을 반환한다."""
+    client = get_openai_client()
     response = client.chat.completions.create(
-        model=LLM_MODEL,
+        model=chat_model(LLM_MODEL),
         temperature=0,
         max_tokens=6000,
         response_format={"type": "json_object"},

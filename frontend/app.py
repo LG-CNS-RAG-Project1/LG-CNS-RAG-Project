@@ -2061,9 +2061,7 @@ with st.container(key=f"workspace_{1 if s.stage == 1 else 3 if s.stage == 4 else
 
         if s.idea_page_view == "generate_example":
             if not live_available():
-                s.ai_draft_error = (
-                    "예시 초안을 만들려면 .env에 OPENAI_API_KEY를 설정해야 합니다."
-                )
+                s.ai_draft_error = "AI 초안을 만들려면 .env에서 LLM_PROVIDER와 provider 설정을 확인해 주세요."
                 s.idea_page_view = "input"
             else:
                 with st.spinner("예시 아이디어를 LLM 초안으로 구체화하고 있습니다…"):
@@ -2099,7 +2097,7 @@ with st.container(key=f"workspace_{1 if s.stage == 1 else 3 if s.stage == 4 else
                     st.error(f"아이디어를 {MIN_IDEA_CHARS}자 이상 입력해 주세요.")
                 elif not live_available():
                     st.error(
-                        "실제 AI 초안을 만들려면 .env에 OPENAI_API_KEY를 설정해야 합니다."
+                        "AI 초안을 만들려면 .env에서 LLM_PROVIDER와 provider 설정을 확인해 주세요."
                     )
                 else:
                     prepare_input()
