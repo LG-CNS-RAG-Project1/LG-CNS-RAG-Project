@@ -35,7 +35,7 @@ def intro_styles():
       to {opacity:1;transform:translateY(0);}
     }
     .st-key-brandbar {opacity:0;visibility:hidden;animation:introFallback 0s 6.5s forwards;}
-    [data-testid="stMainBlockContainer"]:has(.st-key-landing[data-intro-state="playing"]) .st-key-brandbar {visibility:visible;animation:introReveal .4s 3.05s both;}
+    [data-testid="stMainBlockContainer"]:has(.st-key-landing[data-intro-state="playing"]) .st-key-brandbar {visibility:visible;animation:introReveal .4s 2.65s both;}
     [data-testid="stMainBlockContainer"]:has(.st-key-landing[data-intro-state="done"]) .st-key-brandbar {opacity:1;visibility:visible;animation:none;}
     .st-key-landing:not([data-intro-state="done"]) .hero-copy h1,
     .st-key-landing:not([data-intro-state="done"]) .hero-copy>.eyebrow,
@@ -51,12 +51,12 @@ def intro_styles():
     .st-key-landing[data-intro-state="playing"] .hero-title-line:last-child {animation:introReveal .35s .38s both;}
     .st-key-landing[data-intro-state="playing"] .hero-copy>.eyebrow,
     .st-key-landing[data-intro-state="playing"] .hero-copy>p,
-    .st-key-landing[data-intro-state="playing"] .hero-note {animation:introReveal .5s 3.2s both;}
-    .st-key-landing[data-intro-state="playing"] .paper-scene {animation:introReveal .6s 3.4s both;}
-    .st-key-landing[data-intro-state="playing"] .st-key-lens_start {visibility:visible;animation:introReveal .5s 3.95s both;}
+    .st-key-landing[data-intro-state="playing"] .hero-note {animation:introReveal .5s 2.8s both;}
+    .st-key-landing[data-intro-state="playing"] .paper-scene {animation:introReveal .6s 3s both;}
+    .st-key-landing[data-intro-state="playing"] .st-key-lens_start {visibility:visible;animation:introReveal .5s 3.55s both;}
     .st-key-landing:not([data-intro-state="done"]) .st-key-lens_start button:before {animation-play-state:paused;}
     [data-testid="stMainBlockContainer"]:has(.st-key-landing:not([data-intro-state="done"])) .st-key-research_rail {opacity:0;animation:introFallback 0s 6.5s forwards;pointer-events:none;}
-    [data-testid="stMainBlockContainer"]:has(.st-key-landing[data-intro-state="playing"]) .st-key-research_rail {animation:introFade .35s 4.2s both;}
+    [data-testid="stMainBlockContainer"]:has(.st-key-landing[data-intro-state="playing"]) .st-key-research_rail {animation:introFade .35s 3.8s both;}
     @media(prefers-reduced-motion:reduce) {
       .st-key-brandbar,.st-key-landing .hero-title-line,
       .st-key-landing .hero-copy h1,.st-key-landing .hero-copy>.eyebrow,
@@ -133,8 +133,8 @@ def intro_markup():
             {opacity:1,transform:opening,offset:0},
             {opacity:1,transform:opening,offset:.68,easing:'cubic-bezier(.22,.7,.2,1)'},
             {opacity:1,transform:'translate(0,0) scale(1)',offset:1},
-          ],{duration:3300,easing:'linear',fill:'both'});
-          revealTimer = setTimeout(finish,4700);
+          ],{duration:2900,easing:'linear',fill:'both'});
+          revealTimer = setTimeout(finish,4300);
         } catch {finish();}
         return true;
       };
