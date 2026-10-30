@@ -134,6 +134,9 @@ class PatentDocument(BaseModel):
 
     source: str = "KIPRIS Plus"
     source_url: str | None = None
+    representative_drawing_url: str | None = None
+    representative_thumbnail_url: str | None = None
+    representative_drawing_caption: str | None = None
     collected_at: str | None = None
     technology_area_ids: list[str] = Field(default_factory=list)
 
@@ -164,6 +167,9 @@ class PatentEvidence(BaseModel):
 
     similarity: float | None = Field(default=None, ge=0, le=1)
     source_url: str | None = None
+    representative_drawing_url: str | None = None
+    representative_thumbnail_url: str | None = None
+    representative_drawing_caption: str | None = None
     application_number: str | None = None
     publication_number: str | None = None
     application_date: str | None = None

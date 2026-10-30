@@ -52,6 +52,9 @@ SAMPLE_XML = """
             <InventionName>스마트팩토리 안전 시스템</InventionName>
             <Abstract>협동로봇의 안전거리를 분석한다.</Abstract>
             <Applicant>테스트 기업</Applicant>
+            <DrawingPath>https://plus.kipris.or.kr/openapi/fileToss.jsp?arg=sample-drawing</DrawingPath>
+            <ThumbnailPath>https://plus.kipris.or.kr/openapi/fileToss.jsp?arg=sample-thumbnail</ThumbnailPath>
+            <DrawingName>대표도면</DrawingName>
         </PatentUtilityInfo>
     </body>
 </response>
@@ -82,6 +85,9 @@ class TestKiprisClient:
         assert patents[0]["application_date"] == "20230101"
         assert patents[0]["publication_date"] == "20240102"
         assert patents[0]["public_date"] == "20240203"
+        assert patents[0]["representative_drawing_url"].endswith("sample-drawing")
+        assert patents[0]["representative_thumbnail_url"].endswith("sample-thumbnail")
+        assert patents[0]["representative_drawing_caption"] == "대표도면"
 
         mock_get.assert_called_once()
 
@@ -274,6 +280,9 @@ def test_to_patent_document():
         "claims": None,
         "applicant": "테스트 기업",
         "source": "KIPRIS Plus",
+        "representative_drawing_url": "https://plus.kipris.or.kr/drawing?id=1",
+        "representative_thumbnail_url": "https://plus.kipris.or.kr/thumb?id=1",
+        "representative_drawing_caption": "대표도면",
     }
 
     patent = to_patent_document(raw)
@@ -284,6 +293,9 @@ def test_to_patent_document():
     assert patent.abstract == raw["abstract"]
     assert patent.claims == ""
     assert patent.applicant == "테스트 기업"
+    assert patent.representative_drawing_url.endswith("id=1")
+    assert patent.representative_thumbnail_url.endswith("id=1")
+    assert patent.representative_drawing_caption == "대표도면"
 
 
 def test_to_patent_document_without_application_number():

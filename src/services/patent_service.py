@@ -89,6 +89,11 @@ def _supplement_result(record: dict) -> RetrievalResult | None:
             "publication_date": record.get("publication_date"),
             "public_date": record.get("public_date"),
             "source_url": record.get("source_url"),
+            "representative_drawing_url": record.get("representative_drawing_url"),
+            "representative_thumbnail_url": record.get("representative_thumbnail_url"),
+            "representative_drawing_caption": record.get(
+                "representative_drawing_caption"
+            ),
             "applicant": record.get("applicant"),
             "ipc_codes": record.get("ipc_codes") or [],
             "cpc_codes": record.get("cpc_codes") or [],
@@ -664,6 +669,15 @@ def analyze_patents(
                                 else None
                             ),
                             source_url=meta.get("source_url"),
+                            representative_drawing_url=meta.get(
+                                "representative_drawing_url"
+                            ),
+                            representative_thumbnail_url=meta.get(
+                                "representative_thumbnail_url"
+                            ),
+                            representative_drawing_caption=meta.get(
+                                "representative_drawing_caption"
+                            ),
                             application_number=app_number,
                             publication_number=meta.get("publication_number"),
                             registration_number=meta.get("registration_number"),
@@ -694,6 +708,15 @@ def analyze_patents(
                             else None
                         ),
                         source_url=meta.get("source_url"),
+                        representative_drawing_url=meta.get(
+                            "representative_drawing_url"
+                        ),
+                        representative_thumbnail_url=meta.get(
+                            "representative_thumbnail_url"
+                        ),
+                        representative_drawing_caption=meta.get(
+                            "representative_drawing_caption"
+                        ),
                         application_number=app_number,
                         publication_number=meta.get("publication_number"),
                         registration_number=meta.get("registration_number"),
@@ -726,6 +749,15 @@ def analyze_patents(
                             else None
                         ),
                         source_url=meta.get("source_url"),
+                        representative_drawing_url=meta.get(
+                            "representative_drawing_url"
+                        ),
+                        representative_thumbnail_url=meta.get(
+                            "representative_thumbnail_url"
+                        ),
+                        representative_drawing_caption=meta.get(
+                            "representative_drawing_caption"
+                        ),
                         application_number=app_number,
                         publication_number=meta.get("publication_number"),
                         registration_number=meta.get("registration_number"),
