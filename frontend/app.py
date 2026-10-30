@@ -93,6 +93,7 @@ for key, value in {
     "selected_patent_detail_id": None,
     "patent_orbit_chart_version": 0,
     "workflow_cancelled": False,
+    "workflow_cancelled_stage_states": {},
     "technology_area_id": None,
     "technology_area_choice": "AUTO",
     "cost_rows": empty_costs(),
@@ -590,6 +591,7 @@ def input_changed():
     s.pipeline_result = None
     s.analysis_sources = None
     s.analysis_key = ""
+    s.workflow_cancelled_stage_states = {}
 
 
 def prepare_input():
@@ -826,6 +828,7 @@ def start_report_workflow():
     s.analysis_workflow_id = job_id
     s.workflow_preview_stage = None
     s.workflow_cancelled = False
+    s.workflow_cancelled_stage_states = {}
     s.analysis_key = key
     s.workflow_stage_entered_at = time.monotonic()
     s.workflow_patent_displayed_at = None
@@ -855,6 +858,7 @@ def cancel_report_workflow():
     if job_id:
         with WORKFLOW_JOBS_LOCK:
             job = WORKFLOW_JOBS.get(job_id)
+            phase = job.get("phase") if job is not None else "patent"
             if job is not None:
                 job["cancelled"] = True
                 job["done"] = True
@@ -865,6 +869,17 @@ def cancel_report_workflow():
         s.analysis_sources = None
         s.analysis_key = ""
         s.workflow_cancelled = True
+        phase_stage = {"patent": 2, "market": 3, "final_report": 4}.get(phase, 2)
+        completed_states = {1: "completed"}
+        for number, report_key, run_key in (
+            (2, "patent_report", "patent_run"),
+            (3, "market_report", "market_run"),
+        ):
+            report = job.get(report_key) if job is not None else None
+            if report is not None:
+                completed_states[number] = _stage_result_state(report, job.get(run_key))
+        completed_states[phase_stage] = "cancelled"
+        s.workflow_cancelled_stage_states = completed_states
         s.stage = 1
 
 
@@ -1090,7 +1105,7 @@ def workflow_progress_fragment(compact=False):
             f"진행 시간 {elapsed // 60}분 {elapsed % 60}초"
         )
         st.caption(
-            "새 입력이 분석 결과에 섞이지 않도록 입력은 잠겨 있습니다. 이전 완료 단계는 상단 메뉴에서 다시 볼 수 있습니다."
+            "새 입력이 분석 결과에 섞이지 않도록 입력은 잠겨 있습니다. 완료된 단계는 하단 고정 바로가기에서 해당 화면으로 이동할 수 있습니다."
         )
         if st.button("분석 취소하고 아이디어 수정", key=f"cancel_workflow_{job_id}"):
             cancel_report_workflow()
@@ -1848,7 +1863,94 @@ def can_visit(number):
     return False
 
 
+def _stage_result_state(report, run=None):
+    if run is not None and getattr(run, "state", None) in {"error", "timeout"}:
+        return "failed"
+    status = getattr(report, "status", None)
+    return {
+        "completed": "completed",
+        "partial": "partial",
+        "no_results": "insufficient",
+        "error": "failed",
+    }.get(status, "pending")
+
+
+def workspace_stage_state(number):
+    """현재 workflow의 실제 결과 상태로 상태바 단계 표시를 정한다."""
+    job = current_workflow_job() if s.get("analysis_workflow_id") else None
+    result = s.get("pipeline_result")
+    if number == 1:
+        return (
+            "completed"
+            if job is not None
+            or result is not None
+            or s.get("workflow_cancelled_stage_states")
+            else "pending"
+        )
+
+    if job is not None:
+        report_key, run_key, phase = {
+            2: ("patent_report", "patent_run", "patent"),
+            3: ("market_report", "market_run", "market"),
+        }.get(number, (None, None, None))
+        if number == 4:
+            final_result = job.get("result")
+            if final_result is not None:
+                return _stage_result_state(final_result)
+            if job.get("error") or job.get("phase") == "failed":
+                return "failed"
+            if job.get("cancelled"):
+                return "cancelled"
+            return "active" if job.get("phase") == "final_report" else "pending"
+
+        report = job.get(report_key)
+        run = job.get(run_key)
+        if report is not None:
+            return _stage_result_state(report, run)
+        if job.get("cancelled"):
+            return "cancelled" if job.get("phase") == phase else "pending"
+        if job.get("error") or job.get("phase") == "failed":
+            if (number == 2 and job.get("patent_report") is None) or (
+                number == 3 and job.get("patent_report") is not None
+            ):
+                return "failed"
+        return "active" if job.get("phase") == phase else "pending"
+
+    if result is None:
+        return s.get("workflow_cancelled_stage_states", {}).get(number, "pending")
+    if number == 2:
+        return _stage_result_state(result.patent, result.patent_run)
+    if number == 3:
+        return _stage_result_state(result.market, result.market_run)
+    if number == 4:
+        if s.get("pipeline_error"):
+            return "failed"
+        return _stage_result_state(result)
+    return "pending"
+
+
+_STAGE_STATE_LABELS = {
+    "completed": "완료",
+    "active": "진행 중",
+    "pending": "대기",
+    "partial": "부분 완료",
+    "insufficient": "근거 부족",
+    "failed": "실패",
+    "cancelled": "취소",
+}
+_STAGE_STATE_ICONS = {
+    "completed": ":material/check_circle:",
+    "active": ":material/autorenew:",
+    "pending": ":material/radio_button_unchecked:",
+    "partial": ":material/warning:",
+    "insufficient": ":material/info:",
+    "failed": ":material/error:",
+    "cancelled": ":material/cancel:",
+}
+
+
 def navigate(number):
+    s.workflow_preview_stage = None
     s.page = "workspace"
     s.app_view = "analysis"
     sync_context()
@@ -2145,27 +2247,22 @@ active_job = current_workflow_job() if s.get("analysis_workflow_id") else None
 
 
 def review_navigation(number, label, column, key, *, icon=None):
-    if column.button(
-        label,
-        key=key,
-        type=(
-            "primary"
-            if s.stage == number or (key == "rail_2" and s.stage == 3)
-            else "secondary"
-        ),
-        disabled=not can_visit(number)
-        or (active_job is not None and s.stage == number),
-        width="stretch",
-        icon=icon,
-    ):
-        if active_job is not None:
-            if number == 3:
-                s.stage = 3
-                s.workflow_preview_stage = None
-                st.rerun(scope="app")
-            s.workflow_preview_stage = number
-            st.rerun(scope="app")
-        else:
+    state = workspace_stage_state(number)
+    with column.container(key=f"rail_step_{number}_{state}"):
+        if column.button(
+            label,
+            key=key,
+            type=(
+                "primary"
+                if s.stage == number or (key == "rail_2" and s.stage == 3)
+                else "secondary"
+            ),
+            disabled=not can_visit(number)
+            or (active_job is not None and s.stage == number),
+            width="stretch",
+            icon=_STAGE_STATE_ICONS[state],
+            help=f"조사 상태: {_STAGE_STATE_LABELS[state]}",
+        ):
             navigate(number)
             st.rerun(scope="app")
 
@@ -2173,11 +2270,7 @@ def review_navigation(number, label, column, key, *, icon=None):
 render_quick_nav(review_navigation, open_page)
 
 
-preview_stage = s.get("workflow_preview_stage")
-if preview_stage:
-    workflow_stage_result_dialog(
-        preview_stage, s.idea_draft, active_job, s.pipeline_result
-    )
+s.workflow_preview_stage = None
 if not s.confirmed_context and s.raw:
     st.caption(
         "입력·구성·질문을 바꾼 경우 아이디어 구체화에서 다시 확정해야 조사와 보고서를 볼 수 있습니다."
@@ -2516,7 +2609,7 @@ with st.container(key=f"workspace_{1 if s.stage == 1 else 3 if s.stage == 4 else
                         st.rerun()
                 if s.get("analysis_workflow_id"):
                     st.caption(
-                        "시장성 분석은 계속 진행됩니다. 준비된 결과는 위 메뉴에서 확인하세요."
+                        "시장성 분석은 계속 진행됩니다. 준비된 시장 결과는 하단 고정 바로가기에서 확인하세요."
                     )
                 else:
                     left, right = st.columns(2)
