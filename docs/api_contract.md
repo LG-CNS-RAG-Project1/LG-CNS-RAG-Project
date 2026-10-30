@@ -80,6 +80,7 @@
 - 통합 연결은 사용 맥락·해결 과제·기술 구성·요구 성능·도입 제약·근거 범위 여섯 기준을 포함한다. 각 질문에서 시장(M:)과 특허(P:) 근거 중 하나라도 연결되지 않으면 `status="hold"`다.
 - API 키, KIPRIS 권한, 특허·시장 로컬 색인과 네트워크가 필요하다. Streamlit에서 `AI로 항목 초안 만들기 · 재질문`으로 시작하고 SF-02 또는 SF-05 색인을 선택한다. 실제 색인이 없는 분야는 해당 로컬 색인의 범위가 비어 있으므로 후보가 없을 수 있다.
 - 비용 입력은 `frontend.workspace.cost_summary` 규칙으로 계산한다. 비어 있는 금액은 0원 처리하지 않고 미입력 항목으로 남긴다.
+- **예비 SWOT**: `run_pipeline(..., swot_llm_fn=...)`을 주면 `src.generation.swot.build_swot(draft, patent, market, llm_fn)`이 `PipelineReport.swot`(`SwotAnalysis`)을 만들고 종합 보고서 Markdown에 'SWOT 분석 (예비)' 절을 넣는다. 화면과 CLI는 `call_analysis_llm`(gpt-4o-mini)을 넘기고, 넘기지 않으면 `swot`은 `null`이다. `SwotAnalysis`: `status`(`completed`·`insufficient` 두 조사 모두 결과 없음 또는 검증 통과 항목 없음·`error`)·`strengths`·`weaknesses`·`opportunities`·`threats`(사분면마다 최대 3개, 항목은 `text`·`basis` `evidence`/`user_claim`/`ai_hypothesis`·`citation_ids` `M:번호`·`P:번호`·`T` 검색 관심도·`F` 기업 재무 현황)·`dropped`(검증에서 버린 항목 수)·`note`·`error_message`. 근거 항목은 입력에 있는 근거 ID가 있어야 하고, 숫자는 인용 원문·아이디어에 있어야 하며, 수요 확인·증가·시장 성장 표현, 검색 관심도 방향과 반대되는 표현, 채워진 아이디어 항목을 '정하지 않았다'고 쓴 항목은 버린다.
 - JSON Schema: `PipelineReport.model_json_schema()` (`src.pipeline`)
 
 ### 통합 흐름의 실행·오류 처리
