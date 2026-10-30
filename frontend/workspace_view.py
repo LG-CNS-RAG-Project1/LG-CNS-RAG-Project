@@ -169,6 +169,7 @@ def report_payload(s):
             "dashboard": dashboard_data(summary_result),
             "decision_trace": decision_trace(r),
             "swot": r.swot.model_dump() if getattr(r, "swot", None) else None,
+            "canvas": (r.canvas.model_dump() if getattr(r, "canvas", None) else None),
         }
     snap = s.report_snapshot
     if not snap:
@@ -230,6 +231,10 @@ def render_report(s, payload, archived=False):
                 from frontend.swot_view import render_swot
 
                 render_swot(payload["swot"])
+            if payload.get("canvas"):
+                from frontend.canvas_view import render_canvas
+
+                render_canvas(payload["canvas"])
         else:
             a, b, c = st.columns(3)
             a.metric("특허 근거", f"{payload['patent_count']}건")
@@ -375,6 +380,10 @@ def validate_records(raw):
             from src.generation.swot import SwotAnalysis
 
             item["swot"] = SwotAnalysis.model_validate(item["swot"]).model_dump()
+        if item.get("canvas") is not None:
+            from src.generation.business_canvas import BusinessCanvas
+
+            item["canvas"] = BusinessCanvas.model_validate(item["canvas"]).model_dump()
         for name in ["title", "raw", "markdown", "appendix", "saved_at", "id"]:
             if not isinstance(item.get(name), str):
                 raise ValueError("기록의 필수 항목이 없습니다.")
