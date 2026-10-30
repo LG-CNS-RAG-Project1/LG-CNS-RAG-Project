@@ -8,6 +8,7 @@ import math
 import time
 from datetime import datetime, timezone
 from pathlib import Path
+import xml.etree.ElementTree as ET
 
 import chromadb
 import yaml
@@ -46,6 +47,8 @@ CHROMA_DIR = OUTPUT_DIR / "chroma"
 RESULTS_PATH = OUTPUT_DIR / "results.json"
 CANDIDATES_PATH = OUTPUT_DIR / "candidates.csv"
 METRICS_PATH = OUTPUT_DIR / "metrics.json"
+COLLECTION_REPORT_PATH = OUTPUT_DIR / "collection.json"
+INDEX_BUILD_PATH = OUTPUT_DIR / "index_build.json"
 AREA_ID = "SF-05"
 COLLECTION_NAME = "sf05_candidate_budget"
 NO_INDEX_INPUT_CAP = EMBED_BATCH_SIZE
@@ -86,12 +89,12 @@ def load_existing_area_patents() -> list[PatentDocument]:
     source_path = ROOT_DIR / "data" / "patents" / "processed" / "patent_docs.jsonl"
     if not source_path.exists():
         return []
-    return [
+    patents = [
         PatentDocument.model_validate_json(line)
         for line in source_path.read_text(encoding="utf-8").splitlines()
         if line.strip()
-        and AREA_ID in PatentDocument.model_validate_json(line).technology_area_ids
     ]
+    return [patent for patent in patents if AREA_ID in patent.technology_area_ids]
 
 
 def collect_corpus(limit: int) -> tuple[list[PatentDocument], dict]:
@@ -120,7 +123,7 @@ def collect_corpus(limit: int) -> tuple[list[PatentDocument], dict]:
         "".join(patent.model_dump_json() + "\n" for patent in patents),
         encoding="utf-8",
     )
-    return abstract_patents, {
+    report = {
         "search_terms": load_keywords(),
         "limit_per_term": limit,
         "kipris_requests": len(per_keyword),
@@ -129,6 +132,53 @@ def collect_corpus(limit: int) -> tuple[list[PatentDocument], dict]:
         "abstract_candidate_count": len(abstract_patents),
         "documents_sha256": sha256(DOCS_PATH),
     }
+    COLLECTION_REPORT_PATH.write_text(
+        json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
+    return abstract_patents, report
+
+
+def load_experiment_corpus(limit: int) -> tuple[list[PatentDocument], dict]:
+    """Load the corpus saved before an interrupted embedding or ranking run."""
+    if not DOCS_PATH.exists():
+        raise FileNotFoundError(f"no saved experiment corpus at {DOCS_PATH}")
+    patents = [
+        PatentDocument.model_validate_json(line)
+        for line in DOCS_PATH.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    abstracts = [patent for patent in patents if patent.abstract.strip()]
+    if COLLECTION_REPORT_PATH.exists():
+        report = json.loads(COLLECTION_REPORT_PATH.read_text(encoding="utf-8"))
+    else:
+        returned_per_term = {}
+        for metadata_path in RAW_DIR.glob("patent_search_*.json"):
+            metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+            response_path = RAW_DIR / metadata["response_file"]
+            root = ET.parse(response_path).getroot()
+            returned_per_term[metadata["identifier"]] = sum(
+                1
+                for node in root.iter()
+                if node.tag.rsplit("}", 1)[-1].lower() == "patentutilityinfo"
+            )
+        report = {
+            "search_terms": load_keywords(),
+            "limit_per_term": limit,
+            "kipris_requests": len(returned_per_term),
+            "returned_per_term": returned_per_term,
+        }
+    report.update(
+        {
+            "corpus_reused": True,
+            "unique_patent_count": len(patents),
+            "abstract_candidate_count": len(abstracts),
+            "documents_sha256": sha256(DOCS_PATH),
+        }
+    )
+    COLLECTION_REPORT_PATH.write_text(
+        json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
+    return abstracts, report
 
 
 def local_collection(rebuild: bool):
@@ -146,6 +196,17 @@ def local_collection(rebuild: bool):
         embedding_function=None,
     )
     return collection
+
+
+def index_matches_corpus(collection, patents: list[PatentDocument]) -> bool:
+    """Check whether the experiment index already contains the exact abstract corpus."""
+    expected = {
+        f"{patent.patent_id}_abstract_0": patent.abstract.strip() for patent in patents
+    }
+    if collection.count() != len(expected):
+        return False
+    result = collection.get(include=["documents"])
+    return dict(zip(result["ids"], result["documents"])) == expected
 
 
 def build_cached_index(patents: list[PatentDocument], collection) -> dict:
@@ -230,16 +291,35 @@ def to_search_document(patent: PatentDocument) -> SearchDocument:
     )
 
 
-def run_experiment(limit: int = 150) -> dict:
+def run_experiment(limit: int = 150, resume: bool = False) -> dict:
     """Collect an expanded corpus and compare full cached search with a one-batch shortlist."""
-    patents, collection_report = collect_corpus(limit)
+    patents, collection_report = (
+        load_experiment_corpus(limit) if resume else collect_corpus(limit)
+    )
     if len(patents) <= NO_INDEX_CANDIDATE_CAP:
         raise RuntimeError(
             f"only {len(patents)} abstract patents; need more than {NO_INDEX_CANDIDATE_CAP}"
         )
 
-    collection = local_collection(rebuild=True)
-    build_report = build_cached_index(patents, collection)
+    collection = local_collection(rebuild=not resume)
+    if resume and index_matches_corpus(collection, patents):
+        if INDEX_BUILD_PATH.exists():
+            build_report = json.loads(INDEX_BUILD_PATH.read_text(encoding="utf-8"))
+        else:
+            build_report = {
+                "embedding_input_count": len(patents),
+                "embedding_api_requests": None,
+                "embedding_ms": None,
+                "local_write_ms": None,
+                "total_ms": None,
+            }
+        build_report["reused_cached_index"] = True
+    else:
+        build_report = build_cached_index(patents, collection)
+        INDEX_BUILD_PATH.write_text(
+            json.dumps(build_report, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
     cases = [case for case in load_cases() if case.get("technology_area_id") == AREA_ID]
     if not cases:
         raise ValueError("no SF-05 cases found in evaluation/patent_cases.json")
@@ -284,7 +364,7 @@ def run_experiment(limit: int = 150) -> dict:
             for document, vector in zip(shortlist, vectors[1:])
         ]
         on_demand_rank_started = time.perf_counter()
-        on_demand_rankings = rank_rows(vectors[0], on_demand_rows, TOP_K)
+        on_demand_rankings = rank_rows(vectors[0], on_demand_rows, POOL_K)
         on_demand_rank_ms = (time.perf_counter() - on_demand_rank_started) * 1000
         on_demand_total_ms = shortlist_ms + on_demand_embed_ms + on_demand_rank_ms
 
@@ -298,17 +378,7 @@ def run_experiment(limit: int = 150) -> dict:
             )
 
         pool = {item["source_id"]: item for item in cached_rankings}
-        pool.update(
-            {
-                item["source_id"]: {
-                    "source_id": item["source_id"],
-                    "title": item["title"],
-                    "summary": item["text"],
-                    "url": item["metadata"].get("source_url") or "",
-                }
-                for item in on_demand_rows
-            }
-        )
+        pool.update({item["source_id"]: item for item in on_demand_rankings})
         for source_id, item in pool.items():
             url = item.get("url") or kipris_application_search_url(source_id) or ""
             candidate_map[(case["case_id"], source_id)] = {
@@ -341,7 +411,7 @@ def run_experiment(limit: int = 150) -> dict:
                 "embedding_ms": round(on_demand_embed_ms, 2),
                 "ranking_ms": round(on_demand_rank_ms, 2),
                 "query_ms": round(on_demand_total_ms, 2),
-                "top5": on_demand_rankings,
+                "top20": on_demand_rankings,
             },
             "top5_overlap_count": len(
                 {item["source_id"] for item in cached_rankings[:TOP_K]}
@@ -407,7 +477,7 @@ def score_experiment() -> dict:
         relevant = relevant_by_case.get(case["case_id"], set())
         for method, config_key, ranking_key in (
             ("preindexed_full", "preindexed", "top20"),
-            ("on_demand_bm25_99", "on_demand", "top5"),
+            ("on_demand_bm25_99", "on_demand", "top20"),
         ):
             retrieved = [
                 item["source_id"]
@@ -450,9 +520,18 @@ def main() -> None:
     run_parser.add_argument(
         "--limit", type=int, default=150, help="검색어당 KIPRIS 최대 결과"
     )
+    run_parser.add_argument(
+        "--resume",
+        action="store_true",
+        help="저장된 코퍼스와 일치하는 로컬 색인을 재사용해 비교를 재개",
+    )
     subparsers.add_parser("score", help="후보의 사람 관련도 라벨로 품질 지표 계산")
     args = parser.parse_args()
-    report = run_experiment(args.limit) if args.command == "run" else score_experiment()
+    report = (
+        run_experiment(args.limit, resume=args.resume)
+        if args.command == "run"
+        else score_experiment()
+    )
     print(json.dumps(report, ensure_ascii=False, indent=2))
 
 
