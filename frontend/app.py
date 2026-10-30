@@ -326,6 +326,37 @@ def patent_detail_dialog(patent, patent_id):
             st.caption(f"P:{evidence.citation_id} · {claim_label}")
             st.write(evidence.quote)
 
+    if review and (review.watchout_findings or review.design_recommendations):
+        st.markdown("#### 이 문헌의 주의점과 개선 제안")
+        for item in review.watchout_findings:
+            linked = [
+                evidence_by_id[cid]
+                for cid in item.citation_ids
+                if cid in evidence_by_id
+            ]
+            basis = "문헌 근거 연결" if linked else "추가 확인이 필요한 가설"
+            st.warning(
+                f"**{item.issue} · {basis}**\n\n{item.why_it_matters}\n\n"
+                f"다음 확인: {item.next_check}"
+            )
+            for evidence in linked:
+                claim = (
+                    f" · 청구항 {evidence.claim_number}"
+                    if evidence.claim_number
+                    else ""
+                )
+                st.caption(f"P:{evidence.citation_id}{claim} · {evidence.title}")
+                st.text(evidence.quote)
+        for item in review.design_recommendations:
+            refs = ", ".join(f"P:{cid}" for cid in item.citation_ids)
+            basis = "근거 기반" if item.basis == "evidence_based" else "검증 전 가설"
+            st.markdown(f"**개선 제안 · {basis}:** {item.recommendation}")
+            st.write(item.rationale)
+            if item.validation_needed:
+                st.caption(f"검증할 내용: {item.validation_needed}")
+            if refs:
+                st.caption(f"연결 근거: {refs}")
+
     application_number = next(
         (
             item.application_number
@@ -350,23 +381,31 @@ def patent_watchouts_dialog(patent):
         return
 
     evidence_by_id = {item.citation_id: item for item in patent.evidence}
-    st.caption("검색 문헌 기반의 예비 기술 검토이며 법률 의견이 아닙니다.")
+    st.caption(
+        "검색 문헌을 바탕으로 한 기술 검토 보조입니다. 출원·신규성·진보성·침해·실시 자유에 대한 법률 의견이 아닙니다."
+    )
     if precheck.common_watchouts:
-        st.markdown("### 문헌 비교에서 확인된 주의점")
+        st.markdown("### 주의 항목 · 문헌 근거 연결 여부 확인")
         for item in precheck.common_watchouts:
+            linked = [
+                evidence_by_id[cid]
+                for cid in item.citation_ids
+                if cid in evidence_by_id
+            ]
+            basis = "문헌 근거 연결" if linked else "추가 확인이 필요한 가설"
             st.warning(
-                f"**{item.issue}**\n\n{item.why_it_matters}\n\n다음 확인: {item.next_check}"
+                f"**{item.issue} · {basis}**\n\n{item.why_it_matters}\n\n다음 확인: {item.next_check}"
             )
-            for citation_id in item.citation_ids:
-                evidence = evidence_by_id.get(citation_id)
-                if evidence:
-                    claim = (
-                        f" · 청구항 {evidence.claim_number}"
-                        if evidence.claim_number
-                        else ""
-                    )
-                    st.caption(f"P:{citation_id}{claim} · {evidence.title}")
-                    st.text(evidence.quote)
+            if not linked:
+                st.caption("연결된 문헌·청구항이 없어 분석 가설로만 표시합니다.")
+            for evidence in linked:
+                claim = (
+                    f" · 청구항 {evidence.claim_number}"
+                    if evidence.claim_number
+                    else ""
+                )
+                st.caption(f"P:{evidence.citation_id}{claim} · {evidence.title}")
+                st.text(evidence.quote)
     else:
         st.info("문헌 전체에서 근거가 연결된 공통 주의점은 확인되지 않았습니다.")
 
@@ -380,7 +419,7 @@ def patent_watchouts_dialog(patent):
             )
             st.write(item.rationale)
             if item.validation_needed:
-                st.caption(f"검증 방법: {item.validation_needed}")
+                st.caption(f"확인할 사항: {item.validation_needed}")
             for citation_id in item.citation_ids:
                 evidence = evidence_by_id.get(citation_id)
                 if evidence:
@@ -1026,7 +1065,10 @@ def workflow_progress_fragment(compact=False):
 def render_patent_report(patent, *, widget_suffix="", preview=False):
     """최대 8개 특허를 궤도에 배치하고 호버 요약과 종합 근거를 제공한다."""
     import math
-    from frontend.patent_orbit import patent_dense_similarity, patent_orbit_position
+    from frontend.patent_orbit import (
+        patent_dense_similarity,
+        patent_orbit_position,
+    )
 
     from src.generation.patent_analysis import (
         PATENT_ORBIT_COLORS,
@@ -1316,6 +1358,9 @@ def render_patent_report(patent, *, widget_suffix="", preview=False):
 
     st.subheader("2. 주의점 및 개선 제안")
     if precheck:
+        st.caption(
+            "특허 문헌 비교를 위한 기술 검토 보조입니다. 특허성·침해·실시 자유에 대한 법률 판단이 아닙니다."
+        )
         precheck_labels = {
             "overlap_concern": "유사 구성에 주의",
             "potentially_distinct": "차이 가능성 확인",
@@ -1323,14 +1368,24 @@ def render_patent_report(patent, *, widget_suffix="", preview=False):
         }
         st.info(f"{precheck_labels[precheck.status]} · {precheck.summary}")
         for item in precheck.common_watchouts[:2]:
-            st.markdown(f"- **주의:** {item.issue} — {item.why_it_matters}")
+            refs = ", ".join(f"P:{cid}" for cid in item.citation_ids)
+            linked = any(cid in evidence_by_id for cid in item.citation_ids)
+            basis = "문헌 근거" if linked else "확인 필요 가설"
+            st.markdown(
+                f"- **주의 · {basis}:** {item.issue} — {item.why_it_matters}"
+                + (f" · 다음 확인: {item.next_check}" if item.next_check else "")
+                + (f" · {refs}" if refs else "")
+            )
         for item in precheck.common_design_recommendations[:2]:
             refs = ", ".join(f"P:{cid}" for cid in item.citation_ids)
             basis = "근거 기반" if item.basis == "evidence_based" else "검증 전 가설"
             st.markdown(
-                f"- **개선:** {item.recommendation} · {basis}"
+                f"- **개선 · {basis}:** {item.recommendation}"
+                + (f" — {item.rationale}" if item.rationale else "")
                 + (f" · {refs}" if refs else "")
             )
+            if item.validation_needed:
+                st.caption(f"확인할 사항: {item.validation_needed}")
         if not precheck.common_watchouts and not precheck.common_design_recommendations:
             st.caption("문헌 공통 주의점·개선 제안은 확인되지 않았습니다.")
         if not preview and st.button(
