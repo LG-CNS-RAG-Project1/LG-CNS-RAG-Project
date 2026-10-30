@@ -158,6 +158,7 @@ def report_payload(s):
             for x in r.links
         ]
         return {
+            "unsupported_count": unsupported_count,
             "title": s.research_title or r.title,
             "raw": s.raw,
             "markdown": r.markdown,
@@ -167,7 +168,6 @@ def report_payload(s):
             "demo": False,
             "dashboard": dashboard_data(summary_result),
             "decision_trace": decision_trace(r),
-            "unsupported_count": unsupported_count,
         }
     snap = s.report_snapshot
     if not snap:
