@@ -39,7 +39,7 @@ def render_showcase():
     with st.container(border=True):
         st.subheader(item["title"])
         if item["kind"] == "layout_sample":
-            st.info(
+            st.caption(
                 "화면 구성 예시입니다. 실제 조사 결과·대표도면·성능 측정 화면이 아닙니다."
             )
         else:
@@ -50,7 +50,7 @@ def render_showcase():
         if image:
             st.image(str(image), caption=item["caption"], width="stretch")
         else:
-            st.info("이 화면의 캡처는 준비 중입니다.")
+            st.caption("이 화면의 캡처는 준비 중입니다.")
     left, right = st.columns(2)
     with left:
         st.subheader("여기서 볼 것")
@@ -82,7 +82,7 @@ def render_showcase():
             if image:
                 st.image(str(image), caption=experiment["caption"], width="stretch")
             else:
-                st.info(
+                st.caption(
                     "확정된 비교 캡처 준비 중 · 측정 수치는 아직 표시하지 않습니다."
                 )
             st.write(experiment["reading"])
