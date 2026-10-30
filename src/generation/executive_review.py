@@ -654,8 +654,12 @@ def executive_report_markdown(
     cost_estimate=None,
     cost_totals=None,
     market=None,
+    swot=None,
 ) -> str:
-    """특허·시장 교차 결론과 다음 확인만 담은 간결한 최종 검토 문서."""
+    """특허·시장 교차 결론과 다음 확인만 담은 간결한 최종 검토 문서.
+
+    swot(SwotAnalysis)을 주면 시장 맥락 뒤에 'SWOT 분석 (예비)' 절을 넣는다.
+    """
     from datetime import datetime
 
     date_label = (
@@ -699,6 +703,10 @@ def executive_report_markdown(
     else:
         lines += ["- 특허와 시장 근거 ID가 함께 연결된 결론이 없어 판단을 보류합니다."]
     lines += _market_context_markdown(market)
+    if swot is not None:
+        from src.generation.swot import swot_markdown_lines
+
+        lines += swot_markdown_lines(swot)
     limitations = executive_limitations(review)
     lines += ["", "## 판단 한계", ""]
     lines.extend(f"- {escape_md(item)}" for item in limitations[:3])

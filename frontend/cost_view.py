@@ -63,6 +63,8 @@ def render_cost_estimate(result):
                     analyzed_on=result.analyzed_on,
                     cost_estimate=user_estimate,
                     cost_totals=totals,
+                    market=result.market,
+                    swot=getattr(result, "swot", None),
                 )
                 c1, c2 = st.columns(2)
                 c1.metric(
