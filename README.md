@@ -392,6 +392,22 @@ python -m evaluation.patent_index_effect --rebuild-cache # SF-05 사전색인과
 - Hit@5·Recall@5·Precision@5·MRR@5·nDCG@5와 실제 후보 풀 Recall을 사람 검토된 후보만으로 계산한다. Recall의 분모는 방식별 결과 합집합에서 판정한 관련 문헌이므로 전체 특허 코퍼스 기준 재현율이 아니다. 평가 문항과 특허 표본이 작으므로 결과는 해당 색인·질의의 예비 비교로 해석한다. Dense·Hybrid 검색은 질의 임베딩에 `OPENAI_API_KEY`가 필요하다.
 - `patent_index_effect`는 SF-05 특허 청크를 실험 전용 로컬 Chroma에 한 번 색인한 경로와, 질의마다 문서 전체를 다시 임베딩하는 경로의 임베딩 입력 수·API 요청 수·시간·Top-5 순위 일치도를 비교한다. 전자는 색인 구축 시간을 별도로 기록하고, 실측 질의 시간 절감으로 단순 손익분기 질의 수를 계산한다. 결과는 Git 제외 경로 `data/patents/processed/domain_experiment/index_effect.json`에 저장된다. 비교 실행은 특허 본문을 임베딩 API로 보낸다. 단일 실행 시간은 네트워크 변동을 포함하며, 검색 품질 지표는 사람 라벨을 완료한 뒤 해석한다.
 
+### 특허 청킹·문헌 집계·리랭킹 실험
+
+```bash
+python -m evaluation.patent_chunk_rerank_experiment inventory
+python -m evaluation.patent_chunk_rerank_experiment run
+python -m evaluation.patent_chunk_rerank_experiment run --with-cross-encoder  # 선택 의존성·모델 사용
+python -m evaluation.patent_chunk_rerank_experiment score  # 사람 라벨 작성 후 실행
+```
+
+- 실험은 정제된 `data/patents/processed/patent_docs.jsonl`과 5개 평가 질의로 SF-05 지능형 공정제어 및 SF-02 AI 비전 품질검사를 비교한다. 인벤토리는 코퍼스 fingerprint, 분야별 초록·청구항 수, 로컬 Chroma snapshot fingerprint와 기존 246개 청크 내용의 일치 여부를 기록한다.
+- BM25 기준에서 `baseline_max`, 독립항 중심, 상위항 문맥 결합, 상위 3개 청크 평균, 초록·독립항·종속항 가중 집계를 비교한다. 가중치는 실험 상수이며 최적값으로 학습된 값이 아니다. 특허 버전 중복이 발견되면 문헌 단위로 잘못 합치지 않도록 실험을 중단한다.
+- Cross-Encoder는 `--with-cross-encoder`를 명시한 경우에만 실행한다. `sentence-transformers` 및 BGE 모델 사용이 가능하면 같은 질의·분야의 baseline Top-K 후보를 고정하고 제목+초록+독립항 입력과 청구항 전용 입력을 비교한다. 모델 로드·검색·리랭킹 시간을 분리한다. 기본 서비스 검색 설정은 바뀌지 않는다.
+- 순위와 실험 방식은 `rankings.csv`에, 원문·청구항·KIPRIS 링크가 포함된 방식 비공개 검토 후보는 `candidates.csv`에 기록한다. 두 파일, 인벤토리, 지표는 Git 제외 경로 `data/patents/processed/chunk_rerank_experiment/`에 저장되고 재실행해도 같은 후보의 사람 라벨과 메모를 보존한다. 라벨은 원문과 청구항을 확인해 `relevant=0/1`, `review_status=reviewed`, `label_source=human`으로 작성한다. 판단 보류는 `review_status=hold`로 남긴다.
+- `score`는 각 질의·분야 후보 풀 전체가 사람에 의해 판정된 경우에만 지표를 계산한다. Candidate Recall@K의 분모는 해당 실험 후보 풀의 사람 검토 관련 문헌이며 전체 특허 모집단 재현율이 아니다. 무관련 후보만 나온 질의는 별도 집계하고 macro 지표에서 제외한다. 미판정·보류·AI 초안은 정답이 아니다.
+- 현재 로컬 분야별 문헌 수는 14건이고 후보 K 기본값은 20이므로 후보 단계가 코퍼스를 줄이지 않는다. Cross-Encoder 의존성이나 사람 라벨을 사용할 수 없으면 비교·품질 지표가 제한되며, 이 실험만으로 품질 개선을 주장하지 않는다. 자세한 라벨 기준은 [특허 평가 라벨링 가이드](evaluation/patent_labeling.md)를 참고한다.
+
 ### 특허 청구항 분석
 
 특허 분석 입력은 `PatentSearchRequest`, 반환 계약은 `PatentReport`이며 `src.services.patent_service.analyze_patents()`에서 호출한다. 기본적으로 관련 특허 문헌을 최대 8건까지 비교하고 화면에도 선택된 8건을 표시한다. 문헌별 청구항 원문·버전·번호·종속항 참조와 UTC 수집 시각을 인용 근거 및 색인에 보존한다. 보고서는 색인 IPC 분류·출원연도·주요 출원인 통계와 넓은 검색 후보의 관련 기술 분포를 제공하며, 최종 통합보고서에는 특허 예비 신호와 시장 근거 상태를 교차 요약한다. 통계는 보유 색인 메타데이터 범위에 한정된다. 비교 문맥은 상위항 관계와 문헌당 약 1,800 토큰, 보고서 분석 전체 약 6,000 토큰의 보수적 추정 예산을 고려해 구성한다. 원문 확보 후 비교 생성만 실패하면 `partial` 상태로 원문과 오류를 보존하며, KIPRIS 청구항 조회가 비거나 실패하면 초록 근거와 미확인 상태를 반환한다. 구현 흐름과 통계 한계는 [docs/patent_rag.md](docs/patent_rag.md)를 참고한다.
