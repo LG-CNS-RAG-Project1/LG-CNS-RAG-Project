@@ -231,3 +231,46 @@ def bi_encoder_reranker(embed_fn=None):
         return scores
 
     return score
+
+
+def semantic_similarity_scores(query: str, documents: list[str], embed_fn=None):
+    """같은 임베딩 모델로 질의와 문헌의 cosine 유사도(0~1)를 계산한다."""
+    if not query.strip():
+        raise ValueError("query must not be empty")
+    if not documents:
+        return []
+    if embed_fn is None:
+        from src.retrieval.market_search import embed_texts
+
+        embed_fn = embed_texts
+
+    vectors = embed_fn([query, *documents])
+    if len(vectors) != len(documents) + 1:
+        raise ValueError("embedding function must return one vector per text")
+
+    query_vector = [float(value) for value in vectors[0]]
+    if not query_vector or not all(math.isfinite(value) for value in query_vector):
+        return [None] * len(documents)
+    query_norm = math.sqrt(sum(value * value for value in query_vector))
+    scores = []
+    for vector in vectors[1:]:
+        values = [float(value) for value in vector]
+        if len(values) != len(query_vector):
+            raise ValueError("embedding vectors must have matching dimensions")
+        if not all(math.isfinite(value) for value in values):
+            scores.append(None)
+            continue
+        document_norm = math.sqrt(sum(value * value for value in values))
+        denominator = query_norm * document_norm
+        if not denominator:
+            scores.append(None)
+            continue
+        cosine = (
+            sum(
+                query_value * document_value
+                for query_value, document_value in zip(query_vector, values)
+            )
+            / denominator
+        )
+        scores.append(min(1.0, max(0.0, cosine)) if math.isfinite(cosine) else None)
+    return scores

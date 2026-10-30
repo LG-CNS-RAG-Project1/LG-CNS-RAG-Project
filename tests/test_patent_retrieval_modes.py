@@ -1,7 +1,11 @@
 ### PR충돌 때문에 따로 빼둠 추후에 test_patent.py에 병합예정
 
 from src.retrieval.engine import RetrievalConfig
-from src.retrieval.patent_search import bi_encoder_reranker, search_patents
+from src.retrieval.patent_search import (
+    bi_encoder_reranker,
+    search_patents,
+    semantic_similarity_scores,
+)
 from src.retrieval.schemas import SearchDocument
 from src.retrieval.patent_store import build_index, get_collection
 from src.schemas import PatentChunk, PatentDocument
@@ -77,6 +81,27 @@ def test_bi_encoder_reranker_sorts_by_query_document_cosine_similarity():
 
     assert scores[0] > scores[1]
     assert calls == ["질의", "정답\n설명", "무관\n설명"]
+
+
+def test_semantic_similarity_scores_batch_all_documents_and_clips_to_zero_one():
+    vectors = {
+        "질의": [1.0, 0.0],
+        "가까운 문헌": [0.6, 0.8],
+        "반대 문헌": [-1.0, 0.0],
+        "영벡터 문헌": [0.0, 0.0],
+    }
+    calls = []
+
+    def embed(texts):
+        calls.append(texts)
+        return [vectors[text] for text in texts]
+
+    scores = semantic_similarity_scores(
+        "질의", ["가까운 문헌", "반대 문헌", "영벡터 문헌"], embed
+    )
+
+    assert scores == [0.6, 0.0, None]
+    assert calls == [["질의", "가까운 문헌", "반대 문헌", "영벡터 문헌"]]
 
 
 def test_dense_search_overfetches_chunks_to_return_distinct_patents():

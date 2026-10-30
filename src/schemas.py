@@ -1,6 +1,7 @@
+import math
 import re
 from typing import Literal
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 # 1. 사용자 아이디어
@@ -163,6 +164,7 @@ class PatentEvidence(BaseModel):
     quote: str = Field(min_length=1)
 
     similarity: float | None = Field(default=None, ge=0, le=1)
+    semantic_similarity: float | None = Field(default=None, ge=0, le=1)
     source_url: str | None = None
     application_number: str | None = None
     publication_number: str | None = None
@@ -189,6 +191,34 @@ class PatentEvidence(BaseModel):
             "kipris_supplement",
         ]
     ] = Field(default_factory=list)
+
+    @field_validator("similarity", mode="before")
+    @classmethod
+    def normalize_similarity(cls, value):
+        """검색 점수가 숫자·유한값·0~1 범위일 때만 보존한다."""
+        if value is None:
+            return None
+        try:
+            score = float(value)
+        except (TypeError, ValueError):
+            return None
+        if not math.isfinite(score) or not 0 <= score <= 1:
+            return None
+        return score
+
+    @field_validator("semantic_similarity", mode="before")
+    @classmethod
+    def normalize_semantic_similarity(cls, value):
+        """임베딩 cosine 점수는 유한한 0~1 값만 보존한다."""
+        if value is None:
+            return None
+        try:
+            score = float(value)
+        except (TypeError, ValueError):
+            return None
+        if not math.isfinite(score) or not 0 <= score <= 1:
+            return None
+        return score
 
 
 # 7. 기술 비교 결과
@@ -347,6 +377,7 @@ class PatentReport(BaseModel):
 
     search_scope: str
     error_message: str | None = None
+    semantic_similarity_model: str | None = None
 
     @model_validator(mode="after")
     def validate_citations(self):
