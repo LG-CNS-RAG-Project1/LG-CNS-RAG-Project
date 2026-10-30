@@ -277,6 +277,9 @@ def test_direct_input_runs_followup_and_reaches_report(live):
     )
     assert app.button(key="patent_watchouts_").label == "2 상세 보기"
     assert app.button(key="patent_design_").label == "3 상세 보기"
+    assert any(
+        "다음 확인: 독립항 전문을 검토합니다." in item.value for item in app.markdown
+    )
     charts = app.get("vega_lite_chart")
     assert len(charts) == 1
     assert json.loads(charts[0].proto.spec)["padding"] == {
@@ -290,12 +293,15 @@ def test_direct_input_runs_followup_and_reaches_report(live):
     )
     serialized = json.dumps(json.loads(charts[0].proto.spec), ensure_ascii=False)
     assert "핵심 요약" in serialized and "우선 확인 이유" in serialized
+    assert "Dense 유사도" in serialized
+    assert "2.8−1.35×점수" in " ".join(item.value for item in app.caption)
     assert not any("문헌 요약 선택" in item.label for item in app.selectbox)
     assert '"name": "patent_click"' in serialized
 
     app.button(key="patent_watchouts_").click().run()
     watchout_dialog = app.get("dialog")[0]
     assert any("독립항 구성 확인" in item.value for item in watchout_dialog.warning)
+    assert any("문헌 근거 연결" in item.value for item in watchout_dialog.warning)
     assert any("센서 설치 조건" in item.value for item in watchout_dialog.markdown)
     app.button(key="patent_design_").click().run()
     design_dialog = app.get("dialog")[0]
@@ -306,6 +312,7 @@ def test_direct_input_runs_followup_and_reaches_report(live):
     app.run()
     detail = app.get("dialog")[0]
     assert any("진동 기반 고장 예측 장치" in item.value for item in detail.subheader)
+    assert any("대표도면 경로가 없습니다" in item.value for item in detail.info)
     assert any("아이디어 구성요소별 비교" in item.value for item in detail.markdown)
     assert any(
         "<mark><u>진동 센서 분석</u></mark>" in item.value for item in detail.markdown
