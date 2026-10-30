@@ -33,6 +33,7 @@ from pydantic import BaseModel, Field
 
 from src.generation.idea_parser import build_requests
 from src.generation.business_review import BusinessReview, build_business_review
+from src.generation.business_canvas import BusinessCanvas, build_business_canvas
 from src.generation.swot import SwotAnalysis, build_swot
 from src.generation.executive_review import (
     ExecutiveReview,
@@ -143,6 +144,7 @@ class PipelineReport(BaseModel):
     business_review: BusinessReview | None = None
     executive_review: ExecutiveReview | None = None
     swot: SwotAnalysis | None = None
+    canvas: BusinessCanvas | None = None
     errors: list[str] = Field(default_factory=list)
     patent_run: PartRun | None = None
     market_run: PartRun | None = None
@@ -740,11 +742,14 @@ def run_pipeline(
     parallel: bool | None = None,
     cost_llm_fn=None,
     swot_llm_fn=None,
+    canvas_llm_fn=None,
 ) -> PipelineReport:
     """확정된 IdeaDraft로 두 조사와 질문별 통합 근거 보고서를 실행한다.
 
     sources를 넘기면 조사를 다시 하지 않고 질문 연결과 보고서만 새로 만든다.
     swot_llm_fn을 주면 두 조사 결과로 예비 SWOT(build_swot)을 만들어 보고서에 붙인다.
+    canvas_llm_fn을 주면 아이디어·조사 결과·구축 비용 추정으로 예비 비즈니스 모델
+    캔버스(build_business_canvas)를 만들어 보고서에 붙인다.
     """
     draft.to_structured_idea()
     questions = screen_inputs(technical_components, questions)
@@ -791,6 +796,18 @@ def run_pipeline(
         if swot_llm_fn is not None
         else None
     )
+    canvas = (
+        build_business_canvas(
+            draft,
+            sources.patent,
+            sources.market,
+            canvas_llm_fn,
+            cost_estimate=cost_estimate,
+            technical_components=technical_components,
+        )
+        if canvas_llm_fn is not None
+        else None
+    )
     markdown = executive_report_markdown(
         draft.title,
         executive_review,
@@ -799,6 +816,7 @@ def run_pipeline(
         cost_totals=cost_totals,
         market=sources.market,
         swot=swot,
+        canvas=canvas,
     )
     statuses = {sources.patent.status, sources.market.status}
     status = "completed" if statuses == {"completed"} and not errors else "partial"
@@ -812,6 +830,7 @@ def run_pipeline(
         business_review=business_review,
         executive_review=executive_review,
         swot=swot,
+        canvas=canvas,
         errors=errors,
         patent_run=sources.patent_run,
         market_run=sources.market_run,
@@ -885,7 +904,11 @@ def main() -> None:
     from src.generation.market_analysis import call_analysis_llm
 
     report = run_pipeline(
-        draft, questions, technology_area_id=area, swot_llm_fn=call_analysis_llm
+        draft,
+        questions,
+        technology_area_id=area,
+        swot_llm_fn=call_analysis_llm,
+        canvas_llm_fn=call_analysis_llm,
     )
     print(
         f"[{report.status}] 특허 {report.patent_run.state}({report.patent_run.seconds}s)"
