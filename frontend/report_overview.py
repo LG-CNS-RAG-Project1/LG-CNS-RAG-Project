@@ -2,6 +2,8 @@
 
 import streamlit as st
 from pydantic import BaseModel, Field
+
+from frontend.market_trend_view import LOW_VOLUME_CAPTION, trend_chart
 from src.schemas import MarketKeywordNetwork, MarketSearchTrend, PatentTrendStatistics
 
 EVIDENCE_STATUS_LABELS = {
@@ -420,6 +422,10 @@ def _render_market_context(context: MarketContext) -> None:
         st.markdown("#### 검색 관심도 흐름")
         keywords = ", ".join(trend.keywords) or "주제어 미제공"
         reference = ", ".join(trend.reference_keywords) or "기준어 미제공"
+        if trend.fallback_from:
+            st.caption(
+                f"{', '.join(trend.fallback_from)}: 검색량이 적어 상위 범주로 조회"
+            )
         if trend.status == "completed":
             if trend.recent_change_pct is not None:
                 st.caption(
@@ -428,36 +434,21 @@ def _render_market_context(context: MarketContext) -> None:
                 )
             else:
                 st.caption(f"{keywords} · 기준: {reference} · 변화율 미제공")
-            points = [
-                {"월": point.period, "기준 대비 지수": point.relative_index}
-                for point in trend.points
-                if point.relative_index is not None
-            ]
-            if points:
-                import altair as alt
-                import pandas as pd
-
-                chart = (
-                    alt.Chart(pd.DataFrame(points))
-                    .mark_line(point=True)
-                    .encode(
-                        x=alt.X("월:N", title=None, sort=None),
-                        y=alt.Y("기준 대비 지수:Q", title="기준 대비 지수"),
-                        tooltip=["월", "기준 대비 지수"],
-                    )
-                    .properties(height=190)
-                )
-                st.altair_chart(
-                    chart,
-                    width="stretch",
-                    alt="기준 검색어 대비 월별 상대 검색 관심도",
-                )
-            else:
-                st.info("표시할 월별 상대 지수가 없습니다.")
         elif trend.status == "insufficient_volume":
-            st.info("검색량이 적어 관심도 흐름을 판단하지 않습니다.")
+            st.info(f"{keywords} · 검색량이 적어 관심도 흐름을 판단하지 않습니다.")
         else:
             st.warning("검색 관심도 자료를 불러오지 못했습니다.")
+        chart = trend_chart(trend, height=190)
+        if chart is not None:
+            st.altair_chart(
+                chart,
+                width="stretch",
+                alt="기준 검색어 대비 월별 상대 검색 관심도",
+            )
+            if trend.status == "insufficient_volume":
+                st.caption(LOW_VOLUME_CAPTION)
+        elif trend.status == "completed":
+            st.info("표시할 월별 상대 지수가 없습니다.")
         if trend.note:
             st.caption(trend.note)
         st.caption("상대 검색 관심도이며 시장 규모·고객 수요의 근거가 아닙니다.")

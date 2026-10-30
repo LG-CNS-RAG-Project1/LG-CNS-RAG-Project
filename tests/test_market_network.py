@@ -16,6 +16,7 @@ from src.schemas import (
 from src.services import market_network, market_service
 from src.services.market_network import (
     build_keyword_network,
+    drop_reprints,
     extract_terms,
     layout_graph,
     load_network_config,
@@ -24,6 +25,8 @@ from src.services.market_network import (
 )
 
 CONFIG = load_network_config()
+# 가짜 뉴스는 일부러 같은 명사를 반복하므로 재게재 제외를 끈 설정
+NO_DEDUP = {**CONFIG, "duplicate_similarity": 1.1}
 VOCAB = ["협동로봇", "중소기업", "비용", "검사"]
 
 
@@ -154,7 +157,12 @@ REQUEST = MarketSearchRequest(
 
 def test_build_keyword_network_from_nearest_news(news_collection, monkeypatch):
     monkeypatch.setattr(market_network, "_CORPUS_DF", {})
-    config = {**CONFIG, "documents": 30, "min_documents": 10, "max_document_share": 1.0}
+    config = {
+        **NO_DEDUP,
+        "documents": 30,
+        "min_documents": 10,
+        "max_document_share": 1.0,
+    }
 
     network = build_keyword_network(
         REQUEST, news_collection, fake_embed, config, fake_tokenize
@@ -172,7 +180,11 @@ def test_build_keyword_network_from_nearest_news(news_collection, monkeypatch):
 def test_build_keyword_network_insufficient_and_error(news_collection, monkeypatch):
     monkeypatch.setattr(market_network, "_CORPUS_DF", {})
     few = build_keyword_network(
-        REQUEST, news_collection, fake_embed, {**CONFIG, "documents": 5}, fake_tokenize
+        REQUEST,
+        news_collection,
+        fake_embed,
+        {**NO_DEDUP, "documents": 5},
+        fake_tokenize,
     )
 
     def broken_embed(texts):
@@ -184,6 +196,39 @@ def test_build_keyword_network_insufficient_and_error(news_collection, monkeypat
 
     assert few.status == "insufficient" and few.document_count == 5
     assert failed.status == "error" and "quota" in failed.error_message
+
+
+def test_drop_reprints_keeps_one_copy_per_story():
+    nike = {"제논", "나이키", "아웃솔", "검사", "인도네시아"}
+    documents = [
+        nike,
+        {"용접", "불량", "검사"},
+        nike | {"양산"},
+        set(),
+        {"제논", "나이키", "신발", "검사"},
+        {"예지보전", "진동"},
+    ]
+
+    assert drop_reprints(documents, 0.3, 10) == [
+        nike,
+        {"용접", "불량", "검사"},
+        {"예지보전", "진동"},
+    ]
+    assert drop_reprints(documents, 0.3, 2) == [nike, {"용접", "불량", "검사"}]
+
+
+def test_build_keyword_network_counts_stories_not_reprints(
+    news_collection, monkeypatch
+):
+    monkeypatch.setattr(market_network, "_CORPUS_DF", {})
+    config = {**CONFIG, "documents": 30, "min_documents": 10}
+
+    network = build_keyword_network(
+        REQUEST, news_collection, fake_embed, config, fake_tokenize
+    )
+
+    assert network.status == "insufficient"
+    assert network.document_count < 10
 
 
 def test_kiwi_tokenize_extracts_compound_nouns():

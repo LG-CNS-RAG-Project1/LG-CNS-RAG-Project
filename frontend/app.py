@@ -1362,6 +1362,11 @@ def render_market_report(market, draft=None, widget_suffix=""):
         from frontend.market_financials_view import render_company_financials
 
         render_company_financials(financials)
+    procurement = getattr(market, "procurement", None)
+    if procurement is not None:
+        from frontend.market_procurement_view import render_procurement
+
+        render_procurement(procurement)
 
     observed_dimensions = [
         dimension

@@ -18,6 +18,7 @@ from src.schemas import (
     MarketCompanyFinancials,
     MarketEvidence,
     MarketKeywordNetwork,
+    MarketProcurement,
     MarketReport,
     MarketSearchTrend,
 )
@@ -158,16 +159,103 @@ def company_financials_summary(financials: MarketCompanyFinancials) -> str:
     )
 
 
+def format_won(amount: int | None) -> str:
+    """원 단위 금액을 1억 이상은 억원(소수 첫째 자리), 미만은 만원으로 쓴다. 값이 없으면 '-'."""
+    if amount is None:
+        return "-"
+    if amount >= 100_000_000:
+        return f"{amount / 1e8:,.1f}억원"
+    return f"{amount / 1e4:,.0f}만원"
+
+
+def procurement_stats(procurement: MarketProcurement) -> dict:
+    """관련 공고 수, 예산 중앙값·최솟값·최댓값(원), 구매 주체 유형별 공고 수(많은 순)를 계산한다."""
+    budgets = sorted(n.budget for n in procurement.notices if n.budget)
+    types: dict[str, int] = {}
+    for notice in procurement.notices:
+        types[notice.buyer_type] = types.get(notice.buyer_type, 0) + 1
+    middle = len(budgets) // 2
+    median = (
+        None
+        if not budgets
+        else (
+            budgets[middle]
+            if len(budgets) % 2
+            else (budgets[middle - 1] + budgets[middle]) // 2
+        )
+    )
+    return {
+        "count": len(procurement.notices),
+        "median": median,
+        "min": budgets[0] if budgets else None,
+        "max": budgets[-1] if budgets else None,
+        "buyer_types": dict(sorted(types.items(), key=lambda kv: (-kv[1], kv[0]))),
+    }
+
+
+def procurement_summary(procurement: MarketProcurement) -> str:
+    """공공 조달 공고의 조회 범위·관련 공고 수·예산 수준을 한 문장으로 쓴다. 주제어 없음·오류면 그 사유를 쓴다."""
+    if procurement.status == "error":
+        return f"공공 조달 공고를 불러오지 못했습니다. ({procurement.error_message or '사유 미확인'})"
+    if procurement.status == "no_keywords":
+        return "검색 관심도 주제어가 없어 공공 조달 공고를 조회하지 않았습니다."
+    keywords = ", ".join(procurement.keywords)
+    stats = procurement_stats(procurement)
+    if not stats["count"]:
+        return (
+            f"'{keywords}' 공고명으로 {procurement.period} 나라장터 입찰공고 "
+            f"{procurement.searched_count}건을 찾았으나 같은 제품·서비스 범주의 공고는 없습니다."
+        )
+    budget = (
+        f" 예산 중앙값 {format_won(stats['median'])}"
+        f"({format_won(stats['min'])}~{format_won(stats['max'])})입니다."
+        if stats["median"]
+        else ""
+    )
+    return (
+        f"'{keywords}' 공고명으로 {procurement.period} 나라장터 입찰공고 "
+        f"{procurement.searched_count}건 중 같은 제품·서비스 범주 {stats['count']}건을 찾았습니다."
+        + budget
+    )
+
+
+def procurement_rows(
+    procurement: MarketProcurement, limit: int | None = None
+) -> list[dict]:
+    """관련 공고를 표의 행 목록(공고일 최신순)으로 만든다. limit가 있으면 그 수만큼."""
+    notices = procurement.notices[:limit] if limit else procurement.notices
+    return [
+        {
+            "공고일": format_date(n.notice_date),
+            "구분": n.kind,
+            "수요기관": n.buyer,
+            "유형": n.buyer_type,
+            "공고명": n.title,
+            "예산": format_won(n.budget),
+            "공고": safe_url(n.url) or "",
+        }
+        for n in notices
+    ]
+
+
 def search_trend_summary(trend: MarketSearchTrend) -> str:
-    """검색 관심도 흐름의 주제어·판정·변화율을 한 문장으로 쓴다. 검색량 부족·오류면 그 사유를 쓴다."""
+    """검색 관심도 흐름의 주제어·판정·변화율을 한 문장으로 쓴다. 검색량 부족·오류면 그 사유를 쓴다.
+
+    상위 범주 주제어로 다시 조회했으면 원래 주제어를 앞에 밝힌다.
+    """
     keywords = ", ".join(trend.keywords) or "주제어 없음"
     reference = ", ".join(trend.reference_keywords) or "기준 주제어"
     if trend.status == "error":
         return f"검색 관심도를 불러오지 못했습니다. ({trend.error_message or '사유 미확인'})"
+    fallback = (
+        f"'{', '.join(trend.fallback_from)}'는 검색량이 적어 상위 범주로 조회했습니다. "
+        if trend.fallback_from
+        else ""
+    )
     if trend.status == "insufficient_volume":
-        return f"'{keywords}'는 네이버 검색량이 적어 관심도 흐름을 판단하지 않습니다."
+        return f"{fallback}'{keywords}'는 네이버 검색량이 적어 관심도 흐름을 판단하지 않습니다."
     return (
-        f"'{keywords}' 검색 관심도는 {reference} 대비 "
+        f"{fallback}'{keywords}' 검색 관심도는 {reference} 대비 "
         f"{TREND_DIRECTION_LABELS[trend.direction]}입니다 (최근 6개월 평균, 직전 6개월 대비 "
         f"{trend.recent_change_pct:+.1f}%)."
     )
@@ -331,6 +419,39 @@ def market_report_to_markdown(report: MarketReport, heading_level: int = 2) -> s
         ]
         if financials.note:
             lines += ["", f"> {cell(financials.note)}"]
+    procurement = report.procurement
+    if procurement:
+        lines += [
+            "",
+            f"{sub} 공공 조달 공고",
+            "",
+            f"- {cell(procurement_summary(procurement))}",
+        ]
+        types = procurement_stats(procurement)["buyer_types"]
+        if types:
+            lines.append(
+                "- 구매 주체: "
+                + " · ".join(f"{cell(name)} {count}건" for name, count in types.items())
+            )
+        rows = procurement_rows(procurement, 10)
+        if rows:
+            lines += [
+                "",
+                "| 공고일 | 구분 | 수요기관(유형) | 공고명 | 예산 |",
+                "|---|---|---|---|---|",
+            ]
+            for r in rows:
+                title = (
+                    f"[{cell(r['공고명'])}]({r['공고']})"
+                    if r["공고"]
+                    else cell(r["공고명"])
+                )
+                lines.append(
+                    f"| {r['공고일']} | {r['구분']} | {cell(r['수요기관'])}({cell(r['유형'])})"
+                    f" | {title} | {r['예산']} |"
+                )
+        if procurement.note:
+            lines += ["", f"> {cell(procurement.note)}"]
 
     if report.unknowns:
         lines += ["", f"{sub} 미확인 사항", ""]
