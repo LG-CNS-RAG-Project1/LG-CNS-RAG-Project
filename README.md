@@ -383,12 +383,15 @@ python -m evaluation.patent_labeling export              # SF-02/SF-05 특허 �
 python -m evaluation.patent_domain_experiment run   # SF-05 질문을 SF-05·SF-02 로컬 색인에서 검색
 python -m evaluation.patent_domain_experiment score # 후보 사람 라벨 완료 후 지표 계산
 python -m evaluation.patent_index_effect --rebuild-cache # SF-05 사전색인과 매 요청 임베딩 시간 비교
+python -m evaluation.patent_candidate_budget run --limit 150 # 확장 코퍼스에서 고정 배치 후보 수 비교
+python -m evaluation.patent_candidate_budget score # 후보 사람 라벨 완료 후 후보 제한별 품질 비교
 ```
 
 - 비교 스크립트는 `data/patents/chroma/`의 로컬 `patents` 컬렉션을 직접 열어 공용 Chroma 설정과 분리한다. 기존 로컬 색인의 SF-05(지능형 공정제어)와 비교 분야 SF-02(AI 비전 품질검사) 임베딩을 분야별 필터로 검색한다. 새 특허를 추가할 때는 수집·정제 및 기존 특허 색인 구축 절차를 따른다.
 - SF-05 평가 질의와 동일한 Top-20 후보 풀에서 Dense·BM25·Hybrid를 비교한다. 검색 순위가 포함된 `rankings.csv`와 순위·방식을 감춘 `candidates.csv`는 Git 제외 경로 `data/patents/processed/domain_experiment/`에 생성된다. 후보의 `relevant`를 사람이 0/1로 판정하고, 기존 [특허 평가 라벨링 가이드](evaluation/patent_labeling.md)에 따라 애매한 후보는 보류한 뒤 `score`를 실행한다.
 - Hit@5·Recall@5·Precision@5·MRR@5·nDCG@5는 라벨 완료된 후보 풀 기준으로만 계산한다. 평가 문항과 특허 표본이 작으므로 결과는 해당 색인·질의의 예비 비교로 해석한다. Dense·Hybrid 검색은 질의 임베딩에 `OPENAI_API_KEY`가 필요하다.
 - `patent_index_effect`는 SF-05 특허 청크를 실험 전용 로컬 Chroma에 한 번 색인한 경로와, 질의마다 문서 전체를 다시 임베딩하는 경로의 임베딩 입력 수·API 요청 수·시간·Top-5 순위 일치도를 비교한다. 전자는 색인 구축 시간을 별도로 기록하고, 실측 질의 시간 절감으로 단순 손익분기 질의 수를 계산한다. 결과는 Git 제외 경로 `data/patents/processed/domain_experiment/index_effect.json`에 저장된다. 비교 실행은 특허 본문을 임베딩 API로 보낸다. 단일 실행 시간은 네트워크 변동을 포함하며, 검색 품질 지표는 사람 라벨을 완료한 뒤 해석한다.
+- `patent_candidate_budget`은 SF-05 설정 검색어당 KIPRIS 최대 150건을 수집해 별도 로컬 색인을 만든다. 질의마다 한 임베딩 배치(최대 100개 입력)로 제한한 무색인 방식은 BM25 상위 99개 후보를 재임베딩하고, 사전색인 방식은 전체 특허 임베딩을 검색한다. 두 방식의 후보 수와 순위를 비교하고, 블라인드 후보 CSV를 사람이 라벨한 뒤 Hit@5·Recall@5·Precision@5·MRR@5·nDCG@5를 계산한다. 특허 원문·색인·결과는 Git 제외 `data/patents/processed/domain_experiment/candidate_budget/`에 보관한다. 수집·임베딩은 각각 KIPRIS·OpenAI API를 사용하고 공유 Chroma에는 쓰지 않는다.
 
 ### 특허 청구항 분석
 
