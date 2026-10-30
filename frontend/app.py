@@ -1796,6 +1796,8 @@ def drop_link(qid):
 
 
 def open_page(page):
+    if s.page == "home" and page != "home":
+        s.home_intro_played = True
     if s.page == "workspace" and s.idea_page_view == "input":
         s.idea_input_buffer = s.get("raw_input", s.raw)
     s.page = page
@@ -1803,6 +1805,7 @@ def open_page(page):
 
 
 def start_research():
+    s.home_intro_played = True
     if s.get("analysis_workflow_id"):
         resume_research()
         return
@@ -1828,6 +1831,11 @@ has_research = bool(
     or s.idea_draft
     or s.get("analysis_workflow_id")
 )
+if s.page == "home" and not s.get("home_intro_played", False):
+    from frontend.landing_motion import intro_completed
+
+    if intro_completed():
+        s.home_intro_played = True
 play_intro = s.page == "home" and not s.get("home_intro_played", False)
 if play_intro:
     from frontend.landing_motion import intro_styles
@@ -1963,7 +1971,6 @@ if s.page == "home":
         from frontend.landing_motion import intro_markup
 
         st.html(intro_markup(), unsafe_allow_javascript=True)
-        s.home_intro_played = True
     render_page_nav(s.page, open_page, resume_research, has_research=has_research)
     settle_navigation()
     st.stop()

@@ -24,12 +24,7 @@ from typing import Callable
 from chromadb.api import ClientAPI
 from src.retrieval.chroma_client import connect_chroma
 
-from src.schemas import (
-    ALL_DIMENSIONS,
-    IDEA_FIELDS,
-    MarketDocument,
-    MarketSearchRequest,
-)
+from src.schemas import IDEA_FIELDS, MarketDocument, MarketSearchRequest
 from src.retrieval.engine import RetrievalConfig, retrieve
 from src.llm_client import embedding_collection_name, embedding_model, get_openai_client
 from src.retrieval.schemas import RetrievalResult, SearchDocument

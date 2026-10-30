@@ -19,7 +19,7 @@ def press(app, label):
 
 def test_landing_has_single_start_and_no_research_form():
     app = AppTest.from_file(str(APP)).run()
-    assert app.session_state.home_intro_played
+    assert not app.session_state.get("home_intro_played", False)
     assert not app.text_area
     assert not any(b.key and b.key.startswith("nav_") for b in app.button)
     assert sum(b.label == "돋보기로 조사 시작" for b in app.button) == 1

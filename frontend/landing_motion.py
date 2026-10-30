@@ -1,5 +1,29 @@
 """실제 제목의 이동과 문서·돋보기의 순차 등장을 한 타임라인으로 연결한다."""
 
+from streamlit.components.v2 import component
+
+_intro_completion = component(
+    "landing_intro_completion",
+    js="""
+export default function({setStateValue}) {
+  const complete = () => setStateValue('completed', true);
+  window.addEventListener('idealens:intro-completed', complete);
+  if (document.querySelector('.st-key-landing[data-intro-state="done"]')) complete();
+  return () => window.removeEventListener('idealens:intro-completed', complete);
+}
+""",
+)
+
+
+def intro_completed():
+    """브라우저에서 연출을 끝낸 뒤에만 세션의 재생 완료를 알린다."""
+    return (
+        _intro_completion(
+            key="landing_intro_completion", on_completed_change=lambda: None
+        ).completed
+        is True
+    )
+
 
 def intro_styles():
     """홈 마크업보다 먼저 적용해 완성 화면이 먼저 번쩍이는 현상을 막는다."""
@@ -10,8 +34,8 @@ def intro_styles():
       from {opacity:0;transform:translateY(10px);}
       to {opacity:1;transform:translateY(0);}
     }
-    .st-key-brandbar {opacity:0;visibility:hidden;animation:introFallback 0s 4.8s forwards;}
-    [data-testid="stMainBlockContainer"]:has(.st-key-landing[data-intro-state="playing"]) .st-key-brandbar {visibility:visible;animation:introReveal .4s 2.55s both;}
+    .st-key-brandbar {opacity:0;visibility:hidden;animation:introFallback 0s 6.5s forwards;}
+    [data-testid="stMainBlockContainer"]:has(.st-key-landing[data-intro-state="playing"]) .st-key-brandbar {visibility:visible;animation:introReveal .4s 3.05s both;}
     [data-testid="stMainBlockContainer"]:has(.st-key-landing[data-intro-state="done"]) .st-key-brandbar {opacity:1;visibility:visible;animation:none;}
     .st-key-landing:not([data-intro-state="done"]) .hero-copy h1,
     .st-key-landing:not([data-intro-state="done"]) .hero-copy>.eyebrow,
@@ -19,7 +43,7 @@ def intro_styles():
     .st-key-landing:not([data-intro-state="done"]) .hero-note,
     .st-key-landing:not([data-intro-state="done"]) .paper-scene,
     .st-key-landing:not([data-intro-state="done"]) .st-key-lens_start {
-      opacity:0;animation:introFallback 0s 4.8s forwards;
+      opacity:0;animation:introFallback 0s 6.5s forwards;
     }
     .st-key-landing:not([data-intro-state="done"]) .st-key-lens_start {visibility:hidden;}
     .st-key-landing[data-intro-state="playing"] .hero-copy h1 {animation:none;will-change:transform,opacity;}
@@ -27,12 +51,12 @@ def intro_styles():
     .st-key-landing[data-intro-state="playing"] .hero-title-line:last-child {animation:introReveal .35s .38s both;}
     .st-key-landing[data-intro-state="playing"] .hero-copy>.eyebrow,
     .st-key-landing[data-intro-state="playing"] .hero-copy>p,
-    .st-key-landing[data-intro-state="playing"] .hero-note {animation:introReveal .5s 2.7s both;}
-    .st-key-landing[data-intro-state="playing"] .paper-scene {animation:introReveal .6s 2.9s both;}
-    .st-key-landing[data-intro-state="playing"] .st-key-lens_start {visibility:visible;animation:introReveal .5s 3.4s both;}
+    .st-key-landing[data-intro-state="playing"] .hero-note {animation:introReveal .5s 3.2s both;}
+    .st-key-landing[data-intro-state="playing"] .paper-scene {animation:introReveal .6s 3.4s both;}
+    .st-key-landing[data-intro-state="playing"] .st-key-lens_start {visibility:visible;animation:introReveal .5s 3.95s both;}
     .st-key-landing:not([data-intro-state="done"]) .st-key-lens_start button:before {animation-play-state:paused;}
-    [data-testid="stMainBlockContainer"]:has(.st-key-landing:not([data-intro-state="done"])) .st-key-research_rail {opacity:0;animation:introFallback 0s 4.8s forwards;pointer-events:none;}
-    [data-testid="stMainBlockContainer"]:has(.st-key-landing[data-intro-state="playing"]) .st-key-research_rail {animation:introFade .35s 3.7s both;}
+    [data-testid="stMainBlockContainer"]:has(.st-key-landing:not([data-intro-state="done"])) .st-key-research_rail {opacity:0;animation:introFallback 0s 6.5s forwards;pointer-events:none;}
+    [data-testid="stMainBlockContainer"]:has(.st-key-landing[data-intro-state="playing"]) .st-key-research_rail {animation:introFade .35s 4.2s both;}
     @media(prefers-reduced-motion:reduce) {
       .st-key-brandbar,.st-key-landing .hero-title-line,
       .st-key-landing .hero-copy h1,.st-key-landing .hero-copy>.eyebrow,
@@ -54,7 +78,10 @@ def intro_markup():
       const finish = () => {
         if (finished) return;
         finished = true;
-        if (root) root.dataset.introState = 'done';
+        if (root) {
+          root.dataset.introState = 'done';
+          window.dispatchEvent(new Event('idealens:intro-completed'));
+        }
         titleAnimation?.cancel();
         clearTimeout(revealTimer);
         clearTimeout(waitTimer);
@@ -72,11 +99,15 @@ def intro_markup():
         clearTimeout(waitTimer);
         if (root.dataset.introState) return true;
         root.dataset.introState = 'preparing';
-        if (matchMedia('(prefers-reduced-motion: reduce)').matches ||
-            document.querySelector('[data-testid="stMain"]').scrollTop > 50) {
+        if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
           finish();return true;
         }
-        for (const event of ['resize','pointerdown','keydown','wheel','touchstart']) {
+        document.querySelector('[data-testid="stMain"]')?.scrollTo({top:0,behavior:'instant'});
+        const initialWidth = innerWidth;
+        window.addEventListener('resize', () => {
+          if (Math.abs(innerWidth - initialWidth) > 80) finish();
+        }, {passive:true,signal:events.signal});
+        for (const event of ['pointerdown','keydown','wheel','touchstart']) {
           window.addEventListener(event, finish, {once:true,passive:true,signal:events.signal});
         }
         removalObserver = new MutationObserver(() => {if (!root.isConnected) finish();});
@@ -102,8 +133,8 @@ def intro_markup():
             {opacity:1,transform:opening,offset:0},
             {opacity:1,transform:opening,offset:.68,easing:'cubic-bezier(.22,.7,.2,1)'},
             {opacity:1,transform:'translate(0,0) scale(1)',offset:1},
-          ],{duration:2800,easing:'linear',fill:'both'});
-          revealTimer = setTimeout(finish,4100);
+          ],{duration:3300,easing:'linear',fill:'both'});
+          revealTimer = setTimeout(finish,4700);
         } catch {finish();}
         return true;
       };
