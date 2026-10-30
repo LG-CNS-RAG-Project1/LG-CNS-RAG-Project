@@ -966,7 +966,7 @@ def workflow_progress_fragment(compact=False):
             f"진행 시간 {elapsed // 60}분 {elapsed % 60}초"
         )
         st.caption(
-            "새 입력이 분석 결과에 섞이지 않도록 입력은 잠겨 있습니다. 이전 완료 단계는 상단 메뉴에서 다시 볼 수 있습니다."
+            "새 입력이 분석 결과에 섞이지 않도록 입력은 잠겨 있습니다. 완료된 결과는 고정 바로가기에서 다시 볼 수 있습니다."
         )
         if st.button("분석 취소하고 아이디어 수정", key=f"cancel_workflow_{job_id}"):
             cancel_report_workflow()
@@ -977,6 +977,13 @@ def render_patent_report(patent, *, widget_suffix="", preview=False):
     """최대 8개 특허를 궤도에 배치하고 호버 요약과 종합 근거를 제공한다."""
     import math
 
+    from frontend.patent_orbit import (
+        dense_similarity_text,
+        patent_dense_similarity,
+        patent_orbit_position,
+        patent_semantic_similarity,
+        semantic_similarity_text,
+    )
     from src.generation.patent_analysis import (
         PATENT_ORBIT_COLORS,
         PATENT_ORBIT_LABELS,
@@ -1086,9 +1093,11 @@ def render_patent_report(patent, *, widget_suffix="", preview=False):
             )
             count = len(orbit_reviews)
             points = []
-            for index, (review, _) in enumerate(orbit_reviews):
-                angle = (2 * math.pi * index / count) - math.pi / 2
+            for index, (review, document_evidence) in enumerate(orbit_reviews):
                 category = patent_orbit_category(review, evidence_by_id)
+                dense_similarity = patent_dense_similarity(document_evidence)
+                semantic_similarity = patent_semantic_similarity(document_evidence)
+                x, y = patent_orbit_position(index, count, semantic_similarity)
                 summary = (
                     review.overall_summary
                     or review.relevance_reason
@@ -1104,14 +1113,18 @@ def render_patent_report(patent, *, widget_suffix="", preview=False):
                         "category": category,
                         "label": PATENT_ORBIT_LABELS[category],
                         "color": PATENT_ORBIT_COLORS[category],
-                        "x": 2.7 * math.cos(angle),
-                        "y": 2.1 * math.sin(angle),
+                        "dense_score_display": dense_similarity_text(dense_similarity),
+                        "semantic_similarity_display": semantic_similarity_text(
+                            semantic_similarity
+                        ),
+                        "x": x,
+                        "y": y,
                     }
                 )
 
             st.subheader("특허 비교 궤도")
             st.caption(
-                "행성에 커서를 올리면 문헌별 핵심 요약을 확인할 수 있습니다. 색상은 구성 비교 근거에 따른 검토 우선순위이며 법률상 위험 등급이 아닙니다."
+                "의미 유사도(0~1)는 아이디어와 특허 문헌의 임베딩 cosine 값이며 분석마다 추가 임베딩 API 사용량이 발생합니다. 점수가 높을수록 행성을 중심에 가깝게 배치합니다(반경 2.8−1.35×점수, 미제공은 외곽). Dense 검색 점수는 별도 점수이며 궤도 거리에는 사용하지 않습니다. 두 점수 모두 관련성 확률이 아닙니다. 색상은 구성 비교 근거에 따른 검토 우선순위이며 법률상 위험 등급이 아닙니다."
             )
             legend = st.columns(4)
             for column, category in zip(legend, ("red", "yellow", "green", "blue")):
@@ -1199,6 +1212,13 @@ def render_patent_report(patent, *, widget_suffix="", preview=False):
                         tooltip=[
                             alt.Tooltip("title:N", title="문헌"),
                             alt.Tooltip("label:N", title="검토 우선순위"),
+                            alt.Tooltip(
+                                "semantic_similarity_display:N",
+                                title="의미 유사도 (0~1)",
+                            ),
+                            alt.Tooltip(
+                                "dense_score_display:N", title="Dense 검색 점수"
+                            ),
                             alt.Tooltip("summary:N", title="핵심 요약", format="s"),
                             alt.Tooltip("reason:N", title="우선 확인 이유", format="s"),
                         ],
@@ -1671,7 +1691,7 @@ def can_visit(number):
         if number == 2:
             return job.get("patent_report") is not None
         if number == 3:
-            return job.get("market_report") is not None
+            return True
         if number == 4:
             return job.get("result") is not None
     if number == 1:
@@ -1994,7 +2014,7 @@ def review_navigation(number, label, column, key, *, icon=None):
         key=key,
         type=(
             "primary"
-            if s.stage == number or (key in {"rail_2", "nav_2"} and s.stage == 3)
+            if s.stage == number or (key == "rail_2" and s.stage == 3)
             else "secondary"
         ),
         disabled=not can_visit(number)
@@ -2003,6 +2023,10 @@ def review_navigation(number, label, column, key, *, icon=None):
         icon=icon,
     ):
         if active_job is not None:
+            if number == 3:
+                s.stage = 3
+                s.workflow_preview_stage = None
+                st.rerun(scope="app")
             s.workflow_preview_stage = number
             st.rerun(scope="app")
         else:
@@ -2010,18 +2034,6 @@ def review_navigation(number, label, column, key, *, icon=None):
             st.rerun(scope="app")
 
 
-with st.container(key="stage_navigation"):
-    for column, number, label in zip(
-        st.columns(3),
-        (1, 2, 4),
-        ("1 아이디어 구체화", "2 특허·시장 검토", "3 종합 보고서"),
-    ):
-        review_navigation(number, label, column, f"nav_{number}")
-if s.stage in (2, 3):
-    for column, number, label in zip(
-        st.columns(2), (2, 3), ("특허 비교", "시장성 분석")
-    ):
-        review_navigation(number, label, column, f"subnav_{number}")
 render_quick_nav(review_navigation, open_page)
 
 
@@ -2388,9 +2400,14 @@ with st.container(key=f"workspace_{1 if s.stage == 1 else 3 if s.stage == 4 else
         )
         workflow_job = current_workflow_job()
         if s.real_mode and workflow_job and not workflow_job.get("market_report"):
-            st.caption(
-                "특허 결과를 확인할 수 있습니다. 시장 결과가 준비되면 이 화면에 이어서 표시합니다."
-            )
+            if workflow_job.get("phase") == "patent":
+                st.caption(
+                    "시장 분석은 특허 조사 후 시작됩니다. 완료되면 이 화면에 표시합니다."
+                )
+            else:
+                st.caption(
+                    "시장성 분석이 진행 중입니다. 완료되면 이 화면에 표시합니다."
+                )
         elif s.real_mode and s.pipeline_result:
             market = s.pipeline_result.market
             render_market_report(market, s.idea_draft)

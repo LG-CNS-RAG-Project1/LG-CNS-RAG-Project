@@ -262,11 +262,16 @@ def test_direct_input_runs_followup_and_reaches_report(live):
     # 초안 확정 뒤 백그라운드 전체 분석이 자동 시작된다.
     assert live["analyze"] == 1
     app.session_state.analysis_workflow_id = None
-    app.session_state.pipeline_result = pipeline.run_pipeline(
+    report = pipeline.run_pipeline(
         app.session_state.idea_draft,
         [],
         sources=sources(),
     )
+    evidence = report.patent.evidence[0].model_copy(
+        update={"similarity": 0.99, "semantic_similarity": 0.2}
+    )
+    patent = report.patent.model_copy(update={"evidence": [evidence]})
+    app.session_state.pipeline_result = report.model_copy(update={"patent": patent})
     app.session_state.stage = 2
     app.run()
     assert any("특허 비교 궤도" in item.value for item in app.subheader)
@@ -290,6 +295,26 @@ def test_direct_input_runs_followup_and_reaches_report(live):
     )
     serialized = json.dumps(json.loads(charts[0].proto.spec), ensure_ascii=False)
     assert "핵심 요약" in serialized and "우선 확인 이유" in serialized
+    assert "의미 유사도 (0~1)" in serialized
+    assert "Dense 검색 점수" in serialized
+    assert '"semantic_similarity_display": "0.200"' in serialized
+    assert '"dense_score_display": "0.990 · Dense 점수 (확률 아님)"' in serialized
+
+    def walk(value):
+        if isinstance(value, dict):
+            yield value
+            for child in value.values():
+                yield from walk(child)
+        elif isinstance(value, list):
+            for child in value:
+                yield from walk(child)
+
+    point = next(
+        item
+        for item in walk(json.loads(charts[0].proto.spec))
+        if item.get("semantic_similarity_display") == "0.200"
+    )
+    assert point["y"] == pytest.approx(-1.9734)
     assert not any("문헌 요약 선택" in item.label for item in app.selectbox)
     assert '"name": "patent_click"' in serialized
 
@@ -329,10 +354,13 @@ def test_direct_input_runs_followup_and_reaches_report(live):
         assert app.session_state.stage == stage
         assert app.session_state.pipeline_result == previous
     assert live == previous_calls
-    for page in ("history", "about", "difference", "home"):
-        app.button(key=f"rail_{page}").click().run()
+    for key in ("header_about", "header_difference", "rail_home"):
+        app.button(key=key).click().run()
         assert not app.exception
         assert app.session_state.pipeline_result == previous
+    app.button(key="header_history").click().run()
+    assert app.session_state.page == "history"
+    assert app.session_state.pipeline_result == previous
     app.button(key="rail_resume").click().run()
     assert not app.exception
     assert app.session_state.stage == 4
@@ -430,6 +458,99 @@ def test_four_report_stages_use_one_analysis_run(live):
     assert app.session_state.stage == 3
     click(app, "← 특허 비교")
     assert app.session_state.stage == 2 and live["analyze"] == 1
+
+
+def test_market_toolbar_opens_only_market_report_while_workflow_is_active(live):
+    import time
+
+    app = analysis_app()
+    draft = IdeaDraft(
+        original_text=IDEA,
+        **FIELDS,
+        revenue="월 구독",
+        status="complete",
+    )
+    report = sources()
+    job_id = "market-toolbar-test"
+    with WORKFLOW_JOBS_LOCK:
+        WORKFLOW_JOBS[job_id] = {
+            "patent_report": report.patent,
+            "patent_run": PartRun(state="completed", seconds=1),
+            "market_report": report.market,
+            "market_run": PartRun(state="completed", seconds=1),
+            "phase": "final_report",
+            "result": None,
+            "sources": None,
+            "error": None,
+            "done": False,
+            "started_at": time.monotonic(),
+        }
+    try:
+        app.session_state.idea_draft = draft
+        app.session_state.confirmed_context = True
+        app.session_state.real_mode = True
+        app.session_state.pipeline_result = report
+        app.session_state.analysis_workflow_id = job_id
+        app.session_state.stage = 2
+        app.run()
+        assert not app.button(key="rail_3").disabled
+        app.button(key="rail_3").click().run()
+        assert not app.exception
+        assert app.session_state.stage == 3
+        assert not app.get("dialog")
+        assert any(item.value == "시장성 보고서" for item in app.title)
+        assert not any("특허 비교 궤도" in item.value for item in app.subheader)
+    finally:
+        with WORKFLOW_JOBS_LOCK:
+            WORKFLOW_JOBS.pop(job_id, None)
+
+
+def test_market_screen_waits_without_rendering_patent_report(live):
+    import time
+
+    app = analysis_app()
+    job_id = "market-wait-test"
+    with WORKFLOW_JOBS_LOCK:
+        WORKFLOW_JOBS[job_id] = {
+            "patent_report": sources().patent,
+            "patent_run": PartRun(state="completed", seconds=1),
+            "market_report": None,
+            "market_run": None,
+            "phase": "market",
+            "result": None,
+            "sources": None,
+            "error": None,
+            "done": False,
+            "started_at": time.monotonic(),
+        }
+    try:
+        app.session_state.idea_draft = IdeaDraft(
+            original_text=IDEA,
+            **FIELDS,
+            revenue="월 구독",
+            status="complete",
+        )
+        app.session_state.page = "workspace"
+        app.session_state.confirmed_context = True
+        app.session_state.real_mode = True
+        app.session_state.analysis_workflow_id = job_id
+        app.session_state.workflow_ready_key = (True, False)
+        app.session_state.pipeline_result = None
+        app.session_state.stage = 2
+        app.run()
+        assert not app.button(key="rail_3").disabled
+        app.button(key="rail_3").click().run()
+        assert app.session_state.stage == 3
+        page_text = " ".join(
+            item.value
+            for group in (app.caption, app.markdown, app.info, app.title)
+            for item in group
+        )
+        assert "시장성 분석이 진행 중입니다" in page_text, page_text
+        assert not any("특허 비교 궤도" in item.value for item in app.subheader)
+    finally:
+        with WORKFLOW_JOBS_LOCK:
+            WORKFLOW_JOBS.pop(job_id, None)
 
 
 @pytest.mark.parametrize("navigation_key", ["rail_1"])
