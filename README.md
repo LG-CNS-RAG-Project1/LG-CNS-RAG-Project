@@ -198,7 +198,7 @@ python -m src.ingestion.patent_processor --field-id SF-05 --limit 20 --include-c
 - 공통 분야 분류와 초기 검색어는 `configs/technology_areas.yaml`에서 SF-01~SF-08로 관리한다. 현재 우선 특허 색인 대상은 SF-02 AI 비전 품질검사와 SF-05 지능형 공정제어다.
 - `--field-id`는 분야 설정의 검색어로 KIPRIS 자료를 수집해 `data/patents/processed/patent_docs.jsonl`에 누적하고, 새 초록·청구항 청크를 `data/patents/chroma/`에 색인한다. 기존 색인 청크는 변경이 없으면 다시 임베딩하지 않는다.
 - `--include-claims`는 문헌별 청구항 상세 API를 조회한다. API에서 확보하지 못한 청구항은 생성하지 않고 초록만 색인한다. `KIPRIS_API_KEY`와 청구항 API 이용 권한이 필요하다.
-- 검색어 계획으로 별도 수집·색인을 하려면 `python -m scripts.collect_patents --request <PatentSearchRequest.json> --field-id SF-02 --include-claims` 후 `python -m scripts.build_patent_index --field-id SF-02`를 실행한다. `PatentQueryPlan`은 기술 요소를 최대 5개까지 허용한다.
+- 검색어 계획으로 별도 수집·색인을 하려면 `python -m scripts.collect_patents --request <PatentSearchRequest.json> --field-id SF-02 --include-claims` 후 `python -m scripts.build_patent_index --field-id SF-02`를 실행한다. `PatentQueryPlan`은 기술 요소를 최대 8개(화면 핵심 구성요소 최대 7개 + 결합 기술 1개)까지 허용한다.
 - KIPRIS 검색·청구항 API 원본 XML과 키를 제외한 요청 메타데이터는 `data/patents/raw/`에 저장한다. 해당 폴더는 로컬 전용이며 Git 추적 대상에서 제외된다.
 - 색인 시 문서 임베딩 API 호출이 필요하다(`OPENAI_API_KEY`). 이후 문서 벡터는 로컬 Chroma에서 재사용한다. Dense/Hybrid 검색의 질의 임베딩은 검색 때 별도로 생성된다.
 - `PatentSearchRequest.technology_area_id`를 지정하면 검색 결과를 해당 분야로 제한한다. 원문 JSONL과 Chroma DB는 로컬에 저장되고 Git에는 포함되지 않는다.
