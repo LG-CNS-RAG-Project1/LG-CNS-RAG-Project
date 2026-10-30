@@ -976,6 +976,7 @@ def workflow_progress_fragment(compact=False):
 def render_patent_report(patent, *, widget_suffix="", preview=False):
     """최대 8개 특허를 궤도에 배치하고 호버 요약과 종합 근거를 제공한다."""
     import math
+    from frontend.patent_orbit import patent_dense_similarity, patent_orbit_position
 
     from src.generation.patent_analysis import (
         PATENT_ORBIT_COLORS,
@@ -1086,32 +1087,39 @@ def render_patent_report(patent, *, widget_suffix="", preview=False):
             )
             count = len(orbit_reviews)
             points = []
-            for index, (review, _) in enumerate(orbit_reviews):
-                angle = (2 * math.pi * index / count) - math.pi / 2
+            for index, (review, document_evidence) in enumerate(orbit_reviews):
                 category = patent_orbit_category(review, evidence_by_id)
                 summary = (
                     review.overall_summary
                     or review.relevance_reason
-                    or "요약 근거 부족"
+                    or "요약 근거 미제공"
                 ).strip()
+                reason = (review.relevance_reason or "우선 확인 이유 미제공").strip()
+                similarity = patent_dense_similarity(document_evidence)
+                x, y = patent_orbit_position(index, count, similarity)
                 points.append(
                     {
                         "patent_id": review.patent_id,
                         "title": review.title,
                         "number": f"P{index + 1}",
                         "summary": summary[:240],
-                        "reason": (review.relevance_reason or "검토 이유 미기록")[:180],
+                        "reason": reason[:180],
+                        "similarity": (
+                            f"{similarity:.3f} · Dense 검색 점수 (확률 아님)"
+                            if similarity is not None
+                            else "미제공 · Dense 검색 점수 없음"
+                        ),
                         "category": category,
                         "label": PATENT_ORBIT_LABELS[category],
                         "color": PATENT_ORBIT_COLORS[category],
-                        "x": 2.7 * math.cos(angle),
-                        "y": 2.1 * math.sin(angle),
+                        "x": x,
+                        "y": y,
                     }
                 )
 
             st.subheader("특허 비교 궤도")
             st.caption(
-                "행성에 커서를 올리면 문헌별 핵심 요약을 확인할 수 있습니다. 색상은 구성 비교 근거에 따른 검토 우선순위이며 법률상 위험 등급이 아닙니다."
+                "Dense 점수는 1−cosine distance를 0~1로 제한해 문헌별 최고값을 표시하며, 관련성 확률이 아닙니다. 점수가 높을수록 중심에 가깝게 배치합니다(반경 2.8−1.35×점수, 미제공은 외곽). 색상은 구성 비교 근거에 따른 검토 우선순위이며 법률상 위험 등급이 아닙니다."
             )
             legend = st.columns(4)
             for column, category in zip(legend, ("red", "yellow", "green", "blue")):
@@ -1198,7 +1206,7 @@ def render_patent_report(patent, *, widget_suffix="", preview=False):
                         ),
                         tooltip=[
                             alt.Tooltip("title:N", title="문헌"),
-                            alt.Tooltip("label:N", title="검토 우선순위"),
+                            alt.Tooltip("similarity:N", title="Dense 유사도"),
                             alt.Tooltip("summary:N", title="핵심 요약", format="s"),
                             alt.Tooltip("reason:N", title="우선 확인 이유", format="s"),
                         ],
