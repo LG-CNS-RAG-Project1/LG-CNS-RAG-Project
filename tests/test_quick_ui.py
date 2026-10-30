@@ -28,9 +28,7 @@ def test_landing_preserves_home_and_enters_compact_analysis():
     assert app.text_area(key="raw_input")
     assert app.button(key="create_idea_draft")
     assert not any("시연" in button.label for button in app.button)
-    assert not any(
-        button.key and button.key.startswith("nav_") for button in app.button
-    )
+    assert all(app.button(key=f"nav_{i}") for i in (1, 2, 4))
     assert [app.button(key=f"rail_{i}").label for i in (1, 2, 4)] == [
         "아이디어",
         "특허",
