@@ -28,7 +28,7 @@ def test_difference_examples_keep_research_state_and_offer_original_view():
     assert not app.exception
     assert app.session_state.page == "difference"
     assert app.session_state.idea_input_buffer == "유지할 입력"
-    assert any("실제 조사 결과" in x.value for x in app.info)
+    assert any("실제 조사 결과" in x.value for x in app.caption)
     app.selectbox(key="showcase_example").set_value(1).run()
     assert any("시장 결과" in x.value for x in app.subheader)
     app.button(key="difference_tab_perspective").click().run()

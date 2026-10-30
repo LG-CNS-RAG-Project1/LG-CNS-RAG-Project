@@ -1886,19 +1886,9 @@ def settle_navigation():
 
 
 st.html('<div id="research-top"></div>')
-with st.container(key="brandbar"):
-    brand, intro, guide, records = st.columns([2.6, 1, 1, 1.1])
-    brand.button("IdeaLens", key="home", on_click=open_page, args=("home",))
-    intro.button("서비스 소개", key="header_about", on_click=open_page, args=("about",))
-    guide.button(
-        "왜 IdeaLens인가",
-        key="header_difference",
-        on_click=open_page,
-        args=("difference",),
-    )
-    records.button(
-        "내 기록", key="header_history", on_click=open_page, args=("history",)
-    )
+from frontend.information_nav import render_information_header
+
+render_information_header(open_page)
 
 from frontend.workflow import prune_finished_jobs
 

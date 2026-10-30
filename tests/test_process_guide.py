@@ -19,18 +19,21 @@ def test_guide_cards_open_tracks_and_preserve_research_input():
     assert app.session_state.page == "about"
     assert app.session_state.idea_input_buffer == "보존할 아이디어"
     assert not app.session_state.get("analysis_workflow_id")
-    assert any("특허가 내 아이디어" in x.value for x in app.title)
-    app.button(key="process_patent_3").click().run()
-    assert app.session_state.process_step_patent == 3
-    assert any(x.value == "내 구성과 비교" for x in app.subheader)
+    assert any("기술의 근거를 찾고" in x.value for x in app.title)
+    assert any("내 구성과 비교" in x.label for x in app.expander)
     app.button(key="intro_tab_market").click().run()
     assert app.session_state.introduction_view == "market"
-    app.button(key="process_market_4").click().run()
-    assert any(x.value == "주장과 인용 검사" for x in app.subheader)
-    assert app.button(key="process_market_4").proto.type == "primary"
+    assert any("주장과 인용 검사" in x.label for x in app.expander)
     app.button(key="intro_tab_overview").click().run()
     assert app.button(key="intro_open_market")
     assert app.session_state.idea_input_buffer == "보존할 아이디어"
+    app.button(key="rail_submenu_about_market").click().run()
+    assert app.session_state.introduction_view == "market"
+    app.button(key="rail_submenu_difference_examples").click().run()
+    assert app.session_state.page == "difference"
+    assert app.session_state.difference_view == "examples"
+    assert app.session_state.idea_input_buffer == "보존할 아이디어"
+    assert not app.session_state.get("analysis_workflow_id")
     assert not app.exception
 
 
