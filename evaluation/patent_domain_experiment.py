@@ -54,6 +54,8 @@ CANDIDATE_FIELDS = [
     "url",
     "relevant",
     "note",
+    "review_status",
+    "label_source",
 ]
 
 
@@ -84,6 +86,22 @@ def open_local_collection():
     return client.get_collection("patents")
 
 
+def preserve_candidate_labels(candidate_map: dict, candidates_path: Path) -> None:
+    """재검색 시 동일한 후보의 기존 사람 검토 상태와 메모를 보존한다."""
+    if not candidates_path.exists():
+        return
+    with candidates_path.open(encoding="utf-8-sig", newline="") as file:
+        previous = list(csv.DictReader(file))
+    review_fields = ("relevant", "note", "review_status", "label_source")
+    for row in previous:
+        key = (row.get("case_id"), row.get("corpus_id"), row.get("source_id"))
+        if key not in candidate_map:
+            continue
+        for field in review_fields:
+            if field in row and row[field] != "":
+                candidate_map[key][field] = row[field]
+
+
 def run_experiment(output_dir: Path = OUTPUT_DIR, top_k: int = POOL_K) -> dict:
     """Search SF-05 queries against both local corpora and export blinded labels."""
     if top_k < METRIC_K:
@@ -98,6 +116,7 @@ def run_experiment(output_dir: Path = OUTPUT_DIR, top_k: int = POOL_K) -> dict:
 
     rankings = []
     candidate_map = {}
+    candidates_path = output_dir / "candidates.csv"
     for case in cases:
         for corpus_id, area_id in CORPORA.items():
             for mode in MODES:
@@ -149,12 +168,14 @@ def run_experiment(output_dir: Path = OUTPUT_DIR, top_k: int = POOL_K) -> dict:
                             "url": source_url,
                             "relevant": "",
                             "note": "",
+                            "review_status": "to_review",
+                            "label_source": "unreviewed",
                         },
                     )
 
     output_dir.mkdir(parents=True, exist_ok=True)
     rankings_path = output_dir / "rankings.csv"
-    candidates_path = output_dir / "candidates.csv"
+    preserve_candidate_labels(candidate_map, candidates_path)
     with rankings_path.open("w", encoding="utf-8-sig", newline="") as file:
         writer = csv.DictWriter(file, fieldnames=RANK_FIELDS)
         writer.writeheader()
@@ -165,6 +186,10 @@ def run_experiment(output_dir: Path = OUTPUT_DIR, top_k: int = POOL_K) -> dict:
         writer.writerows(candidate_map[key] for key in sorted(candidate_map))
 
     cases_path = CASES_PATH
+    area_documents = {
+        area_id: collection.get(where={f"area_{area_id}": True}, include=["metadatas"])
+        for area_id in CORPORA.values()
+    }
     metadata = {
         "status": "awaiting_human_labels",
         "corpora": CORPORA,
@@ -182,13 +207,28 @@ def run_experiment(output_dir: Path = OUTPUT_DIR, top_k: int = POOL_K) -> dict:
             )
             for area_id in CORPORA.values()
         },
+        "filtered_patent_counts": {
+            area_id: len(
+                {
+                    item.get("source_id")
+                    for item in area_documents[area_id]["metadatas"]
+                    if item.get("source_id")
+                }
+            )
+            for area_id in CORPORA.values()
+        },
         "sf05_query_count": len(cases),
         "candidate_count": len(candidate_map),
+        "human_reviewed_candidate_count": sum(
+            row["review_status"] == "reviewed" and row["label_source"] == "human"
+            for row in candidate_map.values()
+        ),
         "ranked_row_count": len(rankings),
         "cases_sha256": sha256(cases_path),
         "rankings_file": rankings_path.name,
         "candidates_file": candidates_path.name,
-        "note": "Corpus A=SF-05, B=SF-02. Metrics are not produced until every pooled candidate is human-labeled.",
+        "label_policy": "Only review_status=reviewed and label_source=human count as ground truth.",
+        "note": "Recall is measured against relevant documents in the judged union pool, not the full patent corpus.",
     }
     metadata_path = output_dir / "metadata.json"
     metadata_path.write_text(
@@ -207,13 +247,16 @@ def score_experiment(output_dir: Path = OUTPUT_DIR) -> dict:
         rankings = list(csv.DictReader(file))
 
     pending = [
-        row for row in candidates if row.get("relevant", "").strip() not in {"0", "1"}
+        row
+        for row in candidates
+        if row.get("relevant", "").strip() not in {"0", "1"}
+        or row.get("review_status", "").strip() != "reviewed"
+        or row.get("label_source", "").strip() != "human"
     ]
     if pending:
         raise ValueError(
-            f"{len(pending)} candidates still need relevant=0/1 in {candidates_path}"
+            f"{len(pending)} candidates still need a human-reviewed 0/1 label in {candidates_path}"
         )
-
     relevant_by_pool = defaultdict(set)
     for row in candidates:
         if row["relevant"].strip() == "1":
@@ -231,7 +274,12 @@ def score_experiment(output_dir: Path = OUTPUT_DIR) -> dict:
             {
                 "case_id": case_id,
                 "n_relevant_in_pool": len(relevant),
+                "judged_candidate_count": sum(
+                    row["case_id"] == case_id and row["corpus_id"] == corpus_id
+                    for row in candidates
+                ),
                 "hit_at_5": hit_at_k(retrieved, relevant, METRIC_K),
+                "recall_at_pool_k": recall_at_k(retrieved, relevant, len(retrieved)),
                 "recall_at_5": recall_at_k(retrieved, relevant, METRIC_K),
                 "precision_at_5": precision_at_k(retrieved, relevant, METRIC_K),
                 "mrr_at_5": reciprocal_rank(retrieved, relevant, METRIC_K),
@@ -246,6 +294,7 @@ def score_experiment(output_dir: Path = OUTPUT_DIR) -> dict:
             for key in (
                 "hit_at_5",
                 "recall_at_5",
+                "recall_at_pool_k",
                 "precision_at_5",
                 "mrr_at_5",
                 "ndcg_at_5",
@@ -257,6 +306,9 @@ def score_experiment(output_dir: Path = OUTPUT_DIR) -> dict:
                 "corpus_area": CORPORA[corpus_id],
                 "mode": mode,
                 "case_count": len(rows),
+                "judged_candidate_count": sum(
+                    row["judged_candidate_count"] for row in rows
+                ),
                 "cases_with_no_relevant_in_pool": sum(
                     row["n_relevant_in_pool"] == 0 for row in rows
                 ),

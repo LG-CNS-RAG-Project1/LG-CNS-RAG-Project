@@ -194,6 +194,12 @@ def import_labels(
                 raise ValueError(f"invalid review_status: {status}")
             if source and source not in LABEL_SOURCES:
                 raise ValueError(f"invalid label_source: {source}")
+            if status == "reviewed" and (
+                source != "human" or value not in LABEL_VALUES
+            ):
+                raise ValueError(
+                    "reviewed candidates require label_source=human and relevant=0/1"
+                )
             if status != "reviewed" or source != "human" or value not in LABEL_VALUES:
                 missing += 1
         if missing or not candidates:

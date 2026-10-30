@@ -187,9 +187,7 @@ def evaluate_patents(
             continue
         started = time.perf_counter()
         try:
-            hits = search_fn(
-                case["query"], candidate_k, case.get("technology_area_id")
-            )
+            hits = search_fn(case["query"], candidate_k, case.get("technology_area_id"))
         except TypeError:
             hits = search_fn(case["query"], candidate_k)
         elapsed_ms = (time.perf_counter() - started) * 1000
@@ -310,9 +308,7 @@ def summarize(rows: list[dict]) -> dict[str, dict]:
                 sum(r["rerank_ms"] for r in group) / len(group) if group else 0.0
             ),
             "unjudged": sum(r["unjudged"] for r in group),
-            "candidate_unjudged": sum(
-                r.get("candidate_unjudged", 0) for r in group
-            ),
+            "candidate_unjudged": sum(r.get("candidate_unjudged", 0) for r in group),
         }
     return summary
 

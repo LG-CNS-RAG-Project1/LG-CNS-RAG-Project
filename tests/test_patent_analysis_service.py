@@ -394,6 +394,7 @@ def test_selected_area_broadens_to_global_index_when_local_candidates_are_irrele
     assert report.status == "completed"
     assert {item.patent_id for item in report.evidence} == {"P2"}
     assert report.evidence[0].retrieval_scopes == ["global_fallback"]
+    assert report.evidence[0].matched_sections == ["abstract"]
     assert report.evidence[0].matched_queries == [
         "비전 검사 장치",
         "visual inspection system",

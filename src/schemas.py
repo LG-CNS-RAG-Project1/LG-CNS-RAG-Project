@@ -178,6 +178,9 @@ class PatentEvidence(BaseModel):
     version_id: str | None = None
     matched_queries: list[str] = Field(default_factory=list)
     matched_technical_elements: list[str] = Field(default_factory=list)
+    matched_sections: list[Literal["abstract", "claims", "unknown"]] = Field(
+        default_factory=list
+    )
     retrieval_scopes: list[
         Literal[
             "technology_area",

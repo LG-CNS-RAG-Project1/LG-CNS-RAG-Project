@@ -70,6 +70,8 @@ def inspect_patent_evaluation(
             errors.append(f"invalid label_source: {key}")
         if relevance and relevance not in {"0", "1"}:
             errors.append(f"relevant must be blank, 0, or 1: {key}")
+        if status == "reviewed" and (source != "human" or relevance not in {"0", "1"}):
+            errors.append(f"reviewed candidate requires a human 0/1 label: {key}")
         if status == "reviewed" and source == "human" and relevance in {"0", "1"}:
             labeled += 1
             human_reviewed += 1
@@ -125,6 +127,9 @@ def main() -> None:
         print(f"cases: {report['case_count']}")
         print(f"candidates: {report['candidate_count']}")
         print(f"labeled: {report['labeled_count']}")
+        print(f"human_reviewed: {report['human_reviewed_count']}")
+        print(f"held: {report['held_count']}")
+        print(f"ai_drafts: {report['ai_draft_count']}")
         print(f"pending: {report['pending_count']}")
         print(f"missing_urls: {report['missing_url_count']}")
         print(f"cases_sha256: {report['cases_sha256']}")

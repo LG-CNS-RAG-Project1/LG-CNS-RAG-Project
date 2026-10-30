@@ -198,6 +198,7 @@ def _evidence_search_trace(metadata: dict) -> dict:
     return {
         "matched_queries": trace.get("matched_queries", []),
         "matched_technical_elements": trace.get("matched_technical_elements", []),
+        "matched_sections": trace.get("matched_sections", []),
         "retrieval_scopes": trace.get("retrieval_scopes", []),
     }
 
@@ -581,7 +582,7 @@ def analyze_patents(
                 search_scope=(
                     f"분야 우선 {retrieval_mode} 검색·전체 색인 보충 후 관련 후보 없음"
                     if used_global_fallback
-                    else "아이디어 기술 요소별 Dense 검색 및 필요 시 KIPRIS 후보 보충"
+                    else f"아이디어 기술 요소별 {retrieval_mode} 검색 및 필요 시 KIPRIS 후보 보충"
                 ),
                 unknowns=unknowns or ["검색된 특허 후보가 없습니다."],
                 indexed_statistics=indexed_statistics,

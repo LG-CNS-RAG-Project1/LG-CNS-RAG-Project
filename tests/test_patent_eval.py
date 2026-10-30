@@ -240,3 +240,31 @@ def test_import_rejects_non_binary_relevance_values(tmp_path):
 
     with pytest.raises(ValueError, match="0 or 1"):
         import_labels(CASES, path)
+
+
+def test_import_rejects_ai_draft_marked_as_human_reviewed(tmp_path):
+    path = tmp_path / "patent_candidates.csv"
+    with open(path, "w", encoding="utf-8-sig", newline="") as file:
+        writer = csv.DictWriter(
+            file,
+            fieldnames=[
+                "case_id",
+                "source_id",
+                "relevant",
+                "review_status",
+                "label_source",
+            ],
+        )
+        writer.writeheader()
+        writer.writerow(
+            {
+                "case_id": "SF-01-cobot",
+                "source_id": "p1",
+                "relevant": "1",
+                "review_status": "reviewed",
+                "label_source": "ai_draft",
+            }
+        )
+
+    with pytest.raises(ValueError, match="label_source=human"):
+        import_labels(CASES, path)
