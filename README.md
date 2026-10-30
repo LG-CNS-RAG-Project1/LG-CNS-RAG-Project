@@ -377,6 +377,17 @@ python -m evaluation.patent_labeling export              # SF-02/SF-05 특허 �
 - 검색 결과에서 나온 적 없는 문헌이 top-K에 나타나면 `unjudged`로 따로 세므로 라벨 후보를 추가 검토한다. 평가 문항이 라벨되기 전에는 성능 수치를 보고하지 않는다.
 - Dense·Hybrid 검색과 Bi-Encoder 재정렬은 `OPENAI_API_KEY`가 필요하며 후보 문헌을 매 질의 다시 임베딩한다. 평가 도구는 임베딩 비용을 자동 계산하지 않는다. Cross-Encoder는 `sentence-transformers`와 모델 파일을 별도로 설치해야 한다.
 
+### 지능형 공정제어 분야 검색 비교
+
+```bash
+python -m evaluation.patent_domain_experiment run   # SF-05 질문을 SF-05·SF-02 로컬 색인에서 검색
+python -m evaluation.patent_domain_experiment score # 후보 사람 라벨 완료 후 지표 계산
+```
+
+- 비교 스크립트는 `data/patents/chroma/`의 로컬 `patents` 컬렉션을 직접 열어 공용 Chroma 설정과 분리한다. 기존 로컬 색인의 SF-05(지능형 공정제어)와 비교 분야 SF-02(AI 비전 품질검사) 임베딩을 분야별 필터로 검색한다. 새 특허를 추가할 때는 수집·정제 및 기존 특허 색인 구축 절차를 따른다.
+- SF-05 평가 질의와 동일한 Top-20 후보 풀에서 Dense·BM25·Hybrid를 비교한다. 검색 순위가 포함된 `rankings.csv`와 순위·방식을 감춘 `candidates.csv`는 Git 제외 경로 `data/patents/processed/domain_experiment/`에 생성된다. 후보의 `relevant`를 사람이 0/1로 판정하고, 기존 [특허 평가 라벨링 가이드](evaluation/patent_labeling.md)에 따라 애매한 후보는 보류한 뒤 `score`를 실행한다.
+- Hit@5·Recall@5·Precision@5·MRR@5·nDCG@5는 라벨 완료된 후보 풀 기준으로만 계산한다. 평가 문항과 특허 표본이 작으므로 결과는 해당 색인·질의의 예비 비교로 해석한다. Dense·Hybrid 검색은 질의 임베딩에 `OPENAI_API_KEY`가 필요하다.
+
 ### 특허 청구항 분석
 
 특허 분석 입력은 `PatentSearchRequest`, 반환 계약은 `PatentReport`이며 `src.services.patent_service.analyze_patents()`에서 호출한다. 기본적으로 관련 특허 문헌을 최대 8건까지 비교하고 화면에도 선택된 8건을 표시한다. 문헌별 청구항 원문·버전·번호·종속항 참조와 UTC 수집 시각을 인용 근거 및 색인에 보존한다. 보고서는 색인 IPC 분류·출원연도·주요 출원인 통계와 넓은 검색 후보의 관련 기술 분포를 제공하며, 최종 통합보고서에는 특허 예비 신호와 시장 근거 상태를 교차 요약한다. 통계는 보유 색인 메타데이터 범위에 한정된다. 비교 문맥은 상위항 관계와 문헌당 약 1,800 토큰, 보고서 분석 전체 약 6,000 토큰의 보수적 추정 예산을 고려해 구성한다. 원문 확보 후 비교 생성만 실패하면 `partial` 상태로 원문과 오류를 보존하며, KIPRIS 청구항 조회가 비거나 실패하면 초록 근거와 미확인 상태를 반환한다. 구현 흐름과 통계 한계는 [docs/patent_rag.md](docs/patent_rag.md)를 참고한다.
