@@ -1101,6 +1101,7 @@ def render_patent_report(patent, *, widget_suffix="", preview=False):
     """최대 8개 특허를 궤도에 배치하고 호버 요약과 종합 근거를 제공한다."""
     import math
     from frontend.patent_orbit import (
+        dense_similarity_text,
         patent_dense_similarity,
         patent_orbit_position,
         tooltip_text,
@@ -1225,12 +1226,8 @@ def render_patent_report(patent, *, widget_suffix="", preview=False):
                         "patent_id": review.patent_id,
                         "title": review.title,
                         "number": f"P{index + 1}",
-                        "reason": reason[:180],
-                        "similarity": (
-                            f"{similarity:.3f} · Dense 검색 점수 (확률 아님)"
-                            if similarity is not None
-                            else "미제공"
-                        ),
+                        "priority_reason_display": reason[:180],
+                        "dense_score_display": dense_similarity_text(similarity),
                         "category": category,
                         "color": PATENT_ORBIT_COLORS[category],
                         "x": x,
@@ -1240,7 +1237,7 @@ def render_patent_report(patent, *, widget_suffix="", preview=False):
 
             st.subheader("특허 비교 궤도")
             st.caption(
-                "Dense 점수(1−cosine distance를 0~1로 제한한 문헌별 최고값)는 hover에서 확인할 수 있으며 관련성 확률이 아닙니다. 점수가 높을수록 중심에 가깝게 배치합니다(반경 2.8−1.35×점수, 미제공은 외곽). 색상은 구성 비교 근거에 따른 검토 우선순위이며 법률상 위험 등급이 아닙니다."
+                "Dense 점수(1−cosine distance를 0~1로 제한한 문헌별 최고값)는 hover에서 확인할 수 있으며 관련성 확률이 아닙니다. 점수가 높을수록 중심에 가깝게 배치합니다(반경 2.8−1.35×점수, 미제공은 외곽). KIPRIS 보충 문헌은 Dense 검색 점수가 없으므로 hover에 미제공으로 표시합니다. 색상은 구성 비교 근거에 따른 검토 우선순위이며 법률상 위험 등급이 아닙니다."
             )
             legend = st.columns(4)
             for column, category in zip(legend, ("red", "yellow", "green", "blue")):
@@ -1328,9 +1325,15 @@ def render_patent_report(patent, *, widget_suffix="", preview=False):
                         tooltip=[
                             alt.Tooltip("title:N", title="문헌"),
                             alt.Tooltip(
-                                "similarity:N", title="Dense 검색 점수", format="s"
+                                "dense_score_display:N",
+                                title="Dense 검색 점수",
+                                format="s",
                             ),
-                            alt.Tooltip("reason:N", title="우선 확인 이유", format="s"),
+                            alt.Tooltip(
+                                "priority_reason_display:N",
+                                title="우선 확인 이유",
+                                format="s",
+                            ),
                         ],
                         opacity=alt.condition(hover, alt.value(1), alt.value(0.88)),
                     )
@@ -1352,9 +1355,9 @@ def render_patent_report(patent, *, widget_suffix="", preview=False):
                 chart_state = st.altair_chart(
                     chart,
                     key=(
-                        f"patent_orbit_v3{widget_suffix}"
+                        f"patent_orbit_v4{widget_suffix}"
                         if preview
-                        else f"patent_orbit_v3{widget_suffix}_{s.patent_orbit_chart_version}"
+                        else f"patent_orbit_v4{widget_suffix}_{s.patent_orbit_chart_version}"
                     ),
                     on_select="ignore" if preview else "rerun",
                     selection_mode=None if preview else click.name,

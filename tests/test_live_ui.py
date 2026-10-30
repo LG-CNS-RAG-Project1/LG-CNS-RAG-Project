@@ -303,6 +303,8 @@ def test_direct_input_runs_followup_and_reaches_report(live, monkeypatch):
     serialized = json.dumps(json.loads(charts[0].proto.spec), ensure_ascii=False)
     assert "우선 확인 이유" in serialized
     assert "Dense 검색 점수" in serialized
+    assert "dense_score_display" in serialized
+    assert "priority_reason_display" in serialized
     assert '"미제공"' in serialized
     assert "우선 확인 이유 미제공" in serialized
     assert "핵심 요약" not in serialized
@@ -604,7 +606,7 @@ def test_completed_stage_status_button_opens_read_only_dialog(live, navigation_k
             "문헌 요약 선택" in item.label for item in dialog.get("selectbox")
         )
         chart = dialog.get("vega_lite_chart")
-        assert chart and '"reason"' in chart[0].proto.spec
+        assert chart and '"priority_reason_display"' in chart[0].proto.spec
         assert '"name": "patent_hover_preview"' in chart[0].proto.spec
         assert "patent_click_preview" not in chart[0].proto.spec
         assert app.session_state.stage == 3

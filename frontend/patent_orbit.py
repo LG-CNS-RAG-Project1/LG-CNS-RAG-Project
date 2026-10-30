@@ -21,6 +21,17 @@ def patent_dense_similarity(evidence) -> float | None:
     return max(scores) if scores else None
 
 
+def dense_similarity_text(value) -> str:
+    """유한한 0~1 Dense 점수만 수치로 표시한다."""
+    try:
+        score = float(value)
+    except (TypeError, ValueError):
+        return "미제공"
+    if not math.isfinite(score) or not 0 <= score <= 1:
+        return "미제공"
+    return f"{score:.3f} · Dense 검색 점수 (확률 아님)"
+
+
 def patent_orbit_position(index: int, count: int, similarity: float | None):
     """Dense 점수가 높을수록 안쪽에 배치하고 미제공 점수는 외곽에 둔다."""
     if count < 1:

@@ -7,6 +7,7 @@ from frontend.patent_orbit import (
     fetch_kipris_drawing,
     fetch_first_kipris_drawing,
     drawing_image_metadata,
+    dense_similarity_text,
     patent_dense_similarity,
     patent_orbit_position,
     tooltip_text,
@@ -29,6 +30,22 @@ def test_patent_similarity_uses_highest_dense_score_and_preserves_missing():
     assert patent_dense_similarity([_evidence(0.4), _evidence(0.8)]) == 0.8
     assert patent_dense_similarity([_evidence(None)]) is None
     assert patent_dense_similarity([]) is None
+
+
+@pytest.mark.parametrize(
+    ("score", "expected"),
+    [
+        (0.72, "0.720 · Dense 검색 점수 (확률 아님)"),
+        (None, "미제공"),
+        (float("nan"), "미제공"),
+        ("NaN", "미제공"),
+        ("bad", "미제공"),
+        (-0.1, "미제공"),
+        (1.1, "미제공"),
+    ],
+)
+def test_dense_similarity_text_never_displays_nan(score, expected):
+    assert dense_similarity_text(score) == expected
 
 
 @pytest.mark.parametrize(
