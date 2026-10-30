@@ -290,6 +290,17 @@ flowchart TD
 - 시험(협동로봇+비전 턴키, 고객 중소 제조사): 공고 근거 전 가격 미확인·구매자 신호(MOU 기사)·사업 승인 구매자·예산 보유자·구매 절차 미확인 → 공고 근거 후 가격 확인됨('2026년 4월~2026년 9월 나라장터 공고 기준 협동로봇 관련 예산의 중앙값은 4,376만원'), 구매자 신호(공고 26건), 사업 승인 구매자 '공공 부문: 대학·학교 16건, 연구기관 9건, 민간 기업 1건', 예산 보유자·구매 절차·가격 가설도 공공 부문 기준으로 채워짐. 용접 불량 검출 아이디어는 관련 공고가 없어 결과가 같다.
 - 한계: 공고 예산은 낙찰가가 아니다. 공고명 검색이라 공고명에 주제어가 없는 구매는 빠진다. 민간 기업 공고는 정부 지원사업 집행분이 대부분이다. 관련 공고가 없는 아이디어(틈새 기술)는 미확인이 그대로 남는다.
 
+## 인접 기업 재무 현황
+
+시장 화면에서 아이디어와 같은 사업 범주로 검색한 기업이 어떤 규모·성장·수익 상태인지 보여 주기 위해 DART 사업보고서 주요 재무 계정을 표로 붙인다(`MarketReport.company_financials`). 기업 실적일 뿐 시장 규모·구매 수요의 근거가 아니며 차원별 판정에 쓰지 않는다.
+
+- 대상: 차원별 검색 결과에 들어온 DART 기업(`searched_dart_companies`, 최대 3곳). 기업명을 `configs/dart_companies.yaml`의 종목코드와 고유번호로 바꾼다.
+- 조회: OpenDART `fnlttSinglAcnt`(단일회사 주요계정, 사업보고서 `11011`)로 기준일 직전 사업연도를 조회하고, 공시가 없으면(상태 `013`) 그 전 사업연도를 쓴다. 한 번의 응답에 당기·전기·전전기 금액이 있어 3개 연도를 얻는다. 받은 계정은 `data/market/raw/dart/financials/{고유번호}_{연도}.json`에 캐시한다.
+- 정리: 연결재무제표(CFS)가 있으면 연결, 없으면 별도(OFS). 계정명은 공백과 '(손실)'을 빼고 매출액·영업이익·당기순이익만 쓴다. 표는 억원 단위로 3개 연도 매출액, 최근 연도의 전년 대비 매출 증감·영업이익·영업이익률·당기순이익을 보여 준다.
+- 연구개발비: 주요계정에는 없어 같은 사업보고서 본문(`fetch_report_document`, 수집 원본과 같은 `{rcept_no}.xml` 캐시)의 '주요계약 및 연구개발활동' 섹션 표에서 뽑는다(`extract_rnd_expense`). 표 안이나 바로 위 제목에 '연구개발'이 있는 표만 보고(같은 섹션의 주요계약 표 제외), 합계 행은 정부보조금 차감 전 → '연구개발비용 총계·합계' → '연구개발비용 계' → '합계·소계·계' 순으로 고르며 '차감 후' 행은 쓰지 않는다. 단위(원·천원·백만원·억원)는 표 위 문단이나 단위만 적은 작은 표에서 찾고, 못 찾으면 추정하지 않는다. 연도는 표 머리의 'YYYY년', 없으면 사업연도부터 최신순이다. 설정된 14개 기업의 2025 사업보고서에서 모두 추출됐다. 회사가 적은 매출액 대비 비율은 잘못 적힌 경우가 있어(예: 2% 대신 0.02) 쓰지 않고 같은 해 매출액으로 나눠 계산한다.
+- 화면: 표 위에 기업별 3개 연도 매출액 막대를 나란히 그린다. 기업 간 매출 차이가 수백 배라(예: 엘에스일렉트릭 약 4.9조, 뉴로메카 약 190억) 세로축은 기업마다 따로 두고, 막대 위 숫자(억원)와 '높이로 기업끼리 비교하지 않는다'는 안내를 붙인다. 막대 색은 그 연도 영업이익 흑자(파랑)·적자(빨강)·미제공(회색)이며 범례·툴팁에 같은 이름을 쓴다.
+- 한계: 회사 전체 실적이라 아이디어 관련 사업부만의 매출이 아니다. 합병·사업 양수 등으로 연도 간 매출이 크게 바뀔 수 있다.
+
 ## 단계별 코드 위치
 
 | 단계 | 위치 |
@@ -306,6 +317,7 @@ flowchart TD
 | 시장 조사 진입점 | `src/services/market_service.py` |
 | 검색 관심도 흐름 | `configs/search_trend.yaml`, `prompts/market_trend_terms.md`, `src/ingestion/trend_client.py` → `data/market/trends/`, `src/services/market_trend.py`, `frontend/market_trend_view.py` |
 | 키워드 동시 출현 네트워크 | `configs/keyword_network.yaml`, `src/services/market_network.py`, `frontend/market_network_view.py` |
+| 인접 기업 재무 현황 | `configs/dart_companies.yaml`, `src/ingestion/dart_client.py`(`fetch_major_accounts`) → `data/market/raw/dart/financials/`, `src/services/market_financials.py`, `frontend/market_financials_view.py` |
 | 공공 조달 공고 | `configs/procurement.yaml`, `src/ingestion/procurement_client.py` → `data/market/procurement/`, `prompts/market_procurement_relevance.md`, `src/services/market_procurement.py`, `frontend/market_procurement_view.py` |
 | 보고서용 마크다운 섹션 | `src/generation/market_markdown.py` |
 | 연결 계약 (입력·출력·오류) | `docs/api_contract.md` |
