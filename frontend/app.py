@@ -1317,7 +1317,7 @@ def render_patent_report(patent, *, widget_suffix="", preview=False):
                     st.text(evidence.quote)
 
 
-def render_market_report(market, draft=None, widget_suffix=""):
+def _render_market_details(market, draft=None, widget_suffix=""):
     """실제 시장 근거·시각화와 조사 범위를 중심으로 보고서를 표시한다."""
     from src.generation.market_markdown import NATURE_LABELS
     from src.retrieval.market_relevance import DIMENSION_LABELS
@@ -1466,6 +1466,17 @@ def render_market_report(market, draft=None, widget_suffix=""):
         with st.expander(f"시장 조사 한계와 미확인 항목 ({len(market.unknowns)}건)"):
             for item in market.unknowns:
                 st.write(f"- {item}")
+
+
+def render_market_report(market, draft=None, widget_suffix=""):
+    """요약을 먼저 보여주고 팀 공용 상세 렌더러는 접어 제공한다."""
+    from frontend.report_reading import render_market_brief
+
+    if market.status == "error":
+        st.error("시장 조사를 완료하지 못했습니다. 상세에서 처리 상태를 확인해 주세요.")
+    render_market_brief(market)
+    with st.expander("상세 근거·시각화 펼쳐보기"):
+        _render_market_details(market, draft, widget_suffix)
 
 
 @st.dialog("완료된 단계 결과", width="large", on_dismiss=clear_workflow_preview)
