@@ -20,6 +20,8 @@ CANDIDATES_PATH = ROOT_DIR / "evaluation" / "labels" / "patent_candidates.csv"
 MODES = ("dense", "bm25", "hybrid")
 TOP_K = 20
 LABEL_VALUES = {"0", "1"}
+REVIEW_STATUSES = {"to_review", "reviewed", "hold"}
+LABEL_SOURCES = {"unreviewed", "human", "ai_draft"}
 CSV_FIELDS = [
     "case_id",
     "idea_id",
@@ -33,6 +35,8 @@ CSV_FIELDS = [
     "url",
     "relevant",
     "note",
+    "review_status",
+    "label_source",
 ]
 
 
@@ -149,6 +153,8 @@ def export_candidates(
                         "url": source_url,
                         "relevant": "",
                         "note": "",
+                        "review_status": "to_review",
+                        "label_source": "unreviewed",
                     },
                 )
 
@@ -160,7 +166,7 @@ def export_candidates(
 def import_labels(
     cases: list[dict], path: Path = CANDIDATES_PATH
 ) -> tuple[list[dict], dict[str, int]]:
-    """사람 라벨 0/1을 반영하고 미판단 후보가 남은 문항을 반환한다."""
+    """사람이 검토 완료한 라벨만 반영하고 미검토·보류 문항을 반환한다."""
     rows = read_label_rows(path)
     known_cases = {case["case_id"] for case in cases}
     unknown = {row["case_id"] for row in rows} - known_cases
@@ -177,9 +183,19 @@ def import_labels(
     pending, updated = {}, []
     for case in cases:
         candidates = by_case.get(case["case_id"], [])
-        missing = sum(
-            row.get("relevant", "").strip() not in LABEL_VALUES for row in candidates
-        )
+        missing = 0
+        for row in candidates:
+            value = row.get("relevant", "").strip()
+            status = row.get("review_status", "").strip()
+            source = row.get("label_source", "").strip()
+            if value and value not in LABEL_VALUES:
+                raise ValueError(f"relevant must be 0 or 1: {value}")
+            if status and status not in REVIEW_STATUSES:
+                raise ValueError(f"invalid review_status: {status}")
+            if source and source not in LABEL_SOURCES:
+                raise ValueError(f"invalid label_source: {source}")
+            if status != "reviewed" or source != "human" or value not in LABEL_VALUES:
+                missing += 1
         if missing or not candidates:
             pending[case["case_id"]] = missing if candidates else 0
             updated.append(case)

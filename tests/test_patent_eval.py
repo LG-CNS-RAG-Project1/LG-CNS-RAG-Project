@@ -141,11 +141,32 @@ def test_export_candidates_builds_kipris_link_when_source_url_is_missing(tmp_pat
 def test_import_labels_waits_until_every_candidate_is_judged(tmp_path):
     path = tmp_path / "candidates.csv"
     rows = [
-        {"case_id": "SF-01-cobot", "source_id": "p1", "relevant": "1"},
-        {"case_id": "SF-01-cobot", "source_id": "p2", "relevant": ""},
+        {
+            "case_id": "SF-01-cobot",
+            "source_id": "p1",
+            "relevant": "1",
+            "review_status": "reviewed",
+            "label_source": "human",
+        },
+        {
+            "case_id": "SF-01-cobot",
+            "source_id": "p2",
+            "relevant": "",
+            "review_status": "hold",
+            "label_source": "human",
+        },
     ]
     with open(path, "w", encoding="utf-8-sig", newline="") as file:
-        writer = csv.DictWriter(file, fieldnames=["case_id", "source_id", "relevant"])
+        writer = csv.DictWriter(
+            file,
+            fieldnames=[
+                "case_id",
+                "source_id",
+                "relevant",
+                "review_status",
+                "label_source",
+            ],
+        )
         writer.writeheader()
         writer.writerows(rows)
 
@@ -155,8 +176,18 @@ def test_import_labels_waits_until_every_candidate_is_judged(tmp_path):
     assert updated[0]["labeled"] is False
 
     rows[1]["relevant"] = "0"
+    rows[1]["review_status"] = "reviewed"
     with open(path, "w", encoding="utf-8-sig", newline="") as file:
-        writer = csv.DictWriter(file, fieldnames=["case_id", "source_id", "relevant"])
+        writer = csv.DictWriter(
+            file,
+            fieldnames=[
+                "case_id",
+                "source_id",
+                "relevant",
+                "review_status",
+                "label_source",
+            ],
+        )
         writer.writeheader()
         writer.writerows(rows)
     updated, pending = import_labels(CASES, path)
