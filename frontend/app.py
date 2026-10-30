@@ -543,6 +543,7 @@ def run_real_pipeline():
     """조사(구성·분야가 같으면 재사용)와 질문 연결을 실행한다. 결과는 화면 호출 전에 세션에 저장한다."""
     from src.pipeline import analyze_sources, run_pipeline, screen_inputs
     from src.generation.cost_estimation import call_cost_llm
+    from src.generation.market_analysis import call_analysis_llm
 
     if not RUN_LOCK.acquire(blocking=False):
         st.session_state.pipeline_error = (
@@ -567,6 +568,7 @@ def run_real_pipeline():
             technology_area_id=s.technology_area_id,
             sources=s.analysis_sources,
             cost_llm_fn=call_cost_llm,
+            swot_llm_fn=call_analysis_llm,
         )
         st.session_state.pipeline_error = None
     except Exception as exc:
@@ -597,6 +599,7 @@ def _workflow_worker(job_id, draft_data, parts, questions, area, cached_sources)
     try:
         from src.schemas import IdeaDraft
         from src.generation.cost_estimation import call_cost_llm
+        from src.generation.market_analysis import call_analysis_llm
 
         draft = IdeaDraft.model_validate(draft_data)
         screened_questions = screen_inputs(parts, questions)
@@ -634,6 +637,7 @@ def _workflow_worker(job_id, draft_data, parts, questions, area, cached_sources)
             technology_area_id=area,
             sources=sources,
             cost_llm_fn=call_cost_llm,
+            swot_llm_fn=call_analysis_llm,
         )
         with WORKFLOW_JOBS_LOCK:
             if job.get("cancelled"):
