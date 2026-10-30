@@ -92,6 +92,89 @@ def _supplement_result(record: dict) -> RetrievalResult | None:
     return RetrievalResult(document=document)
 
 
+def _tag_retrieval_result(
+    result: RetrievalResult,
+    *,
+    query: str,
+    technical_element: str,
+    retrieval_scope: str,
+) -> RetrievalResult:
+    """검색 결과에 후보가 발견된 질의·기술 요소·검색 범위를 기록한다."""
+    metadata = dict(result.document.metadata)
+    trace = dict(metadata.get("retrieval_trace") or {})
+    trace["matched_queries"] = list(
+        dict.fromkeys([*trace.get("matched_queries", []), query])
+    )
+    trace["matched_technical_elements"] = list(
+        dict.fromkeys([*trace.get("matched_technical_elements", []), technical_element])
+    )
+    trace["retrieval_scopes"] = list(
+        dict.fromkeys([*trace.get("retrieval_scopes", []), retrieval_scope])
+    )
+    trace["matched_sections"] = list(
+        dict.fromkeys(
+            [*trace.get("matched_sections", []), metadata.get("section", "unknown")]
+        )
+    )
+    metadata["retrieval_trace"] = trace
+    document = result.document.model_copy(update={"metadata": metadata})
+    return result.model_copy(update={"document": document})
+
+
+def _merge_retrieval_results(
+    existing: RetrievalResult | None, candidate: RetrievalResult
+) -> RetrievalResult:
+    """같은 특허의 검색 흔적을 합치고 가장 높은 점수의 청크를 대표로 둔다."""
+    if existing is None:
+        return candidate
+    existing_trace = existing.document.metadata.get("retrieval_trace", {})
+    candidate_trace = candidate.document.metadata.get("retrieval_trace", {})
+    score = lambda item: (
+        item.dense_score
+        if item.dense_score is not None
+        else (
+            item.rrf_score
+            if item.rrf_score is not None
+            else item.bm25_score if item.bm25_score is not None else float("-inf")
+        )
+    )
+    primary = candidate if score(candidate) > score(existing) else existing
+    metadata = dict(primary.document.metadata)
+    trace = {}
+    for key in (
+        "matched_queries",
+        "matched_technical_elements",
+        "retrieval_scopes",
+        "matched_sections",
+    ):
+        trace[key] = list(
+            dict.fromkeys(
+                [
+                    *existing_trace.get(key, []),
+                    *candidate_trace.get(key, []),
+                ]
+            )
+        )
+    metadata["retrieval_trace"] = trace
+    document = primary.document.model_copy(update={"metadata": metadata})
+    return primary.model_copy(update={"document": document})
+
+
+def _retrieval_trace(metadata: dict) -> dict:
+    """PatentEvidence에 노출할 검색 추적 정보를 반환한다."""
+    return metadata.get("retrieval_trace") or {}
+
+
+def _evidence_search_trace(metadata: dict) -> dict:
+    """검색 질의와 범위 추적 정보를 근거 모델 필드로 변환한다."""
+    trace = _retrieval_trace(metadata)
+    return {
+        "matched_queries": trace.get("matched_queries", []),
+        "matched_technical_elements": trace.get("matched_technical_elements", []),
+        "retrieval_scopes": trace.get("retrieval_scopes", []),
+    }
+
+
 def _normalize_quote(value: str) -> str:
     """특허 원문 비교용으로 공백만 정규화한다."""
     return " ".join(value.split())
@@ -289,13 +372,22 @@ def analyze_patents(
         )
     try:
         plan = build_patent_queries(**plan_kwargs)
-        queries = [
-            query
-            for item in plan.queries
-            for query in item.korean_queries + item.english_queries
-        ]
+        query_specs = []
+        seen_queries = set()
+        for item in plan.queries:
+            for query in item.korean_queries + item.english_queries:
+                normalized = " ".join(query.split()).casefold()
+                if normalized and normalized not in seen_queries:
+                    seen_queries.add(normalized)
+                    query_specs.append(
+                        (item.technical_element, " ".join(query.split()))
+                    )
+        queries = [query for _, query in query_specs]
         retrieved_by_id = {}
-        for query in dict.fromkeys(queries):
+        local_scope = (
+            "technology_area" if request.technology_area_id else "global_index"
+        )
+        for technical_element, query in query_specs:
             for result in search_patents(
                 query,
                 collection=collection,
@@ -303,19 +395,16 @@ def analyze_patents(
                 top_k=max(candidate_k, request.top_k),
                 technology_area_id=request.technology_area_id,
             ):
-                previous = retrieved_by_id.get(result.document.source_id)
-                current_score = (
-                    result.dense_score
-                    if result.dense_score is not None
-                    else float("-inf")
+                tagged = _tag_retrieval_result(
+                    result,
+                    query=query,
+                    technical_element=technical_element,
+                    retrieval_scope=local_scope,
                 )
-                previous_score = (
-                    previous.dense_score
-                    if previous and previous.dense_score is not None
-                    else float("-inf")
+                source_id = result.document.source_id
+                retrieved_by_id[source_id] = _merge_retrieval_results(
+                    retrieved_by_id.get(source_id), tagged
                 )
-                if previous is None or current_score > previous_score:
-                    retrieved_by_id[result.document.source_id] = result
 
         ordered_candidates = sorted(
             retrieved_by_id.values(),
@@ -338,7 +427,7 @@ def analyze_patents(
         if request.technology_area_id and len(candidates) < request.top_k:
             used_global_fallback = True
             global_candidates = {}
-            for query in dict.fromkeys(queries):
+            for technical_element, query in query_specs:
                 for result in search_patents(
                     query,
                     collection=collection,
@@ -348,19 +437,15 @@ def analyze_patents(
                 ):
                     source_id = result.document.source_id
                     if source_id not in retrieved_by_id:
-                        previous = global_candidates.get(source_id)
-                        current_score = (
-                            result.dense_score
-                            if result.dense_score is not None
-                            else float("-inf")
+                        tagged = _tag_retrieval_result(
+                            result,
+                            query=query,
+                            technical_element=technical_element,
+                            retrieval_scope="global_fallback",
                         )
-                        previous_score = (
-                            previous.dense_score
-                            if previous and previous.dense_score is not None
-                            else float("-inf")
+                        global_candidates[source_id] = _merge_retrieval_results(
+                            global_candidates.get(source_id), tagged
                         )
-                        if previous is None or current_score > previous_score:
-                            global_candidates[source_id] = result
 
             if global_candidates:
                 expanded = sorted(
@@ -394,6 +479,12 @@ def analyze_patents(
                 for record in records:
                     result = _supplement_result(record)
                     if result and result.document.source_id not in retrieved_by_id:
+                        result = _tag_retrieval_result(
+                            result,
+                            query=query,
+                            technical_element="KIPRIS 후보 보충",
+                            retrieval_scope="kipris_supplement",
+                        )
                         retrieved_by_id[result.document.source_id] = result
                         added.append(result)
                 if added:
@@ -442,6 +533,7 @@ def analyze_patents(
         for result in candidates:
             document = result.document
             meta = document.metadata
+            evidence_trace = _evidence_search_trace(meta)
             app_number = str(meta.get("application_number") or document.source_id)
             version_id = (
                 meta.get("claim_version_id")
@@ -526,6 +618,7 @@ def analyze_patents(
                             claim_type=claim.claim_type,
                             depends_on=claim.depends_on,
                             version_id=claim.version_id or version_id,
+                            **evidence_trace,
                         )
                     )
                     source_texts[evidence[-1].citation_id] = claim.text
@@ -553,6 +646,7 @@ def analyze_patents(
                         collected_at=meta.get("collected_at"),
                         claim_type="unclassified",
                         version_id=meta.get("version_id") or version_id,
+                        **evidence_trace,
                     )
                 )
                 source_texts[evidence[-1].citation_id] = local_unclassified_claim
@@ -583,6 +677,7 @@ def analyze_patents(
                         publication_date=meta.get("publication_date"),
                         collected_at=meta.get("collected_at"),
                         version_id=version_id,
+                        **evidence_trace,
                     )
                 )
                 source_texts[evidence[-1].citation_id] = document.content
