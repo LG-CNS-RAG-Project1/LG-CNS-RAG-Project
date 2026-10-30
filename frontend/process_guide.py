@@ -155,11 +155,33 @@ def render_process_guide(track):
             st.write(guide["summary"])
         with picture:
             st.html(_flow_diagram(track))
+    sections = (
+        [
+            (1, "검색 질문"),
+            (2, "문헌·원문 확보"),
+            (4, "구성 비교·설계 대안"),
+            (6, "보고서와 검증"),
+        ]
+        if track == "patent"
+        else [
+            (1, "검토 질문"),
+            (2, "자료 검색·관련성 확인"),
+            (4, "분석과 인용 검증"),
+            (6, "결과와 다음 행동"),
+        ]
+    )
     st.html(
-        '<div class="info-route"><span>01 질문 설계</span><span>02 근거 검색</span><span>03 분석·검증</span><span>04 검토 노트</span></div>'
+        '<nav class="info-route" aria-label="조사 설명 바로가기">'
+        + "".join(
+            f'<a href="#guide-{track}-step-{step}" target="_self"><small>{number:02}</small>{escape(label)}<span aria-hidden="true">↓</span></a>'
+            for number, (step, label) in enumerate(sections, 1)
+        )
+        + "</nav>"
     )
     st.subheader("조사는 이렇게 진행됩니다")
-    st.caption("자료 준비부터 결과까지 · 각 항목을 펼쳐 자세히 볼 수 있습니다.")
+    st.caption(
+        "위 목차를 누르면 해당 설명으로 이동합니다. 각 단계를 펼쳐 하는 일과 결과를 확인하세요."
+    )
     with st.expander("00  자료 수집과 색인 준비"):
         st.write(guide["preparation"])
         st.caption(
@@ -167,19 +189,19 @@ def render_process_guide(track):
         )
     for index, step in enumerate(guide["steps"]):
         title, incoming, outgoing, action, reason, tool, sources = step
+        st.html(f'<div id="guide-{track}-step-{index + 1}" class="guide-anchor"></div>')
         with st.expander(f"{index + 1:02}  {title}", expanded=index == 0):
-            st.write(action)
             st.html(
-                f'<div class="process-transfer"><div><small>입력</small><p>{escape(incoming)}</p></div><span aria-hidden="true">→</span><div><small>결과</small><p>{escape(outgoing)}</p></div></div>'
-            )
-            st.markdown("**이 단계의 역할**")
-            st.write(reason)
-            st.caption(tool)
-            st.markdown(
-                " · ".join(
-                    f"[구현 근거 {i + 1}](https://github.com/LG-CNS-RAG-Project1/LG-CNS-RAG-Project/blob/develop/{source})"
-                    for i, source in enumerate(sources)
+                '<div class="process-detail">'
+                f'<p class="process-action">{escape(action)}</p>'
+                f'<div class="process-transfer"><div><small>시작 자료</small><p>{escape(incoming)}</p></div><span aria-hidden="true">→</span><div><small>확인할 결과</small><p><strong>{escape(outgoing)}</strong></p></div></div>'
+                f'<p class="process-reason"><b>왜 필요한가요?</b> {escape(reason)}</p>'
+                f'<details class="guide-sources"><summary>사용 기술 · 구현 자료</summary><p>{escape(tool)}</p>'
+                + " · ".join(
+                    f'<a href="https://github.com/LG-CNS-RAG-Project1/LG-CNS-RAG-Project/blob/develop/{source}" target="_blank" rel="noopener noreferrer">{escape(source.rsplit("/", 1)[-1])}</a>'
+                    for source in sources
                 )
+                + "</details></div>"
             )
     st.divider()
     st.html('<div class="info-kicker">METHOD</div>')
