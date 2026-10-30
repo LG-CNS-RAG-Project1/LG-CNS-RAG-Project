@@ -6,28 +6,30 @@
       "verdict": "signal_only",
       "claims": [
         {
-          "statement": "중소 제조사는 협동조합을 통해 기술 도입과 현장 검증을 지원받고 있으며, 이는 자동화 솔루션에 대한 수요를 반영한다.",
-          "claim_type": "fact",
-          "citation_ids": [
-            1
-          ]
-        },
-        {
-          "statement": "레인보우로보틱스 사업보고서(FY2025)에 따르면 협동로봇 시장은 초기 시장 형성 단계로 여러 업체가 시장 확대를 위해 노력하고 있다.",
+          "statement": "중소 제조업체의 AI 도입이 더딘 이유로 개별 기업이 비용과 실패 위험을 혼자 감당하기 어렵다는 진단이 있다.",
           "claim_type": "fact",
           "citation_ids": [
             2
           ]
         },
         {
-          "statement": "로봇을 활용한 자동화 솔루션은 경기 침체기에 기업의 효율화 전략으로 부각되고 있다.",
-          "claim_type": "ai_hypothesis",
-          "citation_ids": []
+          "statement": "중소 제조업체의 자동화 도입을 위한 기술 도입과 현장 검증 지원이 주요 과제로 떠오르고 있다.",
+          "claim_type": "fact",
+          "citation_ids": [
+            1
+          ]
+        },
+        {
+          "statement": "뉴로메카 사업보고서(FY2025)에 따르면 로봇 자동화 시장은 중소 제조공정부터 대기업의 양산공정에 이르기까지 폭넓은 고객층을 대상으로 하고 있다.",
+          "claim_type": "fact",
+          "citation_ids": [
+            3
+          ]
         }
       ],
       "next_check": null,
       "evidence_status": "sufficient",
-      "relevant_count": 4,
+      "relevant_count": 5,
       "limitation": "수요 확인에는 고객 검증 자료(인터뷰·설문·파일럿·LOI)가 필요하며 기사·공시로는 확인할 수 없음"
     },
     {
@@ -35,23 +37,25 @@
       "verdict": "signal_only",
       "claims": [
         {
-          "statement": "레인보우로보틱스 사업보고서(FY2025)에 따르면 협동로봇 시장은 여러 업체가 초기 시장을 확보하기 위해 경쟁하고 있으며, 정부의 지원도 이루어지고 있다.",
+          "statement": "뉴로메카 사업보고서(FY2025)에 따르면 국내 협동로봇 시장은 두산로보틱스, 레인보우로보틱스, 로보티즈 등이 주요 경쟁사로 활동하고 있다.",
           "claim_type": "fact",
           "citation_ids": [
-            2
+            11
           ]
         },
         {
-          "statement": "중소 제조업체들은 자동화 수요에 대응하기 위해 통합 솔루션을 개발하고 있다.",
+          "statement": "중소 제조업체는 AI 비전검사와 로봇, 사상공정 자동화를 연계해 수작업과 인력 부족 문제에 대응하고 있다.",
           "claim_type": "fact",
           "citation_ids": [
             6
           ]
         },
         {
-          "statement": "협동로봇 시장은 다양한 애플리케이션 개발을 위한 노력이 필요할 가능성이 있다.",
-          "claim_type": "ai_hypothesis",
-          "citation_ids": []
+          "statement": "라온피플 사업보고서(FY2025)에 따르면 AI 머신비전 솔루션의 국내 경쟁업체로는 뷰웍스가 있으며, 해외 경쟁업체로는 코그넥스와 키엔스가 있다.",
+          "claim_type": "fact",
+          "citation_ids": [
+            9
+          ]
         }
       ],
       "next_check": null,
@@ -61,53 +65,48 @@
     },
     {
       "dimension": "price",
-      "verdict": "signal_only",
-      "claims": [
-        {
-          "statement": "협동로봇 도입 시 초기 구매가격과 총소유비용(TCO)이 중요한 판단 기준으로 작용한다.",
-          "claim_type": "fact",
-          "citation_ids": [
-            10
-          ]
-        },
-        {
-          "statement": "두산로보틱스 사업보고서(FY2025)에 따르면 협동로봇 시장에서 가격은 핵심적인 경쟁요인 중 하나로 작용하고 있다.",
-          "claim_type": "fact",
-          "citation_ids": [
-            11
-          ]
-        },
-        {
-          "statement": "가격민감도가 높은 고객층이 존재할 가능성이 있다.",
-          "claim_type": "ai_hypothesis",
-          "citation_ids": []
-        }
-      ],
-      "next_check": null,
-      "evidence_status": "sufficient",
-      "relevant_count": 3,
-      "limitation": "관련 자료 3건이 모두 사업 신호·기업 주장·추정치라 확인할 수 없음"
-    },
-    {
-      "dimension": "buyer",
       "verdict": "confirmed",
       "claims": [
         {
-          "statement": "협동로봇 한 대의 가격이 평균 2천∼3천만원으로, 대규모 수주가 예상된다.",
+          "statement": "제조업 고객이 로봇을 도입할 때는 초기 구매가격뿐 아니라 총소유비용(TCO)이 중요한 판단 기준이 된다.",
           "claim_type": "fact",
           "citation_ids": [
             12
           ]
         },
         {
-          "statement": "삼성SDS는 430여개 제조 고객사에 로봇 자동화를 지원하고 있다.",
+          "statement": "2026년 4월~2026년 9월 나라장터 입찰공고 중 '협동로봇, 코봇' 관련 공고의 배정예산 중앙값은 4,376만원이다.",
           "claim_type": "fact",
           "citation_ids": [
-            13
+            15
+          ]
+        }
+      ],
+      "next_check": null,
+      "evidence_status": "sufficient",
+      "relevant_count": 8,
+      "limitation": null
+    },
+    {
+      "dimension": "buyer",
+      "verdict": "signal_only",
+      "claims": [
+        {
+          "statement": "협동로봇 한 대 가격이 평균 2천∼3천만원이라는 점을 고려할 때, 대규모 수주가 예상된다.",
+          "claim_type": "fact",
+          "citation_ids": [
+            19
           ]
         },
         {
-          "statement": "뉴로메카 사업보고서(FY2025)에 따르면 중소 제조공정부터 대기업의 양산공정까지 폭넓은 고객층을 대상으로 하고 있다.",
+          "statement": "두산로보틱스는 협동로봇 사업을 통해 북미 및 유럽의 주요 제조 고객사들과 협력하고 있다.",
+          "claim_type": "fact",
+          "citation_ids": [
+            21
+          ]
+        },
+        {
+          "statement": "뉴로메카 사업보고서(FY2025)에 따르면 중소 제조공정부터 대기업의 양산공정에 이르는 폭넓은 고객층을 대상으로 하고 있다.",
           "claim_type": "fact",
           "citation_ids": [
             3
@@ -116,31 +115,33 @@
       ],
       "next_check": null,
       "evidence_status": "sufficient",
-      "relevant_count": 4,
-      "limitation": null
+      "relevant_count": 8,
+      "limitation": "구매·조사 근거가 있으나 분석 단계에서 판단에 충분하지 않다고 봄"
     },
     {
       "dimension": "adoption_barrier",
       "verdict": "signal_only",
       "claims": [
         {
-          "statement": "로봇 도입 시 초기 구매가격과 유지보수 부담이 중요한 도입장벽으로 작용할 수 있다.",
+          "statement": "제조업 고객이 로봇을 도입할 때 초기 구매가격과 장애 발생 시 신속한 대응 여부가 중요한 판단 기준이다.",
           "claim_type": "fact",
           "citation_ids": [
-            15
+            12
           ]
         },
         {
-          "statement": "숙련 인력 확보의 어려움이 자동화 및 로봇 시스템 도입에 영향을 미치고 있다.",
+          "statement": "숙련 인력 확보의 어려움이 자동화 및 로봇 시스템 도입의 주요 장벽으로 작용하고 있다.",
           "claim_type": "fact",
           "citation_ids": [
-            7
+            8
           ]
         },
         {
-          "statement": "기존 제조공정에 로봇을 투입하려면 생산라인과의 연계가 필요할 가능성이 있다.",
-          "claim_type": "ai_hypothesis",
-          "citation_ids": []
+          "statement": "기존 제조공정에 로봇을 투입하려면 생산라인과의 연계가 필요하다.",
+          "claim_type": "fact",
+          "citation_ids": [
+            22
+          ]
         }
       ],
       "next_check": null,
@@ -169,20 +170,20 @@
     },
     {
       "citation_id": 2,
-      "source_id": "dart-20260320000803-5-7",
-      "source_type": "dart",
-      "title": "레인보우로보틱스 사업보고서(FY2025) 7. 기타 참고사항",
-      "publisher": "레인보우로보틱스 (DART 사업보고서)",
-      "quote": "라) 이동형 양팔로봇로봇의 수요에 영향을 받는 계절적 요인은 없을 것으로 판단됩니다.마) 자율이동로봇로봇의 수요에 영향을 받는 계절적 요인은 없을 것으로 판단됩니다.\n라. 국내외 시장여건\n1) 경쟁상황 및 안정성\n가) 협동로봇\n협동로봇은 초기 시장 형성 단계로 여러 업체가 초기 시장을 확보하기 위해 노력하고있습니다. 해외 협동로봇 제조사는 'A사 '와 'B사'가 있으며 국내 제조사로는 대기업인 'C사'와 'D사', 중소기업으로는 'E사'가 있습니다. 기존 산업용 로봇을 제조하던 회사 중에서 협동로봇을 판매하고 있는 독일 'K사', 스위스 'A사', 일본 'F사', 'Y사' 등의 회사가 있습니다. 이외에도 다양한 기업들이 협동로봇을 개발하기 위해 노력하고 있습니다. 이러한 협동로봇 제조사 중 'A사' 가 전세계적으로 시장을 주도하고 있으며 타 업체는 자국 내 판매를 주로하고 있습니다.\n'A사'의 판매 비중을 보면 자국(EU 포함) 내 판매가 월등히 높으며 해외 시장의 서비스가 미비한 상태에 있습니다. 따라서, 국내에서 경쟁할 수 있는 대체 협동로봇의 부재로 인하여 시장을 선도할 수 있었으나 국내 협동로봇 제조사가 생기면서 점진적으로 국내 제품으로 대체되고 있습니다.\n하지만 여전히 시장 형성 초기 단계로 제조사 간의 경쟁보다는 협동로봇의 시장을 확대하는데 주안점을 두고 있으며 다양한 애플리케이션을 개발하기 위한 노력을 하고 있습니다. 어느 한 업체가 독과점의 형태를 가지고 있지 않으며 정부에서는 협동로봇시장을 활성화하기 위해 큰 노력을 기울이고 있습니다.",
-      "section": "II. 사업의 내용 > 7. 기타 참고사항 (본문, 표 제외)",
-      "url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260320000803",
-      "published_at": 20260320,
-      "period": "FY2025",
-      "reliability": "high",
+      "source_id": "news-63f0fc72e0dd",
+      "source_type": "news",
+      "title": "'로봇 구매 지원만으론 한계'…중소기업 피지컬 AI 해법은 '공동 인프라...",
+      "publisher": "biz.sbs.co.kr",
+      "quote": "축적하고 협동조합은 공동 기준과 공동 실증 기반을 마련하는 역할 분담이 필요하다고 제안했습니다. 조주현 중소벤처기업연구원장은 중소기업의 AI 도입이 더딘 이유로 개별 기업이 비용과 실패 위험을 혼자 감당하기...",
+      "section": "title+description",
+      "url": "https://biz.sbs.co.kr/article_hub/20000341119?division=NAVER",
+      "published_at": 20261021,
+      "period": null,
+      "reliability": "medium",
       "recency": "high",
       "directness": "medium",
-      "evidence_nature": "company_claim",
-      "similarity": 0.5121
+      "evidence_nature": "business_signal",
+      "similarity": 0.5337000000000001
     },
     {
       "citation_id": 3,
@@ -220,6 +221,23 @@
     },
     {
       "citation_id": 5,
+      "source_id": "dart-20260323001204-5-39",
+      "source_type": "dart",
+      "title": "라온피플 사업보고서(FY2025) 7. 기타 참고사항",
+      "publisher": "라온피플 (DART 사업보고서)",
+      "quote": "고사양, 고품질의 카메라 모듈 검사기를 만들기 위한 핵심 기술로는 ① 다양한 카메라 모듈에 대응할 수 있는 카메라 모듈 인터페이스 기술(고속, 대용량 데이터 처리 기술 등), ② 카메라 모듈 데이터를 이용한 영상 처리 기술(Auto Focus, Auto White Balance, Auto Exposure, 선명하고 균일한 화질 확보 기술 등), ③ 카메라 모듈 검사기와 PC와의 인터페이스 기술(속도, 데이터 용량, 데이터 안정성 등) 등이 있습니다.\n이처럼 높은 신뢰도의 카메라 모듈 검사기를 개발, 양산하기 위해서는 고도의 기술과노하우를 보유하고 있어야 하며, 글로벌 카메라 모듈 제조업체에 검사기를 납품하기 위해선 오랜 기간의 양산 검증과정을 통과한 Track Record를 보유하고 있어야 하는 바, 이같은 보수적인 업계의 특성은 신규업체들에겐 높은 진입장벽으로 작용할 수 있습니다. 또한 완성 스마트폰 제조업체는 충분한 물량 확보 및 위험 분산을 위해 통상 3~4개의 업체로부터 카메라 모듈을 공급받는 성향이 있으며, 과거 카메라 모듈 검사기/검사장비의 경우 카메라 모듈 업체에서 원가절감 및 생산성 향상을 위해 자체적으로 도입하는 방식이 주를 이루었던 반면, 최근에는 완성 스마트폰 업체에서 각 카메라 모듈 업체가 공급하는 카메라 모듈의 품질 균일성 및 수율 관리를 위해 외부의 자동화 검사기/검사장비의 도입을 독려하고 있으며, 이 경우 서로 다른 카메라 모듈 업체에도 동일한 카메라 모듈 검사기/검사장비의 도입을 유도하고 있는 상황입니다.",
+      "section": "II. 사업의 내용 > 7. 기타 참고사항 (본문, 표 제외)",
+      "url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260323001204",
+      "published_at": 20260323,
+      "period": "FY2025",
+      "reliability": "high",
+      "recency": "high",
+      "directness": "medium",
+      "evidence_nature": "company_claim",
+      "similarity": 0.38959999999999995
+    },
+    {
+      "citation_id": 6,
       "source_id": "news-d0b342341e5f",
       "source_type": "news",
       "title": "검사부터 공정제어까지…삼성 손잡은 中企, 스마트공장 혁신 한자리에",
@@ -236,7 +254,7 @@
       "similarity": 0.48939999999999995
     },
     {
-      "citation_id": 6,
+      "citation_id": 7,
       "source_id": "news-ab2e2abe9269",
       "source_type": "news",
       "title": "건솔루션, 유비씨와 AI·디지털 트윈 기반 자율제조 통합 솔루션 개발 나...",
@@ -253,7 +271,7 @@
       "similarity": 0.4749
     },
     {
-      "citation_id": 7,
+      "citation_id": 8,
       "source_id": "news-b37edff3b4bc",
       "source_type": "news",
       "title": "로봇으로 만드니 생산성 23% '쑥' [COST ZERO]",
@@ -270,7 +288,24 @@
       "similarity": 0.47319999999999995
     },
     {
-      "citation_id": 8,
+      "citation_id": 9,
+      "source_id": "dart-20260323001204-5-33",
+      "source_type": "dart",
+      "title": "라온피플 사업보고서(FY2025) 7. 기타 참고사항",
+      "publisher": "라온피플 (DART 사업보고서)",
+      "quote": "현재 지방자치단체 및 도로 관련 국가 유관기관과 협력을 넓혀가고 있으며, 2019년 하반기에 안양시에 독립 교차로에 시범 설치하여 AI 교통솔루션의 성능을 입증하였습니다.각 지자체는 C-ITS(차세대 지능형 교통시스템) 사업을 추진하고 있으며 관련 사업에 컨소시엄 형태로 참여하며 사업을 확대하고 있습니다.\n(2) 공시대상 사업부문의 구분\n(3) 시장점유율\n(가) AI 머신비전 솔루션AI 머신비전의 국내 경쟁업체로는 뷰웍스, 해외 경쟁업체로는 코그넥스, 키엔스 등의 업체가 있습니다.머신비전은 하드웨어(카메라, 조명 등) 구성요소와 소프트웨어(이미지 해석 및 검사) 구성요소가 모두 필요합니다.국내에는 동사와 같이 머신비전 구성요소인 하드웨어와 소프트웨어, 솔루션(하드웨어+소프트웨어)을 포함한 원스탑 서비스 형태를 제공하는 사업구조를 가진 경쟁 업체는 존재하지 않습니다. 다만, 머신 비전 솔루션의 하드웨어나 소프트웨어 한 분야에 국한된 제품을 개발 및 판매하는 업체로는 카메라 제조 업체인 뷰웍스가 당사와 경쟁 관계에 있습니다.한편, 해외의 코그넥스는 하드웨어와 소프트웨어 모두를 개발 및 판매하고 있으며 동사와 가장 유사한 사업 구조를 갖는 미국에 상장된 기업입니다. 코크넥스는 종전까지 Rule 기반 머신비전만을 취급하였으나, 2017년에 AI 소프트웨어 개발업체인 VIDI Systems를 인수했고, 2019년에도 AI 소프트웨어 국내 개발업체인 수아랩을 인수하여 현재는 AI 기반 머신비전도 제공하고 있습니다. 키엔스는 일본에 상장되어 있으며 외관 품질 검사 분야에서 세계적인 명성을 갖고 있는 기업입니다.",
+      "section": "II. 사업의 내용 > 7. 기타 참고사항 (본문, 표 제외)",
+      "url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260323001204",
+      "published_at": 20260323,
+      "period": "FY2025",
+      "reliability": "high",
+      "recency": "high",
+      "directness": "medium",
+      "evidence_nature": "company_claim",
+      "similarity": 0.4579
+    },
+    {
+      "citation_id": 10,
       "source_id": "dart-20260318001562-5-11",
       "source_type": "dart",
       "title": "두산로보틱스 사업보고서(FY2025) 7. 기타 참고사항",
@@ -287,7 +322,7 @@
       "similarity": 0.4272
     },
     {
-      "citation_id": 9,
+      "citation_id": 11,
       "source_id": "dart-20260319000890-5-4",
       "source_type": "dart",
       "title": "뉴로메카 사업보고서(FY2025) 7. 기타 참고사항",
@@ -304,7 +339,7 @@
       "similarity": 0.40669999999999995
     },
     {
-      "citation_id": 10,
+      "citation_id": 12,
       "source_id": "news-bde9220b6cc0",
       "source_type": "news",
       "title": "“휴머노이드 개발서 확보 피지컬AI 기술, 산업용·협동 로봇에도 확대...",
@@ -321,7 +356,7 @@
       "similarity": 0.5334
     },
     {
-      "citation_id": 11,
+      "citation_id": 13,
       "source_id": "dart-20260318001562-5-8",
       "source_type": "dart",
       "title": "두산로보틱스 사업보고서(FY2025) 7. 기타 참고사항",
@@ -338,7 +373,92 @@
       "similarity": 0.5428
     },
     {
-      "citation_id": 12,
+      "citation_id": 14,
+      "source_id": "dart-20260323001204-5-3",
+      "source_type": "dart",
+      "title": "라온피플 사업보고서(FY2025) 7. 기타 참고사항",
+      "publisher": "라온피플 (DART 사업보고서)",
+      "quote": "- 자율제조 공장 모델 확산: 반도체, 이차전지 등 주요 업종별로 AI 머신비전이 핵심인 '선도모델' 공장 구축에 5년간 1조 원 이상을 투자합니다.\n- 스마트제조혁신 3.0: 중소기업의 AI 도입률을 현재 1%에서 10%까지 끌어올리기 위해, AI 비전 검사기 등 고도화된 장비 도입 비용을 지원합니다.\n- AI 자율제조 얼라이언스: 대기업의 AI 비전 노하우를 협력사에 전수하는 상생형 모델을 통해 공급망 전체의 지능화를 꾀하고 있습니다.\n(b) 국가 AI 인프라 확충 (K-클라우드 & AI 바우처)\n머신비전 소프트웨어가 원활히 구동될 수 있는 '인프라'와 '구매력'을 지원하는 정책입니다.\n- AI 바우처 지원사업:\nAI 솔루션 도입이 필요한 수요기업에 최대 2~3억 원 규 모의 바우처를 지급합니다. 이를 통해 기업들은 라온피플과 같은 공급기업의 AI 머신비전 솔루션을 큰 부담 없이 도입할 수 있습니다.\n- K-클라우드 프로젝트:\n국산 AI 반도체(NPU) 기반의 클라우드 환경을 구축하 여, 고해상도 비전 데이터를 저비용·고속으로 처리할 수 있는 환경을 만듭니다\n(c) 피지컬 AI 및 로봇 산업 육성 (지능형 로봇 실행계획)\n머신비전을 로봇의 '눈'으로 정의하고, 서비스 및 산업용 로봇과의 결합을 가속화합니다.\n- 지능형 로봇 400만 대 시대:\n2026년부터 로봇이 스스로 환경을 인식하고 판단하는\n3D 비전 및 엣지 AI 기술\n개발에 집중 투자합니다.\n-\n비제조업 확산:",
+      "section": "II. 사업의 내용 > 7. 기타 참고사항 (본문, 표 제외)",
+      "url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20260323001204",
+      "published_at": 20260323,
+      "period": "FY2025",
+      "reliability": "high",
+      "recency": "high",
+      "directness": "medium",
+      "evidence_nature": "company_claim",
+      "similarity": 0.4133
+    },
+    {
+      "citation_id": 15,
+      "source_id": "g2b-summary-협동로봇-코봇",
+      "source_type": "procurement",
+      "title": "나라장터 '협동로봇, 코봇' 입찰공고 집계 (2026년 4월~2026년 9월)",
+      "publisher": "조달청 나라장터",
+      "quote": "2026년 4월~2026년 9월 나라장터 입찰공고 중 '협동로봇, 코봇' 관련 공고는 26건이다. 예산이 공개된 공고의 배정예산 중앙값은 4,376만원, 범위는 2,493만원~3.8억원이다. 수요기관 유형은 대학·학교 16건, 연구기관 9건, 민간 기업 1건이다.",
+      "section": "입찰공고",
+      "url": null,
+      "published_at": 20260928,
+      "period": "2026년 4월~2026년 9월",
+      "reliability": "high",
+      "recency": "high",
+      "directness": "high",
+      "evidence_nature": "purchase_signal",
+      "similarity": null
+    },
+    {
+      "citation_id": 16,
+      "source_id": "g2b-R26BK01457544-000",
+      "source_type": "procurement",
+      "title": "[지역주도형 AI대전환]협동로봇본체(6축)4대",
+      "publisher": "조달청 나라장터",
+      "quote": "주식회사 유엔디(민간 기업)가 2026년 4월 16일 나라장터에 '[지역주도형 AI대전환]협동로봇본체(6축)4대' 물품 입찰을 공고했다. 배정예산 8,800만원(88,000,000원), 계약 방법 일반경쟁 · 규격가격동시입찰-제안적격자 중 예가 내 최저가 투찰자.",
+      "section": "입찰공고",
+      "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01457544&bidPbancOrd=000",
+      "published_at": 20260416,
+      "period": "2026년 4월",
+      "reliability": "high",
+      "recency": "high",
+      "directness": "high",
+      "evidence_nature": "purchase_signal",
+      "similarity": null
+    },
+    {
+      "citation_id": 17,
+      "source_id": "g2b-R26BK01745406-000",
+      "source_type": "procurement",
+      "title": "자율실험실 구현을 위한 연구 재료용 협동로봇 구매",
+      "publisher": "조달청 나라장터",
+      "quote": "한국기초과학지원연구원(연구기관)가 2026년 9월 28일 나라장터에 '자율실험실 구현을 위한 연구 재료용 협동로봇 구매' 물품 입찰을 공고했다. 배정예산 5,778만원(57,780,000원), 계약 방법 제한경쟁 · 규격가격동시입찰-제안적격자 중 예가 내 최저가 투찰자.",
+      "section": "입찰공고",
+      "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01745406&bidPbancOrd=000",
+      "published_at": 20260928,
+      "period": "2026년 9월",
+      "reliability": "high",
+      "recency": "high",
+      "directness": "high",
+      "evidence_nature": "purchase_signal",
+      "similarity": null
+    },
+    {
+      "citation_id": 18,
+      "source_id": "g2b-R26BK01736605-000",
+      "source_type": "procurement",
+      "title": "(재공고) 협동 로봇 구매_261103",
+      "publisher": "조달청 나라장터",
+      "quote": "한국과학기술원(대학·학교)가 2026년 9월 18일 나라장터에 '(재공고) 협동 로봇 구매_261103' 물품 입찰을 공고했다. 배정예산 5,720만원(57,200,000원), 계약 방법 수의계약 · 소액수의견적-소액수의견적(2인 이상 견적 제출).",
+      "section": "입찰공고",
+      "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01736605&bidPbancOrd=000",
+      "published_at": 20260918,
+      "period": "2026년 9월",
+      "reliability": "high",
+      "recency": "high",
+      "directness": "high",
+      "evidence_nature": "purchase_signal",
+      "similarity": null
+    },
+    {
+      "citation_id": 19,
       "source_id": "news-5dbe9360f2c2",
       "source_type": "news",
       "title": "두산로보틱스, 동남아에 대규모 협동로봇 공급 MOU 체결",
@@ -355,7 +475,7 @@
       "similarity": 0.4776
     },
     {
-      "citation_id": 13,
+      "citation_id": 20,
       "source_id": "news-6f356a409a9b",
       "source_type": "news",
       "title": "\"제조공정에 첨단 AI로봇 도입\"…삼성SDS·LG CNS, 북미 RX 시장 돌격",
@@ -367,12 +487,12 @@
       "period": null,
       "reliability": "medium",
       "recency": "high",
-      "directness": "high",
-      "evidence_nature": "purchase_signal",
+      "directness": "medium",
+      "evidence_nature": "business_signal",
       "similarity": 0.4677
     },
     {
-      "citation_id": 14,
+      "citation_id": 21,
       "source_id": "dart-20260318001562-1-0",
       "source_type": "dart",
       "title": "두산로보틱스 사업보고서(FY2025) 1. 사업의 개요",
@@ -389,7 +509,7 @@
       "similarity": 0.47
     },
     {
-      "citation_id": 15,
+      "citation_id": 22,
       "source_id": "news-338c9d427a9c",
       "source_type": "news",
       "title": "[초점] 휴머노이드부터 로봇 핸드까지…국내 로봇산업, 상용화 경쟁 불...",
@@ -406,7 +526,7 @@
       "similarity": 0.5591999999999999
     },
     {
-      "citation_id": 16,
+      "citation_id": 23,
       "source_id": "news-6cd32e1dbabe",
       "source_type": "news",
       "title": "베트남 산업용 로봇 수입 2억 달러 돌파… 전자 넘어 식품·물류 등으로...",
@@ -430,43 +550,46 @@
     "reasons": [
       {
         "topic": "수요",
-        "statement": "수요 판단은 signal_only이며, 현재 확정 아이디어의 고객·문제 범위 안에서 해석해야 합니다.",
+        "statement": "수요 판단: 신호만 확인. 현재 확정 아이디어의 고객·문제 범위 안에서 해석해야 합니다.",
         "citation_ids": [
+          2,
           1,
-          2
+          3
         ]
       },
       {
         "topic": "경쟁·대체재",
-        "statement": "경쟁·대체재 판단은 signal_only이며, 현재 확정 아이디어의 고객·문제 범위 안에서 해석해야 합니다.",
+        "statement": "경쟁·대체재 판단: 신호만 확인. 현재 확정 아이디어의 고객·문제 범위 안에서 해석해야 합니다.",
         "citation_ids": [
-          2,
-          6
+          11,
+          6,
+          9
         ]
       },
       {
         "topic": "가격·수익모델",
-        "statement": "가격·수익모델 판단은 signal_only이며, 현재 확정 아이디어의 고객·문제 범위 안에서 해석해야 합니다.",
+        "statement": "가격·수익모델 판단: 확인됨. 현재 확정 아이디어의 고객·문제 범위 안에서 해석해야 합니다.",
         "citation_ids": [
-          10,
-          11
+          12,
+          15
         ]
       },
       {
         "topic": "구매자",
-        "statement": "구매자 판단은 confirmed이며, 현재 확정 아이디어의 고객·문제 범위 안에서 해석해야 합니다.",
+        "statement": "구매자 판단: 신호만 확인. 현재 확정 아이디어의 고객·문제 범위 안에서 해석해야 합니다.",
         "citation_ids": [
-          12,
-          13,
+          19,
+          21,
           3
         ]
       },
       {
         "topic": "도입장벽",
-        "statement": "도입장벽 판단은 signal_only이며, 현재 확정 아이디어의 고객·문제 범위 안에서 해석해야 합니다.",
+        "statement": "도입장벽 판단: 신호만 확인. 현재 확정 아이디어의 고객·문제 범위 안에서 해석해야 합니다.",
         "citation_ids": [
-          15,
-          7
+          12,
+          8,
+          22
         ]
       }
     ],
@@ -494,64 +617,49 @@
   },
   "commercial_analysis": {
     "user": "중소 제조사",
-    "buyer": "미확인",
-    "budget_owner": "미확인",
-    "use_case": "조립·검사 공정 자동화",
+    "buyer": "공공 부문(나라장터 공고 기준): 대학·학교 16건, 연구기관 9건, 민간 기업 1건 / 목표 고객(중소 제조사)은 미확인",
+    "budget_owner": "공공 부문: 수요기관(대학·연구기관) 배정예산 / 목표 고객(중소 제조사)은 미확인",
+    "use_case": "숙련 인력 부족으로 조립·검사 공정 자동화 필요",
     "current_alternative": "미확인",
-    "switching_trigger": "숙련 인력 부족",
-    "purchase_process": "미확인",
+    "switching_trigger": "미확인",
+    "purchase_process": "공공 부문: 나라장터 전자입찰 공고 / 목표 고객(중소 제조사)은 미확인",
     "adoption_requirements": [],
-    "pricing_hypothesis": "협동로봇의 가격은 평균 2천∼3천만원으로 예상됨",
+    "pricing_hypothesis": "배정예산 중앙값 4,376만원, 범위 2,493만원~3.8억원 (2026년 4월~2026년 9월 기준)",
     "critical_assumptions": [],
     "citation_ids": [
-      1,
-      2,
-      3,
-      4,
-      5,
-      6,
-      7,
-      10,
-      12,
-      14
+      15,
+      16,
+      17,
+      18
     ],
     "unknowns": [],
     "hypotheses": [
       {
         "question": "누가 구매를 승인하는가?",
-        "hypothesis": "중소 제조사의 경영진 또는 자동화 담당자가 구매를 승인할 가능성이 높음.",
-        "basis": "중소 제조사가 자동화 솔루션을 도입하려는 의지가 있으나, 구매 결정 과정에 대한 정보가 부족함.",
+        "hypothesis": "공공 부문에서의 구매는 주로 대학 및 연구기관의 결정에 의해 이루어질 가능성이 높다.",
+        "basis": "입찰공고에서 수요기관 유형이 대학·학교 및 연구기관으로 나타남.",
         "assumptions": [],
-        "citation_ids": [],
-        "validation_target": "중소 제조사의 경영진 및 자동화 담당자",
+        "citation_ids": [
+          15
+        ],
+        "validation_target": "대학 및 연구기관의 구매 결정자",
         "validation_method": "인터뷰·조달 문서 확인 등",
-        "success_criterion": "구매 승인 절차 및 관련자 확인",
+        "success_criterion": "구매 승인 절차 및 결정자 확인",
         "numeric_value": null,
         "numeric_unit": "",
         "numeric_basis": ""
       },
       {
-        "question": "현재 대안은 무엇인가?",
-        "hypothesis": "기존의 수작업 공정 또는 비효율적인 자동화 시스템이 대안으로 존재할 가능성이 있음.",
-        "basis": "중소 제조사들이 자동화 도입을 고려하고 있으나, 현재 대안에 대한 정보가 부족함.",
+        "question": "중소 제조사에서의 구매 결정 과정은 어떻게 이루어지는가?",
+        "hypothesis": "중소 제조사는 비용과 기술적 요구사항을 고려하여 구매 결정을 내릴 가능성이 높다.",
+        "basis": "중소기업의 AI 도입이 비용과 실패 위험을 혼자 감당하기 어려운 점이 언급됨.",
         "assumptions": [],
-        "citation_ids": [],
-        "validation_target": "중소 제조사에서 사용 중인 현재 시스템",
-        "validation_method": "인터뷰·시장 조사",
-        "success_criterion": "현재 사용 중인 시스템의 확인",
-        "numeric_value": null,
-        "numeric_unit": "",
-        "numeric_basis": ""
-      },
-      {
-        "question": "구매·조달 절차는 어떻게 되는가?",
-        "hypothesis": "구매·조달 절차는 중소 제조사마다 상이할 수 있으며, 일반적으로 경영진의 승인 후 진행될 가능성이 높음.",
-        "basis": "구매 절차에 대한 정보가 부족하여 가설로 제시됨.",
-        "assumptions": [],
-        "citation_ids": [],
-        "validation_target": "중소 제조사의 구매·조달 절차",
-        "validation_method": "인터뷰·조달 문서 확인",
-        "success_criterion": "구매 절차의 확인",
+        "citation_ids": [
+          2
+        ],
+        "validation_target": "중소 제조사의 구매 결정 과정",
+        "validation_method": "인터뷰 및 설문 조사",
+        "success_criterion": "구매 결정 과정의 단계 및 고려 요소 확인",
         "numeric_value": null,
         "numeric_unit": "",
         "numeric_basis": ""
@@ -564,6 +672,7 @@
       "협동로봇",
       "코봇"
     ],
+    "fallback_from": [],
     "reference_keywords": [
       "스마트공장",
       "스마트팩토리"
@@ -724,231 +833,221 @@
     "document_count": 100,
     "nodes": [
       {
-        "term": "자동화",
-        "document_count": 60,
-        "cluster": 0,
-        "x": -0.0934,
-        "y": 0.2172
-      },
-      {
         "term": "도입",
-        "document_count": 55,
+        "document_count": 54,
         "cluster": 0,
-        "x": 0.1238,
-        "y": 0.2403
+        "x": 0.0721,
+        "y": 0.0486
       },
       {
         "term": "협동로봇",
-        "document_count": 52,
-        "cluster": 0,
-        "x": -0.0056,
-        "y": 0.4172
+        "document_count": 51,
+        "cluster": 1,
+        "x": -0.2488,
+        "y": 0.0767
       },
       {
         "term": "비용",
-        "document_count": 29,
-        "cluster": 1,
-        "x": 0.1017,
-        "y": 0.023
-      },
-      {
-        "term": "중소기업",
-        "document_count": 25,
-        "cluster": 2,
-        "x": -0.1253,
-        "y": -0.2171
+        "document_count": 28,
+        "cluster": 0,
+        "x": 0.1451,
+        "y": -0.1644
       },
       {
         "term": "중소",
-        "document_count": 24,
-        "cluster": 1,
-        "x": 0.3098,
-        "y": 0.1258
+        "document_count": 23,
+        "cluster": 0,
+        "x": -0.0318,
+        "y": -0.2954
+      },
+      {
+        "term": "중소기업",
+        "document_count": 23,
+        "cluster": 0,
+        "x": 0.2876,
+        "y": 0.0044
       },
       {
         "term": "비전",
         "document_count": 16,
-        "cluster": 0,
-        "x": -0.4002,
-        "y": 0.3745
+        "cluster": 1,
+        "x": -0.0307,
+        "y": 0.4669
       },
       {
         "term": "작업",
         "document_count": 16,
-        "cluster": 0,
-        "x": -0.1258,
-        "y": 0.0013
-      },
-      {
-        "term": "피지컬",
-        "document_count": 16,
-        "cluster": 0,
-        "x": -0.2127,
-        "y": 0.4864
-      },
-      {
-        "term": "투자",
-        "document_count": 15,
-        "cluster": 2,
-        "x": 0.0236,
-        "y": -0.3768
+        "cluster": 1,
+        "x": 0.0642,
+        "y": 0.2685
       },
       {
         "term": "물류",
-        "document_count": 13,
+        "document_count": 15,
         "cluster": 0,
-        "x": 0.1686,
-        "y": 0.5489
+        "x": 0.2224,
+        "y": -0.3705
+      },
+      {
+        "term": "피지컬",
+        "document_count": 15,
+        "cluster": 1,
+        "x": 0.2803,
+        "y": 0.2256
       },
       {
         "term": "휴머노이드",
+        "document_count": 14,
+        "cluster": 1,
+        "x": -0.1556,
+        "y": 0.276
+      },
+      {
+        "term": "산업용",
+        "document_count": 13,
+        "cluster": 1,
+        "x": -0.1014,
+        "y": -0.0867
+      },
+      {
+        "term": "제조기업",
         "document_count": 13,
         "cluster": 0,
-        "x": -0.2977,
-        "y": 0.14
+        "x": -0.2719,
+        "y": -0.2257
       },
       {
         "term": "어려움",
         "document_count": 12,
-        "cluster": 0,
-        "x": -0.1879,
-        "y": 0.7034
+        "cluster": 2,
+        "x": -0.3864,
+        "y": 0.2483
       },
       {
-        "term": "제조기업",
+        "term": "투자",
         "document_count": 12,
-        "cluster": 1,
-        "x": 0.2976,
-        "y": 0.3726
-      },
-      {
-        "term": "검증",
-        "document_count": 11,
         "cluster": 0,
-        "x": 0.2625,
-        "y": -0.1248
+        "x": 0.3682,
+        "y": -0.2003
       },
       {
         "term": "생산성",
         "document_count": 11,
-        "cluster": 0,
-        "x": 0.03,
-        "y": 0.7176
+        "cluster": 2,
+        "x": -0.4193,
+        "y": -0.0623
       },
       {
         "term": "부담",
         "document_count": 10,
+        "cluster": 0,
+        "x": 0.0595,
+        "y": -0.5184
+      },
+      {
+        "term": "부품",
+        "document_count": 10,
         "cluster": 1,
-        "x": 0.4842,
-        "y": 0.2592
+        "x": 0.1156,
+        "y": 0.634
       },
       {
         "term": "인력",
         "document_count": 10,
+        "cluster": 0,
+        "x": -0.1644,
+        "y": -0.4709
+      },
+      {
+        "term": "검증",
+        "document_count": 9,
         "cluster": 1,
-        "x": 0.4783,
-        "y": 0.4952
+        "x": 0.4891,
+        "y": 0.0927
       },
       {
         "term": "위험",
         "document_count": 8,
-        "cluster": 0,
-        "x": -0.5136,
-        "y": 0.1878
+        "cluster": 1,
+        "x": 0.4742,
+        "y": 0.3295
+      },
+      {
+        "term": "단계",
+        "document_count": 6,
+        "cluster": 1,
+        "x": -0.2602,
+        "y": 0.4696
       },
       {
         "term": "생산라인",
         "document_count": 6,
         "cluster": 0,
-        "x": 0.3492,
-        "y": 0.6717
+        "x": -0.4351,
+        "y": -0.3733
       },
       {
-        "term": "개별",
-        "document_count": 5,
-        "cluster": 2,
-        "x": 0.2545,
-        "y": -0.6065
+        "term": "자율제조",
+        "document_count": 6,
+        "cluster": 0,
+        "x": -0.4289,
+        "y": -0.5932
       },
       {
         "term": "라인",
         "document_count": 5,
-        "cluster": 0,
-        "x": -0.091,
-        "y": 0.9096
+        "cluster": 2,
+        "x": -0.6393,
+        "y": -0.0632
       },
       {
         "term": "인력난",
         "document_count": 5,
+        "cluster": 1,
+        "x": 0.2085,
+        "y": 0.4346
+      },
+      {
+        "term": "SI",
+        "document_count": 3,
         "cluster": 0,
-        "x": 0.5375,
-        "y": 0.0474
-      },
-      {
-        "term": "무인공장",
-        "document_count": 4,
-        "cluster": 2,
-        "x": -0.1976,
-        "y": -0.7149
-      },
-      {
-        "term": "업종",
-        "document_count": 4,
-        "cluster": 2,
-        "x": -0.3871,
-        "y": -0.6062
-      },
-      {
-        "term": "완전자동화",
-        "document_count": 4,
-        "cluster": 2,
-        "x": 0.0018,
-        "y": -0.8039
-      },
-      {
-        "term": "AI공장",
-        "document_count": 3,
-        "cluster": 2,
-        "x": -0.3427,
-        "y": -0.8971
-      },
-      {
-        "term": "반월시화",
-        "document_count": 3,
-        "cluster": 2,
-        "x": -0.5638,
-        "y": -0.7344
-      },
-      {
-        "term": "반월시화형",
-        "document_count": 3,
-        "cluster": 2,
-        "x": -0.0947,
+        "x": 0.4539,
         "y": -1.0
       },
       {
-        "term": "성공모델",
+        "term": "심화",
         "document_count": 3,
         "cluster": 2,
-        "x": 0.2159,
-        "y": -0.8573
+        "x": -0.6249,
+        "y": 0.6132
+      },
+      {
+        "term": "정형",
+        "document_count": 3,
+        "cluster": 1,
+        "x": -0.4808,
+        "y": 0.447
+      },
+      {
+        "term": "진입장벽",
+        "document_count": 3,
+        "cluster": 0,
+        "x": 0.4388,
+        "y": -0.4101
+      },
+      {
+        "term": "표준",
+        "document_count": 3,
+        "cluster": 0,
+        "x": 0.9998,
+        "y": 0.1987
       }
     ],
     "edges": [
       {
         "source": "도입",
         "target": "협동로봇",
-        "weight": 34
-      },
-      {
-        "source": "도입",
-        "target": "자동화",
-        "weight": 32
-      },
-      {
-        "source": "자동화",
-        "target": "협동로봇",
-        "weight": 28
+        "weight": 33
       },
       {
         "source": "도입",
@@ -961,28 +1060,8 @@
         "weight": 17
       },
       {
-        "source": "자동화",
-        "target": "중소",
-        "weight": 17
-      },
-      {
-        "source": "비용",
-        "target": "자동화",
-        "weight": 15
-      },
-      {
-        "source": "비전",
-        "target": "자동화",
-        "weight": 14
-      },
-      {
         "source": "도입",
         "target": "중소기업",
-        "weight": 13
-      },
-      {
-        "source": "자동화",
-        "target": "작업",
         "weight": 13
       },
       {
@@ -991,13 +1070,13 @@
         "weight": 13
       },
       {
-        "source": "비용",
-        "target": "중소",
+        "source": "도입",
+        "target": "산업용",
         "weight": 12
       },
       {
         "source": "비용",
-        "target": "중소기업",
+        "target": "중소",
         "weight": 12
       },
       {
@@ -1006,18 +1085,18 @@
         "weight": 12
       },
       {
-        "source": "물류",
-        "target": "자동화",
-        "weight": 11
+        "source": "제조기업",
+        "target": "중소",
+        "weight": 12
       },
       {
         "source": "비용",
-        "target": "투자",
+        "target": "중소기업",
         "weight": 11
       },
       {
-        "source": "자동화",
-        "target": "중소기업",
+        "source": "산업용",
+        "target": "협동로봇",
         "weight": 11
       },
       {
@@ -1026,18 +1105,23 @@
         "weight": 11
       },
       {
-        "source": "제조기업",
-        "target": "중소",
-        "weight": 11
-      },
-      {
-        "source": "자동화",
-        "target": "피지컬",
+        "source": "도입",
+        "target": "제조기업",
         "weight": 10
       },
       {
-        "source": "중소기업",
+        "source": "도입",
+        "target": "휴머노이드",
+        "weight": 10
+      },
+      {
+        "source": "비용",
         "target": "투자",
+        "weight": 10
+      },
+      {
+        "source": "협동로봇",
+        "target": "휴머노이드",
         "weight": 10
       },
       {
@@ -1051,23 +1135,13 @@
         "weight": 9
       },
       {
-        "source": "도입",
-        "target": "제조기업",
-        "weight": 9
-      },
-      {
-        "source": "도입",
-        "target": "휴머노이드",
-        "weight": 9
-      },
-      {
         "source": "부담",
         "target": "비용",
         "weight": 9
       },
       {
-        "source": "생산성",
-        "target": "자동화",
+        "source": "비전",
+        "target": "협동로봇",
         "weight": 9
       },
       {
@@ -1076,28 +1150,13 @@
         "weight": 9
       },
       {
-        "source": "자동화",
-        "target": "제조기업",
-        "weight": 9
-      },
-      {
         "source": "중소기업",
         "target": "협동로봇",
         "weight": 9
       },
       {
-        "source": "협동로봇",
-        "target": "휴머노이드",
-        "weight": 9
-      },
-      {
-        "source": "비전",
+        "source": "제조기업",
         "target": "협동로봇",
-        "weight": 8
-      },
-      {
-        "source": "자동화",
-        "target": "투자",
         "weight": 8
       },
       {
@@ -1122,11 +1181,6 @@
       },
       {
         "source": "부담",
-        "target": "자동화",
-        "weight": 7
-      },
-      {
-        "source": "부담",
         "target": "중소",
         "weight": 7
       },
@@ -1136,29 +1190,9 @@
         "weight": 7
       },
       {
-        "source": "어려움",
-        "target": "자동화",
+        "source": "중소기업",
+        "target": "투자",
         "weight": 7
-      },
-      {
-        "source": "인력",
-        "target": "자동화",
-        "weight": 7
-      },
-      {
-        "source": "자동화",
-        "target": "휴머노이드",
-        "weight": 7
-      },
-      {
-        "source": "제조기업",
-        "target": "협동로봇",
-        "weight": 7
-      },
-      {
-        "source": "도입",
-        "target": "피지컬",
-        "weight": 6
       },
       {
         "source": "물류",
@@ -1176,11 +1210,6 @@
         "weight": 6
       },
       {
-        "source": "중소",
-        "target": "투자",
-        "weight": 6
-      },
-      {
         "source": "피지컬",
         "target": "협동로봇",
         "weight": 6
@@ -1188,11 +1217,6 @@
       {
         "source": "검증",
         "target": "도입",
-        "weight": 5
-      },
-      {
-        "source": "검증",
-        "target": "비용",
         "weight": 5
       },
       {
@@ -1211,6 +1235,11 @@
         "weight": 5
       },
       {
+        "source": "도입",
+        "target": "피지컬",
+        "weight": 5
+      },
+      {
         "source": "물류",
         "target": "중소",
         "weight": 5
@@ -1228,11 +1257,6 @@
       {
         "source": "비전",
         "target": "작업",
-        "weight": 5
-      },
-      {
-        "source": "비전",
-        "target": "피지컬",
         "weight": 5
       },
       {
@@ -1256,18 +1280,23 @@
         "weight": 5
       },
       {
-        "source": "개별",
-        "target": "중소기업",
-        "weight": 4
-      },
-      {
-        "source": "검증",
-        "target": "자동화",
-        "weight": 4
-      },
-      {
-        "source": "검증",
+        "source": "중소",
         "target": "투자",
+        "weight": 5
+      },
+      {
+        "source": "중소기업",
+        "target": "피지컬",
+        "weight": 5
+      },
+      {
+        "source": "검증",
+        "target": "비용",
+        "weight": 4
+      },
+      {
+        "source": "검증",
+        "target": "협동로봇",
         "weight": 4
       },
       {
@@ -1286,33 +1315,43 @@
         "weight": 4
       },
       {
-        "source": "라인",
-        "target": "자동화",
-        "weight": 4
-      },
-      {
-        "source": "무인공장",
-        "target": "완전자동화",
-        "weight": 4
-      },
-      {
-        "source": "무인공장",
-        "target": "중소기업",
-        "weight": 4
-      },
-      {
-        "source": "무인공장",
-        "target": "투자",
-        "weight": 4
-      },
-      {
         "source": "물류",
         "target": "비용",
         "weight": 4
       },
       {
-        "source": "생산라인",
-        "target": "자동화",
+        "source": "물류",
+        "target": "중소기업",
+        "weight": 4
+      },
+      {
+        "source": "부담",
+        "target": "제조기업",
+        "weight": 4
+      },
+      {
+        "source": "부담",
+        "target": "투자",
+        "weight": 4
+      },
+      {
+        "source": "부품",
+        "target": "협동로봇",
+        "weight": 4
+      },
+      {
+        "source": "비전",
+        "target": "피지컬",
+        "weight": 4
+      },
+      {
+        "source": "산업용",
+        "target": "중소",
+        "weight": 4
+      },
+      {
+        "source": "산업용",
+        "target": "휴머노이드",
         "weight": 4
       },
       {
@@ -1321,23 +1360,8 @@
         "weight": 4
       },
       {
-        "source": "업종",
-        "target": "중소기업",
-        "weight": 4
-      },
-      {
-        "source": "완전자동화",
-        "target": "중소기업",
-        "weight": 4
-      },
-      {
-        "source": "완전자동화",
-        "target": "투자",
-        "weight": 4
-      },
-      {
-        "source": "인력난",
-        "target": "자동화",
+        "source": "인력",
+        "target": "중소",
         "weight": 4
       },
       {
@@ -1346,48 +1370,13 @@
         "weight": 4
       },
       {
-        "source": "AI공장",
-        "target": "무인공장",
+        "source": "검증",
+        "target": "피지컬",
         "weight": 3
       },
       {
-        "source": "AI공장",
-        "target": "반월시화형",
-        "weight": 3
-      },
-      {
-        "source": "AI공장",
-        "target": "완전자동화",
-        "weight": 3
-      },
-      {
-        "source": "AI공장",
-        "target": "중소기업",
-        "weight": 3
-      },
-      {
-        "source": "AI공장",
-        "target": "투자",
-        "weight": 3
-      },
-      {
-        "source": "개별",
-        "target": "무인공장",
-        "weight": 3
-      },
-      {
-        "source": "개별",
-        "target": "비용",
-        "weight": 3
-      },
-      {
-        "source": "개별",
-        "target": "성공모델",
-        "weight": 3
-      },
-      {
-        "source": "개별",
-        "target": "완전자동화",
+        "source": "단계",
+        "target": "협동로봇",
         "weight": 3
       },
       {
@@ -1396,58 +1385,13 @@
         "weight": 3
       },
       {
-        "source": "무인공장",
-        "target": "반월시화",
-        "weight": 3
-      },
-      {
-        "source": "무인공장",
-        "target": "반월시화형",
-        "weight": 3
-      },
-      {
-        "source": "무인공장",
-        "target": "성공모델",
-        "weight": 3
-      },
-      {
-        "source": "무인공장",
-        "target": "업종",
-        "weight": 3
-      },
-      {
         "source": "물류",
         "target": "생산성",
         "weight": 3
       },
       {
-        "source": "반월시화",
-        "target": "완전자동화",
-        "weight": 3
-      },
-      {
-        "source": "반월시화",
-        "target": "중소기업",
-        "weight": 3
-      },
-      {
-        "source": "반월시화",
-        "target": "투자",
-        "weight": 3
-      },
-      {
-        "source": "반월시화형",
-        "target": "완전자동화",
-        "weight": 3
-      },
-      {
-        "source": "반월시화형",
-        "target": "중소기업",
-        "weight": 3
-      },
-      {
-        "source": "반월시화형",
-        "target": "투자",
+        "source": "부품",
+        "target": "휴머노이드",
         "weight": 3
       },
       {
@@ -1457,7 +1401,7 @@
       },
       {
         "source": "비용",
-        "target": "휴머노이드",
+        "target": "작업",
         "weight": 3
       },
       {
@@ -1471,33 +1415,23 @@
         "weight": 3
       },
       {
-        "source": "성공모델",
-        "target": "완전자동화",
+        "source": "산업용",
+        "target": "작업",
         "weight": 3
       },
       {
-        "source": "성공모델",
-        "target": "중소기업",
+        "source": "생산성",
+        "target": "중소",
         "weight": 3
       },
       {
-        "source": "성공모델",
-        "target": "투자",
+        "source": "심화",
+        "target": "협동로봇",
         "weight": 3
       },
       {
-        "source": "업종",
-        "target": "완전자동화",
-        "weight": 3
-      },
-      {
-        "source": "업종",
-        "target": "투자",
-        "weight": 3
-      },
-      {
-        "source": "위험",
-        "target": "자동화",
+        "source": "어려움",
+        "target": "중소",
         "weight": 3
       },
       {
@@ -1506,18 +1440,48 @@
         "weight": 3
       },
       {
-        "source": "AI공장",
-        "target": "반월시화",
-        "weight": 2
-      },
-      {
-        "source": "AI공장",
-        "target": "업종",
+        "source": "SI",
+        "target": "물류",
         "weight": 2
       },
       {
         "source": "검증",
         "target": "인력난",
+        "weight": 2
+      },
+      {
+        "source": "단계",
+        "target": "도입",
+        "weight": 2
+      },
+      {
+        "source": "단계",
+        "target": "산업용",
+        "weight": 2
+      },
+      {
+        "source": "단계",
+        "target": "중소",
+        "weight": 2
+      },
+      {
+        "source": "단계",
+        "target": "중소기업",
+        "weight": 2
+      },
+      {
+        "source": "도입",
+        "target": "부품",
+        "weight": 2
+      },
+      {
+        "source": "도입",
+        "target": "정형",
+        "weight": 2
+      },
+      {
+        "source": "도입",
+        "target": "진입장벽",
         "weight": 2
       },
       {
@@ -1531,59 +1495,562 @@
         "weight": 2
       },
       {
+        "source": "물류",
+        "target": "진입장벽",
+        "weight": 2
+      },
+      {
+        "source": "부품",
+        "target": "비전",
+        "weight": 2
+      },
+      {
+        "source": "부품",
+        "target": "중소기업",
+        "weight": 2
+      },
+      {
+        "source": "비용",
+        "target": "위험",
+        "weight": 2
+      },
+      {
         "source": "비용",
         "target": "인력난",
+        "weight": 2
+      },
+      {
+        "source": "비전",
+        "target": "정형",
+        "weight": 2
+      },
+      {
+        "source": "산업용",
+        "target": "생산라인",
+        "weight": 2
+      },
+      {
+        "source": "산업용",
+        "target": "정형",
         "weight": 2
       },
       {
         "source": "생산라인",
         "target": "인력",
         "weight": 2
+      },
+      {
+        "source": "심화",
+        "target": "어려움",
+        "weight": 2
+      },
+      {
+        "source": "어려움",
+        "target": "인력난",
+        "weight": 2
+      },
+      {
+        "source": "자율제조",
+        "target": "제조기업",
+        "weight": 2
+      },
+      {
+        "source": "자율제조",
+        "target": "중소",
+        "weight": 2
+      },
+      {
+        "source": "자율제조",
+        "target": "협동로봇",
+        "weight": 2
+      },
+      {
+        "source": "작업",
+        "target": "정형",
+        "weight": 2
+      },
+      {
+        "source": "정형",
+        "target": "협동로봇",
+        "weight": 2
+      },
+      {
+        "source": "중소기업",
+        "target": "표준",
+        "weight": 2
+      },
+      {
+        "source": "진입장벽",
+        "target": "협동로봇",
+        "weight": 2
       }
     ],
     "clusters": [
       [
-        "자동화",
         "도입",
+        "비용",
+        "중소",
+        "중소기업",
+        "물류",
+        "제조기업",
+        "투자",
+        "부담",
+        "인력",
+        "생산라인",
+        "자율제조",
+        "SI",
+        "진입장벽",
+        "표준"
+      ],
+      [
         "협동로봇",
         "비전",
         "작업",
         "피지컬",
-        "물류",
         "휴머노이드",
-        "어려움",
+        "산업용",
+        "부품",
         "검증",
-        "생산성",
         "위험",
-        "생산라인",
+        "단계",
+        "인력난",
+        "정형"
+      ],
+      [
+        "어려움",
+        "생산성",
         "라인",
-        "인력난"
-      ],
-      [
-        "비용",
-        "중소",
-        "제조기업",
-        "부담",
-        "인력"
-      ],
-      [
-        "중소기업",
-        "투자",
-        "개별",
-        "무인공장",
-        "업종",
-        "완전자동화",
-        "AI공장",
-        "반월시화",
-        "반월시화형",
-        "성공모델"
+        "심화"
       ]
     ],
     "note": "아이디어와 가까운 뉴스 제목·요약에서 같은 기사에 함께 나온 명사를 이은 것이며, 시장 수요나 인과관계의 근거가 아닙니다.",
     "error_message": null
   },
+  "company_financials": {
+    "status": "completed",
+    "companies": [
+      {
+        "company": "뉴로메카",
+        "stock_code": "348340",
+        "statement": "연결",
+        "rcept_no": "20260319000890",
+        "years": [
+          {
+            "year": 2023,
+            "revenue": 13742971105,
+            "operating_income": -14825326473,
+            "net_income": -17653500201,
+            "rnd_expense": 8817887000
+          },
+          {
+            "year": 2024,
+            "revenue": 25269404825,
+            "operating_income": -19015005988,
+            "net_income": -16754713008,
+            "rnd_expense": 10888453000
+          },
+          {
+            "year": 2025,
+            "revenue": 18954203205,
+            "operating_income": -14856577614,
+            "net_income": -21991151206,
+            "rnd_expense": 13194257000
+          }
+        ],
+        "rnd_basis": "사업보고서 연구개발활동 표 '연구개발비용총계' (천원)"
+      },
+      {
+        "company": "두산로보틱스",
+        "stock_code": "454910",
+        "statement": "연결",
+        "rcept_no": "20260318001562",
+        "years": [
+          {
+            "year": 2023,
+            "revenue": 53038372299,
+            "operating_income": -19167549522,
+            "net_income": -15873538546,
+            "rnd_expense": 9866541000
+          },
+          {
+            "year": 2024,
+            "revenue": 46829943837,
+            "operating_income": -41202116246,
+            "net_income": -36560851475,
+            "rnd_expense": 7132849000
+          },
+          {
+            "year": 2025,
+            "revenue": 32978338354,
+            "operating_income": -59472307590,
+            "net_income": -55495341539,
+            "rnd_expense": 8411060000
+          }
+        ],
+        "rnd_basis": "사업보고서 연구개발활동 표 '연구개발비용계' (천원)"
+      },
+      {
+        "company": "라온피플",
+        "stock_code": "300120",
+        "statement": "연결",
+        "rcept_no": "20260323001204",
+        "years": [
+          {
+            "year": 2023,
+            "revenue": 11244331687,
+            "operating_income": -11135373701,
+            "net_income": -8716360432,
+            "rnd_expense": 9298000000
+          },
+          {
+            "year": 2024,
+            "revenue": 220225561052,
+            "operating_income": -16249271324,
+            "net_income": -13936042786,
+            "rnd_expense": 12714000000
+          },
+          {
+            "year": 2025,
+            "revenue": 223808325905,
+            "operating_income": -16192262465,
+            "net_income": -20435617608,
+            "rnd_expense": 12445000000
+          }
+        ],
+        "rnd_basis": "사업보고서 연구개발활동 표 '연구개발비용총계' (백만원)"
+      }
+    ],
+    "missing": [],
+    "note": "DART 사업보고서의 주요 재무 계정입니다. 아이디어와 같은 사업 범주로 검색한 기업의 실적이며, 시장 규모나 고객 수요의 근거가 아닙니다.",
+    "error_message": null
+  },
+  "procurement": {
+    "status": "completed",
+    "keywords": [
+      "협동로봇",
+      "코봇"
+    ],
+    "period": "2026-04 ~ 2026-09",
+    "searched_count": 37,
+    "notices": [
+      {
+        "notice_no": "R26BK01745406-000",
+        "title": "자율실험실 구현을 위한 연구 재료용 협동로봇 구매",
+        "buyer": "한국기초과학지원연구원",
+        "buyer_type": "연구기관",
+        "kind": "물품",
+        "notice_date": 20260928,
+        "budget": 57780000,
+        "product": "융복합산업용로봇",
+        "contract_method": "제한경쟁 · 규격가격동시입찰-제안적격자 중 예가 내 최저가 투찰자",
+        "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01745406&bidPbancOrd=000"
+      },
+      {
+        "notice_no": "R26BK01736605-000",
+        "title": "(재공고) 협동 로봇 구매_261103",
+        "buyer": "한국과학기술원",
+        "buyer_type": "대학·학교",
+        "kind": "물품",
+        "notice_date": 20260918,
+        "budget": 57200000,
+        "product": "산업용로봇",
+        "contract_method": "수의계약 · 소액수의견적-소액수의견적(2인 이상 견적 제출)",
+        "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01736605&bidPbancOrd=000"
+      },
+      {
+        "notice_no": "R26BK01734683-000",
+        "title": "국립창원대학교 협동 로봇 구매 (재공고)",
+        "buyer": "국립창원대학교",
+        "buyer_type": "대학·학교",
+        "kind": "물품",
+        "notice_date": 20260917,
+        "budget": 42625000,
+        "product": "산업용로봇",
+        "contract_method": "일반경쟁 · 협상에의한계약-협상에 의한 낙찰자 결정",
+        "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01734683&bidPbancOrd=000"
+      },
+      {
+        "notice_no": "R26BK01721272-000",
+        "title": "2026학년도 실습기자재(협동로봇실습장비) 구입",
+        "buyer": "중소벤처기업부 전북기계공업고등학교",
+        "buyer_type": "대학·학교",
+        "kind": "물품",
+        "notice_date": 20260910,
+        "budget": 136940560,
+        "product": "교육훈련장비",
+        "contract_method": "제한경쟁 · 규격가격동시입찰-제안적격자 중 예가 내 최저가 투찰자",
+        "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01721272&bidPbancOrd=000"
+      },
+      {
+        "notice_no": "R26BK01719429-000",
+        "title": "수의)(재)협동로봇 구매",
+        "buyer": "한국기계연구원",
+        "buyer_type": "연구기관",
+        "kind": "물품",
+        "notice_date": 20260908,
+        "budget": 42240000,
+        "product": "융복합산업용로봇",
+        "contract_method": "수의계약 · 수의시담-수의시담",
+        "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01719429&bidPbancOrd=000"
+      },
+      {
+        "notice_no": "R26BK01712848-000",
+        "title": "정밀 칭량 시스템 구축을 위한 협동로봇",
+        "buyer": "한국생산기술연구원",
+        "buyer_type": "연구기관",
+        "kind": "물품",
+        "notice_date": 20260903,
+        "budget": 48070000,
+        "product": "산업용로봇",
+        "contract_method": "수의계약 · 수의시담-수의시담",
+        "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01712848&bidPbancOrd=000"
+      },
+      {
+        "notice_no": "R26BK01708716-000",
+        "title": "다관절 협동로봇 구매",
+        "buyer": "조선대학교",
+        "buyer_type": "대학·학교",
+        "kind": "물품",
+        "notice_date": 20260901,
+        "budget": 42570000,
+        "product": "로봇제어기",
+        "contract_method": "일반경쟁 · 2단계경쟁입찰-가격입찰서제출자 중 예가 내 최저가 투찰자",
+        "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01708716&bidPbancOrd=000"
+      },
+      {
+        "notice_no": "R26BK01702066-000",
+        "title": "[RISE-자율R&D] 금속 및 소재 시편의 연마·폴리싱 공정 자동화를 위한 협동로봇 시스템 구매",
+        "buyer": "영남대학교",
+        "buyer_type": "대학·학교",
+        "kind": "물품",
+        "notice_date": 20260831,
+        "budget": 28886000,
+        "product": "산업용로봇",
+        "contract_method": "일반경쟁 · 규격가격동시입찰-제안적격자 중 예가 내 최저가 투찰자",
+        "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01702066&bidPbancOrd=000"
+      },
+      {
+        "notice_no": "R26BK01703853-000",
+        "title": "협동 로봇 구매",
+        "buyer": "인하대학교",
+        "buyer_type": "대학·학교",
+        "kind": "물품",
+        "notice_date": 20260828,
+        "budget": 46310000,
+        "product": "산업용로봇",
+        "contract_method": "일반경쟁 · 규격가격동시입찰-제안적격자 중 예가 내 최저가 투찰자",
+        "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01703853&bidPbancOrd=000"
+      },
+      {
+        "notice_no": "R26BK01695070-000",
+        "title": "6축 협동로봇",
+        "buyer": "한국생산기술연구원",
+        "buyer_type": "연구기관",
+        "kind": "물품",
+        "notice_date": 20260824,
+        "budget": 28765000,
+        "product": "산업용로봇",
+        "contract_method": "제한경쟁 · 규격가격동시입찰-제안적격자 중 예가 내 최저가 투찰자",
+        "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01695070&bidPbancOrd=000"
+      },
+      {
+        "notice_no": "R26BK01690227-000",
+        "title": "[52251](글로컬)6축 협동 로봇",
+        "buyer": "포항공과대학교",
+        "buyer_type": "대학·학교",
+        "kind": "물품",
+        "notice_date": 20260820,
+        "budget": 54175000,
+        "product": "산업용로봇",
+        "contract_method": "일반경쟁 · 최저가낙찰제-최저가낙찰자",
+        "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01690227&bidPbancOrd=000"
+      },
+      {
+        "notice_no": "R26BK01689045-000",
+        "title": "[52252](글로컬)협동 로봇 암",
+        "buyer": "포항공과대학교",
+        "buyer_type": "대학·학교",
+        "kind": "물품",
+        "notice_date": 20260819,
+        "budget": 48070000,
+        "product": "산업용로봇",
+        "contract_method": "일반경쟁 · 최저가낙찰제-최저가낙찰자",
+        "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01689045&bidPbancOrd=000"
+      },
+      {
+        "notice_no": "R26BK01681304-000",
+        "title": "협동로봇 구매",
+        "buyer": "재단법인전남테크노파크",
+        "buyer_type": "연구기관",
+        "kind": "물품",
+        "notice_date": 20260813,
+        "budget": 39933000,
+        "product": "산업용로봇",
+        "contract_method": "제한경쟁 · 규격가격동시입찰-제안적격자 중 예가 내 최저가 투찰자",
+        "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01681304&bidPbancOrd=000"
+      },
+      {
+        "notice_no": "R26BK01663640-001",
+        "title": "협동로봇",
+        "buyer": "서강대학교산학협력단",
+        "buyer_type": "대학·학교",
+        "kind": "물품",
+        "notice_date": 20260806,
+        "budget": 24926000,
+        "product": "산업용로봇",
+        "contract_method": "일반경쟁 · 최저가낙찰제-최저가낙찰자",
+        "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01663640&bidPbancOrd=001"
+      },
+      {
+        "notice_no": "R26BK01659201-000",
+        "title": "협동 로봇, 실외 배송 로봇, 소형 물류 로봇 구매",
+        "buyer": "인하대학교",
+        "buyer_type": "대학·학교",
+        "kind": "물품",
+        "notice_date": 20260730,
+        "budget": 384560000,
+        "product": "산업용로봇",
+        "contract_method": "일반경쟁 · 규격가격동시입찰-제안적격자 중 예가 내 최저가 투찰자",
+        "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01659201&bidPbancOrd=000"
+      },
+      {
+        "notice_no": "R26BK01622341-000",
+        "title": "라이즈사업 협동로봇 실습장비 구매",
+        "buyer": "동강대학 산학협력단",
+        "buyer_type": "대학·학교",
+        "kind": "물품",
+        "notice_date": 20260708,
+        "budget": 120000000,
+        "product": "교육용로봇",
+        "contract_method": "제한경쟁 · 제한적최저가(낙찰하한율)-제한적최저가(낙찰하한율)",
+        "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01622341&bidPbancOrd=000"
+      },
+      {
+        "notice_no": "R26BK01618969-000",
+        "title": "(RISE)협동로봇 2set 구매",
+        "buyer": "전주비전대학 산학협력단",
+        "buyer_type": "대학·학교",
+        "kind": "물품",
+        "notice_date": 20260706,
+        "budget": 48000000,
+        "product": "산업용로봇",
+        "contract_method": "일반경쟁 · 규격가격동시입찰-제안적격자 중 예가 내 최저가 투찰자",
+        "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01618969&bidPbancOrd=000"
+      },
+      {
+        "notice_no": "R26BK01610692-000",
+        "title": "협동로봇 구매",
+        "buyer": "경상국립대학교 산학협력단",
+        "buyer_type": "대학·학교",
+        "kind": "물품",
+        "notice_date": 20260701,
+        "budget": 40000000,
+        "product": "산업용로봇",
+        "contract_method": "제한경쟁 · 규격가격동시입찰-제안적격자 중 예가 내 최저가 투찰자",
+        "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01610692&bidPbancOrd=000"
+      },
+      {
+        "notice_no": "R26BK01585214-000",
+        "title": "AI 기반 로봇 제어 SW KIT 탑재용 협동로봇",
+        "buyer": "한국생산기술연구원",
+        "buyer_type": "연구기관",
+        "kind": "물품",
+        "notice_date": 20260616,
+        "budget": 29700000,
+        "product": "융복합산업용로봇",
+        "contract_method": "수의계약 · 수의시담-수의시담",
+        "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01585214&bidPbancOrd=000"
+      },
+      {
+        "notice_no": "R26BK01548714-000",
+        "title": "[전자시담] 협동로봇 구매",
+        "buyer": "한국과학기술연구원",
+        "buyer_type": "연구기관",
+        "kind": "물품",
+        "notice_date": 20260528,
+        "budget": 35750000,
+        "product": "산업용로봇",
+        "contract_method": "수의계약 · 수의시담-수의시담",
+        "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01548714&bidPbancOrd=000"
+      },
+      {
+        "notice_no": "R26BK01525087-000",
+        "title": "Physical AI 협동로봇 실습·실증 장비 구매",
+        "buyer": "울산과학대학산학협력단",
+        "buyer_type": "대학·학교",
+        "kind": "물품",
+        "notice_date": 20260515,
+        "budget": 208000000,
+        "product": "공정제어실험장치",
+        "contract_method": "제한경쟁 · 규격가격동시입찰-제안적격자 중 예가 내 최저가 투찰자",
+        "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01525087&bidPbancOrd=000"
+      },
+      {
+        "notice_no": "R26BK01520954-000",
+        "title": "연구수행에 필요한 협동로봇 구매_258390",
+        "buyer": "한국과학기술원",
+        "buyer_type": "대학·학교",
+        "kind": "물품",
+        "notice_date": 20260513,
+        "budget": 28600000,
+        "product": "산업용로봇",
+        "contract_method": "수의계약 · 소액수의견적-소액수의견적(2인 이상 견적 제출)",
+        "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01520954&bidPbancOrd=000"
+      },
+      {
+        "notice_no": "R26BK01495397-000",
+        "title": "고정밀 고하중 협동로봇팔 구매",
+        "buyer": "서울대학교 공과대학",
+        "buyer_type": "대학·학교",
+        "kind": "물품",
+        "notice_date": 20260430,
+        "budget": 42020000,
+        "product": "산업용로봇",
+        "contract_method": "제한경쟁 · 규격가격동시입찰-제안적격자 중 예가 내 최저가 투찰자",
+        "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01495397&bidPbancOrd=000"
+      },
+      {
+        "notice_no": "R26BK01489467-000",
+        "title": "[전자시담] 협동 로봇팔 구매",
+        "buyer": "한국과학기술연구원",
+        "buyer_type": "연구기관",
+        "kind": "물품",
+        "notice_date": 20260427,
+        "budget": 44902000,
+        "product": "산업용로봇",
+        "contract_method": "수의계약 · 수의시담-수의시담",
+        "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01489467&bidPbancOrd=000"
+      },
+      {
+        "notice_no": "R26BK01457544-000",
+        "title": "[지역주도형 AI대전환]협동로봇본체(6축)4대",
+        "buyer": "주식회사 유엔디",
+        "buyer_type": "민간 기업",
+        "kind": "물품",
+        "notice_date": 20260416,
+        "budget": 88000000,
+        "product": "산업용로봇",
+        "contract_method": "일반경쟁 · 규격가격동시입찰-제안적격자 중 예가 내 최저가 투찰자",
+        "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01457544&bidPbancOrd=000"
+      },
+      {
+        "notice_no": "R26BK01432139-000",
+        "title": "12kg 다관절 6축 협동로봇 및 제어기",
+        "buyer": "한국식품연구원",
+        "buyer_type": "연구기관",
+        "kind": "물품",
+        "notice_date": 20260401,
+        "budget": 34000000,
+        "product": "산업용로봇",
+        "contract_method": "제한경쟁 · 규격가격동시입찰-제안적격자 중 예가 내 최저가 투찰자",
+        "url": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01432139&bidPbancOrd=000"
+      }
+    ],
+    "note": "나라장터 공공 입찰공고입니다. 공공기관·대학·연구기관의 구매가 대부분이어서 민간 고객 수요의 근거가 아니며, 공공 구매 사례와 예산 수준을 참고하는 자료입니다.",
+    "error_message": null
+  },
   "unknowns": [],
-  "search_scope": "네이버 뉴스 검색 API로 사전 수집한 스마트팩토리 기사 1976건(제목·요약, 발행일 20240102~20261029) · DART 사업보고서 '사업의 내용' 발췌 348건(기업 14곳, FY2025), 전체 수집 범위 · 아이디어와 가까워 검색한 DART 기업: 레인보우로보틱스, 뉴로메카, 두산로보틱스",
-  "data_as_of": 20261029,
+  "search_scope": "네이버 뉴스 검색 API로 사전 수집한 스마트팩토리 기사 1976건(제목·요약, 발행일 20240102~20261029) · DART 사업보고서 '사업의 내용' 발췌 348건(기업 14곳, FY2025), 전체 수집 범위 · 검색한 DART 기업(아이디어와 같은 사업 범주): 뉴로메카, 두산로보틱스, 라온피플",
+  "data_as_of": 20261030,
   "error_message": null
 }
