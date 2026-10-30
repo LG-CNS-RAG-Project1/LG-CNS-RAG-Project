@@ -339,6 +339,15 @@ html{scroll-behavior:auto;}
 }
 .st-key-landing .visual-paper {animation:none;}
 .hero-title-line {display:block;}
+/* 홈 비주얼은 화면 높이에 맞추고 시작 안내를 종이 안쪽으로 올린다. */
+@media(min-width:901px){
+  .st-key-hero_art{
+    max-width:clamp(360px,calc((100svh - 280px)/1.06),630px);
+    margin-left:-105px;
+    transform:translateY(-14px);
+  }
+  .st-key-hero_art .st-key-lens_start{right:20px;bottom:42px;}
+}
 #research-top {scroll-margin-top:70px;}
 @media(min-width:1101px) {
   [data-testid="stMainBlockContainer"]:has(.st-key-research_rail) {

@@ -3,21 +3,82 @@
 import streamlit as st
 
 
+def _select_intro(view):
+    st.session_state.introduction_view = view
+    st.session_state.scroll_to_top = True
+
+
+def _select_difference(view):
+    st.session_state.difference_view = view
+    st.session_state.scroll_to_top = True
+
+
+def _render_journey():
+    with st.container(key="intro_journey"):
+        first, middle, last = st.columns(3, gap="large")
+        with first.container(border=True, key="intro_card_idea"):
+            st.caption("01 / IDEA")
+            st.subheader("아이디어를 적고")
+            st.write("무엇을 · 누구를 위해 · 어떻게")
+            st.caption("빠진 내용은 다시 묻고, 핵심 구성은 직접 확인합니다.")
+        with middle.container(border=True, key="intro_card_evidence"):
+            st.caption("02 / EVIDENCE")
+            st.subheader("두 근거를 찾고")
+            st.button(
+                "특허 · 기술 흐름 보기 →",
+                key="intro_open_patent",
+                on_click=_select_intro,
+                args=("patent",),
+                width="stretch",
+            )
+            st.button(
+                "시장 · 기업 흐름 보기 →",
+                key="intro_open_market",
+                on_click=_select_intro,
+                args=("market",),
+                width="stretch",
+            )
+            st.caption("궁금한 조사를 눌러 분석 방법을 확인하세요.")
+        with last.container(border=True, key="intro_card_report"):
+            st.caption("03 / RESEARCH NOTE")
+            st.subheader("판단을 정리합니다")
+            st.write("연결한 이유 · 아직 모르는 것")
+            st.caption("근거 · 조건 · 다음 검증")
+
+
 def render_introduction(page):
     with st.container(key="introduction"):
         if page == "about":
+            from frontend.process_guide import process_styles, render_process_guide
+
+            st.html(process_styles())
+            view = st.session_state.get("introduction_view", "overview")
+            if view not in {"overview", "patent", "market"}:
+                view = "overview"
+            tabs = st.columns(3)
+            for column, (target, label) in zip(
+                tabs,
+                (
+                    ("overview", "서비스 개요"),
+                    ("patent", "특허 조사 흐름"),
+                    ("market", "시장 조사 흐름"),
+                ),
+            ):
+                column.button(
+                    label,
+                    key=f"intro_tab_{target}",
+                    type="primary" if view == target else "secondary",
+                    on_click=_select_intro,
+                    args=(target,),
+                    width="stretch",
+                )
+            if view != "overview":
+                render_process_guide(view)
+                return
             st.html('<span class="intro-eyebrow">MEET IDEALENS</span>')
             st.title("생각 한 줄이, 검토 노트가 되기까지.")
             st.write("아이디어를 구체화하고, 특허와 시장에서 근거를 찾습니다.")
-            st.html(
-                """<section class="intro-journey" aria-label="아이디어에서 조사와 보고서로 이어지는 흐름">
-                <article class="journey-card"><span class="journey-icon idea-icon" aria-hidden="true">✦</span><span class="intro-number">01 / IDEA</span><h2>아이디어를 적고</h2><p>무엇을 · 누구를 위해 · 어떻게</p><div class="note-lines"><i></i><i></i><i></i></div></article>
-                <span class="journey-arrow" aria-hidden="true">→</span>
-                <article class="journey-card dual-card"><span class="intro-number">02 / EVIDENCE</span><h2>두 근거를 찾고</h2><div class="mini-lanes"><div><b>특허 · 기술</b><span>관련 구성 · 청구항</span></div><div><b>시장 · 기업</b><span>고객 · 도입 맥락</span></div></div></article>
-                <span class="journey-arrow" aria-hidden="true">→</span>
-                <article class="journey-card"><span class="journey-icon report-icon" aria-hidden="true">▤</span><span class="intro-number">03 / RESEARCH NOTE</span><h2>판단을 정리합니다</h2><p>연결한 이유 · 아직 모르는 것</p><div class="note-tags"><span>근거</span><span>조건</span><span>다음 검증</span></div></article>
-                </section>"""
-            )
+            _render_journey()
             a, b, c = st.columns(3)
             for col, title, body in [
                 (
@@ -43,6 +104,29 @@ def render_introduction(page):
                 "실제 조사는 외부 API 사용료가 발생합니다. 결과는 검토 초안이며 최종 사업성·권리범위 판단을 대신하지 않습니다."
             )
         else:
+            from frontend.process_guide import process_styles
+
+            st.html(process_styles())
+            view = st.session_state.get("difference_view", "perspective")
+            tabs = st.columns(2)
+            for col, target, label in zip(
+                tabs,
+                ("perspective", "examples"),
+                ("차별점과 검토 관점", "화면 예시·검증"),
+            ):
+                col.button(
+                    label,
+                    key=f"difference_tab_{target}",
+                    type="primary" if view == target else "secondary",
+                    on_click=_select_difference,
+                    args=(target,),
+                    width="stretch",
+                )
+            if view == "examples":
+                from frontend.showcase import render_showcase
+
+                render_showcase()
+                return
             st.html('<span class="intro-eyebrow">WHY IDEALENS</span>')
             st.title("특허 분석에, 시장 조사를 더하다.")
             st.write(
