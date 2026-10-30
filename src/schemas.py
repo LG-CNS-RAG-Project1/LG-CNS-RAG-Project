@@ -725,6 +725,8 @@ class MarketSearchTrend(BaseModel):
 
     status: Literal["completed", "insufficient_volume", "error"]
     keywords: list[str] = Field(default_factory=list)
+    # 검색량이 적어 상위 범주 주제어(keywords)로 다시 조회했을 때의 원래 주제어
+    fallback_from: list[str] = Field(default_factory=list)
     reference_keywords: list[str] = Field(default_factory=list)
     points: list[MarketTrendPoint] = Field(default_factory=list)
     # 최근 N개월 평균 relative_index의 직전 N개월 대비 변화율(%)
@@ -761,6 +763,33 @@ class MarketKeywordNetwork(BaseModel):
     error_message: str | None = None
 
 
+class ProcurementNotice(BaseModel):
+    """나라장터 입찰공고 1건 (담당자 개인정보는 담지 않는다)."""
+
+    notice_no: str  # 공고번호-차수
+    title: str
+    buyer: str  # 수요기관
+    buyer_type: str  # 민간 기업·대학·학교·연구기관·공공기관
+    kind: Literal["물품", "용역"]
+    notice_date: int  # 공고일 YYYYMMDD
+    budget: int | None = None  # 배정예산(원), 없으면 추정가격
+    product: str = ""  # 세부품명
+    contract_method: str = ""  # 계약체결방법·낙찰방법
+    url: str = ""
+
+
+class MarketProcurement(BaseModel):
+    """아이디어 주제어로 찾은 공공 조달 입찰공고 (공공 구매 사례이며 민간 고객 수요의 근거가 아님)."""
+
+    status: Literal["completed", "no_keywords", "error"]
+    keywords: list[str] = Field(default_factory=list)
+    period: str = ""  # 조회 기간 'YYYY-MM ~ YYYY-MM'
+    searched_count: int = 0  # 주제어로 찾은 공고 수 (중복 제외, 관련성 판정 전)
+    notices: list[ProcurementNotice] = Field(default_factory=list)  # 관련 판정 공고
+    note: str = ""
+    error_message: str | None = None
+
+
 # 14. 최종 시장 근거 결과
 class MarketReport(BaseModel):
     status: Literal["completed", "no_results", "error"]
@@ -771,6 +800,7 @@ class MarketReport(BaseModel):
     commercial_analysis: MarketCommercialAnalysis | None = None
     search_trend: MarketSearchTrend | None = None
     keyword_network: MarketKeywordNetwork | None = None
+    procurement: MarketProcurement | None = None
     unknowns: list[str] = Field(default_factory=list)
 
     search_scope: str

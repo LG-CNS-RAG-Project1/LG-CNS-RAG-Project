@@ -23,7 +23,10 @@ from src.schemas import (
 )
 from src.ingestion.patent_processor import structure_claims
 
-KIPRIS_SUPPLEMENT_QUERY_LIMIT = 2
+# 특허 검색어 계획의 기술 요소별 한국어 질의를 최대 5개까지 보충 검색한다.
+# 5건 목표에 못 미칠 때만 호출하고, 후보가 충분해지면 즉시 멈춘다.
+KIPRIS_SUPPLEMENT_QUERY_LIMIT = 5
+MIN_RECOMMENDED_PATENTS = 5
 
 
 def _metadata_codes(value) -> list[str]:
@@ -378,10 +381,11 @@ def analyze_patents(
                 candidates.extend(expanded_related)
                 candidates = candidates[: request.top_k]
 
-        if len(candidates) < request.top_k:
+        minimum_target = min(MIN_RECOMMENDED_PATENTS, request.top_k)
+        if len(candidates) < minimum_target:
             for query in _kipris_supplement_queries(plan, request.idea):
                 try:
-                    records = kipris_search_fn(query, request.top_k - len(candidates))
+                    records = kipris_search_fn(query, minimum_target - len(candidates))
                 except KiprisAPIError as exc:
                     kipris_search_error = str(exc)
                     unknowns.append(f"KIPRIS 후보 보충 미실행: {exc}")
@@ -404,9 +408,14 @@ def analyze_patents(
                         for item in added
                         if supplemental_judgments[item.document.source_id].relevant
                     )
-                if len(candidates) >= request.top_k:
+                if len(candidates) >= minimum_target:
                     candidates = candidates[: request.top_k]
                     break
+        if 0 < len(candidates) < minimum_target:
+            unknowns.append(
+                f"검색 범위에서 관련 특허 {len(candidates)}건만 확보했습니다. "
+                f"목표 {minimum_target}건보다 적어 결과를 임의로 채우지 않았습니다."
+            )
         if not candidates:
             if kipris_search_error:
                 return PatentReport(
@@ -583,7 +592,21 @@ def analyze_patents(
             return PatentReport(
                 status="no_results",
                 search_scope="아이디어 기술 요소별 Dense 검색 및 필요 시 KIPRIS 후보 보충",
+                related_statistics=calculate_patent_statistics(
+                    [
+                        item.document.metadata | {"source_id": item.document.source_id}
+                        for item in related_candidates
+                    ],
+                    scope="아이디어 관련 검색 후보",
+                ),
                 unknowns=unknowns + ["검색 후보의 원문 근거를 확보하지 못했습니다."],
+            )
+
+        evidenced_patent_count = len({item.patent_id for item in evidence})
+        if 0 < evidenced_patent_count < minimum_target:
+            unknowns.append(
+                f"원문 근거까지 확보한 관련 특허는 {evidenced_patent_count}건입니다. "
+                f"목표 {minimum_target}건보다 적어 확인된 문헌만 표시합니다."
             )
 
         validate_patent_citations(evidence, source_texts)

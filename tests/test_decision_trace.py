@@ -7,7 +7,7 @@ from streamlit.testing.v1 import AppTest
 from frontend.decision_trace import DecisionTrace, decision_trace
 from frontend.workspace_view import validate_records
 from src.pipeline import PipelineReport
-from src.schemas import PatentReport, PatentEvidence, MarketReport
+from src.schemas import MarketEvidence, MarketReport, PatentEvidence, PatentReport
 from src.generation.executive_review import ExecutiveReview, IntegratedFinding
 
 
@@ -29,7 +29,27 @@ def trace():
                 )
             ],
         ),
-        market=MarketReport(status="no_results", search_scope="test"),
+        market=MarketReport(
+            status="completed",
+            search_scope="test",
+            evidence=[
+                MarketEvidence(
+                    citation_id=1,
+                    source_id="dart:corp1:2025",
+                    source_type="dart",
+                    title="사업의 내용",
+                    publisher="공시기업",
+                    quote="사업보고서 발췌 문장",
+                    section="II. 사업의 내용",
+                    published_at=20260331,
+                    period="FY2025",
+                    reliability="medium",
+                    recency="medium",
+                    directness="low",
+                    evidence_nature="company_claim",
+                )
+            ],
+        ),
         executive_review=ExecutiveReview(
             recommendation="research_more",
             scope="추가 확인",
@@ -52,14 +72,20 @@ def trace():
 def test_trace_preserves_missing_reference_without_linking_wrong_source():
     data = DecisionTrace.model_validate(trace())
     assert data.findings[0].refs == ["P:1", "M:1"]
-    assert [s.ref for s in data.sources] == ["P:1"]
+    assert [s.ref for s in data.sources] == ["P:1", "M:1"]
     assert data.sources[0].quote == "센서의 진동을 분석한다."
+    assert "DART 사업보고서" in data.sources[1].location
+    assert "공시기업" in data.sources[1].location
+    assert "FY2025" in data.sources[1].location
+    assert "II. 사업의 내용" in data.sources[1].location
 
 
 def test_trace_drilldown_handles_missing_original():
+    data = trace()
+    data["sources"] = [source for source in data["sources"] if source["ref"] != "M:1"]
     app = AppTest.from_string(
         "from frontend.decision_trace import render_decision_trace\n"
-        f"render_decision_trace({trace()!r})"
+        f"render_decision_trace({data!r})"
     ).run()
     assert not app.exception
     assert app.text[0].value == "센서의 진동을 분석한다."

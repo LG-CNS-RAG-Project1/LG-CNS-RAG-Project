@@ -291,6 +291,142 @@ def patent_detail_dialog(patent, patent_id):
         st.caption("출원번호 미확인 · KIPRIS 검색 링크를 만들 수 없습니다.")
 
 
+@st.dialog("2. 주의점 및 개선 제안 상세", width="large")
+def patent_watchouts_dialog(patent):
+    """주의점·공통 설계 권고와 이를 뒷받침하는 특허 근거를 표시한다."""
+    precheck = patent.patentability_precheck
+    if precheck is None:
+        st.info("특허 비교 신호가 없어 상세 내용을 제공할 수 없습니다.")
+        return
+
+    evidence_by_id = {item.citation_id: item for item in patent.evidence}
+    st.caption("검색 문헌 기반의 예비 기술 검토이며 법률 의견이 아닙니다.")
+    if precheck.common_watchouts:
+        st.markdown("### 문헌 비교에서 확인된 주의점")
+        for item in precheck.common_watchouts:
+            st.warning(
+                f"**{item.issue}**\n\n{item.why_it_matters}\n\n다음 확인: {item.next_check}"
+            )
+            for citation_id in item.citation_ids:
+                evidence = evidence_by_id.get(citation_id)
+                if evidence:
+                    claim = (
+                        f" · 청구항 {evidence.claim_number}"
+                        if evidence.claim_number
+                        else ""
+                    )
+                    st.caption(f"P:{citation_id}{claim} · {evidence.title}")
+                    st.text(evidence.quote)
+    else:
+        st.info("문헌 전체에서 근거가 연결된 공통 주의점은 확인되지 않았습니다.")
+
+    if precheck.common_design_recommendations:
+        st.markdown("### 공통 개선 제안")
+        for item in precheck.common_design_recommendations:
+            refs = ", ".join(f"P:{cid}" for cid in item.citation_ids)
+            basis = "근거 기반" if item.basis == "evidence_based" else "검증 전 가설"
+            st.markdown(
+                f"**{item.recommendation}** · {basis}{f' ({refs})' if refs else ''}"
+            )
+            st.write(item.rationale)
+            if item.validation_needed:
+                st.caption(f"검증 방법: {item.validation_needed}")
+            for citation_id in item.citation_ids:
+                evidence = evidence_by_id.get(citation_id)
+                if evidence:
+                    claim = (
+                        f" · 청구항 {evidence.claim_number}"
+                        if evidence.claim_number
+                        else ""
+                    )
+                    st.caption(f"근거 P:{citation_id}{claim} · {evidence.title}")
+
+    if precheck.expert_questions:
+        st.markdown("### 전문가 확인 질문")
+        for question in precheck.expert_questions:
+            st.write(f"- {question}")
+    if precheck.limitations:
+        st.caption("공통 검토 한계: " + " · ".join(precheck.limitations))
+
+
+@st.dialog("3. 설계 대안 상세", width="large")
+def patent_design_dialog(patent):
+    """설계 대안의 구현 내용·근거·검증 계획을 한국어로 표시한다."""
+    analysis = patent.design_analysis
+    if analysis is None:
+        st.info("설계 대안 분석 결과가 없습니다.")
+        return
+
+    status_labels = {
+        "success": "근거를 바탕으로 대안을 구성했습니다.",
+        "partial": "일부 정보가 부족해 제한적으로 제안합니다.",
+        "insufficient_evidence": "설계 대안을 뒷받침할 근거가 부족합니다.",
+        "failed": "대안 생성이 완료되지 않았습니다.",
+    }
+    feasibility_labels = {
+        "low": "낮음",
+        "medium": "보통",
+        "high": "높음",
+        "unknown": "미확인",
+    }
+    evidence_labels = {"grounded": "근거 연결", "insufficient_evidence": "근거 부족"}
+    evidence_by_id = {item.citation_id: item for item in patent.evidence}
+    st.caption(status_labels[analysis.status])
+    if analysis.evidence_level == "abstract_only":
+        st.warning("청구항 원문이 없어 초록 수준의 근거로만 분석했습니다.")
+    for component in analysis.technical_components:
+        st.caption(f"{component.id} · {component.name} — {component.description}")
+
+    if not analysis.proposals:
+        st.info("표시할 설계 대안이 없습니다.")
+    for index, proposal in enumerate(analysis.proposals, 1):
+        with st.container(border=True):
+            st.markdown(f"### 대안 {index} · {proposal.title}")
+            st.markdown(f"**현재 문제**\n\n{proposal.problem}")
+            st.markdown(f"**변경 대상**\n\n{', '.join(proposal.target_component_ids)}")
+            st.markdown(f"**설계 변경**\n\n{proposal.proposed_change}")
+            st.markdown("**구현 방법**")
+            for step in proposal.implementation_approach:
+                st.markdown(f"- {step}")
+            st.markdown(f"**기술적 차이**\n\n{proposal.technical_difference}")
+            if proposal.expected_benefits:
+                st.markdown(
+                    "**기대 효과**\n\n" + " · ".join(proposal.expected_benefits)
+                )
+            if proposal.limitations:
+                st.markdown("**구현상 제약**\n\n" + " · ".join(proposal.limitations))
+            st.caption(
+                f"기술 구현 가능성: {feasibility_labels[proposal.feasibility]} · "
+                f"근거 상태: {evidence_labels[proposal.evidence_status]}"
+            )
+            for citation_id in proposal.citation_ids:
+                source = evidence_by_id.get(citation_id)
+                if source:
+                    claim = (
+                        f" · 청구항 {source.claim_number}"
+                        if source.claim_number
+                        else ""
+                    )
+                    st.caption(f"근거 P:{citation_id} · {source.title}{claim}")
+                    st.text(source.quote)
+            st.markdown(f"**검증 방법**\n\n{proposal.verification_plan.method}")
+            if proposal.verification_plan.metrics:
+                st.caption(
+                    "측정 항목: " + " · ".join(proposal.verification_plan.metrics)
+                )
+            st.caption("성공 기준: " + proposal.verification_plan.success_criteria)
+            st.caption(
+                "추가 특허 확인 필요"
+                if proposal.patent_verification_required
+                else "추가 특허 확인 표시 없음"
+            )
+    for item in analysis.missing_information:
+        st.warning("추가 확인: " + item)
+    for item in analysis.limitations:
+        st.caption("한계: " + item)
+    st.caption("기술 검토용이며 침해·특허성·실시 자유에 대한 법률 의견이 아닙니다.")
+
+
 password_gate()
 
 
@@ -838,97 +974,6 @@ def render_patent_report(patent, *, widget_suffix="", preview=False):
         patent_review_priority,
     )
 
-    indexed_stats = getattr(patent, "indexed_statistics", None)
-    related_stats = getattr(patent, "related_statistics", None)
-    if indexed_stats or related_stats:
-        with st.expander("특허 기술 동향 · 분류 통계", expanded=False):
-            if indexed_stats:
-                years = [item.label for item in indexed_stats.yearly_applications]
-                year_range = f"{min(years)}–{max(years)}" if years else "미확인"
-                st.caption(
-                    f"범위: {indexed_stats.scope} · 고유 문헌 {indexed_stats.total_patents}건 · "
-                    f"출원연도 {year_range} · "
-                    f"출원일 확인 {indexed_stats.application_date_coverage}/{indexed_stats.total_patents} · "
-                    f"IPC 보유 {indexed_stats.ipc_coverage}/{indexed_stats.total_patents} · "
-                    f"CPC 보유 {indexed_stats.cpc_coverage}/{indexed_stats.total_patents} · "
-                    f"출원인 확인 {indexed_stats.applicant_coverage}/{indexed_stats.total_patents} · "
-                    f"집계일 {indexed_stats.data_as_of or '미확인'}"
-                )
-                if not indexed_stats.total_patents:
-                    st.info(
-                        "현재 특허 색인이 비어 있어 기술 동향 통계를 표시할 수 없습니다."
-                    )
-                if indexed_stats.ipc_distribution:
-                    st.markdown("**색인 IPC 상위 분류**")
-                    st.bar_chart(
-                        [
-                            {"분류": item.label, "특허 수": item.count}
-                            for item in indexed_stats.ipc_distribution
-                        ],
-                        x="분류",
-                        y="특허 수",
-                        horizontal=True,
-                    )
-                elif indexed_stats.total_patents:
-                    st.info(
-                        "현재 색인 메타데이터에 IPC 코드가 없습니다. 특허를 다시 수집하고 색인하면 통계에 반영됩니다."
-                    )
-                if indexed_stats.cpc_distribution:
-                    st.markdown("**색인 CPC 상위 분류**")
-                    st.bar_chart(
-                        [
-                            {"분류": item.label, "특허 수": item.count}
-                            for item in indexed_stats.cpc_distribution
-                        ],
-                        x="분류",
-                        y="특허 수",
-                        horizontal=True,
-                    )
-                if indexed_stats.yearly_applications:
-                    st.markdown("**출원연도별 건수**")
-                    st.bar_chart(
-                        [
-                            {"연도": item.label, "특허 수": item.count}
-                            for item in indexed_stats.yearly_applications
-                        ],
-                        x="연도",
-                        y="특허 수",
-                    )
-                if indexed_stats.top_applicants:
-                    st.markdown("**주요 출원인**")
-                    st.dataframe(
-                        [
-                            {"출원인": item.label, "특허 수": item.count}
-                            for item in indexed_stats.top_applicants
-                        ],
-                        hide_index=True,
-                        use_container_width=True,
-                    )
-                st.caption(
-                    "현재 색인 데이터의 메타데이터 통계입니다. 전체 특허 시장 규모, 기술 신규성, 시장 성장률 또는 권리 가능성을 뜻하지 않습니다."
-                )
-            if related_stats:
-                st.markdown("**아이디어 관련 후보 분류**")
-                st.caption(
-                    f"범위: {related_stats.scope} · 중복 제거 후보 {related_stats.total_patents}건 (최종 비교 문헌 수와 다를 수 있음)"
-                )
-                if related_stats.ipc_distribution:
-                    st.dataframe(
-                        [
-                            {"IPC 분류": item.label, "후보 수": item.count}
-                            for item in related_stats.ipc_distribution
-                        ],
-                        hide_index=True,
-                        use_container_width=True,
-                    )
-                else:
-                    st.info(
-                        "관련 후보의 IPC 코드가 색인 메타데이터에 없어 분류 분포를 계산할 수 없습니다."
-                    )
-                st.caption(
-                    "검색 후보 분포는 기술 신규성이나 특허 등록 가능성의 판단 근거가 아닙니다."
-                )
-
     if patent.status == "error":
         st.error("특허 비교 보고서를 완성하지 못했습니다.")
         if "LIMITED_NUMBER_OF_SERVICE_REQUESTS_EXCEEDS_ERROR" in (
@@ -970,345 +1015,286 @@ def render_patent_report(patent, *, widget_suffix="", preview=False):
             st.caption(f"검색 상태: {patent.unknowns[0]}")
 
     precheck = patent.patentability_precheck
-    precheck_labels = {
-        "overlap_concern": "유사 청구항 주의",
-        "potentially_distinct": "차별 구성 신호",
-        "insufficient_evidence": "판단 근거 부족",
-    }
-    if precheck and precheck.citation_ids:
-        st.subheader("등록 가능성 예비 신호")
-        st.info(f"{precheck_labels[precheck.status]} · {precheck.summary}")
-        st.caption("검색된 자료를 바탕으로 한 예비 비교이며, 법률 의견이 아닙니다.")
-    elif precheck:
-        st.warning(
-            "등록 가능성 예비 신호에 연결된 특허 인용이 없어 결론을 표시하지 않습니다."
-        )
-
     evidence_by_id = {item.citation_id: item for item in patent.evidence}
     reviews_by_patent = {item.patent_id: item for item in patent.patent_reviews}
     design_analysis = patent.design_analysis
-    if design_analysis:
-        st.subheader("특허 기반 설계 대안")
-        status_labels = {
-            "success": "근거를 바탕으로 대안을 구성했습니다.",
-            "partial": "일부 정보가 부족해 제한적으로 제안합니다.",
-            "insufficient_evidence": "설계 대안을 뒷받침할 근거가 부족합니다.",
-            "failed": "대안 생성이 완료되지 않았습니다. 기존 특허 근거는 아래에서 확인할 수 있습니다.",
-        }
-        st.caption(status_labels[design_analysis.status])
-        if design_analysis.evidence_level == "abstract_only":
-            st.warning("청구항 원문이 없어 초록 수준의 근거로만 분석했습니다.")
-        for component in design_analysis.technical_components:
-            st.caption(f"{component.id} · {component.name} — {component.description}")
-        for index, proposal in enumerate(design_analysis.proposals, 1):
-            with st.expander(f"대안 {index} · {proposal.title}", expanded=False):
-                st.markdown(f"**현재 문제**\n\n{proposal.problem}")
-                st.markdown(
-                    f"**변경 대상**\n\n{', '.join(proposal.target_component_ids)}"
-                )
-                st.markdown(f"**설계 변경**\n\n{proposal.proposed_change}")
-                st.markdown("**구현 접근**")
-                for step in proposal.implementation_approach:
-                    st.markdown(f"- {step}")
-                st.markdown(f"**기술적 차이**\n\n{proposal.technical_difference}")
-                if proposal.expected_benefits:
-                    st.markdown(
-                        "**기대효과**\n\n" + " · ".join(proposal.expected_benefits)
-                    )
-                if proposal.limitations:
-                    st.markdown("**제약**\n\n" + " · ".join(proposal.limitations))
-                st.caption(
-                    f"기술 구현 가능성: {proposal.feasibility} · 근거 상태: {proposal.evidence_status}"
-                )
-                if proposal.citation_ids:
-                    st.markdown("**연결된 특허 근거**")
-                    for citation_id in proposal.citation_ids:
-                        source = evidence_by_id.get(citation_id)
-                        if source:
-                            claim = (
-                                f" · 청구항 {source.claim_number}"
-                                if source.claim_number
-                                else ""
-                            )
-                            st.caption(f"P:{citation_id} · {source.title}{claim}")
-                            st.text(source.quote)
-                st.markdown(f"**검증 계획**\n\n{proposal.verification_plan.method}")
-                if proposal.verification_plan.metrics:
-                    st.caption(
-                        "측정 항목: " + " · ".join(proposal.verification_plan.metrics)
-                    )
-                st.caption("성공 기준: " + proposal.verification_plan.success_criteria)
-                st.caption(
-                    "추가 특허 확인 필요"
-                    if proposal.patent_verification_required
-                    else "특허 확인 표시 없음"
-                )
-        for item in design_analysis.missing_information:
-            st.warning(item)
-        for item in design_analysis.limitations:
-            st.caption("한계: " + item)
-        st.caption(
-            "기술 검토용 의사결정 지원이며 침해·특허성·실시 자유에 대한 법률 의견이 아닙니다."
-        )
-    documents = []
-    for evidence in patent.evidence:
-        if evidence.patent_id not in {item["patent_id"] for item in documents}:
-            documents.append(
-                {
-                    "patent_id": evidence.patent_id,
-                    "title": evidence.title,
-                    "evidence": [],
-                }
-            )
-        next(item for item in documents if item["patent_id"] == evidence.patent_id)[
-            "evidence"
-        ].append(evidence)
-    documents = documents[:8]
-    if documents:
-        st.caption(f"비교 문헌 {len(documents)}건 · 최대 8건")
-        orbit_reviews = []
-        for document in documents:
-            review = reviews_by_patent.get(document["patent_id"])
-            if review is None:
-                from src.schemas import PatentDocumentReview
+    related_stats = getattr(patent, "related_statistics", None)
 
-                review = PatentDocumentReview(
-                    patent_id=document["patent_id"],
-                    title=document["title"],
-                    citation_ids=[item.citation_id for item in document["evidence"]],
-                    relevance="insufficient",
-                )
-            orbit_reviews.append((review, document["evidence"]))
-        orbit_reviews.sort(
-            key=lambda pair: (
-                ("red", "yellow", "green", "blue").index(
-                    patent_orbit_category(pair[0], evidence_by_id)
-                ),
-                patent_review_priority(pair[0]),
-            )
-        )
-        count = len(orbit_reviews)
-        points = []
-        for index, (review, _) in enumerate(orbit_reviews):
-            angle = (2 * math.pi * index / count) - math.pi / 2
-            category = patent_orbit_category(review, evidence_by_id)
-            summary = (
-                review.overall_summary or review.relevance_reason or "요약 근거 부족"
-            ).strip()
-            points.append(
-                {
-                    "patent_id": review.patent_id,
-                    "title": review.title,
-                    "number": f"P{index + 1}",
-                    "summary": summary[:240],
-                    "reason": (review.relevance_reason or "검토 이유 미기록")[:180],
-                    "category": category,
-                    "label": PATENT_ORBIT_LABELS[category],
-                    "color": PATENT_ORBIT_COLORS[category],
-                    "x": 2.7 * math.cos(angle),
-                    "y": 2.1 * math.sin(angle),
-                }
-            )
-
-        st.subheader("특허 비교 궤도")
-        st.caption(
-            "행성에 커서를 올리면 문헌별 핵심 요약을 확인할 수 있습니다. 색상은 구성 비교 근거에 따른 검토 우선순위이며 법률상 위험 등급이 아닙니다."
-        )
-        legend = st.columns(4)
-        for column, category in zip(legend, ("red", "yellow", "green", "blue")):
-            column.markdown(
-                f'<span style="color:{PATENT_ORBIT_COLORS[category]}">●</span> '
-                f"{PATENT_ORBIT_LABELS[category]}",
-                unsafe_allow_html=True,
-            )
-
-        selected_patent = None
-        try:
-            import altair as alt
-
-            orbit_values = []
-            for ring, (radius_x, radius_y) in enumerate(
-                ((2.7, 2.1), (1.85, 1.44), (1.05, 0.82))
-            ):
-                orbit_values.extend(
+    st.subheader("1. 특허 비교 궤도")
+    st.caption(
+        "검색된 문헌과 청구항을 아이디어 구성요소에 대조한 기술 예비 검토입니다."
+    )
+    with st.container(border=True):
+        documents = []
+        for evidence in patent.evidence:
+            if evidence.patent_id not in {item["patent_id"] for item in documents}:
+                documents.append(
                     {
-                        "order": index,
-                        "ring": ring,
-                        "x": radius_x * math.cos(2 * math.pi * index / 120),
-                        "y": radius_y * math.sin(2 * math.pi * index / 120),
+                        "patent_id": evidence.patent_id,
+                        "title": evidence.title,
+                        "evidence": [],
                     }
-                    for index in range(121)
                 )
-            hover = alt.selection_point(
-                name=f"patent_hover{widget_suffix}",
-                fields=["patent_id"],
-                on="pointerover",
-                clear="pointerout",
-                nearest=True,
-            )
-            click = None
-            if not preview:
-                click = alt.selection_point(
-                    name=f"patent_click{widget_suffix}",
-                    fields=["patent_id"],
-                    on="click",
-                    clear="dblclick",
-                    empty=False,
+            next(item for item in documents if item["patent_id"] == evidence.patent_id)[
+                "evidence"
+            ].append(evidence)
+        documents = documents[:8]
+        if documents:
+            candidate_count = related_stats.total_patents if related_stats else None
+            if candidate_count is not None:
+                st.caption(
+                    f"관련 검색 후보 {candidate_count}건 중 최종 비교 {len(documents)}건 · 목표 5~8건"
                 )
-            orbit = (
-                alt.Chart(alt.Data(values=orbit_values))
-                .mark_line(
-                    color="#97aaa0", strokeDash=[3, 6], strokeWidth=1.15, opacity=0.62
+            else:
+                st.caption(f"최종 비교 문헌 {len(documents)}건 · 목표 5~8건")
+            if len(documents) < 5:
+                st.warning(
+                    f"관련 특허를 {len(documents)}건만 확인했습니다. 검색 범위에서 근거가 있는 문헌만 보여주며, 수를 맞추기 위해 관련성이 낮은 특허를 추가하지 않았습니다."
                 )
-                .encode(
-                    x=alt.X("x:Q", axis=None, scale=alt.Scale(domain=[-3.5, 3.5])),
-                    y=alt.Y("y:Q", axis=None, scale=alt.Scale(domain=[-2.8, 2.8])),
-                    order="order:Q",
-                    detail="ring:N",
-                )
-            )
-            center_data = alt.Data(values=[{"x": 0, "y": 0, "label": "아이디어"}])
-            center = (
-                alt.Chart(center_data)
-                .mark_circle(
-                    size=1900, color="#214c45", stroke="#d5b96a", strokeWidth=2
-                )
-                .encode(x="x:Q", y="y:Q", tooltip="label:N")
-            )
-            center_label = (
-                alt.Chart(center_data)
-                .mark_text(color="white", fontSize=15, fontWeight="bold")
-                .encode(x="x:Q", y="y:Q", text="label:N")
-            )
-            points_chart = (
-                alt.Chart(alt.Data(values=points))
-                .mark_circle(
-                    size=1120,
-                    stroke="#fffdf5",
-                    strokeWidth=3,
-                    cursor="help" if preview else "pointer",
-                )
-                .encode(
-                    x="x:Q",
-                    y="y:Q",
-                    color=alt.Color(
-                        "color:N", scale=None, legend=None, title="검토 우선순위"
+            orbit_reviews = []
+            for document in documents:
+                review = reviews_by_patent.get(document["patent_id"])
+                if review is None:
+                    from src.schemas import PatentDocumentReview
+
+                    review = PatentDocumentReview(
+                        patent_id=document["patent_id"],
+                        title=document["title"],
+                        citation_ids=[
+                            item.citation_id for item in document["evidence"]
+                        ],
+                        relevance="insufficient",
+                    )
+                orbit_reviews.append((review, document["evidence"]))
+            orbit_reviews.sort(
+                key=lambda pair: (
+                    ("red", "yellow", "green", "blue").index(
+                        patent_orbit_category(pair[0], evidence_by_id)
                     ),
-                    tooltip=[
-                        alt.Tooltip("title:N", title="문헌"),
-                        alt.Tooltip("label:N", title="검토 우선순위"),
-                        alt.Tooltip("summary:N", title="핵심 요약", format="s"),
-                        alt.Tooltip("reason:N", title="우선 확인 이유", format="s"),
-                    ],
-                    opacity=alt.condition(hover, alt.value(1), alt.value(0.88)),
+                    patent_review_priority(pair[0]),
                 )
-                .add_params(*([hover, click] if click is not None else [hover]))
             )
-            point_labels = (
-                alt.Chart(alt.Data(values=points))
-                .mark_text(color="white", fontSize=15, fontWeight="bold")
-                .encode(x="x:Q", y="y:Q", text="number:N")
-            )
-            chart = (
-                (orbit + center + center_label + points_chart + point_labels)
-                .properties(
-                    height=380,
-                    padding={"top": 12, "right": 12, "bottom": 12, "left": 12},
+            count = len(orbit_reviews)
+            points = []
+            for index, (review, _) in enumerate(orbit_reviews):
+                angle = (2 * math.pi * index / count) - math.pi / 2
+                category = patent_orbit_category(review, evidence_by_id)
+                summary = (
+                    review.overall_summary
+                    or review.relevance_reason
+                    or "요약 근거 부족"
+                ).strip()
+                points.append(
+                    {
+                        "patent_id": review.patent_id,
+                        "title": review.title,
+                        "number": f"P{index + 1}",
+                        "summary": summary[:240],
+                        "reason": (review.relevance_reason or "검토 이유 미기록")[:180],
+                        "category": category,
+                        "label": PATENT_ORBIT_LABELS[category],
+                        "color": PATENT_ORBIT_COLORS[category],
+                        "x": 2.7 * math.cos(angle),
+                        "y": 2.1 * math.sin(angle),
+                    }
                 )
-                .configure_view(stroke=None)
-            )
-            chart_state = st.altair_chart(
-                chart,
-                key=(
-                    f"patent_orbit{widget_suffix}"
-                    if preview
-                    else f"patent_orbit{widget_suffix}_{s.patent_orbit_chart_version}"
-                ),
-                on_select="ignore" if preview else "rerun",
-                selection_mode=None if preview else click.name,
-                width="stretch",
-                alt="중앙 아이디어를 둘러싼 특허 검토 우선순위 궤도 시각화",
-            )
-            if not preview:
-                selected_rows = chart_state.selection.get(click.name, [])
-                if selected_rows:
-                    selected_patent = selected_rows[-1].get("patent_id")
-                    if selected_patent in {item["patent_id"] for item in documents}:
-                        s.selected_patent_detail_id = selected_patent
-        except Exception as exc:
-            st.warning(
-                f"궤도 차트를 표시하지 못했습니다 ({type(exc).__name__}). 페이지를 새로고침하거나 다른 브라우저에서 다시 열어 주세요."
-            )
 
-        selected_patent = s.get("selected_patent_detail_id") or selected_patent
-        if not preview and selected_patent in reviews_by_patent:
-            patent_detail_dialog(patent, selected_patent)
+            st.subheader("특허 비교 궤도")
+            st.caption(
+                "행성에 커서를 올리면 문헌별 핵심 요약을 확인할 수 있습니다. 색상은 구성 비교 근거에 따른 검토 우선순위이며 법률상 위험 등급이 아닙니다."
+            )
+            legend = st.columns(4)
+            for column, category in zip(legend, ("red", "yellow", "green", "blue")):
+                column.markdown(
+                    f'<span style="color:{PATENT_ORBIT_COLORS[category]}">●</span> '
+                    f"{PATENT_ORBIT_LABELS[category]}",
+                    unsafe_allow_html=True,
+                )
 
-        if precheck:
-            st.subheader("전체 특허에서 종합한 주의점")
-            if precheck.common_watchouts:
-                for item in precheck.common_watchouts:
-                    st.warning(
-                        f"**{item.issue}**\n\n{item.why_it_matters}\n\n다음 확인: {item.next_check}"
+            selected_patent = None
+            try:
+                import altair as alt
+
+                orbit_values = []
+                for ring, (radius_x, radius_y) in enumerate(
+                    ((2.7, 2.1), (1.85, 1.44), (1.05, 0.82))
+                ):
+                    orbit_values.extend(
+                        {
+                            "order": index,
+                            "ring": ring,
+                            "x": radius_x * math.cos(2 * math.pi * index / 120),
+                            "y": radius_y * math.sin(2 * math.pi * index / 120),
+                        }
+                        for index in range(121)
                     )
-                    for citation_id in item.citation_ids:
-                        evidence = evidence_by_id.get(citation_id)
-                        if evidence:
-                            claim = (
-                                f" · 청구항 {evidence.claim_number}"
-                                if evidence.claim_number
-                                else ""
-                            )
-                            st.caption(
-                                f"근거 P:{citation_id}{claim} · {evidence.title}"
-                            )
-                            st.text(evidence.quote)
-            else:
-                st.info(
-                    "제공 문헌 전체에서 인용으로 뒷받침되는 공통 주의점이 생성되지 않았습니다."
+                hover = alt.selection_point(
+                    name=f"patent_hover{widget_suffix}",
+                    fields=["patent_id"],
+                    on="pointerover",
+                    clear="pointerout",
+                    nearest=True,
                 )
-            st.subheader("종합 설계 개선 제안")
-            if precheck.common_design_recommendations:
-                for item in precheck.common_design_recommendations:
-                    refs = ", ".join(f"P:{cid}" for cid in item.citation_ids)
-                    basis_label = (
-                        "근거 기반"
-                        if item.basis == "evidence_based"
-                        else "검증 전 설계 가설"
+                click = None
+                if not preview:
+                    click = alt.selection_point(
+                        name=f"patent_click{widget_suffix}",
+                        fields=["patent_id"],
+                        on="click",
+                        clear="dblclick",
+                        empty=False,
                     )
-                    st.markdown(
-                        f"**{item.recommendation}** · {basis_label}{f' ({refs})' if refs else ''}"
+                orbit = (
+                    alt.Chart(alt.Data(values=orbit_values))
+                    .mark_line(
+                        color="#97aaa0",
+                        strokeDash=[3, 6],
+                        strokeWidth=1.15,
+                        opacity=0.62,
                     )
-                    st.write(item.rationale)
-                    for citation_id in item.citation_ids:
-                        evidence = evidence_by_id.get(citation_id)
-                        if evidence:
-                            claim = (
-                                f" · 청구항 {evidence.claim_number}"
-                                if evidence.claim_number
-                                else ""
-                            )
-                            st.caption(
-                                f"근거 P:{citation_id}{claim} · {evidence.title}"
-                            )
-                    if item.validation_needed:
-                        st.caption(f"검증 방법: {item.validation_needed}")
-            else:
-                st.info(
-                    "공통 설계 제안이 생성되지 않았습니다. 검색 범위 한계를 확인하세요."
+                    .encode(
+                        x=alt.X("x:Q", axis=None, scale=alt.Scale(domain=[-3.5, 3.5])),
+                        y=alt.Y("y:Q", axis=None, scale=alt.Scale(domain=[-2.8, 2.8])),
+                        order="order:Q",
+                        detail="ring:N",
+                    )
                 )
-            for question in precheck.expert_questions:
-                st.caption(f"전문가 확인: {question}")
-            if precheck.limitations:
-                st.caption("검토 한계: " + " · ".join(precheck.limitations))
-    else:
-        if patent.status in {"error", "partial"}:
-            st.info("검색이 완료되지 않아 특허 부재 여부를 판단할 수 없습니다.")
+                center_data = alt.Data(values=[{"x": 0, "y": 0, "label": "아이디어"}])
+                center = (
+                    alt.Chart(center_data)
+                    .mark_circle(
+                        size=1900, color="#214c45", stroke="#d5b96a", strokeWidth=2
+                    )
+                    .encode(x="x:Q", y="y:Q", tooltip="label:N")
+                )
+                center_label = (
+                    alt.Chart(center_data)
+                    .mark_text(color="white", fontSize=15, fontWeight="bold")
+                    .encode(x="x:Q", y="y:Q", text="label:N")
+                )
+                points_chart = (
+                    alt.Chart(alt.Data(values=points))
+                    .mark_circle(
+                        size=1120,
+                        stroke="#fffdf5",
+                        strokeWidth=3,
+                        cursor="help" if preview else "pointer",
+                    )
+                    .encode(
+                        x="x:Q",
+                        y="y:Q",
+                        color=alt.Color(
+                            "color:N", scale=None, legend=None, title="검토 우선순위"
+                        ),
+                        tooltip=[
+                            alt.Tooltip("title:N", title="문헌"),
+                            alt.Tooltip("label:N", title="검토 우선순위"),
+                            alt.Tooltip("summary:N", title="핵심 요약", format="s"),
+                            alt.Tooltip("reason:N", title="우선 확인 이유", format="s"),
+                        ],
+                        opacity=alt.condition(hover, alt.value(1), alt.value(0.88)),
+                    )
+                    .add_params(*([hover, click] if click is not None else [hover]))
+                )
+                point_labels = (
+                    alt.Chart(alt.Data(values=points))
+                    .mark_text(color="white", fontSize=15, fontWeight="bold")
+                    .encode(x="x:Q", y="y:Q", text="number:N")
+                )
+                chart = (
+                    (orbit + center + center_label + points_chart + point_labels)
+                    .properties(
+                        height=380,
+                        padding={"top": 12, "right": 12, "bottom": 12, "left": 12},
+                    )
+                    .configure_view(stroke=None)
+                )
+                chart_state = st.altair_chart(
+                    chart,
+                    key=(
+                        f"patent_orbit{widget_suffix}"
+                        if preview
+                        else f"patent_orbit{widget_suffix}_{s.patent_orbit_chart_version}"
+                    ),
+                    on_select="ignore" if preview else "rerun",
+                    selection_mode=None if preview else click.name,
+                    width="stretch",
+                    alt="중앙 아이디어를 둘러싼 특허 검토 우선순위 궤도 시각화",
+                )
+                if not preview:
+                    selected_rows = chart_state.selection.get(click.name, [])
+                    if selected_rows:
+                        selected_patent = selected_rows[-1].get("patent_id")
+                        if selected_patent in {item["patent_id"] for item in documents}:
+                            s.selected_patent_detail_id = selected_patent
+            except Exception as exc:
+                st.warning(
+                    f"궤도 차트를 표시하지 못했습니다 ({type(exc).__name__}). 페이지를 새로고침하거나 다른 브라우저에서 다시 열어 주세요."
+                )
+
+            selected_patent = s.get("selected_patent_detail_id") or selected_patent
+            if not preview and selected_patent in reviews_by_patent:
+                patent_detail_dialog(patent, selected_patent)
+
         else:
-            st.info(
-                "표시할 특허 문헌이 없습니다. 검색 결과가 없다는 뜻이 특허 위험이 없다는 의미는 아닙니다."
-            )
+            if patent.status in {"error", "partial"}:
+                st.info("검색이 완료되지 않아 특허 부재 여부를 판단할 수 없습니다.")
+            else:
+                st.info(
+                    "표시할 특허 문헌이 없습니다. 검색 결과가 없다는 뜻이 특허 위험이 없다는 의미는 아닙니다."
+                )
 
+    st.subheader("2. 주의점 및 개선 제안")
+    if precheck:
+        precheck_labels = {
+            "overlap_concern": "유사 구성에 주의",
+            "potentially_distinct": "차이 가능성 확인",
+            "insufficient_evidence": "근거 부족 · 판단 보류",
+        }
+        st.info(f"{precheck_labels[precheck.status]} · {precheck.summary}")
+        for item in precheck.common_watchouts[:2]:
+            st.markdown(f"- **주의:** {item.issue} — {item.why_it_matters}")
+        for item in precheck.common_design_recommendations[:2]:
+            refs = ", ".join(f"P:{cid}" for cid in item.citation_ids)
+            basis = "근거 기반" if item.basis == "evidence_based" else "검증 전 가설"
+            st.markdown(
+                f"- **개선:** {item.recommendation} · {basis}"
+                + (f" · {refs}" if refs else "")
+            )
+        if not precheck.common_watchouts and not precheck.common_design_recommendations:
+            st.caption("문헌 공통 주의점·개선 제안은 확인되지 않았습니다.")
+        if not preview and st.button(
+            "2 상세 보기", key=f"patent_watchouts_{widget_suffix}"
+        ):
+            patent_watchouts_dialog(patent)
+    else:
+        st.info(
+            "특허 비교 신호가 제공되지 않아 주의점과 개선 제안을 판단하지 않았습니다."
+        )
+
+    st.subheader("3. 설계 대안")
+    if design_analysis:
+        design_status_labels = {
+            "success": "근거 기반 제안",
+            "partial": "제한적 제안",
+            "insufficient_evidence": "근거 부족",
+            "failed": "생성 실패",
+        }
+        st.caption(design_status_labels[design_analysis.status])
+        for index, proposal in enumerate(design_analysis.proposals, 1):
+            refs = ", ".join(f"P:{cid}" for cid in proposal.citation_ids)
+            st.markdown(
+                f"- **대안 {index} · {proposal.title}:** {proposal.proposed_change}"
+                + (f" · 근거 {refs}" if refs else " · 검증 전 제안")
+            )
+        if not design_analysis.proposals:
+            st.caption("표시할 설계 대안이 없습니다.")
+        if not preview and st.button(
+            "3 상세 보기", key=f"patent_design_{widget_suffix}"
+        ):
+            patent_design_dialog(patent)
+    else:
+        st.info("설계 대안 분석 결과가 없습니다.")
     if patent.unknowns:
         with st.expander(f"특허 검색 미확인 사항 ({len(patent.unknowns)}건)"):
             for item in patent.unknowns:
@@ -1332,179 +1318,152 @@ def render_patent_report(patent, *, widget_suffix="", preview=False):
 
 
 def render_market_report(market, draft=None, widget_suffix=""):
+    """실제 시장 근거·시각화와 조사 범위를 중심으로 보고서를 표시한다."""
     from src.generation.market_markdown import NATURE_LABELS
+    from src.retrieval.market_relevance import DIMENSION_LABELS
 
-    """시장성 화면에는 고객 신호와 다음 검증을 우선 표시하고 상세 자료를 접는다."""
     if market.status == "error":
-        st.error(market.error_message or "시장 조사에 실패했습니다.")
+        st.error(
+            "시장 조사를 완료하지 못했습니다. 조사 범위와 오류 상태를 확인해 주세요."
+        )
     elif market.status == "no_results":
         st.warning(
-            "검색 범위에서 시장 근거를 찾지 못했습니다. 수요가 없다는 뜻은 아닙니다."
+            "현재 검색 범위에서 시장 근거를 찾지 못했습니다. 수요가 없다는 뜻은 아닙니다."
+        )
+    else:
+        st.caption(
+            f"조사 범위: {market.search_scope} · 기준일 {market.data_as_of or '미제공'}"
         )
 
-    review = market.opportunity_review
-    labels = {
-        "validated_demand": "직접 고객 검증 자료 있음",
-        "buyer_signals": "구매자 신호",
-        "indirect_signals": "간접 산업 신호",
-        "insufficient_evidence": "근거 부족",
-    }
-    if review:
-        st.subheader("사업 승인 관점 요약")
-        st.info(
-            f"{labels[review.status]} · 목표 고객: {review.target_segment or '미확인'}"
+    trend = getattr(market, "search_trend", None)
+    from frontend.market_trend_view import render_search_trend
+
+    if trend is None:
+        st.info("이번 분석 결과에 검색 관심도 데이터가 포함되지 않았습니다.")
+    else:
+        render_search_trend(trend, widget_suffix)
+        st.caption(
+            "검색 관심도는 기준 검색어 대비 상대 지수이며 시장 규모나 고객 수요의 근거가 아닙니다."
         )
-        if review.status in {"buyer_signals", "indirect_signals"}:
-            st.caption("기업·뉴스 자료의 산업 신호는 실제 구매 의사 검증과 구분됩니다.")
-        commercial = getattr(market, "commercial_analysis", None)
-        if commercial:
-            st.markdown("**구매 구조와 승인 조건**")
-            left, right = st.columns(2)
-            left.markdown(
-                f"- 사용자: {commercial.user}\n- 구매자: {commercial.buyer}\n- 예산 주체: {commercial.budget_owner}\n- 업무 상황: {commercial.use_case}"
-            )
-            right.markdown(
-                f"- 현재 대안: {commercial.current_alternative}\n- 전환 계기: {commercial.switching_trigger}\n- 구매 절차: {commercial.purchase_process}\n- 가격 가설: {commercial.pricing_hypothesis}"
-            )
-            if commercial.adoption_requirements:
-                st.markdown(
-                    "**도입 필수조건:** "
-                    + " · ".join(commercial.adoption_requirements[:4])
-                )
-            if commercial.critical_assumptions:
-                st.markdown(
-                    "**승인 전 검증 가정:** "
-                    + " · ".join(commercial.critical_assumptions[:3])
-                )
-            if commercial.citation_ids:
-                st.caption(
-                    "근거: " + ", ".join(f"M:{cid}" for cid in commercial.citation_ids)
-                )
-            if commercial.unknowns:
-                st.caption("미확인: " + " · ".join(commercial.unknowns[:3]))
-            if commercial.hypotheses:
-                st.markdown(
-                    "**LLM 검증 전 가설 · 사실·구매 의사로 확인된 내용이 아닙니다**"
-                )
-                for item in commercial.hypotheses[:4]:
-                    refs = ", ".join(f"M:{cid}" for cid in item.citation_ids)
-                    st.markdown(f"- **가설:** {item.hypothesis}")
-                    st.caption(f"질문: {item.question} · 근거와 한계: {item.basis}")
-                    if item.assumptions:
-                        st.caption("가정: " + " · ".join(item.assumptions))
-                    if item.numeric_value is not None:
-                        st.caption(
-                            f"자료 기반 수치 추정: {item.numeric_value:g} {item.numeric_unit} · "
-                            f"산식/자료: {item.numeric_basis}"
-                        )
-                    st.caption(
-                        f"검증: {item.validation_target} · {item.validation_method} · "
-                        f"성공 기준: {item.success_criterion}"
-                        + (f" · 근거 {refs}" if refs else " · 직접 근거 인용 없음")
-                    )
-        if review.value_hypotheses:
-            st.markdown("**검증 전 가치 가설**")
-            for hypothesis in review.value_hypotheses[:2]:
-                st.markdown(f"- {hypothesis}")
-        if draft:
-            st.markdown("**고객·업무 적합성**")
-            c1, c2 = st.columns(2)
-            user_label = commercial.user if commercial else "미확인"
-            buyer_label = commercial.buyer if commercial else "미확인"
-            budget_label = commercial.budget_owner if commercial else "미확인"
-            c1.write(
-                f"**사용자 후보**\n\n{user_label if user_label != '미확인' else draft.customers or '미확인'}"
-            )
-            c2.write(f"**구매자·예산 주체**\n\n{buyer_label} · {budget_label}")
-            st.caption(
-                f"문제: {draft.problem or '미확인'} · 현재 대안: {draft.current_alternative or '미확인'}"
-            )
-            st.caption(
-                f"과금 가설: {draft.revenue or '미확인'} · 전환 이유: {draft.difference or '미확인'}"
-            )
-        if review.reasons:
-            st.markdown("**사업 판단에 참고할 시장 신호**")
-            for item in review.reasons[:2]:
-                refs = (
-                    ", ".join(f"M:{cid}" for cid in item.citation_ids)
-                    or "근거 인용 없음"
-                )
-                st.markdown(f"- **{item.topic}:** {item.statement} ({refs})")
-        if review.validation_actions:
-            st.markdown("**다음 검증 행동**")
-            for action in review.validation_actions[:3]:
-                st.markdown(
-                    f"- **{action.title} · {action.target or '대상 미정'}:** {action.method}"
-                )
-                st.caption(f"성공 신호: {action.success_signal}")
-    elif market.status == "completed":
-        st.info("아이디어별 구매 수요 결론은 확보한 자료에서 확인되지 않았습니다.")
 
-    if market.dimensions:
-        from src.retrieval.market_relevance import DIMENSION_LABELS
+    network = getattr(market, "keyword_network", None)
+    from frontend.market_network_view import render_keyword_network
 
-        verdict_labels = {
-            "confirmed": "근거 확인",
-            "signal_only": "신호만 확인",
-            "unverified": "미확인",
-        }
-        key_dimensions = ["demand", "buyer", "competition", "price", "adoption_barrier"]
-        for key in key_dimensions:
-            dimension = next(
-                (item for item in market.dimensions if item.dimension == key), None
-            )
-            if not dimension:
-                continue
-            st.markdown(
-                f"**{DIMENSION_LABELS[key]} · {verdict_labels[dimension.verdict]}**"
-            )
-            if dimension.limitation:
-                st.caption(f"확인되지 않은 이유: {dimension.limitation}")
-            if dimension.relevant_count is not None:
-                st.caption(
-                    f"관련 검색 자료 {dimension.relevant_count}건 · 인용 건수와 별개입니다."
+    if network is None:
+        st.info("이번 분석 결과에 뉴스 키워드 네트워크 데이터가 포함되지 않았습니다.")
+    else:
+        render_keyword_network(network, widget_suffix)
+        st.caption(
+            "뉴스 제목·요약에서 함께 나온 단어의 관계이며 수요·인과·고객 유형을 뜻하지 않습니다."
+        )
+
+    procurement = getattr(market, "procurement", None)
+    if procurement is not None:
+        from frontend.market_procurement_view import render_procurement
+
+        render_procurement(procurement)
+
+    observed_dimensions = [
+        dimension
+        for dimension in market.dimensions
+        if dimension.verdict in {"confirmed", "signal_only"} and dimension.claims
+    ]
+    if observed_dimensions:
+        st.subheader("시장 자료에서 확인된 관찰")
+        st.caption("각 문장은 시장 보고서의 기존 분석과 인용을 그대로 표시합니다.")
+        for dimension in observed_dimensions:
+            with st.container(border=True):
+                state = (
+                    "근거 확인" if dimension.verdict == "confirmed" else "신호만 확인"
                 )
-            if dimension.claims:
-                for claim in dimension.claims[:1]:
-                    label = {
+                st.markdown(f"#### {DIMENSION_LABELS[dimension.dimension]} · {state}")
+                for claim in dimension.claims[:2]:
+                    claim_type = {
                         "fact": "자료 사실",
-                        "user_claim": "입력 내용",
-                        "ai_hypothesis": "검증 전 해석",
+                        "user_claim": "사용자 입력",
+                        "ai_hypothesis": "검증 전 가설",
                     }[claim.claim_type]
-                    citations = (
+                    refs = (
                         ", ".join(f"M:{cid}" for cid in claim.citation_ids)
                         or "인용 근거 없음"
                     )
-                    st.markdown(f"- [{label}] {claim.statement} ({citations})")
-            else:
-                st.caption(dimension.next_check or "검증 자료가 없습니다.")
+                    st.markdown(f"- **{claim_type}:** {claim.statement}")
+                    st.caption(f"근거: {refs}")
+                if dimension.relevant_count is not None:
+                    st.caption(
+                        f"관련 판정 자료 {dimension.relevant_count}건 · 인용 수와는 별도 집계"
+                    )
+                if dimension.limitation:
+                    st.caption("해석 한계: " + dimension.limitation)
+    elif market.status == "completed":
+        st.info("이번 조사에서 인용으로 확인된 시장 관찰 문장은 없습니다.")
 
-    from frontend.market_trend_view import render_search_trend
+    pending_checks = [
+        (dimension, dimension.next_check)
+        for dimension in market.dimensions
+        if dimension.next_check and dimension.verdict == "unverified"
+    ]
+    if pending_checks:
+        st.markdown("#### 근거를 더 확인할 항목")
+        for dimension, next_check in pending_checks:
+            label = DIMENSION_LABELS[dimension.dimension]
+            limitation = f" · {dimension.limitation}" if dimension.limitation else ""
+            st.markdown(f"- **{label}:** {next_check}{limitation}")
 
-    render_search_trend(getattr(market, "search_trend", None), widget_suffix)
+    dart_evidence = [item for item in market.evidence if item.source_type == "dart"]
+    if dart_evidence:
+        st.subheader("관련 기업의 DART 공시 발췌")
+        st.caption(
+            "아이디어 관련 검색에서 연결된 기업의 자체 사업보고서입니다. 검색된 기업이 실제 경쟁사라는 확인이나 특허 보유 관계를 뜻하지 않습니다."
+        )
+        companies = {}
+        for item in dart_evidence:
+            company = (
+                item.publisher.removesuffix(" (DART 사업보고서)").strip()
+                or "공시 기업 미제공"
+            )
+            companies.setdefault(company, []).append(item)
+        company_columns = st.columns(min(len(companies), 2))
+        for index, (company, items) in enumerate(companies.items()):
+            with company_columns[index % len(company_columns)]:
+                with st.container(border=True):
+                    st.markdown(f"#### {company}")
+                    for item in items[:3]:
+                        period = item.period or "사업연도 미제공"
+                        section = item.section or "원문 위치 미제공"
+                        st.caption(f"M:{item.citation_id} · {period} · {section}")
+                        st.markdown(f"**{item.title}**")
+                        st.write(item.quote)
+                        if item.url and item.url.startswith(("https://", "http://")):
+                            st.link_button("공시 원문 열기 ↗", item.url)
+        st.caption(
+            "공시 발췌 수는 기업 규모·경쟁력·시장 점유율의 비교 지표가 아닙니다."
+        )
 
-    from frontend.market_network_view import render_keyword_network
-
-    render_keyword_network(getattr(market, "keyword_network", None), widget_suffix)
-
-    if market.dimensions or market.evidence:
+    if market.evidence:
         from src.generation.market_markdown import market_report_to_markdown
+        from src.generation.report_builder import escape_md, safe_url
 
-        with st.expander(f"시장 차원별 분석·기사 목록·원문 ({len(market.evidence)}건)"):
+        with st.expander(f"시장 근거 전체와 분석 원문 ({len(market.evidence)}건)"):
             st.markdown(market_report_to_markdown(market, heading_level=3))
-            from src.generation.report_builder import escape_md, safe_url
-
             for item in market.evidence:
                 st.markdown(f"**M:{item.citation_id} · {escape_md(item.title)}**")
+                details = [
+                    item.publisher,
+                    item.period or "기간 미제공",
+                    item.section or "원문 위치 미제공",
+                ]
                 st.caption(
-                    f"{item.publisher} · {item.published_at or '발행일 미확인'} · "
-                    f"{NATURE_LABELS.get(item.evidence_nature, item.evidence_nature)} · 신뢰도 {item.reliability}"
+                    " · ".join(details)
+                    + f" · {NATURE_LABELS.get(item.evidence_nature, item.evidence_nature)}"
                 )
                 st.write(item.quote)
-                if safe_url(item.url):
-                    st.link_button("시장 원문 열기", safe_url(item.url))
+                url = safe_url(item.url)
+                if url:
+                    st.link_button("시장 원문 열기", url)
+
     if market.unknowns:
-        with st.expander(f"시장 미확인 사항 ({len(market.unknowns)}건)"):
+        with st.expander(f"시장 조사 한계와 미확인 항목 ({len(market.unknowns)}건)"):
             for item in market.unknowns:
                 st.write(f"- {item}")
 
@@ -1896,11 +1855,7 @@ def settle_navigation():
 
 st.html('<div id="research-top"></div>')
 with st.container(key="brandbar"):
-    brand, intro, guide, records = st.columns([2.6, 1, 1, 1.1])
-    brand.button("IdeaLens", key="home", on_click=open_page, args=("home",))
-    intro.button("서비스 소개", on_click=open_page, args=("about",))
-    guide.button("왜 IdeaLens인가", on_click=open_page, args=("difference",))
-    records.button("내 기록", on_click=open_page, args=("history",))
+    st.button("IdeaLens", key="home", on_click=open_page, args=("home",))
 
 if s.page != "workspace":
     if s.get("analysis_workflow_id"):
@@ -1961,52 +1916,13 @@ steps = [
 active_job = current_workflow_job() if s.get("analysis_workflow_id") else None
 
 
-def step_button_label(number):
-    if active_job is None:
-        return f"{number}  {steps[number - 1]}"
-    phase = active_job.get("phase")
-    report = {
-        2: active_job.get("patent_report"),
-        3: active_job.get("market_report"),
-    }.get(number)
-    final_result = active_job.get("result") if number == 4 else None
-    completed = (
-        s.idea_draft is not None
-        if number == 1
-        else (report is not None if number in (2, 3) else final_result is not None)
-    )
-    current = {
-        2: phase == "patent",
-        3: phase == "market",
-        4: phase == "final_report",
-    }.get(number, False)
-    if report is not None and report.status != "completed":
-        marker = "⚠"
-        state = " 근거 부족" if report.status == "no_results" else " 일부 실패"
-    elif final_result is not None and final_result.status != "completed":
-        marker = "⚠"
-        state = " 일부 실패"
-    elif completed:
-        marker = "✓"
-        state = ""
-    elif current:
-        marker = "◌"
-        state = ""
-    else:
-        marker = "·"
-        state = ""
-    short_names = ["아이디어", "특허 비교", "시장성", "최종 검토"]
-    suffix = " 분석 중" if current else ""
-    return f"{marker} {number}  {short_names[number - 1]}{suffix}{state}"
-
-
 def review_navigation(number, label, column, key, *, icon=None):
     if column.button(
         label,
         key=key,
         type=(
             "primary"
-            if s.stage == number or (key == "nav_2" and s.stage == 3)
+            if s.stage == number or (key == "rail_2" and s.stage == 3)
             else "secondary"
         ),
         disabled=not can_visit(number)
@@ -2021,18 +1937,6 @@ def review_navigation(number, label, column, key, *, icon=None):
             navigate(number)
             st.rerun(scope="app")
 
-
-with st.container(key="stepnav"):
-    for number, label, column in zip(
-        [1, 2, 4],
-        ["1 아이디어 구체화", "2 특허·시장 검토", "3 종합 보고서"],
-        st.columns(3),
-    ):
-        review_navigation(number, label, column, f"nav_{number}")
-if s.stage in (2, 3):
-    a, b = st.columns(2)
-    review_navigation(2, "특허 비교", a, "review_patent")
-    review_navigation(3, "시장성 분석", b, "nav_3")
 
 render_quick_nav(review_navigation, open_page)
 

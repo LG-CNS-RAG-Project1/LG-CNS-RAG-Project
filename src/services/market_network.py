@@ -1,8 +1,9 @@
 """아이디어와 가까운 뉴스에서 키워드 동시 출현 네트워크(MarketKeywordNetwork)를 만든다.
 
-1. 아이디어 전체 문장(market_search.build_idea_query)으로 뉴스 documents건을 가까운 순으로 가져온다.
+1. 아이디어 전체 문장(market_search.build_idea_query)으로 뉴스를 가까운 순으로 가져온다.
 2. 기사마다 제목·요약에서 명사를 뽑는다 (kiwipiepy). 띄어쓰기 없이 붙은 명사는 하나로 합친다
-   (협동 + 로봇 → 협동로봇, 2 + 차 + 전지 → 2차전지).
+   (협동 + 로봇 → 협동로봇, 2 + 차 + 전지 → 2차전지). 앞서 고른 기사와 명사가 많이 겹치는 기사는
+   같은 소식의 재게재로 보고 빼서 documents건을 고른다.
 3. 전체 뉴스보다 이 아이디어 주변에서 두드러진 명사(lift) max_nodes개를 고르고, 같은 기사에
    함께 나온 기사 수로 명사를 잇는다.
 4. 가중 모듈성으로 키워드 묶음을 나누고, 화면 배치 좌표를 계산한다 (networkx).
@@ -90,6 +91,24 @@ def extract_terms(
             run, tags, end, last = form, {tag}, start + length, tag
     flush()
     return terms
+
+
+def drop_reprints(
+    documents: list[set[str]], threshold: float, limit: int
+) -> list[set[str]]:
+    """가까운 순 기사 명사 집합에서 같은 소식의 재게재를 빼고 최대 limit건을 고른다.
+
+    이미 고른 기사 중 하나와 Jaccard 유사도가 threshold 이상이면 뺀다. 명사가 없는 기사도 뺀다.
+    """
+    kept: list[set[str]] = []
+    for terms in documents:
+        if not terms:
+            continue
+        if all(len(terms & k) / len(terms | k) < threshold for k in kept):
+            kept.append(terms)
+            if len(kept) == limit:
+                break
+    return kept
 
 
 def corpus_document_frequency(
@@ -251,21 +270,31 @@ def build_keyword_network(
 ) -> MarketKeywordNetwork:
     """아이디어와 가까운 뉴스로 키워드 동시 출현 네트워크를 만든다.
 
-    기사가 min_documents건 미만이거나 연결이 하나도 없으면 insufficient, 검색·분석 실패는 error다.
+    재게재를 뺀 기사가 min_documents건 미만이거나 연결이 하나도 없으면 insufficient, 검색·분석
+    실패는 error다.
     """
     config = config or load_network_config()
     try:
-        texts = nearest_news(request, collection, embed_fn, config["documents"])
-        if len(texts) < config["min_documents"]:
+        texts = nearest_news(
+            request,
+            collection,
+            embed_fn,
+            config["documents"] * config["candidate_factor"],
+        )
+        documents = drop_reprints(
+            [extract_terms(text, config, tokenize) for text in texts],
+            config["duplicate_similarity"],
+            config["documents"],
+        )
+        if len(documents) < config["min_documents"]:
             return MarketKeywordNetwork(
-                status="insufficient", document_count=len(texts), note=NOTE
+                status="insufficient", document_count=len(documents), note=NOTE
             )
-        documents = [extract_terms(text, config, tokenize) for text in texts]
         corpus_size, corpus_df = corpus_document_frequency(collection, config, tokenize)
         nodes, edges = select_graph(documents, config, corpus_size, corpus_df)
         if not edges:
             return MarketKeywordNetwork(
-                status="insufficient", document_count=len(texts), note=NOTE
+                status="insufficient", document_count=len(documents), note=NOTE
             )
         cluster, coords, groups = layout_graph(nodes, edges)
     except Exception as exc:  # 네트워크 실패는 시장 보고서 전체를 막지 않는다
@@ -273,7 +302,7 @@ def build_keyword_network(
 
     return MarketKeywordNetwork(
         status="completed",
-        document_count=len(texts),
+        document_count=len(documents),
         nodes=[
             MarketKeywordNode(
                 term=term,

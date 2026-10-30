@@ -22,6 +22,12 @@ from src.schemas import (
     PatentEvidence,
     PatentReport,
     PatentabilityPrecheck,
+    PatentWatchout,
+    PatentDesignRecommendation,
+    PatentDesignAnalysis,
+    PatentDesignProposal,
+    PatentTechnicalComponent,
+    ProposalVerificationPlan,
 )
 
 APP = Path(__file__).resolve().parents[1] / "frontend" / "app.py"
@@ -90,6 +96,54 @@ def sources():
             status="insufficient_evidence",
             summary="등록 관련 판단에는 추가 선행기술 조사가 필요합니다.",
             citation_ids=[1],
+            common_watchouts=[
+                PatentWatchout(
+                    issue="독립항 구성 확인",
+                    why_it_matters="아이디어 구성과 겹치는 범위를 살펴야 합니다.",
+                    citation_ids=[1],
+                    next_check="독립항 전문을 검토합니다.",
+                )
+            ],
+            common_design_recommendations=[
+                PatentDesignRecommendation(
+                    recommendation="센서 설치 조건을 구체화합니다.",
+                    rationale="검증 가능한 입력 범위를 정합니다.",
+                    citation_ids=[1],
+                    basis="evidence_based",
+                    validation_needed="현장 센서 데이터로 검증합니다.",
+                )
+            ],
+        ),
+        design_analysis=PatentDesignAnalysis(
+            status="success",
+            evidence_level="claims_and_abstract",
+            technical_components=[
+                PatentTechnicalComponent(
+                    id="C1", name="진동 센서", description="설비 진동 측정"
+                )
+            ],
+            proposals=[
+                PatentDesignProposal(
+                    proposal_id="D1",
+                    title="설비별 기준값 보정",
+                    target_component_ids=["C1"],
+                    problem="설비별 진동 차이를 반영하지 못할 수 있습니다.",
+                    proposed_change="설비별 기준값을 적용합니다.",
+                    implementation_approach=["운전 조건별 기준선을 학습합니다."],
+                    technical_difference="설비별 조건을 입력으로 사용합니다.",
+                    expected_benefits=["오경보를 줄일 가능성"],
+                    limitations=["현장 데이터 검증이 필요합니다."],
+                    feasibility="medium",
+                    related_patent_ids=["1020200000001"],
+                    citation_ids=[1],
+                    evidence_status="grounded",
+                    verification_plan=ProposalVerificationPlan(
+                        method="설비별 데이터를 분리해 검증합니다.",
+                        metrics=["오경보율"],
+                        success_criteria="기준선보다 오경보가 감소합니다.",
+                    ),
+                )
+            ],
         ),
     )
     return SourceAnalysis(
@@ -215,8 +269,14 @@ def test_direct_input_runs_followup_and_reaches_report(live):
     )
     app.session_state.stage = 2
     app.run()
-    assert any("등록 가능성 예비 신호" in item.value for item in app.subheader)
     assert any("특허 비교 궤도" in item.value for item in app.subheader)
+    assert any("2. 주의점 및 개선 제안" in item.value for item in app.subheader)
+    assert any("3. 설계 대안" in item.value for item in app.subheader)
+    assert not any(
+        "특허 기술 동향 · 분류 통계" in item.label for item in app.get("expander")
+    )
+    assert app.button(key="patent_watchouts_").label == "2 상세 보기"
+    assert app.button(key="patent_design_").label == "3 상세 보기"
     charts = app.get("vega_lite_chart")
     assert len(charts) == 1
     assert json.loads(charts[0].proto.spec)["padding"] == {
@@ -232,6 +292,15 @@ def test_direct_input_runs_followup_and_reaches_report(live):
     assert "핵심 요약" in serialized and "우선 확인 이유" in serialized
     assert not any("문헌 요약 선택" in item.label for item in app.selectbox)
     assert '"name": "patent_click"' in serialized
+
+    app.button(key="patent_watchouts_").click().run()
+    watchout_dialog = app.get("dialog")[0]
+    assert any("독립항 구성 확인" in item.value for item in watchout_dialog.warning)
+    assert any("센서 설치 조건" in item.value for item in watchout_dialog.markdown)
+    app.button(key="patent_design_").click().run()
+    design_dialog = app.get("dialog")[0]
+    assert any("설비별 기준값 보정" in item.value for item in design_dialog.markdown)
+    assert any("구현 방법" in item.value for item in design_dialog.markdown)
 
     app.session_state.selected_patent_detail_id = "1020200000001"
     app.run()
@@ -249,7 +318,8 @@ def test_direct_input_runs_followup_and_reaches_report(live):
     click(app, "최종 실행 검토 →")
     assert app.session_state.stage == 4
     text = "\n".join(m.value for m in app.markdown)
-    assert "검토일" in text and "P:1" in text
+    assert "추가 확인 후 결정" in text
+    assert "통합 결론을 보류합니다" in text
     assert "시연용 가상 자료" not in text
     previous = app.session_state.pipeline_result
     previous_calls = dict(live)
@@ -344,7 +414,7 @@ def test_partial_patent_comparison_keeps_eight_sources_visible(live):
         "원문은 확보했지만 비교 분석을 완료하지 못했습니다" in item.value
         for item in app.warning
     )
-    assert any("비교 문헌 8건 · 최대 8건" in item.value for item in app.caption)
+    assert any("최종 비교 문헌 8건 · 목표 5~8건" in item.value for item in app.caption)
 
 
 def test_four_report_stages_use_one_analysis_run(live):
@@ -362,7 +432,7 @@ def test_four_report_stages_use_one_analysis_run(live):
     assert app.session_state.stage == 2 and live["analyze"] == 1
 
 
-@pytest.mark.parametrize("navigation_key", ["nav_1", "rail_1"])
+@pytest.mark.parametrize("navigation_key", ["rail_1"])
 def test_running_workflow_top_step_opens_idea_preview_without_leaving_current_stage(
     live,
     navigation_key,
@@ -399,8 +469,8 @@ def test_running_workflow_top_step_opens_idea_preview_without_leaving_current_st
         app.session_state.workflow_patent_displayed_at = 0
         app.session_state.workflow_auto_patent_advanced = True
         app.run()
-        assert not app.button(key="nav_1").disabled
-        assert not app.button(key="nav_2").disabled
+        assert not app.button(key="rail_1").disabled
+        assert not app.button(key="rail_2").disabled
         app.button(key=navigation_key).click().run()
         assert app.session_state.stage == 3
         assert app.session_state.analysis_workflow_id == "navigation-test"
@@ -411,7 +481,7 @@ def test_running_workflow_top_step_opens_idea_preview_without_leaving_current_st
             WORKFLOW_JOBS.pop("navigation-test", None)
 
 
-@pytest.mark.parametrize("navigation_key", ["nav_2", "rail_2"])
+@pytest.mark.parametrize("navigation_key", ["rail_2"])
 def test_completed_stage_status_button_opens_read_only_dialog(live, navigation_key):
     app = analysis_app()
     draft = IdeaDraft(
@@ -449,8 +519,8 @@ def test_completed_stage_status_button_opens_read_only_dialog(live, navigation_k
         assert not any(
             (item.key or "").startswith("workflow_preview_") for item in app.button
         )
-        assert "특허" in app.button(key="nav_2").label
-        assert app.button(key="nav_3").disabled
+        assert "특허" in app.button(key="rail_2").label
+        assert app.button(key="rail_3").disabled
         assert app.button(key="rail_3").disabled
         assert app.button(key="rail_4").disabled
         app.button(key=navigation_key).click().run()
@@ -662,3 +732,116 @@ def test_completed_idea_preview_marks_ai_hypotheses(live):
     assert any("검증 전 AI 가설" in item.value for item in app.markdown)
     assert any("수익모델" in item.value for item in app.markdown)
     assert app.session_state.stage == 3
+
+
+def test_market_report_prioritizes_real_trend_network_and_dart_evidence(live):
+    from src.schemas import (
+        MarketDimensionResult,
+        MarketEvidence,
+        MarketKeywordEdge,
+        MarketKeywordNetwork,
+        MarketKeywordNode,
+        MarketClaim,
+        MarketSearchTrend,
+        MarketTrendPoint,
+    )
+
+    app = analysis_app()
+    app.session_state.raw = IDEA
+    app.session_state.real_mode = True
+    app.session_state.confirmed_context = True
+    app.session_state.stage = 3
+    result = pipeline.run_pipeline(
+        IdeaDraft(
+            original_text=IDEA,
+            **FIELDS,
+            revenue="월 구독료",
+            field_sources={field: "extracted" for field in FIELDS},
+            status="complete",
+        ),
+        [],
+        sources=sources(),
+    )
+    market = result.market
+    market.status = "completed"
+    market.search_scope = "KIPRIS·시장 뉴스 및 DART 관련 검색 자료"
+    market.data_as_of = 20261029
+    market.evidence = [
+        MarketEvidence(
+            citation_id=1,
+            source_id="dart:sample:2025",
+            source_type="dart",
+            title="사업의 내용",
+            publisher="예시기업 (DART 사업보고서)",
+            quote="공장 자동화 솔루션 사업을 영위한다고 공시했습니다.",
+            section="II. 사업의 내용",
+            url="https://example.com/dart",
+            published_at=20260331,
+            period="FY2025",
+            reliability="medium",
+            recency="medium",
+            directness="low",
+            evidence_nature="company_claim",
+        )
+    ]
+    market.dimensions = [
+        MarketDimensionResult(
+            dimension="competition",
+            verdict="signal_only",
+            claims=[
+                MarketClaim(
+                    statement="관련 분야에서 자동화 사업을 공시한 기업을 찾았습니다.",
+                    claim_type="fact",
+                    citation_ids=[1],
+                )
+            ],
+            evidence_status="limited",
+            relevant_count=2,
+            limitation="검색된 공시만으로 경쟁 관계를 확정할 수 없습니다.",
+        ),
+        MarketDimensionResult(
+            dimension="demand",
+            verdict="unverified",
+            next_check="실제 구매 담당자 인터뷰를 진행합니다.",
+            evidence_status="insufficient",
+            relevant_count=0,
+            limitation="직접 고객 검증 자료가 없습니다.",
+        ),
+    ]
+    market.search_trend = MarketSearchTrend(
+        status="completed",
+        keywords=["예지보전"],
+        reference_keywords=["스마트공장"],
+        points=[
+            MarketTrendPoint(
+                period="2026-01",
+                theme_ratio=10,
+                reference_ratio=20,
+                relative_index=50,
+            )
+        ],
+        recent_change_pct=4,
+        direction="stable",
+    )
+    market.keyword_network = MarketKeywordNetwork(
+        status="completed",
+        document_count=10,
+        nodes=[
+            MarketKeywordNode(term="설비", document_count=5, cluster=0, x=0, y=0),
+            MarketKeywordNode(term="예측", document_count=4, cluster=0, x=0.5, y=0.5),
+        ],
+        edges=[MarketKeywordEdge(source="설비", target="예측", weight=3)],
+        clusters=[["설비", "예측"]],
+    )
+    app.session_state.pipeline_result = result
+    app.run()
+
+    assert not app.exception
+    text = "\n".join(item.value for item in [*app.markdown, *app.caption])
+    assert any("시장 자료에서 확인된 관찰" in item.value for item in app.subheader)
+    assert "실제 구매 담당자 인터뷰" in text
+    assert "예시기업" in text and "FY2025" in text and "II. 사업의 내용" in text
+    assert "경쟁사라는 확인" in text
+    assert "상대 지수" in text and "인과" in text
+    assert len(app.get("vega_lite_chart")) == 2
+    assert not any("사업 승인 관점 요약" in item.value for item in app.subheader)
