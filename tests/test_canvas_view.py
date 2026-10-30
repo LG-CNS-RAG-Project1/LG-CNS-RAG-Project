@@ -6,8 +6,8 @@ def test_canvas_item_line_escapes_text_and_grays_suffix():
     claim = CanvasItem(text="중소 제조사", basis="user_claim")
     guess = CanvasItem(text="SI 협력 [채널]", basis="ai_hypothesis", citation_ids=["F"])
 
-    assert canvas_item_line(claim) == "- 중소 제조사"
-    assert canvas_item_line(guess) == "- SI 협력 \\[채널\\] :gray[가설 · F]"
+    assert canvas_item_line(claim) == "- **중소 제조사**"
+    assert canvas_item_line(guess) == "- **SI 협력 \\[채널\\]** :gray[가설 · F]"
 
 
 def test_layout_places_every_block_once():

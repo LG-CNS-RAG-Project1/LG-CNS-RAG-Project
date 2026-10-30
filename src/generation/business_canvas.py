@@ -1,14 +1,16 @@
 """아이디어 입력과 특허·시장 조사 결과로 예비 비즈니스 모델 캔버스(9개 블록)를 만든다.
 
 새 자료를 찾지 않고 아이디어 항목·MarketReport·PatentReport·구축 비용 추정만 요약해 LLM 1회로
-블록 내용을 채운 뒤, SWOT과 같은 규칙(src.generation.swot.validate_items)으로 항목을 검증한다.
+블록 내용을 채운 뒤, SWOT과 같은 규칙(src.generation.swot.check_item)으로 항목을 검증한다.
 
+- 항목은 짧은 제목(text)과 누가·어떻게·왜를 밝히는 설명(detail) 한 문장으로 이루어진다.
 - 아이디어에 적힌 내용은 user_claim, 조사 근거로 확인한 내용은 evidence(근거 ID 필수),
   입력에 없는 블록(채널·고객 관계·핵심 파트너 등)은 아이디어에 맞춘 ai_hypothesis로 채운다.
 - 구축 비용 추정(C)은 LLM 추정치이므로 C만 인용한 항목은 evidence가 아니라 ai_hypothesis로 둔다.
 """
 
 import json
+import re
 from pathlib import Path
 from typing import Callable, Literal
 
@@ -16,11 +18,10 @@ from pydantic import BaseModel, Field
 
 from src.generation.swot import (
     FIELD_LABELS,
-    SwotItem,
     _idea_digest,
     _market_digest,
     _patent_digest,
-    validate_items,
+    check_item,
 )
 from src.schemas import IdeaDraft, MarketReport, PatentReport
 
@@ -49,13 +50,25 @@ BLOCK_LABELS = {
     "revenue_streams": "수익원",
 }
 MAX_ITEMS = 3
+MAX_TEXT = 50
+MAX_DETAIL = 140
+# 제목을 '필요하다'류로 다시 말하기만 하는 설명의 끝맺음
+FILLER_END_RE = re.compile(
+    r"(?:필요하다|필수적이다|필요할 수 있다|해야 한다|해야 할 수 있다)\.?$"
+)
 NOTE = (
     "아이디어 입력과 특허·시장 조사 결과를 비즈니스 모델 캔버스로 정리한 예비 초안입니다. "
     "'가설' 표시는 검증 전 AI 제안이고, 근거 ID가 붙은 항목만 조사 자료로 확인한 내용입니다."
 )
 
 LLMFn = Callable[[str, str], dict]
-CanvasItem = SwotItem
+
+
+class CanvasItem(BaseModel):
+    text: str  # 블록 안 짧은 제목
+    detail: str = ""  # 누가·어떻게·왜를 밝히는 설명 한 문장 (없을 수 있음)
+    basis: Literal["evidence", "user_claim", "ai_hypothesis"]
+    citation_ids: list[str] = Field(default_factory=list)
 
 
 class BusinessCanvas(BaseModel):
@@ -98,6 +111,51 @@ def _cost_digest(cost_estimate) -> tuple[dict | None, dict[str, str]]:
     ]
     digest = {"id": "C", "items": items, "assumptions": cost_estimate.assumptions}
     return digest, {"C": json.dumps(items, ensure_ascii=False)}
+
+
+def _restates_title(text: str, detail: str) -> bool:
+    """설명이 제목의 낱말을 모두 담고 '필요하다'류로 끝나 새 정보 없이 제목을 다시 말하는지."""
+    words = [word for word in re.split(r"[\s·,]+", text) if len(word) >= 2]
+    return bool(FILLER_END_RE.search(detail)) and all(word in detail for word in words)
+
+
+def validate_canvas_items(
+    raw_items,
+    allowed: dict[str, str],
+    idea_text: str,
+    trend_direction: str | None = None,
+    missing_fields: set[str] | None = None,
+) -> tuple[list[CanvasItem], int]:
+    """블록 항목을 검증해 (통과 항목 최대 MAX_ITEMS개, 버린 수)를 반환한다.
+
+    제목과 설명을 함께 check_item으로 검증하고, 설명만 규칙·길이에 어긋나거나 제목을 다시
+    말하기만 하면 설명을 빼고 제목만으로 다시 검증한다. 제목이 통과하지 못하면 항목을 버린다.
+    비용 추정(C)만 인용한 근거 항목은 ai_hypothesis로 바꾼다.
+    """
+    kept, dropped = [], 0
+    for raw in raw_items if isinstance(raw_items, list) else []:
+        try:
+            item = CanvasItem.model_validate(raw)
+        except Exception:
+            dropped += 1
+            continue
+        text = " ".join(item.text.split())
+        detail = " ".join(item.detail.split())
+        args = (allowed, idea_text, trend_direction, missing_fields)
+        ids = None
+        if detail and len(detail) <= MAX_DETAIL and not _restates_title(text, detail):
+            ids = check_item(f"{text} {detail}", item.basis, item.citation_ids, *args)
+        if ids is None:
+            detail = ""
+            ids = check_item(text, item.basis, item.citation_ids, *args)
+        if ids is None or len(text) > MAX_TEXT:
+            dropped += 1
+            continue
+        basis = item.basis
+        if basis == "evidence" and set(ids) == {"C"}:
+            basis = "ai_hypothesis"
+        kept.append(CanvasItem(text=text, detail=detail, basis=basis, citation_ids=ids))
+    return kept[:MAX_ITEMS], dropped + max(len(kept) - MAX_ITEMS, 0)
 
 
 def build_business_canvas(
@@ -152,17 +210,9 @@ def build_business_canvas(
     missing = {field for field in FIELD_LABELS if not idea[field]}
     blocks, dropped = {}, 0
     for name in BLOCKS:
-        items, lost = validate_items(
+        blocks[name], lost = validate_canvas_items(
             raw.get(name), allowed, idea_text, trend_direction, missing
         )
-        blocks[name] = [
-            (
-                item.model_copy(update={"basis": "ai_hypothesis"})
-                if item.basis == "evidence" and set(item.citation_ids) == {"C"}
-                else item
-            )
-            for item in items
-        ]
         dropped += lost
     status = "completed" if any(blocks.values()) else "insufficient"
     return BusinessCanvas(status=status, dropped=dropped, **blocks)
@@ -191,7 +241,11 @@ def canvas_markdown_lines(canvas: BusinessCanvas | None) -> list[str]:
         parts = []
         for item in getattr(canvas, name):
             suffix = item_suffix(item)
-            parts.append(cell(item.text) + (f" ({cell(suffix)})" if suffix else ""))
+            parts.append(
+                f"**{cell(item.text)}**"
+                + (f" — {cell(item.detail)}" if item.detail else "")
+                + (f" ({cell(suffix)})" if suffix else "")
+            )
         lines.append(f"| {BLOCK_LABELS[name]} | {'<br>'.join(parts) or '-'} |")
     lines += ["", f"> {cell(canvas.note)}"]
     return lines

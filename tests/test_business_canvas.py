@@ -6,6 +6,7 @@ from src.generation.business_canvas import (
     build_business_canvas,
     canvas_markdown_lines,
     item_suffix,
+    validate_canvas_items,
 )
 from src.schemas import ImplementationCostEstimate, ImplementationCostItem
 from tests.test_swot import DRAFT, MARKET, PATENT
@@ -24,6 +25,39 @@ COST = ImplementationCostEstimate(
         )
     ],
 )
+
+
+def test_validate_canvas_items_keeps_title_when_only_detail_fails():
+    allowed = {"M:11": "FEMS 입찰공고 40건 예산 중앙값 5,058만원"}
+    raw = [
+        {
+            "text": "공공 조달",
+            "detail": "FEMS 입찰공고 40건이 있어 공공기관 영업 경로가 될 수 있다.",
+            "basis": "evidence",
+            "citation_ids": ["M:11"],
+        },
+        {
+            "text": "직접 영업",
+            "detail": "연 매출 100억 원 이하 부품사를 겨냥할 수 있다.",
+            "basis": "ai_hypothesis",
+        },
+        {
+            "text": "CT 전류 센서",
+            "detail": "전력 계측을 위한 CT 전류 센서가 필수적이다.",
+            "basis": "user_claim",
+        },
+        {"text": "센서 공급사", "detail": "x" * 200, "basis": "ai_hypothesis"},
+        {"text": "시장 수요 확인", "detail": "", "basis": "ai_hypothesis"},
+    ]
+
+    kept, dropped = validate_canvas_items(raw, allowed, "CT 전류 센서")
+
+    assert [(k.text, bool(k.detail)) for k in kept] == [
+        ("공공 조달", True),
+        ("직접 영업", False),
+        ("CT 전류 센서", False),
+    ]
+    assert dropped == 2
 
 
 def test_build_canvas_sends_components_and_cost_and_validates_blocks():
@@ -134,7 +168,11 @@ def test_canvas_markdown_lines():
         status="completed",
         customer_segments=[{"text": "중소 제조사", "basis": "user_claim"}],
         channels=[
-            {"text": "직접 영업", "basis": "ai_hypothesis"},
+            {
+                "text": "직접 영업",
+                "detail": "생산기술팀에 데모를 보여 줄 수 있다.",
+                "basis": "ai_hypothesis",
+            },
             {"text": "공공 조달", "basis": "evidence", "citation_ids": ["M:11"]},
         ],
     )
@@ -142,8 +180,11 @@ def test_canvas_markdown_lines():
     lines = "\n".join(canvas_markdown_lines(canvas))
 
     assert "## 비즈니스 모델 캔버스 (예비)" in lines
-    assert "| 고객 세그먼트 | 중소 제조사 |" in lines
-    assert "| 채널 | 직접 영업 (가설)<br>공공 조달 (M:11) |" in lines
+    assert "| 고객 세그먼트 | **중소 제조사** |" in lines
+    assert (
+        "| 채널 | **직접 영업** — 생산기술팀에 데모를 보여 줄 수 있다. (가설)"
+        "<br>**공공 조달** (M:11) |"
+    ) in lines
     assert "| 핵심 파트너 | - |" in lines
     assert lines.count("\n| ") == len(BLOCKS) + 1
     assert canvas_markdown_lines(None) == []

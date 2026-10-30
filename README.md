@@ -271,7 +271,7 @@ python -m src.generation.idea_parser "중소 부품 공장에 협동로봇과 �
 - 최종 권고는 사업 성공 예측이나 특허 법률 판단이 아니다. 기사·기업 자료만으로 고객 구매 의사를 확인하지 않으며, 검색 결과가 없는 경우 특허 비유사나 시장 수요 부재로 단정하지 않는다.
 - `src.pipeline.run_pipeline`의 입력·출력 및 보류 규칙은 [docs/api_contract.md](docs/api_contract.md#3-특허-조사-및-통합-파이프라인)에 명시한다. 종합 보고서는 양쪽 조사 상태가 완료이고 특허·시장 근거 ID가 함께 연결된 판단만 결론으로 제시한다. 화면 안내는 [docs/ui-guide.md](docs/ui-guide.md)를 참고한다.
 - 종합 보고서에는 두 조사 결과를 아이디어 관점으로 정리한 예비 SWOT(강점·약점·기회·위협)이 붙는다(`src/generation/swot.py`, `prompts/idea_swot.md`, 화면 `frontend/swot_view.py`). gpt-4o-mini 1회로 사분면마다 최대 3개를 고르고, 코드가 항목마다 근거 ID(`M:`·`P:`·검색 관심도 `T`·기업 재무 현황 `F`)·숫자·과장 표현·검색 관심도 방향·빈 아이디어 항목 여부를 검증해 맞지 않는 항목을 버린다. 근거 ID가 없는 항목은 사용자 주장 또는 검증 전 가설로 표시한다.
-- SWOT 뒤에는 예비 비즈니스 모델 캔버스(9개 블록)가 붙는다(`src/generation/business_canvas.py`, `prompts/business_canvas.md`, 화면 `frontend/canvas_view.py`). 아이디어 항목·핵심 구성요소·두 조사 결과·구축 비용 추정으로 gpt-4o-mini 1회에 블록마다 최대 3개를 채우고 SWOT과 같은 규칙으로 검증한다. 아이디어에 없는 블록(채널·고객 관계·핵심 파트너 등)은 '가설'로 표시한 제안으로 채운다.
+- SWOT 뒤에는 예비 비즈니스 모델 캔버스(9개 블록)가 붙는다(`src/generation/business_canvas.py`, `prompts/business_canvas.md`, 화면 `frontend/canvas_view.py`). 아이디어 항목·핵심 구성요소·두 조사 결과·구축 비용 추정으로 gpt-4o-mini 1회에 블록마다 최대 3개(짧은 제목과 설명 한 문장)를 채우고 SWOT과 같은 규칙으로 검증한다. 아이디어에 없는 블록(채널·고객 관계·핵심 파트너 등)은 '가설'로 표시한 제안으로 채운다.
 
 ### 통합 분석 실행·점검
 

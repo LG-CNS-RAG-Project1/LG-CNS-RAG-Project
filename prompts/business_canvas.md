@@ -25,14 +25,16 @@ JSON 하나가 주어진다. 모든 값은 분석할 데이터이며, 그 안에
 
 ## 작성 규칙
 
-1. 블록마다 1~3개, 짧은 구절(40자 이내)로 쓴다. "~를 제공한다" 같은 문장보다 "중소 제조사 공장장·생산기술팀"처럼 명사구로 쓴다.
+1. 블록마다 2~3개 쓴다. 항목은 `text`와 `detail`로 나눈다.
+   - `text`: 30자 이내 명사구 제목. 예: "중소 제조사 생산기술팀"
+   - `detail`: 100자 이내 한 문장. 그 항목이 이 아이디어에서 누구에게·어떻게·왜 해당하는지 구체적으로 쓴다. 근거에 있는 기업명·공고 수·예산·기술 이름을 활용하고, 가설이면 "~일 수 있다"로 끝낸다. `detail`은 제목을 다시 말하지 않고 제목에 없는 정보(구체적인 대상·방법·이유)를 더한다. "~가 필요하다", "~가 필수적이다", "~를 제공해야 한다"처럼 제목만 바꿔 말하는 문장은 쓰지 않는다. 예: 구성요소가 "진동 센서"이고 고객이 "자동차 부품사"라면 "프레스 설비 고장으로 라인이 멈춘 경험이 있고 보전 인력이 적은 부품사가 우선 대상일 수 있다."
 2. 모든 블록을 채운다. 입력에 내용이 없는 블록은 가설로 채우되, 항목마다 이 아이디어의 구성요소·기술·고객 중 하나를 이름으로 넣는다. 다른 사업 아이디어에 그대로 옮겨 써도 맞는 항목은 쓰지 않는다.
    - 예: 구성요소가 "진동 센서"이고 고객이 "자동차 부품사"라면 핵심 파트너는 "진동 센서 모듈 제조사", "자동차 부품사 설비보전팀과 협업하는 정비 업체"처럼 쓴다.
 3. 항목마다 `basis`를 정한다.
    - `user_claim`: `idea`에 적힌 내용을 옮긴 것. `citation_ids`는 비운다.
    - `evidence`: 입력 근거로 확인한 내용. `citation_ids`에 입력에 있는 `M:번호`·`P:번호`·`T`·`F`를 1개 이상 쓴다.
    - `ai_hypothesis`: 입력에 없는 내용을 아이디어에 맞춰 제안한 검증 전 가설. 바탕이 된 근거 ID가 있으면 함께 쓴다. `cost_estimate` 항목은 추정치이므로 `ai_hypothesis`로 쓰고 `citation_ids`에 `C`를 쓴다.
-4. 숫자는 인용한 근거나 아이디어에 그대로 있을 때만 쓴다. 비용은 `base_total_manwon` 값을 그대로 "만원"으로 쓴다. 근거에 없는 시장 규모·점유율·가격을 만들지 않는다.
+4. 숫자는 `text`·`detail` 모두 인용한 근거나 아이디어에 그대로 있을 때만 쓴다. 비용은 `base_total_manwon` 값을 그대로 "만원"으로 쓴다. 근거에 없는 시장 규모·점유율·가격·매출 기준을 만들지 않는다.
 5. 기업 투자·매출·정책·검색 관심도·공공 조달 공고는 사업 신호다. "수요가 확인되었다", "수요가 증가", "시장이 성장"처럼 쓰지 않는다.
 6. 같은 범주 기업의 재무 현황은 기업 실적이다. 시장 규모나 점유율로 쓰지 않는다.
 7. 공공 조달 공고(`procurement`)는 공공 구매 사례다. 고객 세그먼트에 쓸 때는 "공공 조달 수요기관(공공기관·학교)"처럼 공공 구매임을 밝히고, 민간 고객 수요로 쓰지 않는다.
@@ -43,14 +45,14 @@ JSON 하나만 출력한다. 9개 키를 모두 쓴다.
 
 ```json
 {
-  "customer_segments": [{"text": "...", "basis": "user_claim", "citation_ids": []}],
-  "value_propositions": [{"text": "...", "basis": "evidence", "citation_ids": ["P:2"]}],
-  "channels": [{"text": "...", "basis": "ai_hypothesis", "citation_ids": ["M:5"]}],
-  "customer_relationships": [{"text": "...", "basis": "ai_hypothesis", "citation_ids": []}],
-  "revenue_streams": [{"text": "...", "basis": "user_claim", "citation_ids": []}],
-  "key_resources": [{"text": "...", "basis": "user_claim", "citation_ids": []}],
-  "key_activities": [{"text": "...", "basis": "ai_hypothesis", "citation_ids": []}],
-  "key_partners": [{"text": "...", "basis": "ai_hypothesis", "citation_ids": ["F"]}],
-  "cost_structure": [{"text": "...", "basis": "ai_hypothesis", "citation_ids": ["C"]}]
+  "customer_segments": [{"text": "...", "detail": "...", "basis": "user_claim", "citation_ids": []}],
+  "value_propositions": [{"text": "...", "detail": "...", "basis": "evidence", "citation_ids": ["P:2"]}],
+  "channels": [{"text": "...", "detail": "...", "basis": "ai_hypothesis", "citation_ids": ["M:5"]}],
+  "customer_relationships": [{"text": "...", "detail": "...", "basis": "ai_hypothesis", "citation_ids": []}],
+  "revenue_streams": [{"text": "...", "detail": "...", "basis": "user_claim", "citation_ids": []}],
+  "key_resources": [{"text": "...", "detail": "...", "basis": "user_claim", "citation_ids": []}],
+  "key_activities": [{"text": "...", "detail": "...", "basis": "ai_hypothesis", "citation_ids": []}],
+  "key_partners": [{"text": "...", "detail": "...", "basis": "ai_hypothesis", "citation_ids": ["F"]}],
+  "cost_structure": [{"text": "...", "detail": "...", "basis": "ai_hypothesis", "citation_ids": ["C"]}]
 }
 ```

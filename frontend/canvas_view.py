@@ -22,9 +22,9 @@ LEGEND = "표시 없음: 아이디어 입력 · M:·P:·T·F: 조사 근거 ID �
 
 
 def canvas_item_line(item) -> str:
-    """블록 안 항목 한 줄. 출처 표시는 회색 작은 글씨로 뒤에 붙인다."""
+    """블록 안 항목 제목 한 줄. 출처 표시는 회색 작은 글씨로 뒤에 붙인다."""
     suffix = item_suffix(item)
-    return f"- {cell(item.text)}" + (f" :gray[{cell(suffix)}]" if suffix else "")
+    return f"- **{cell(item.text)}**" + (f" :gray[{cell(suffix)}]" if suffix else "")
 
 
 def _render_block(canvas: BusinessCanvas, name: str) -> None:
@@ -35,6 +35,8 @@ def _render_block(canvas: BusinessCanvas, name: str) -> None:
             st.caption("내용 없음")
         for item in items:
             st.markdown(canvas_item_line(item))
+            if item.detail:
+                st.caption(item.detail)
 
 
 def render_canvas(raw) -> None:
