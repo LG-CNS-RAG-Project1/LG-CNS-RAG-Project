@@ -2,6 +2,8 @@
 
 홈 첫 진입은 제목 윗줄·아랫줄 → 읽기 시간 → 제목 이동 → 설명·문서·돋보기 순으로 재생한다. 완료 여부는 브라우저 연출 종료 후 전달하므로 초기 화면 갱신만으로 연출을 생략하지 않는다. 같은 세션의 메뉴 왕복에는 반복하지 않고, 동작 줄이기 설정이나 사용자 직접 조작 시 즉시 최종 화면을 표시한다. 홈페이지 전용 파일의 검토 담당자는 `.github/CODEOWNERS`에 지정하며, 분석·보고서 변경 시 홈 보존 원칙은 `AGENTS.md`를 따른다.
 
+데스크톱 홈의 문서 비주얼은 화면 높이에 맞춰 크기를 제한하고, 돋보기와 시작 안내를 위·왼쪽 안쪽에 배치한다. 첫 진입 연출은 약 4.3초이며 두 줄을 읽는 순서와 문서·돋보기의 순차 등장을 유지한다.
+
 - 신제품·사업 아이디어의 시장 수요, 기업 동향, 관련 특허와 구현 비용을 연결하는 프로젝트.
 - 주요 사용자: 사업 아이디어를 검토하는 기획자와 개발팀.
 - 산출물: 확정 브리프, 근거가 연결된 조사 노트, 비용표와 다음 검증 과제.
@@ -198,7 +200,7 @@ python -m src.ingestion.patent_processor --field-id SF-05 --limit 20 --include-c
 - 공통 분야 분류와 초기 검색어는 `configs/technology_areas.yaml`에서 SF-01~SF-08로 관리한다. 현재 우선 특허 색인 대상은 SF-02 AI 비전 품질검사와 SF-05 지능형 공정제어다.
 - `--field-id`는 분야 설정의 검색어로 KIPRIS 자료를 수집해 `data/patents/processed/patent_docs.jsonl`에 누적하고, 새 초록·청구항 청크를 `data/patents/chroma/`에 색인한다. 기존 색인 청크는 변경이 없으면 다시 임베딩하지 않는다.
 - `--include-claims`는 문헌별 청구항 상세 API를 조회한다. API에서 확보하지 못한 청구항은 생성하지 않고 초록만 색인한다. `KIPRIS_API_KEY`와 청구항 API 이용 권한이 필요하다.
-- 검색어 계획으로 별도 수집·색인을 하려면 `python -m scripts.collect_patents --request <PatentSearchRequest.json> --field-id SF-02 --include-claims` 후 `python -m scripts.build_patent_index --field-id SF-02`를 실행한다. `PatentQueryPlan`은 기술 요소를 최대 5개까지 허용한다.
+- 검색어 계획으로 별도 수집·색인을 하려면 `python -m scripts.collect_patents --request <PatentSearchRequest.json> --field-id SF-02 --include-claims` 후 `python -m scripts.build_patent_index --field-id SF-02`를 실행한다. `PatentQueryPlan`은 기술 요소를 최대 8개(화면 핵심 구성요소 최대 7개 + 결합 기술 1개)까지 허용한다.
 - KIPRIS 검색·청구항 API 원본 XML과 키를 제외한 요청 메타데이터는 `data/patents/raw/`에 저장한다. 해당 폴더는 로컬 전용이며 Git 추적 대상에서 제외된다.
 - 색인 시 문서 임베딩 API 호출이 필요하다(`OPENAI_API_KEY`). 이후 문서 벡터는 로컬 Chroma에서 재사용한다. Dense/Hybrid 검색의 질의 임베딩은 검색 때 별도로 생성된다.
 - `PatentSearchRequest.technology_area_id`를 지정하면 검색 결과를 해당 분야로 제한한다. 원문 JSONL과 Chroma DB는 로컬에 저장되고 Git에는 포함되지 않는다.
@@ -435,6 +437,10 @@ python -m evaluation.patent_fusion_experiment run
 특허 비교 뒤에는 `PatentDesignAnalysis`가 사용자 기술 구성요소와 기존 문헌별 비교 결과를 받아 최대 3개의 구체적 설계 대안을 생성한다. 각 대안에는 변경 대상, 구현 접근, 기술적 차이, 장점·제약, 정성적 실현 가능성, 검증 계획과 확인 가능한 인용 ID가 포함된다. 청구항을 확보하지 못하면 초록 기반으로 제한됨을 표시하며, 제안 생성이 실패해도 검색 근거와 기존 비교 결과는 보존한다. 결과는 기술 검토용이며 특허 침해·등록 가능성·실시 자유의 법률 판단을 제공하지 않는다. 상세 계약과 테스트 안내는 [docs/patent_rag.md](docs/patent_rag.md)를 참고한다.
 
 ## 통합 분석 화면
+
+서비스 소개 안의 ‘서비스 개요 / 특허 조사 흐름 / 시장 조사 흐름’에서 분석 방식을 확인한다. 개요의 두 조사 카드도 해당 안내로 연결된다. 각 흐름은 자료 사전 준비와 실제 요청을 구분하며, 선택한 단계의 입력·처리·출력·사용 이유와 구현 근거를 보여준다(`frontend/process_guide.py`). 안내에서는 조사·API·평가를 실행하지 않고 운영 자료 수나 성능 점수를 추정하지 않는다. 홈 연출 및 분석 파이프라인은 변경하지 않는다.
+
+‘왜 IdeaLens인가’의 ‘화면 예시·검증’은 특허·시장·종합 결과를 읽는 방법과 실험 자료를 안내한다(`frontend/showcase.py`). 초기 화면 구성 도식은 실제 조사 결과가 아니며, 확정 실험 캡처가 없는 항목은 준비 중으로 표시한다. 이미지·설명·분석 조건은 `frontend/assets/showcase/manifest.json`에서 교체한다. 교체 방법은 같은 폴더의 README를 따른다. 실제 결과와 실험 비교를 생성하거나 운영 보고서에 자동 첨부하지 않는다.
 
 상단 ‘2 특허·시장 검토’는 특허와 시장 화면 모두에서 현재 단계로 강조하며, 하위 탭과 바로가기 바는 실제로 열려 있는 영역만 강조한다.
 

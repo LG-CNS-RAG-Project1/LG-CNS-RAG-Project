@@ -816,15 +816,17 @@ def test_patent_query_plan():
     assert plan.queries[1].english_queries == ["collaborative robot control"]
 
 
-def test_patent_query_plan_rejects_more_than_five_technical_elements():
+def test_patent_query_plan_accepts_up_to_eight_technical_elements():
     query = PatentSearchQuery(
         technical_element="기술 요소",
         korean_queries=["한국어 검색어"],
         english_queries=["english query"],
     )
 
+    assert len(PatentQueryPlan(queries=[query] * 6).queries) == 6
+    assert len(PatentQueryPlan(queries=[query] * 8).queries) == 8
     with pytest.raises(ValidationError):
-        PatentQueryPlan(queries=[query] * 6)
+        PatentQueryPlan(queries=[query] * 9)
 
 
 def test_build_patent_queries():
@@ -866,6 +868,33 @@ def test_build_patent_queries():
     assert len(result.queries) == 1
     assert result.queries[0].technical_element == "진동 기반 이상 탐지"
     assert result.queries[0].korean_queries[0] == "진동 센서 이상 탐지"
+
+
+def test_build_patent_queries_keeps_six_technical_elements():
+    request = PatentSearchRequest(
+        idea=StructuredIdea(
+            title="AI 사출 공정 제어",
+            problem="사출 불량",
+            technology="센서 데이터 기반 공정 조건 최적화",
+        )
+    )
+    elements = [f"기술 요소 {index}" for index in range(1, 7)]
+
+    def fake_llm(system_prompt, user_text):
+        return {
+            "queries": [
+                {
+                    "technical_element": element,
+                    "korean_queries": [f"{element} 검색어"],
+                    "english_queries": ["process control"],
+                }
+                for element in elements
+            ]
+        }
+
+    result = build_patent_queries(request, llm_fn=fake_llm)
+
+    assert [q.technical_element for q in result.queries] == elements
 
 
 def test_patent_get_collection(tmp_path):
