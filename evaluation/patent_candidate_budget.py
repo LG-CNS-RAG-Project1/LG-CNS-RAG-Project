@@ -279,6 +279,18 @@ def rank_rows(query_vector: list[float], rows: list[dict], limit: int) -> list[d
     )[:limit]
 
 
+def determine_label_source(candidates: list[dict]) -> str:
+    """Identify AI-drafted labels from their explicit candidate notes."""
+    ai_draft_count = sum(
+        row.get("note", "").startswith("AI 초안") for row in candidates
+    )
+    if ai_draft_count == len(candidates) and candidates:
+        return "assistant_title_abstract_prelabel"
+    if ai_draft_count:
+        return "mixed_or_partially_reviewed"
+    return "human_or_unmarked"
+
+
 def to_search_document(patent: PatentDocument) -> SearchDocument:
     """Convert a patent abstract into a lexical shortlist document."""
     return SearchDocument(
@@ -465,6 +477,7 @@ def score_experiment() -> dict:
     ]
     if pending:
         raise ValueError(f"{len(pending)} candidate labels remain pending")
+    label_source = determine_label_source(candidates)
     relevant_by_case = {}
     candidates_by_case = {}
     for row in candidates:
@@ -487,6 +500,7 @@ def score_experiment() -> dict:
                 {
                     "case_id": case["case_id"],
                     "method": method,
+                    "label_source": label_source,
                     "judged_pool_count": len(
                         candidates_by_case.get(case["case_id"], set())
                     ),
@@ -505,6 +519,13 @@ def score_experiment() -> dict:
             )
     METRICS_PATH.write_text(
         json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
+    results["status"] = "scored"
+    results["label_source"] = label_source
+    results["unlabeled_candidate_count"] = 0
+    results["metrics_file"] = str(METRICS_PATH.relative_to(ROOT_DIR))
+    RESULTS_PATH.write_text(
+        json.dumps(results, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
     return {"status": "scored", "metrics": report, "path": str(METRICS_PATH)}
 
