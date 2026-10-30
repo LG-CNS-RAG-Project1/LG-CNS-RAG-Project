@@ -1,9 +1,15 @@
+import csv
+
+import pytest
+import evaluation.patent_chunk_rerank_experiment as experiment
+
 from evaluation.patent_chunk_rerank_experiment import (
     aggregate_patent_scores,
     build_experiment_chunks,
     build_reranker_document,
     corpus_fingerprint,
     corpus_inventory,
+    score_experiment,
 )
 from src.schemas import PatentClaim, PatentDocument
 
@@ -146,3 +152,96 @@ def test_reranker_profiles_select_controlled_text_and_record_input_sections():
     ]
     assert claims_only.metadata["input_sections"] == ["claims"]
     assert combined.metadata["version_id"] == "V1"
+
+
+def test_score_requires_human_labels_and_reports_candidate_pool_metrics(tmp_path):
+    candidates = [
+        {
+            "case_id": "SF-05-process-control",
+            "technology_area_id": "SF-05",
+            "source_id": "P-1",
+            "relevant": "1",
+            "review_status": "reviewed",
+            "label_source": "human",
+        },
+        {
+            "case_id": "SF-05-process-control",
+            "technology_area_id": "SF-05",
+            "source_id": "P-2",
+            "relevant": "0",
+            "review_status": "reviewed",
+            "label_source": "human",
+        },
+    ]
+    rankings = [
+        {
+            "case_id": "SF-05-process-control",
+            "technology_area_id": "SF-05",
+            "run_id": "baseline_max",
+            "rank": str(rank),
+            "source_id": source_id,
+            "search_ms": "3.0",
+            "model_load_ms": "0",
+            "rerank_ms": "0",
+        }
+        for rank, source_id in enumerate(["P-1", "P-2"], 1)
+    ]
+    for name, rows in [("candidates.csv", candidates), ("rankings.csv", rankings)]:
+        with (tmp_path / name).open("w", encoding="utf-8-sig", newline="") as file:
+            writer = csv.DictWriter(file, fieldnames=rows[0].keys())
+            writer.writeheader()
+            writer.writerows(rows)
+
+    result = score_experiment(tmp_path)
+
+    assert result["status"] == "scored"
+    assert result["human_judged_candidate_count"] == 2
+    assert result["per_query"][0]["candidate_recall_at_k"] == 1.0
+    assert result["per_query"][0]["precision_at_5"] == 0.5
+    assert result["per_query"][0]["ndcg_at_5"] == 1.0
+
+
+def test_ai_draft_labels_do_not_complete_a_judged_pool(tmp_path):
+    candidate = {
+        "case_id": "SF-05-process-control",
+        "technology_area_id": "SF-05",
+        "source_id": "P-1",
+        "relevant": "1",
+        "review_status": "reviewed",
+        "label_source": "ai_draft",
+    }
+    ranking = {
+        "case_id": "SF-05-process-control",
+        "technology_area_id": "SF-05",
+        "run_id": "baseline_max",
+        "rank": "1",
+        "source_id": "P-1",
+        "search_ms": "1",
+        "model_load_ms": "0",
+        "rerank_ms": "0",
+    }
+    for name, row in [("candidates.csv", candidate), ("rankings.csv", ranking)]:
+        with (tmp_path / name).open("w", encoding="utf-8-sig", newline="") as file:
+            writer = csv.DictWriter(file, fieldnames=row.keys())
+            writer.writeheader()
+            writer.writerow(row)
+
+    result = score_experiment(tmp_path)
+
+    assert result["status"] == "awaiting_human_labels"
+    assert result["human_judged_candidate_count"] == 0
+    assert result["per_query"] == []
+
+
+def test_experiment_refuses_to_merge_multiple_versions_with_same_patent_id(
+    tmp_path, monkeypatch
+):
+    patent = sample_patent()
+    newer = patent.model_copy(update={"claim_version_id": "V2"})
+    monkeypatch.setattr(experiment, "load_patents", lambda: [patent, newer])
+    monkeypatch.setattr(
+        experiment, "load_cases", lambda: [{"case_id": "q", "query": "query"}]
+    )
+
+    with pytest.raises(ValueError, match="multiple document versions"):
+        experiment.run_experiment(tmp_path)
