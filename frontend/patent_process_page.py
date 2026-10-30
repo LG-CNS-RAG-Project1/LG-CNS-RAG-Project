@@ -2,7 +2,6 @@
 
 import streamlit as st
 
-
 _STEPS = (
     (
         "01 · 아이디어를 기술 질의로 구조화",
