@@ -12,7 +12,11 @@ from src.analysis.patent_statistics import (
     indexed_patent_statistics,
 )
 from src.ingestion.kipris_client import KiprisAPIError, fetch_patent_claims
-from src.retrieval.patent_search import build_patent_queries, search_patents
+from src.retrieval.patent_search import (
+    build_patent_queries,
+    search_patents,
+    semantic_similarity_scores,
+)
 from src.retrieval.patent_relevance import judge_patent_candidates
 from src.retrieval.engine import RetrievalConfig
 from src.retrieval.schemas import RetrievalResult, SearchDocument
@@ -32,6 +36,45 @@ ROOT_DIR = Path(__file__).resolve().parents[2]
 # 5건 목표에 못 미칠 때만 호출하고, 후보가 충분해지면 즉시 멈춘다.
 KIPRIS_SUPPLEMENT_QUERY_LIMIT = 5
 MIN_RECOMMENDED_PATENTS = 5
+SEMANTIC_SIMILARITY_MODEL = "text-embedding-3-small"
+SEMANTIC_DOCUMENT_MAX_CHARS = 6000
+
+
+def score_patent_semantic_similarity(idea, evidence, source_texts, embed_fn):
+    """아이디어 기술 내용과 각 특허의 제목·초록·청구항을 같은 모델로 비교한다."""
+    query_parts = [
+        ("아이디어 제목", idea.title),
+        ("해결할 문제", idea.problem),
+        ("핵심 기술", idea.technology),
+        ("기술 구성요소", " ".join(idea.technical_components)),
+        ("차별점", idea.difference),
+    ]
+    query = "\n".join(f"{label}: {value}" for label, value in query_parts if value)
+
+    grouped = defaultdict(lambda: {"title": "", "sections": []})
+    seen = defaultdict(set)
+    for item in evidence:
+        text = (source_texts.get(item.citation_id) or item.quote or "").strip()
+        if not text or text in seen[item.patent_id]:
+            continue
+        seen[item.patent_id].add(text)
+        record = grouped[item.patent_id]
+        record["title"] = record["title"] or item.title
+        section = "초록" if item.section == "abstract" else "청구항"
+        if item.claim_number:
+            section += f" {item.claim_number}"
+        record["sections"].append(f"{section}: {text}")
+
+    patent_ids = list(grouped)
+    document_texts = [
+        (
+            f"특허 제목: {grouped[patent_id]['title']}\n"
+            + "\n".join(grouped[patent_id]["sections"])
+        )[:SEMANTIC_DOCUMENT_MAX_CHARS]
+        for patent_id in patent_ids
+    ]
+    scores = semantic_similarity_scores(query, document_texts, embed_fn)
+    return dict(zip(patent_ids, scores))
 
 
 def _metadata_codes(value) -> list[str]:
@@ -371,6 +414,7 @@ def analyze_patents(
     patent_review_fn: Callable | None = None,
     design_proposal_fn: Callable | None = None,
     relevance_fn: Callable | None = None,
+    semantic_similarity_fn: Callable | None = None,
     candidate_k: int = 20,
     retrieval_mode: str | None = None,
     reranker: Callable | None = None,
@@ -787,6 +831,26 @@ def analyze_patents(
                 unknowns=unknowns + ["검색 후보의 원문 근거를 확보하지 못했습니다."],
             )
 
+        semantic_similarity_model = None
+        if semantic_similarity_fn is not None:
+            semantic_similarity_model = SEMANTIC_SIMILARITY_MODEL
+            try:
+                scores = semantic_similarity_fn(request.idea, evidence, source_texts)
+                evidence = [
+                    PatentEvidence.model_validate(
+                        {
+                            **item.model_dump(),
+                            "semantic_similarity": scores.get(item.patent_id),
+                        }
+                    )
+                    for item in evidence
+                ]
+            except Exception as similarity_error:
+                unknowns.append(
+                    "후보 문헌 의미 유사도를 계산하지 못했습니다 "
+                    f"({type(similarity_error).__name__}); 임베딩 설정과 사용량을 확인하세요."
+                )
+
         evidenced_patent_count = len({item.patent_id for item in evidence})
         if 0 < evidenced_patent_count < minimum_target:
             unknowns.append(
@@ -814,6 +878,7 @@ def analyze_patents(
                 return PatentReport(
                     status="partial",
                     evidence=evidence,
+                    semantic_similarity_model=semantic_similarity_model,
                     unknowns=unknowns
                     + [
                         "특허 원문 검색은 완료했지만 비교 응답을 검증하지 못했습니다.",
@@ -831,6 +896,7 @@ def analyze_patents(
                 return PatentReport(
                     status="partial",
                     evidence=evidence,
+                    semantic_similarity_model=semantic_similarity_model,
                     unknowns=unknowns
                     + [
                         "특허 원문 검색은 완료했지만 구성요소 비교 생성에 실패했습니다.",
@@ -899,6 +965,7 @@ def analyze_patents(
         return PatentReport(
             status="completed",
             evidence=evidence,
+            semantic_similarity_model=semantic_similarity_model,
             comparisons=comparisons,
             patent_reviews=patent_reviews,
             patentability_precheck=patentability_precheck,
