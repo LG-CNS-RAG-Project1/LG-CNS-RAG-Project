@@ -57,8 +57,40 @@ def test_evaluate_patents_calculates_document_level_metrics():
     summary = summarize(rows)["all"]
     assert rows[0]["rr"] == 0.5
     assert rows[0]["unjudged"] == 1
+    assert rows[0]["candidate_recall"] == 1.0
+    assert rows[0]["candidate_unjudged"] == 1
     assert rows[0]["rerank_ms"] == 2.0
     assert summary["mrr"] == 0.5
+    assert summary["candidate_recall"] == 1.0
+
+
+def test_evaluate_patents_searches_candidate_pool_and_scores_top_k_separately():
+    cases = [
+        {
+            **CASES[0],
+            "labeled": True,
+            "relevant_source_ids": ["p3"],
+            "judged_source_ids": ["p1", "p2", "p3"],
+        }
+    ]
+    requested = []
+
+    def search(query, top_k, area=None):
+        requested.append(top_k)
+        return [{"source_id": f"p{index}"} for index in range(1, top_k + 1)]
+
+    rows = evaluate_patents(cases, search, k=2, candidate_k=3)
+
+    assert requested == [3]
+    assert rows[0]["retrieved"] == "p1 p2"
+    assert rows[0]["candidate_ids"] == "p1 p2 p3"
+    assert rows[0]["recall"] == 0.0
+    assert rows[0]["candidate_recall"] == 1.0
+
+
+def test_evaluate_patents_requires_candidate_pool_at_least_top_k():
+    with pytest.raises(ValueError, match="candidate_k"):
+        evaluate_patents(CASES, lambda query, top_k: [], k=5, candidate_k=4)
 
 
 def test_evaluate_patents_skips_unlabeled_cases():

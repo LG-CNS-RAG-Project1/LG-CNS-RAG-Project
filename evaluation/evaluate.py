@@ -77,6 +77,9 @@ RESULT_FIELDS = [
 ]
 PATENT_RESULT_FIELDS = [
     *RESULT_FIELDS,
+    "candidate_recall",
+    "candidate_unjudged",
+    "candidate_ids",
     "embedding_model",
     "reranker_model",
     "run_at_utc",
@@ -172,20 +175,27 @@ def evaluate_market(
     return rows
 
 
-def evaluate_patents(cases: list[dict], search_fn, k: int = K) -> list[dict]:
-    """라벨된 특허 질의마다 문헌 단위 검색 지표와 지연시간을 계산한다."""
+def evaluate_patents(
+    cases: list[dict], search_fn, k: int = K, candidate_k: int = 20
+) -> list[dict]:
+    """상위 k 순위 품질과 사람 라벨 기준 후보 생성 재현율을 함께 계산한다."""
+    if candidate_k < k:
+        raise ValueError("candidate_k must be greater than or equal to k")
     rows = []
     for case in cases:
         if not case.get("labeled"):
             continue
         started = time.perf_counter()
         try:
-            hits = search_fn(case["query"], k, case.get("technology_area_id"))
+            hits = search_fn(
+                case["query"], candidate_k, case.get("technology_area_id")
+            )
         except TypeError:
-            hits = search_fn(case["query"], k)
+            hits = search_fn(case["query"], candidate_k)
         elapsed_ms = (time.perf_counter() - started) * 1000
         rerank_ms = hits[0].get("rerank_ms", 0.0) if hits else 0.0
-        retrieved = [hit["source_id"] for hit in hits]
+        candidate_ids = [hit["source_id"] for hit in hits]
+        retrieved = candidate_ids[:k]
         relevant = set(case["relevant_source_ids"])
         judged = set(case["judged_source_ids"])
         has_relevant = bool(relevant)
@@ -197,6 +207,11 @@ def evaluate_patents(cases: list[dict], search_fn, k: int = K) -> list[dict]:
                 "n_relevant": len(relevant),
                 "hit": hit_at_k(retrieved, relevant, k) if has_relevant else None,
                 "recall": recall_at_k(retrieved, relevant, k) if has_relevant else None,
+                "candidate_recall": (
+                    recall_at_k(candidate_ids, relevant, candidate_k)
+                    if has_relevant
+                    else None
+                ),
                 "rr": reciprocal_rank(retrieved, relevant, k) if has_relevant else None,
                 "precision": (
                     precision_at_k(retrieved, relevant, k) if has_relevant else None
@@ -205,7 +220,9 @@ def evaluate_patents(cases: list[dict], search_fn, k: int = K) -> list[dict]:
                 "search_ms": round(max(elapsed_ms - rerank_ms, 0.0), 3),
                 "rerank_ms": round(rerank_ms, 3),
                 "unjudged": sum(doc not in judged for doc in retrieved),
+                "candidate_unjudged": sum(doc not in judged for doc in candidate_ids),
                 "retrieved": " ".join(retrieved),
+                "candidate_ids": " ".join(candidate_ids),
             }
         )
     return rows
@@ -276,6 +293,13 @@ def summarize(rows: list[dict]) -> dict[str, dict]:
             "no_relevant": len(group) - n,
             "hit": sum(r["hit"] for r in scored) / n if n else None,
             "recall": sum(r["recall"] for r in scored) / n if n else None,
+            "candidate_recall": (
+                (
+                    sum(r["candidate_recall"] for r in scored) / n
+                    if n and all("candidate_recall" in r for r in scored)
+                    else None
+                )
+            ),
             "mrr": sum(r["rr"] for r in scored) / n if n else None,
             "precision": sum(r["precision"] for r in scored) / n if n else None,
             "ndcg": sum(r["ndcg"] for r in scored) / n if n else None,
@@ -286,6 +310,9 @@ def summarize(rows: list[dict]) -> dict[str, dict]:
                 sum(r["rerank_ms"] for r in group) / len(group) if group else 0.0
             ),
             "unjudged": sum(r["unjudged"] for r in group),
+            "candidate_unjudged": sum(
+                r.get("candidate_unjudged", 0) for r in group
+            ),
         }
     return summary
 
@@ -572,7 +599,7 @@ def main() -> None:
         search_fn = default_patent_search_fn(
             args.mode, reranker=reranker, candidate_k=args.candidate_k
         )
-        rows = evaluate_patents(cases, search_fn)
+        rows = evaluate_patents(cases, search_fn, candidate_k=args.candidate_k)
         attach_patent_run_metadata(
             rows,
             args.mode,
@@ -594,8 +621,14 @@ def main() -> None:
         raise SystemExit(f"no labeled cases; run python -m {label_command}")
     print(f"{len(rows)} cases -> {result_path}")
     for name, s in summarize(rows).items():
+        candidate_metrics = (
+            f"Recall@{args.candidate_k}={s['candidate_recall']:.2f} "
+            if args.command == "patent" and s["candidate_recall"] is not None
+            else ""
+        )
         metrics = (
             f"Hit@{K}={s['hit']:.2f} Recall@{K}={s['recall']:.2f} "
+            f"{candidate_metrics}"
             f"Precision@{K}={s['precision']:.2f} MRR={s['mrr']:.2f} "
             f"nDCG@{K}={s['ndcg']:.2f} latency={s['search_ms']:.1f}ms "
             f"rerank={s['rerank_ms']:.1f}ms"
@@ -604,7 +637,7 @@ def main() -> None:
         )
         print(
             f"  {name:17} {metrics} (문항 {s['cases']}, 관련 없음 {s['no_relevant']},"
-            f" unjudged {s['unjudged']})"
+            f" unjudged@{K} {s['unjudged']}, candidate unjudged {s['candidate_unjudged']})"
         )
 
 
