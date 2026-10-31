@@ -27,6 +27,14 @@ def test_landing_preserves_home_and_enters_compact_analysis():
     click(app, "돋보기로 조사 시작")
     assert app.text_area(key="raw_input")
     assert app.button(key="create_idea_draft")
+    assert any(
+        "입력한 아이디어 문장이 OpenAI API로 전송됩니다" in item.value
+        for item in app.caption
+    )
+    assert any(
+        "초안 생성과 이후 특허·시장 분석에서 외부 API 비용" in item.value
+        for item in app.caption
+    )
     assert not any("시연" in button.label for button in app.button)
     assert [app.button(key=f"rail_{i}").label for i in (1, 2, 4)] == [
         "아이디어",

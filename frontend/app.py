@@ -2348,7 +2348,10 @@ with st.container(key=f"workspace_{1 if s.stage == 1 else 3 if s.stage == 4 else
                     if s.idea_draft is not None:
                         s.idea_page_view = "draft"
                     st.rerun()
-            st.caption("초안 생성과 이후 분석에서 외부 API 비용이 발생할 수 있습니다.")
+            st.caption(
+                "‘AI 초안 만들기’를 누르면 입력한 아이디어 문장이 OpenAI API로 전송됩니다. "
+                "초안 생성과 이후 특허·시장 분석에서 외부 API 비용이 발생할 수 있습니다."
+            )
 
             examples_col, recent_col = st.columns(2)
             if examples_col.button(
