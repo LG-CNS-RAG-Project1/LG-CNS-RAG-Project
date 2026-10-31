@@ -57,7 +57,7 @@
 │   ├── github/              # PR 리뷰어 무작위 지정, develop → main 승격 PR
 │   └── review/              # PR 자동 분석(규칙 점검·GPT 분석(Codex 구독 또는 API)·Notion PR 페이지와 영역 요약 카드 기록)
 ├── src/
-│   ├── main.py · pipeline.py · schemas.py  # API 진입점·분석 흐름·공통 모델
+│   ├── pipeline.py · schemas.py  # 분석 흐름·공통 데이터 모델
 │   ├── analysis/           # 특허 분류통계와 기술 동향 집계
 │   ├── ingestion/           # 자료 수집·전처리·청크 생성
 │   ├── retrieval/           # 공통 Dense·BM25·Hybrid 검색·색인 구축
