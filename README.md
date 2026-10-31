@@ -59,6 +59,7 @@
 ├── src/
 │   ├── pipeline.py               # 파이프라인 진입점·보고서 구성
 │   ├── pipeline_execution.py     # 특허·시장 실행·시간 초과 격리
+│   ├── pipeline_cli.py           # 상태 점검·샘플 분석 CLI
 │   ├── pipeline_models.py        # 준비 상태·실행 결과 계약
 │   ├── schemas.py                # 특허·시장 데이터 계약의 호환 진입점
 │   ├── idea_schemas.py           # 아이디어 입력·초안 데이터 계약
