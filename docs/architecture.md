@@ -151,7 +151,8 @@ IdeaLens/
 │       └── market_service.py    # 시장 조사 진입점
 │
 ├── frontend/
-│   └── app.py                   # Streamlit
+│   ├── app.py                   # Streamlit 흐름·탐색·분석 실행
+│   └── patent_view.py           # 특허 상세 대화상자·보고서 화면
 │
 ├── tests/
 │   ├── test_patent.py

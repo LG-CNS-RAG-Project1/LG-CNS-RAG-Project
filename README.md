@@ -160,7 +160,7 @@ make patent-index ARGS="--field-id SF-02"
 
 PDF·Markdown 다운로드와 현재 세션 최대 20개 기록 보관, JSON 내보내기·불러오기를 제공한다. PDF는 ReportLab과 포함된 Nanum Gothic OFL 글꼴을 사용한다. 구조화된 시각화도 기록에 보관하지만 계정별 영구 DB 기록은 연결하지 않았다. 세션이 종료될 수 있으므로 개인 기록 파일로 보관한다. PDF는 인용과 표를 포함한 보고서 원문·비용·메모를 내보내며 화면 차트 이미지는 포함하지 않는다. 키는 기록이나 다운로드에 포함하지 않는다.
 
-화면은 `frontend/app.py`, 홈 연출은 `frontend/landing_motion.py`, 소개는 `frontend/introduction.py`, 보고서·기록은 `frontend/workspace_view.py`, 시각화는 `frontend/report_overview.py`, PDF는 `frontend/report_export.py`, 백그라운드 상태는 `frontend/workflow.py`에서 관리한다. [실행·시연 가이드](docs/ui-guide.md)와 [분석 계약](docs/idea-business-review.md)을 참고한다. `python scripts/idealens.py ui`로 실행하고 `.env` 변경은 `ui --recreate`로 반영한다. 실제 분석은 API 비용이 발생하며 시연 자료는 가상임을 표시한다.
+화면 흐름은 `frontend/app.py`, 특허 상세·보고서는 `frontend/patent_view.py`, 홈 연출은 `frontend/landing_motion.py`, 소개는 `frontend/introduction.py`, 보고서·기록은 `frontend/workspace_view.py`, 시각화는 `frontend/report_overview.py`, PDF는 `frontend/report_export.py`, 백그라운드 상태는 `frontend/workflow.py`에서 관리한다. [실행·시연 가이드](docs/ui-guide.md)와 [분석 계약](docs/idea-business-review.md)을 참고한다. `python scripts/idealens.py ui`로 실행하고 `.env` 변경은 `ui --recreate`로 반영한다. 실제 분석은 API 비용이 발생하며 시연 자료는 가상임을 표시한다.
 
 ### 시장 뉴스 수집·정제
 
