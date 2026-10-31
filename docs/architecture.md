@@ -51,6 +51,8 @@ flowchart LR
   %% map frontend/ frontend
   %% map src/services/ services
   %% map src/pipeline.py pipeline
+  %% map src/services/patent_candidates.py services
+  %% map src/services/patent_context.py services
   %% map src/schemas.py pipeline
   %% map src/ingestion/ ingestion
   %% map scripts/collect_patents.py ingestion
@@ -150,7 +152,9 @@ IdeaLens/
 │   │
 │   └── services/
 │       ├── __init__.py
-│       ├── patent_service.py    # 특허 RAG 진입점
+│       ├── patent_service.py    # 특허 RAG 진입점·흐름 조정
+│       ├── patent_candidates.py # 특허 후보 정규화·정렬·검색 흔적
+│       ├── patent_context.py    # 비교용 청구항 문맥 선택
 │       └── market_service.py    # 시장 조사 진입점
 │
 ├── frontend/
