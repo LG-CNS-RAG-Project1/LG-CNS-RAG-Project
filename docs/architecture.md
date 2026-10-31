@@ -61,6 +61,7 @@ flowchart LR
   %% map src/generation/executive_models.py generation
   %% map src/generation/executive_markdown.py generation
   %% map src/generation/market_evidence.py generation
+  %% map src/generation/market_report_renderer.py generation
   %% map src/generation/report_formatting.py generation
   %% map src/generation/report_summary.py generation
   %% map src/ingestion/ ingestion
@@ -162,7 +163,8 @@ IdeaLens/
 │   │   ├── executive_models.py   # 최종 경영진 검토 데이터 계약
 │   │   ├── executive_markdown.py # 최종 경영진 보고서 마크다운 렌더링
 │   │   ├── business_review.py   # 근거 기반 사업 검증 행동 권고
-│   │   ├── market_markdown.py   # 시장 결과 마크다운 섹션
+│   │   ├── market_markdown.py   # 시장 보고서 공통 서식·호환 진입점
+│   │   ├── market_report_renderer.py # 시장 보고서 섹션 구성
 │   │   ├── question_links.py    # 검토 질문별 근거 연결·검증
 │   │   ├── report_formatting.py # 안전한 보고서 텍스트·출처 서식
 │   │   ├── report_summary.py    # 특허·시장·사업 요약 렌더링
