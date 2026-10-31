@@ -15,7 +15,8 @@ def click(app, label):
     return app
 
 
-def test_landing_preserves_home_and_enters_compact_analysis():
+def test_landing_preserves_home_and_enters_compact_analysis(monkeypatch):
+    monkeypatch.setenv("LLM_PROVIDER", "openai")
     app = AppTest.from_file(str(APP)).run()
     assert app.button(key="lens_start").label == "돋보기로 조사 시작"
     assert "hero-copy" in "\n".join(item.value for item in app.html)
@@ -27,6 +28,14 @@ def test_landing_preserves_home_and_enters_compact_analysis():
     click(app, "돋보기로 조사 시작")
     assert app.text_area(key="raw_input")
     assert app.button(key="create_idea_draft")
+    assert any(
+        "입력한 아이디어 문장은 OpenAI API로 전송됩니다" in item.value
+        for item in app.caption
+    )
+    assert any(
+        "외부 API 호출과 비용이 발생합니다" in item.value
+        for item in app.caption
+    )
     assert not any("시연" in button.label for button in app.button)
     assert [app.button(key=f"rail_{i}").label for i in (1, 2, 4)] == [
         "아이디어",
@@ -45,6 +54,18 @@ def test_landing_preserves_home_and_enters_compact_analysis():
         for i in (1, 2, 3, 4)
     )
     assert any('href="#research-top"' in item.value for item in app.html)
+
+
+def test_idea_input_explains_ollama_destination_without_openai_cost(monkeypatch):
+    monkeypatch.setenv("LLM_PROVIDER", "ollama")
+    monkeypatch.setenv("OLLAMA_BASE_URL", "http://localhost:11434")
+    app = AppTest.from_file(str(APP)).run()
+    click(app, "돋보기로 조사 시작")
+    captions = " ".join(item.value for item in app.caption)
+    assert "설정된 Ollama 서버로 전송" in captions
+    assert "OpenAI API를 호출하지 않습니다" in captions
+    assert "OpenAI API 비용" not in captions
+    assert "KIPRIS·NAVER" in captions
 
 
 def test_quick_history_preserves_input_and_returns_without_reanalysis():

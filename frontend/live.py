@@ -49,6 +49,27 @@ COST_NOTE = (
 )
 
 
+def input_transfer_note() -> str:
+    """입력 문장이 전달되는 LLM 서비스에 대해 안내한다."""
+    from src.llm_client import load_llm_settings
+
+    if load_llm_settings() == "ollama":
+        return "입력한 아이디어 문장은 설정된 Ollama 서버로 전송되며 OpenAI API를 호출하지 않습니다."
+    return "입력한 아이디어 문장은 OpenAI API로 전송됩니다."
+
+
+def analysis_cost_note() -> str:
+    """선택한 LLM provider와 외부 자료 조회에 맞는 호출·비용 안내를 반환한다."""
+    from src.llm_client import load_llm_settings
+
+    if load_llm_settings() == "ollama":
+        return (
+            "채팅·임베딩은 Ollama 서버에서 처리됩니다. KIPRIS·NAVER 등 외부 자료 조회는 "
+            "설정에 따라 별도 API 호출과 서비스별 사용 한도가 적용될 수 있습니다."
+        )
+    return COST_NOTE
+
+
 def app_password() -> str:
     """호스팅 배포에서 설정하는 접속 비밀번호. 비어 있으면 비밀번호 화면을 띄우지 않는다(로컬 실행)."""
     return os.getenv("IDEALENS_APP_PASSWORD", "").strip()
