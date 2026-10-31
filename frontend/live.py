@@ -146,6 +146,11 @@ def friendly_error(exc: Exception) -> str:
     if name == "RateLimitError":
         return f"{provider_label} 사용 한도에 걸렸습니다. 잠시 후 다시 시도해 주세요."
     if name in ("APIConnectionError", "APITimeoutError", "ConnectionError"):
+        if provider == "ollama":
+            return (
+                "Ollama 서버에 연결하지 못했습니다. OLLAMA_BASE_URL과 Ollama 서버 실행 상태를 "
+                "확인한 뒤 다시 시도해 주세요."
+            )
         return "외부 API에 연결하지 못했습니다. 네트워크를 확인해 주세요."
     if isinstance(exc, RuntimeError) and any(
         token in str(exc).lower()
