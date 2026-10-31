@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 from src.generation.business_review import BusinessReview
 from src.generation.business_canvas import BusinessCanvas
 from src.generation.swot import SwotAnalysis
-from src.generation.executive_review import ExecutiveReview
+from src.generation.executive_models import ExecutiveReview
 from src.generation.question_links import QuestionLink
 from src.schemas import (
     CostScenarioTotals,
