@@ -116,7 +116,9 @@ IdeaLens/
 ├── src/
 │   ├── __init__.py
 │   ├── schemas.py               # 공통 데이터 모델
-│   ├── pipeline.py              # 전체 분석 흐름
+│   ├── pipeline.py              # 파이프라인 진입점·보고서 구성
+│   ├── pipeline_execution.py    # 특허·시장 실행·시간 초과 격리
+│   ├── pipeline_models.py       # 준비 상태·실행 결과 계약
 │   │
 │   ├── ingestion/
 │   │   ├── __init__.py

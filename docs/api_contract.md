@@ -1,6 +1,6 @@
 # 서비스 연결 계약
 
-파이프라인(`src/pipeline.py`)과 Streamlit UI가 각 파트의 진입점을 부를 때의 입력·출력·오류 처리 약속이다.
+파이프라인(`src/pipeline.py`)과 Streamlit UI가 각 파트의 진입점을 부를 때의 입력·출력·오류 처리 약속이다. 파이프라인의 외부 진입 함수는 `src.pipeline`에 두고, 영역 실행은 `src.pipeline_execution`, 결과 모델은 `src.pipeline_models`에서 관리한다.
 데이터 형식은 모두 `src/schemas.py`의 Pydantic 모델이며, JSON으로 주고받을 때는 `model_dump_json()`·`model_validate_json()`을 쓴다.
 특허 파트와 통합 흐름의 계약은 각 담당이 이 문서에 추가한다.
 
