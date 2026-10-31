@@ -46,10 +46,7 @@ from src.generation.executive_review import (
     executive_report_markdown,
 )
 from src.generation.input_guard import MAX_ANSWER_CHARS, screen_text
-from src.generation.report_builder import (
-    QuestionLink,
-    link_questions_with_retry,
-)
+from src.generation.question_links import QuestionLink, link_questions_with_retry
 from src.schemas import (
     IDEA_FIELDS,
     IdeaDraft,

@@ -142,7 +142,8 @@ IdeaLens/
 │   │   ├── market_analysis.py   # 시장 신호 분석
 │   │   ├── business_review.py   # 근거 기반 사업 검증 행동 권고
 │   │   ├── market_markdown.py   # 시장 결과 마크다운 섹션
-│   │   └── report_builder.py    # 최종 보고서 구성
+│   │   ├── question_links.py    # 검토 질문별 근거 연결·검증
+│   │   └── report_builder.py    # 통합 보고서 렌더링
 │   │
 │   └── services/
 │       ├── __init__.py
