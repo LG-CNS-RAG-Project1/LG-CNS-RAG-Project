@@ -49,6 +49,7 @@ flowchart LR
   evaluation -.-> generation
 
   %% map frontend/ frontend
+  %% map frontend/market_view.py frontend
   %% map src/services/ services
   %% map src/pipeline.py pipeline
   %% map src/pipeline_cli.py pipeline
@@ -179,6 +180,7 @@ IdeaLens/
 │
 ├── frontend/
 │   ├── app.py                   # Streamlit 흐름·탐색·분석 실행
+│   ├── market_view.py           # 시장 결과·근거 화면
 │   └── patent_view.py           # 특허 상세 대화상자·보고서 화면
 │
 ├── tests/

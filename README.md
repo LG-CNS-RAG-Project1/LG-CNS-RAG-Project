@@ -46,7 +46,7 @@
 ├── deploy/                  # 공용 Chroma·HTTPS 중계·개인 키 인증 배포 설정
 ├── docs/                    # 기획·설계·개발 환경 문서, 프로젝트 목표·PR 분석 안내서(review-baseline.md)
 ├── evaluation/              # 평가 질문·정답 근거·평가 실행
-├── frontend/                # 아이디어 검토 UI, 실제 분석 화면 보조(live.py), 스타일, 비용 계산과 예시 보고서, SCC 전용 의존성(requirements.txt)
+├── frontend/                # 아이디어 검토 UI와 단계별 결과 화면, 상태·보고서 도우미, 스타일과 예시 자료
 ├── prompts/                 # 아이디어 구조화·근거 검증·보고서 프롬프트
 ├── reports/                 # 생성한 경영진·R&D 보고서
 ├── scripts/
