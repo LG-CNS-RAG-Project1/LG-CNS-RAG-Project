@@ -368,7 +368,7 @@ html{scroll-behavior:auto;}
     display:flex;
     flex-direction:row!important;
     flex-wrap:nowrap!important;
-    justify-content:flex-start;
+    justify-content:space-between;
     align-items:center;
     box-sizing:border-box;
     width:min(450px,calc(100vw - 24px))!important;
@@ -383,6 +383,7 @@ html{scroll-behavior:auto;}
     gap:2px!important;
     border-radius:22px;
   }
+  .st-key-research_rail_public>:has(.st-key-rail_menu_about),.st-key-research_rail_public>:has(.st-key-rail_menu_difference) {flex:0 0 58px!important;width:58px!important;min-width:58px!important;scroll-snap-align:start;}
   :is(.st-key-research_rail_workspace,.st-key-research_rail_public)>[data-testid="stElementContainer"] {display:flex;flex:0 0 58px;width:58px;min-width:58px;align-items:center;justify-content:center;scroll-snap-align:start;}
   :is(.st-key-research_rail_workspace,.st-key-research_rail_public)>[data-testid="stElementContainer"]:has(.rail-caption),
   :is(.st-key-research_rail_workspace,.st-key-research_rail_public)>[data-testid="stElementContainer"]:has(.rail-divider) {display:none;}

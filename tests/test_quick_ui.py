@@ -196,9 +196,11 @@ def test_research_rail_uses_distinct_mounts_and_nonshrinking_mobile_layout():
     assert 'key="research_rail_public"' in nav_source
     assert 'key="research_rail_workspace"' in nav_source
     assert "overflow-x:auto" in styles
+    assert "justify-content:space-between" in styles
     assert "flex:0 0 58px" in styles
     assert "height:52px!important" in styles
     assert "align-items:center!important;justify-content:center!important" in styles
     assert "line-height:1.2!important;margin:0!important" in styles
     assert "padding-bottom:calc(110px + env(safe-area-inset-bottom))" in styles
     assert "st-key-research_rail_public :is(.st-key-rail_menu_about,.st-key-rail_menu_difference) {row-gap:0!important;}" in styles
+    assert ".st-key-research_rail_public>:has(.st-key-rail_menu_about)" in styles
