@@ -63,6 +63,7 @@ flowchart LR
   %% map src/generation/executive_markdown.py generation
   %% map src/generation/market_evidence.py generation
   %% map src/generation/market_report_renderer.py generation
+  %% map src/generation/patent_presentation.py generation
   %% map src/generation/report_formatting.py generation
   %% map src/generation/report_summary.py generation
   %% map src/ingestion/ ingestion
@@ -157,7 +158,8 @@ IdeaLens/
 │   │   ├── __init__.py
 │   │   ├── input_guard.py       # 아이디어 입력 규칙 검사
 │   │   ├── idea_parser.py       # 아이디어 구조화
-│   │   ├── patent_analysis.py   # 선행특허 비교
+│   │   ├── patent_analysis.py   # 선행특허 비교·근거 검증
+│   │   ├── patent_presentation.py # 특허 화면 표시용 상태·인용 서식
 │   │   ├── market_analysis.py   # 시장 보고서 생성 흐름
 │   │   ├── market_evidence.py   # 검색 결과의 근거 모델 변환
 │   │   ├── market_claims.py     # 문장 근거·수치 검증과 판정 규칙

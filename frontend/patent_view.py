@@ -14,10 +14,8 @@ def clear_patent_detail():
 @st.dialog("특허 비교 상세", width="large", on_dismiss=clear_patent_detail)
 def patent_detail_dialog(patent, patent_id):
     """선택한 문헌의 검증된 비교와 원문만 표시한다."""
-    from src.generation.patent_analysis import (
-        highlight_verbatim_excerpt,
-        kipris_application_search_url,
-    )
+    from src.generation.patent_analysis import kipris_application_search_url
+    from src.generation.patent_presentation import highlight_verbatim_excerpt
     from src.generation.report_builder import safe_url
     from frontend.patent_orbit import (
         drawing_image_metadata,
@@ -404,7 +402,7 @@ def render_patent_report(patent, *, widget_suffix="", preview=False):
         tooltip_text,
     )
 
-    from src.generation.patent_analysis import (
+    from src.generation.patent_presentation import (
         PATENT_ORBIT_COLORS,
         PATENT_ORBIT_LABELS,
         patent_orbit_category,
