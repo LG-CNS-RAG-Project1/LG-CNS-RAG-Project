@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 from frontend.live import (
-    COST_NOTE,
+    analysis_cost_note,
     FIELD_LABELS,
     LINK_LABELS,
     MAX_PASSWORD_FAILURES,
@@ -25,6 +25,7 @@ from frontend.live import (
     cost_markdown,
     cost_rows_list,
     friendly_error,
+    input_transfer_note,
     live_available,
     password_matches,
     run_line,
@@ -2347,8 +2348,8 @@ with st.container(key=f"workspace_{1 if s.stage == 1 else 3 if s.stage == 4 else
                         s.idea_page_view = "draft"
                     st.rerun()
             st.caption(
-                "‘AI 초안 만들기’를 누르면 입력한 아이디어 문장이 OpenAI API로 전송됩니다. "
-                "초안 생성과 이후 특허·시장 분석에서 외부 API 비용이 발생할 수 있습니다."
+                f"‘AI 초안 만들기’를 누르면 {input_transfer_note()} "
+                f"{analysis_cost_note()}"
             )
 
             examples_col, recent_col = st.columns(2)
