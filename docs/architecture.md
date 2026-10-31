@@ -58,6 +58,7 @@ flowchart LR
   %% map src/patent_schemas.py pipeline
   %% map src/market_schemas.py pipeline
   %% map src/idea_schemas.py pipeline
+  %% map src/generation/executive_markdown.py generation
   %% map src/generation/market_evidence.py generation
   %% map src/generation/report_formatting.py generation
   %% map src/generation/report_summary.py generation
@@ -157,6 +158,7 @@ IdeaLens/
 │   │   ├── market_analysis.py   # 시장 보고서 생성 흐름
 │   │   ├── market_evidence.py   # 검색 결과의 근거 모델 변환
 │   │   ├── market_claims.py     # 문장 근거·수치 검증과 판정 규칙
+│   │   ├── executive_markdown.py # 최종 경영진 보고서 마크다운 렌더링
 │   │   ├── business_review.py   # 근거 기반 사업 검증 행동 권고
 │   │   ├── market_markdown.py   # 시장 결과 마크다운 섹션
 │   │   ├── question_links.py    # 검토 질문별 근거 연결·검증
