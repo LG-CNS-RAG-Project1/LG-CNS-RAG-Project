@@ -31,6 +31,8 @@
 | 함수 | 입력 | 출력 |
 |---|---|---|
 | `src.services.market_service.run_market_research(request, idea_id=None, trend_fn=None, network_fn=None)` | `MarketSearchRequest` (`build_requests`의 두 번째 값) | `MarketReport` |
+
+- 시장 분석 생성과 근거 검증의 구현은 각각 `src.generation.market_analysis`와 `src.generation.market_claims`에서 관리하며, 외부 호출 계약은 `run_market_research`와 `MarketReport`로 유지한다.
 | `src.generation.market_markdown.market_report_to_markdown(report, heading_level=2)` | `MarketReport` | 종합 보고서용 마크다운 섹션 (str) |
 
 - `idea_id`는 평가·시연용 샘플 아이디어(`data/samples/ideas.json`)의 수집 범위로 검색을 좁힐 때만 준다. 사용자가 새로 입력한 아이디어는 `None`.

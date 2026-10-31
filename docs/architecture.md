@@ -141,7 +141,8 @@ IdeaLens/
 │   │   ├── input_guard.py       # 아이디어 입력 규칙 검사
 │   │   ├── idea_parser.py       # 아이디어 구조화
 │   │   ├── patent_analysis.py   # 선행특허 비교
-│   │   ├── market_analysis.py   # 시장 신호 분석
+│   │   ├── market_analysis.py   # 시장 보고서 생성 흐름
+│   │   ├── market_claims.py     # 문장 근거·수치 검증과 판정 규칙
 │   │   ├── business_review.py   # 근거 기반 사업 검증 행동 권고
 │   │   ├── market_markdown.py   # 시장 결과 마크다운 섹션
 │   │   ├── question_links.py    # 검토 질문별 근거 연결·검증
