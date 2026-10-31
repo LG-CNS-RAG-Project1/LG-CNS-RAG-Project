@@ -55,6 +55,8 @@ flowchart LR
   %% map src/services/patent_context.py services
   %% map src/schemas.py pipeline
   %% map src/idea_schemas.py pipeline
+  %% map src/generation/report_formatting.py generation
+  %% map src/generation/report_summary.py generation
   %% map src/ingestion/ ingestion
   %% map scripts/collect_patents.py ingestion
   %% map src/retrieval/ retrieval
@@ -150,7 +152,9 @@ IdeaLens/
 │   │   ├── business_review.py   # 근거 기반 사업 검증 행동 권고
 │   │   ├── market_markdown.py   # 시장 결과 마크다운 섹션
 │   │   ├── question_links.py    # 검토 질문별 근거 연결·검증
-│   │   └── report_builder.py    # 통합 보고서 렌더링
+│   │   ├── report_formatting.py # 안전한 보고서 텍스트·출처 서식
+│   │   ├── report_summary.py    # 특허·시장·사업 요약 렌더링
+│   │   └── report_builder.py    # 통합 보고서 구성·상세 렌더링
 │   │
 │   └── services/
 │       ├── __init__.py

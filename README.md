@@ -65,7 +65,7 @@
 │   ├── analysis/           # 특허 분류통계와 기술 동향 집계
 │   ├── ingestion/           # 자료 수집·전처리·청크 생성
 │   ├── retrieval/           # 공통 Dense·BM25·Hybrid 검색·색인 구축
-│   ├── generation/          # 시장 문장 검증·질문별 근거 연결·역할별 보고서 생성
+│   ├── generation/          # 근거 검증·질문 연결·보고서 텍스트 서식과 요약 렌더링
 │   └── services/            # 특허·시장 진입점, 후보 정리, 청구항 문맥 구성
 ├── tests/                   # pytest 테스트
 ├── Dockerfile · compose.yaml · Makefile  # Docker 개발 환경과 공용 명령
