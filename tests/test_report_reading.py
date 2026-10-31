@@ -69,7 +69,7 @@ def test_saved_record_pdf_is_available_without_running_analysis():
             market_count=0,
         )
     ]
-    app.button(key="rail_history").click().run()
+    app.button(key="header_history").click().run()
     app.radio[0].set_value(0)
     app.button(key="history_prepare_pdf").click().run()
     assert not app.exception

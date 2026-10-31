@@ -93,6 +93,7 @@ for key, value in {
     "selected_patent_detail_id": None,
     "patent_orbit_chart_version": 0,
     "workflow_cancelled": False,
+    "workflow_cancelled_stage_states": {},
     "technology_area_id": None,
     "technology_area_choice": "AUTO",
     "cost_rows": empty_costs(),
@@ -178,6 +179,12 @@ def patent_detail_dialog(patent, patent_id):
         kipris_application_search_url,
     )
     from src.generation.report_builder import safe_url
+    from frontend.patent_orbit import (
+        drawing_image_metadata,
+        fetch_first_kipris_drawing,
+        kipris_drawing_url,
+        tooltip_text,
+    )
 
     review = next(
         (item for item in patent.patent_reviews if item.patent_id == patent_id), None
@@ -201,15 +208,94 @@ def patent_detail_dialog(patent, patent_id):
             )
         )
     )
-    if review:
-        st.info(
-            f"**관련성: {review.relevance}** · "
-            f"{review.relevance_reason or review.overall_summary or '비교 판단 근거가 제한적입니다.'}"
+    drawing_evidence = next(
+        (
+            item
+            for item in evidence_by_id.values()
+            if item.representative_thumbnail_url or item.representative_drawing_url
+        ),
+        None,
+    )
+    image_bytes = None
+    image_status = "missing_url"
+    loaded_url = None
+    if drawing_evidence:
+        image_bytes, image_status, loaded_url = fetch_first_kipris_drawing(
+            (
+                drawing_evidence.representative_drawing_url,
+                drawing_evidence.representative_thumbnail_url,
+            )
         )
-        if review.overall_summary:
-            st.write(review.overall_summary)
-    else:
-        st.info("원문은 확보했지만 이 문헌의 비교 분석 결과는 제공되지 않았습니다.")
+    full_drawing_url = (
+        kipris_drawing_url(
+            drawing_evidence.representative_drawing_url
+            or drawing_evidence.representative_thumbnail_url
+        )
+        if drawing_evidence
+        else None
+    )
+
+    left, right = st.columns([3, 1.15], gap="large", vertical_alignment="top")
+    with left:
+        if review:
+            reason = tooltip_text(review.relevance_reason, "우선 확인 이유 미제공")
+            st.info(f"**관련성: {review.relevance}** · {reason}")
+            if review.overall_summary:
+                st.write(review.overall_summary)
+        else:
+            st.info("원문은 확보했지만 이 문헌의 비교 분석 결과는 제공되지 않았습니다.")
+
+    with right:
+        st.markdown("#### 대표도면")
+        if image_bytes:
+            try:
+                image_width, image_height, _, image_format = drawing_image_metadata(
+                    image_bytes
+                )
+                original_url = kipris_drawing_url(
+                    drawing_evidence.representative_drawing_url
+                )
+                is_original = loaded_url == original_url
+                resolution_note = "원본 도면" if is_original else "썸네일 · 저해상도"
+                caption = drawing_evidence.representative_drawing_caption or (
+                    f"KIPRIS 대표도면 · 출원번호 "
+                    f"{drawing_evidence.application_number or patent_id}"
+                )
+                st.image(image_bytes, caption=caption, width=min(image_width, 240))
+                st.caption(
+                    f"{resolution_note} · {image_width}×{image_height} px · {image_format}"
+                )
+                with st.popover("도면 크게 보기"):
+                    st.image(image_bytes, caption=caption, width=min(image_width, 1200))
+                    st.caption(f"{image_width}×{image_height} px · {image_format}")
+                    if full_drawing_url:
+                        st.link_button("KIPRIS 대표도면 원문 열기", full_drawing_url)
+                st.caption("출처: KIPRIS Plus · 선택한 문헌")
+            except Exception:
+                st.info(
+                    "대표도면 형식을 표시할 수 없습니다. KIPRIS 원문 링크에서 확인해 주세요."
+                )
+        elif drawing_evidence:
+            failure_messages = {
+                "invalid_source": "저장된 도면 주소가 KIPRIS 공식 호스트가 아니어서 표시하지 않았습니다.",
+                "redirect": "도면 서버가 다른 주소로 안내했습니다. 안전 검증을 위해 자동 이동하지 않았습니다.",
+                "http_error": "KIPRIS 도면 서버에서 이미지 파일을 가져오지 못했습니다.",
+                "non_image_response": "KIPRIS 도면 서버가 이미지가 아닌 응답을 반환했습니다.",
+                "invalid_image": "KIPRIS 응답이 유효한 이미지 파일이 아닙니다.",
+                "too_large": "도면 파일이 허용 크기인 8MB를 초과했습니다.",
+                "network_error": "KIPRIS 도면 서버에 연결하지 못했습니다.",
+                "missing_url": "이미지 경로를 찾을 수 없습니다.",
+            }
+            st.info(
+                "대표도면을 불러오지 못했습니다. "
+                + failure_messages.get(
+                    image_status, "이미지 응답을 확인할 수 없습니다."
+                )
+            )
+        else:
+            st.info("이 문헌에는 대표도면 경로가 없습니다.")
+        if full_drawing_url:
+            st.link_button("KIPRIS 도면 원문", full_drawing_url)
 
     st.markdown("#### 아이디어 구성요소별 비교")
     status_labels = {
@@ -276,6 +362,37 @@ def patent_detail_dialog(patent, patent_id):
             st.caption(f"P:{evidence.citation_id} · {claim_label}")
             st.write(evidence.quote)
 
+    if review and (review.watchout_findings or review.design_recommendations):
+        st.markdown("#### 이 문헌의 주의점과 개선 제안")
+        for item in review.watchout_findings:
+            linked = [
+                evidence_by_id[cid]
+                for cid in item.citation_ids
+                if cid in evidence_by_id
+            ]
+            basis = "문헌 근거 연결" if linked else "추가 확인이 필요한 가설"
+            st.warning(
+                f"**{item.issue} · {basis}**\n\n{item.why_it_matters}\n\n"
+                f"다음 확인: {item.next_check}"
+            )
+            for evidence in linked:
+                claim = (
+                    f" · 청구항 {evidence.claim_number}"
+                    if evidence.claim_number
+                    else ""
+                )
+                st.caption(f"P:{evidence.citation_id}{claim} · {evidence.title}")
+                st.text(evidence.quote)
+        for item in review.design_recommendations:
+            refs = ", ".join(f"P:{cid}" for cid in item.citation_ids)
+            basis = "근거 기반" if item.basis == "evidence_based" else "검증 전 가설"
+            st.markdown(f"**개선 제안 · {basis}:** {item.recommendation}")
+            st.write(item.rationale)
+            if item.validation_needed:
+                st.caption(f"검증할 내용: {item.validation_needed}")
+            if refs:
+                st.caption(f"연결 근거: {refs}")
+
     application_number = next(
         (
             item.application_number
@@ -300,23 +417,31 @@ def patent_watchouts_dialog(patent):
         return
 
     evidence_by_id = {item.citation_id: item for item in patent.evidence}
-    st.caption("검색 문헌 기반의 예비 기술 검토이며 법률 의견이 아닙니다.")
+    st.caption(
+        "검색 문헌을 바탕으로 한 기술 검토 보조입니다. 출원·신규성·진보성·침해·실시 자유에 대한 법률 의견이 아닙니다."
+    )
     if precheck.common_watchouts:
-        st.markdown("### 문헌 비교에서 확인된 주의점")
+        st.markdown("### 주의 항목 · 문헌 근거 연결 여부 확인")
         for item in precheck.common_watchouts:
+            linked = [
+                evidence_by_id[cid]
+                for cid in item.citation_ids
+                if cid in evidence_by_id
+            ]
+            basis = "문헌 근거 연결" if linked else "추가 확인이 필요한 가설"
             st.warning(
-                f"**{item.issue}**\n\n{item.why_it_matters}\n\n다음 확인: {item.next_check}"
+                f"**{item.issue} · {basis}**\n\n{item.why_it_matters}\n\n다음 확인: {item.next_check}"
             )
-            for citation_id in item.citation_ids:
-                evidence = evidence_by_id.get(citation_id)
-                if evidence:
-                    claim = (
-                        f" · 청구항 {evidence.claim_number}"
-                        if evidence.claim_number
-                        else ""
-                    )
-                    st.caption(f"P:{citation_id}{claim} · {evidence.title}")
-                    st.text(evidence.quote)
+            if not linked:
+                st.caption("연결된 문헌·청구항이 없어 분석 가설로만 표시합니다.")
+            for evidence in linked:
+                claim = (
+                    f" · 청구항 {evidence.claim_number}"
+                    if evidence.claim_number
+                    else ""
+                )
+                st.caption(f"P:{evidence.citation_id}{claim} · {evidence.title}")
+                st.text(evidence.quote)
     else:
         st.info("문헌 전체에서 근거가 연결된 공통 주의점은 확인되지 않았습니다.")
 
@@ -330,7 +455,7 @@ def patent_watchouts_dialog(patent):
             )
             st.write(item.rationale)
             if item.validation_needed:
-                st.caption(f"검증 방법: {item.validation_needed}")
+                st.caption(f"확인할 사항: {item.validation_needed}")
             for citation_id in item.citation_ids:
                 evidence = evidence_by_id.get(citation_id)
                 if evidence:
@@ -466,6 +591,7 @@ def input_changed():
     s.pipeline_result = None
     s.analysis_sources = None
     s.analysis_key = ""
+    s.workflow_cancelled_stage_states = {}
 
 
 def prepare_input():
@@ -702,6 +828,7 @@ def start_report_workflow():
     s.analysis_workflow_id = job_id
     s.workflow_preview_stage = None
     s.workflow_cancelled = False
+    s.workflow_cancelled_stage_states = {}
     s.analysis_key = key
     s.workflow_stage_entered_at = time.monotonic()
     s.workflow_patent_displayed_at = None
@@ -731,6 +858,7 @@ def cancel_report_workflow():
     if job_id:
         with WORKFLOW_JOBS_LOCK:
             job = WORKFLOW_JOBS.get(job_id)
+            phase = job.get("phase") if job is not None else "patent"
             if job is not None:
                 job["cancelled"] = True
                 job["done"] = True
@@ -741,6 +869,17 @@ def cancel_report_workflow():
         s.analysis_sources = None
         s.analysis_key = ""
         s.workflow_cancelled = True
+        phase_stage = {"patent": 2, "market": 3, "final_report": 4}.get(phase, 2)
+        completed_states = {1: "completed"}
+        for number, report_key, run_key in (
+            (2, "patent_report", "patent_run"),
+            (3, "market_report", "market_run"),
+        ):
+            report = job.get(report_key) if job is not None else None
+            if report is not None:
+                completed_states[number] = _stage_result_state(report, job.get(run_key))
+        completed_states[phase_stage] = "cancelled"
+        s.workflow_cancelled_stage_states = completed_states
         s.stage = 1
 
 
@@ -966,7 +1105,7 @@ def workflow_progress_fragment(compact=False):
             f"진행 시간 {elapsed // 60}분 {elapsed % 60}초"
         )
         st.caption(
-            "새 입력이 분석 결과에 섞이지 않도록 입력은 잠겨 있습니다. 이전 완료 단계는 상단 메뉴에서 다시 볼 수 있습니다."
+            "새 입력이 분석 결과에 섞이지 않도록 입력은 잠겨 있습니다. 완료된 단계는 하단 고정 바로가기에서 해당 화면으로 이동할 수 있습니다."
         )
         if st.button("분석 취소하고 아이디어 수정", key=f"cancel_workflow_{job_id}"):
             cancel_report_workflow()
@@ -976,6 +1115,14 @@ def workflow_progress_fragment(compact=False):
 def render_patent_report(patent, *, widget_suffix="", preview=False):
     """최대 8개 특허를 궤도에 배치하고 호버 요약과 종합 근거를 제공한다."""
     import math
+    from frontend.patent_orbit import (
+        dense_similarity_text,
+        patent_dense_similarity,
+        patent_orbit_position,
+        patent_semantic_similarity,
+        semantic_similarity_text,
+        tooltip_text,
+    )
 
     from src.generation.patent_analysis import (
         PATENT_ORBIT_COLORS,
@@ -1086,32 +1233,32 @@ def render_patent_report(patent, *, widget_suffix="", preview=False):
             )
             count = len(orbit_reviews)
             points = []
-            for index, (review, _) in enumerate(orbit_reviews):
-                angle = (2 * math.pi * index / count) - math.pi / 2
+            for index, (review, document_evidence) in enumerate(orbit_reviews):
                 category = patent_orbit_category(review, evidence_by_id)
-                summary = (
-                    review.overall_summary
-                    or review.relevance_reason
-                    or "요약 근거 부족"
-                ).strip()
+                reason = tooltip_text(review.relevance_reason, "우선 확인 이유 미제공")
+                dense_similarity = patent_dense_similarity(document_evidence)
+                semantic_similarity = patent_semantic_similarity(document_evidence)
+                x, y = patent_orbit_position(index, count, semantic_similarity)
                 points.append(
                     {
                         "patent_id": review.patent_id,
                         "title": review.title,
                         "number": f"P{index + 1}",
-                        "summary": summary[:240],
-                        "reason": (review.relevance_reason or "검토 이유 미기록")[:180],
+                        "priority_reason_display": reason[:180],
+                        "dense_score_display": dense_similarity_text(dense_similarity),
+                        "semantic_similarity_display": semantic_similarity_text(
+                            semantic_similarity
+                        ),
                         "category": category,
-                        "label": PATENT_ORBIT_LABELS[category],
                         "color": PATENT_ORBIT_COLORS[category],
-                        "x": 2.7 * math.cos(angle),
-                        "y": 2.1 * math.sin(angle),
+                        "x": x,
+                        "y": y,
                     }
                 )
 
             st.subheader("특허 비교 궤도")
             st.caption(
-                "행성에 커서를 올리면 문헌별 핵심 요약을 확인할 수 있습니다. 색상은 구성 비교 근거에 따른 검토 우선순위이며 법률상 위험 등급이 아닙니다."
+                "의미 유사도는 아이디어 기술 내용과 특허 제목·초록·확보 청구항을 text-embedding-3-small로 임베딩해 cosine 유사도(0~1, 음수는 0으로 제한)로 계산합니다. 분석마다 한 번의 추가 임베딩 API 호출이 발생합니다. Dense 검색 점수와 다른 지표이며 관련성 확률이 아닙니다. 궤도는 Dense 점수가 있으면 이를, 없으면 외곽 배치를 사용합니다. 색상은 구성 비교 근거에 따른 검토 우선순위이며 법률상 위험 등급이 아닙니다."
             )
             legend = st.columns(4)
             for column, category in zip(legend, ("red", "yellow", "green", "blue")):
@@ -1198,9 +1345,18 @@ def render_patent_report(patent, *, widget_suffix="", preview=False):
                         ),
                         tooltip=[
                             alt.Tooltip("title:N", title="문헌"),
-                            alt.Tooltip("label:N", title="검토 우선순위"),
-                            alt.Tooltip("summary:N", title="핵심 요약", format="s"),
-                            alt.Tooltip("reason:N", title="우선 확인 이유", format="s"),
+                            alt.Tooltip(
+                                "semantic_similarity_display:N",
+                                title="의미 유사도 (0~1)",
+                            ),
+                            alt.Tooltip(
+                                "dense_score_display:N",
+                                title="Dense 검색 점수",
+                            ),
+                            alt.Tooltip(
+                                "priority_reason_display:N",
+                                title="우선 확인 이유",
+                            ),
                         ],
                         opacity=alt.condition(hover, alt.value(1), alt.value(0.88)),
                     )
@@ -1222,9 +1378,9 @@ def render_patent_report(patent, *, widget_suffix="", preview=False):
                 chart_state = st.altair_chart(
                     chart,
                     key=(
-                        f"patent_orbit{widget_suffix}"
+                        f"patent_orbit_v4{widget_suffix}"
                         if preview
-                        else f"patent_orbit{widget_suffix}_{s.patent_orbit_chart_version}"
+                        else f"patent_orbit_v4{widget_suffix}_{s.patent_orbit_chart_version}"
                     ),
                     on_select="ignore" if preview else "rerun",
                     selection_mode=None if preview else click.name,
@@ -1243,7 +1399,9 @@ def render_patent_report(patent, *, widget_suffix="", preview=False):
                 )
 
             selected_patent = s.get("selected_patent_detail_id") or selected_patent
-            if not preview and selected_patent in reviews_by_patent:
+            if not preview and selected_patent in {
+                item["patent_id"] for item in documents
+            }:
                 patent_detail_dialog(patent, selected_patent)
 
         else:
@@ -1256,6 +1414,9 @@ def render_patent_report(patent, *, widget_suffix="", preview=False):
 
     st.subheader("2. 주의점 및 개선 제안")
     if precheck:
+        st.caption(
+            "특허 문헌 비교를 위한 기술 검토 보조입니다. 특허성·침해·실시 자유에 대한 법률 판단이 아닙니다."
+        )
         precheck_labels = {
             "overlap_concern": "유사 구성에 주의",
             "potentially_distinct": "차이 가능성 확인",
@@ -1263,14 +1424,24 @@ def render_patent_report(patent, *, widget_suffix="", preview=False):
         }
         st.info(f"{precheck_labels[precheck.status]} · {precheck.summary}")
         for item in precheck.common_watchouts[:2]:
-            st.markdown(f"- **주의:** {item.issue} — {item.why_it_matters}")
+            refs = ", ".join(f"P:{cid}" for cid in item.citation_ids)
+            linked = any(cid in evidence_by_id for cid in item.citation_ids)
+            basis = "문헌 근거" if linked else "확인 필요 가설"
+            st.markdown(
+                f"- **주의 · {basis}:** {item.issue} — {item.why_it_matters}"
+                + (f" · 다음 확인: {item.next_check}" if item.next_check else "")
+                + (f" · {refs}" if refs else "")
+            )
         for item in precheck.common_design_recommendations[:2]:
             refs = ", ".join(f"P:{cid}" for cid in item.citation_ids)
             basis = "근거 기반" if item.basis == "evidence_based" else "검증 전 가설"
             st.markdown(
-                f"- **개선:** {item.recommendation} · {basis}"
+                f"- **개선 · {basis}:** {item.recommendation}"
+                + (f" — {item.rationale}" if item.rationale else "")
                 + (f" · {refs}" if refs else "")
             )
+            if item.validation_needed:
+                st.caption(f"확인할 사항: {item.validation_needed}")
         if not precheck.common_watchouts and not precheck.common_design_recommendations:
             st.caption("문헌 공통 주의점·개선 제안은 확인되지 않았습니다.")
         if not preview and st.button(
@@ -1671,7 +1842,7 @@ def can_visit(number):
         if number == 2:
             return job.get("patent_report") is not None
         if number == 3:
-            return job.get("market_report") is not None
+            return True
         if number == 4:
             return job.get("result") is not None
     if number == 1:
@@ -1692,7 +1863,94 @@ def can_visit(number):
     return False
 
 
+def _stage_result_state(report, run=None):
+    if run is not None and getattr(run, "state", None) in {"error", "timeout"}:
+        return "failed"
+    status = getattr(report, "status", None)
+    return {
+        "completed": "completed",
+        "partial": "partial",
+        "no_results": "insufficient",
+        "error": "failed",
+    }.get(status, "pending")
+
+
+def workspace_stage_state(number):
+    """현재 workflow의 실제 결과 상태로 상태바 단계 표시를 정한다."""
+    job = current_workflow_job() if s.get("analysis_workflow_id") else None
+    result = s.get("pipeline_result")
+    if number == 1:
+        return (
+            "completed"
+            if job is not None
+            or result is not None
+            or s.get("workflow_cancelled_stage_states")
+            else "pending"
+        )
+
+    if job is not None:
+        report_key, run_key, phase = {
+            2: ("patent_report", "patent_run", "patent"),
+            3: ("market_report", "market_run", "market"),
+        }.get(number, (None, None, None))
+        if number == 4:
+            final_result = job.get("result")
+            if final_result is not None:
+                return _stage_result_state(final_result)
+            if job.get("error") or job.get("phase") == "failed":
+                return "failed"
+            if job.get("cancelled"):
+                return "cancelled"
+            return "active" if job.get("phase") == "final_report" else "pending"
+
+        report = job.get(report_key)
+        run = job.get(run_key)
+        if report is not None:
+            return _stage_result_state(report, run)
+        if job.get("cancelled"):
+            return "cancelled" if job.get("phase") == phase else "pending"
+        if job.get("error") or job.get("phase") == "failed":
+            if (number == 2 and job.get("patent_report") is None) or (
+                number == 3 and job.get("patent_report") is not None
+            ):
+                return "failed"
+        return "active" if job.get("phase") == phase else "pending"
+
+    if result is None:
+        return s.get("workflow_cancelled_stage_states", {}).get(number, "pending")
+    if number == 2:
+        return _stage_result_state(result.patent, result.patent_run)
+    if number == 3:
+        return _stage_result_state(result.market, result.market_run)
+    if number == 4:
+        if s.get("pipeline_error"):
+            return "failed"
+        return _stage_result_state(result)
+    return "pending"
+
+
+_STAGE_STATE_LABELS = {
+    "completed": "완료",
+    "active": "진행 중",
+    "pending": "대기",
+    "partial": "부분 완료",
+    "insufficient": "근거 부족",
+    "failed": "실패",
+    "cancelled": "취소",
+}
+_STAGE_STATE_ICONS = {
+    "completed": ":material/check_circle:",
+    "active": ":material/autorenew:",
+    "pending": ":material/radio_button_unchecked:",
+    "partial": ":material/warning:",
+    "insufficient": ":material/info:",
+    "failed": ":material/error:",
+    "cancelled": ":material/cancel:",
+}
+
+
 def navigate(number):
+    s.workflow_preview_stage = None
     s.page = "workspace"
     s.app_view = "analysis"
     sync_context()
@@ -1989,47 +2247,30 @@ active_job = current_workflow_job() if s.get("analysis_workflow_id") else None
 
 
 def review_navigation(number, label, column, key, *, icon=None):
-    if column.button(
-        label,
-        key=key,
-        type=(
-            "primary"
-            if s.stage == number or (key in {"rail_2", "nav_2"} and s.stage == 3)
-            else "secondary"
-        ),
-        disabled=not can_visit(number)
-        or (active_job is not None and s.stage == number),
-        width="stretch",
-        icon=icon,
-    ):
-        if active_job is not None:
-            s.workflow_preview_stage = number
-            st.rerun(scope="app")
-        else:
+    state = workspace_stage_state(number)
+    with column.container(key=f"rail_step_{number}_{state}"):
+        if column.button(
+            label,
+            key=key,
+            type=(
+                "primary"
+                if s.stage == number or (key == "rail_2" and s.stage == 3)
+                else "secondary"
+            ),
+            disabled=not can_visit(number)
+            or (active_job is not None and s.stage == number),
+            width="stretch",
+            icon=_STAGE_STATE_ICONS[state],
+            help=f"조사 상태: {_STAGE_STATE_LABELS[state]}",
+        ):
             navigate(number)
             st.rerun(scope="app")
 
 
-with st.container(key="stage_navigation"):
-    for column, number, label in zip(
-        st.columns(3),
-        (1, 2, 4),
-        ("1 아이디어 구체화", "2 특허·시장 검토", "3 종합 보고서"),
-    ):
-        review_navigation(number, label, column, f"nav_{number}")
-if s.stage in (2, 3):
-    for column, number, label in zip(
-        st.columns(2), (2, 3), ("특허 비교", "시장성 분석")
-    ):
-        review_navigation(number, label, column, f"subnav_{number}")
 render_quick_nav(review_navigation, open_page)
 
 
-preview_stage = s.get("workflow_preview_stage")
-if preview_stage:
-    workflow_stage_result_dialog(
-        preview_stage, s.idea_draft, active_job, s.pipeline_result
-    )
+s.workflow_preview_stage = None
 if not s.confirmed_context and s.raw:
     st.caption(
         "입력·구성·질문을 바꾼 경우 아이디어 구체화에서 다시 확정해야 조사와 보고서를 볼 수 있습니다."
@@ -2368,7 +2609,7 @@ with st.container(key=f"workspace_{1 if s.stage == 1 else 3 if s.stage == 4 else
                         st.rerun()
                 if s.get("analysis_workflow_id"):
                     st.caption(
-                        "시장성 분석은 계속 진행됩니다. 준비된 결과는 위 메뉴에서 확인하세요."
+                        "시장성 분석은 계속 진행됩니다. 준비된 시장 결과는 하단 고정 바로가기에서 확인하세요."
                     )
                 else:
                     left, right = st.columns(2)
@@ -2388,9 +2629,14 @@ with st.container(key=f"workspace_{1 if s.stage == 1 else 3 if s.stage == 4 else
         )
         workflow_job = current_workflow_job()
         if s.real_mode and workflow_job and not workflow_job.get("market_report"):
-            st.caption(
-                "특허 결과를 확인할 수 있습니다. 시장 결과가 준비되면 이 화면에 이어서 표시합니다."
-            )
+            if workflow_job.get("phase") == "patent":
+                st.caption(
+                    "시장 분석은 특허 조사 후 시작됩니다. 완료되면 이 화면에 표시합니다."
+                )
+            else:
+                st.caption(
+                    "시장성 분석이 진행 중입니다. 완료되면 이 화면에 표시합니다."
+                )
         elif s.real_mode and s.pipeline_result:
             market = s.pipeline_result.market
             render_market_report(market, s.idea_draft)

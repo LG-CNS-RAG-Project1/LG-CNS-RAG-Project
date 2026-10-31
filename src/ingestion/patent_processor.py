@@ -126,6 +126,9 @@ def to_patent_document(raw: dict) -> PatentDocument:
         registration_number=raw.get("registration_number"),
         source=raw.get("source") or "KIPRIS Plus",
         source_url=raw.get("source_url"),
+        representative_drawing_url=raw.get("representative_drawing_url"),
+        representative_thumbnail_url=raw.get("representative_thumbnail_url"),
+        representative_drawing_caption=raw.get("representative_drawing_caption"),
         collected_at=raw.get("collected_at"),
         technology_area_ids=sorted(set(raw.get("technology_area_ids") or [])),
     )

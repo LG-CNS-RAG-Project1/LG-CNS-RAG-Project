@@ -34,7 +34,11 @@ def test_landing_has_single_start_and_no_research_form():
     press(app, "IdeaLens")
     press(app, "돋보기로 조사 시작")
     assert app.text_area(key="raw_input")
-    assert all(app.button(key=f"nav_{i}") for i in (1, 2, 4))
+    assert all(app.button(key=f"rail_{i}") for i in (1, 2, 4))
+    assert not any(
+        button.key in {"nav_1", "nav_2", "nav_4", "subnav_2", "subnav_3"}
+        for button in app.button
+    )
     assert [b.key for b in app.button if b.key and b.key.startswith("rail_")][:4] == [
         "rail_home",
         "rail_1",
@@ -62,7 +66,11 @@ def test_demo_report_can_be_saved_and_reopened_without_analysis():
     app.session_state.stage = 4
     app.run()
     assert [tab.label for tab in app.get("tab")] == ["보고서 요약", "보고서 원문"]
-    assert all(app.button(key=f"nav_{i}") for i in (1, 2, 4))
+    assert all(app.button(key=f"rail_{i}") for i in (1, 2, 4))
+    assert not any(
+        button.key in {"nav_1", "nav_2", "nav_4", "subnav_2", "subnav_3"}
+        for button in app.button
+    )
     app.text_area(key="report_note").input("현장 설치 조건 확인").run()
     press(app, "내 기록에 보관")
     original = app.session_state.records[0]

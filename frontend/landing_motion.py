@@ -55,14 +55,14 @@ def intro_styles():
     .st-key-landing[data-intro-state="playing"] .paper-scene {animation:introReveal .6s 3s both;}
     .st-key-landing[data-intro-state="playing"] .st-key-lens_start {visibility:visible;animation:introReveal .5s 3.55s both;}
     .st-key-landing:not([data-intro-state="done"]) .st-key-lens_start button:before {animation-play-state:paused;}
-    [data-testid="stMainBlockContainer"]:has(.st-key-landing:not([data-intro-state="done"])) .st-key-research_rail {opacity:0;animation:introFallback 0s 6.5s forwards;pointer-events:none;}
-    [data-testid="stMainBlockContainer"]:has(.st-key-landing[data-intro-state="playing"]) .st-key-research_rail {animation:introFade .35s 3.8s both;}
+    [data-testid="stMainBlockContainer"]:has(.st-key-landing:not([data-intro-state="done"])) :is(.st-key-research_rail_public,.st-key-research_rail_workspace) {opacity:0;animation:introFallback 0s 6.5s forwards;pointer-events:none;}
+    [data-testid="stMainBlockContainer"]:has(.st-key-landing[data-intro-state="playing"]) :is(.st-key-research_rail_public,.st-key-research_rail_workspace) {animation:introFade .35s 3.8s both;}
     @media(prefers-reduced-motion:reduce) {
       .st-key-brandbar,.st-key-landing .hero-title-line,
       .st-key-landing .hero-copy h1,.st-key-landing .hero-copy>.eyebrow,
       .st-key-landing .hero-copy>p,.st-key-landing .hero-note,
       .st-key-landing .paper-scene,.st-key-landing .st-key-lens_start,
-      [data-testid="stMainBlockContainer"]:has(.st-key-landing) .st-key-research_rail {
+      [data-testid="stMainBlockContainer"]:has(.st-key-landing) :is(.st-key-research_rail_public,.st-key-research_rail_workspace) {
         animation:none!important;opacity:1!important;visibility:visible!important;transform:none!important;pointer-events:auto!important;
       }
     }

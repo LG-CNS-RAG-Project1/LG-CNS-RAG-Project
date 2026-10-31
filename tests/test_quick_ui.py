@@ -28,14 +28,22 @@ def test_landing_preserves_home_and_enters_compact_analysis():
     assert app.text_area(key="raw_input")
     assert app.button(key="create_idea_draft")
     assert not any("시연" in button.label for button in app.button)
-    assert all(app.button(key=f"nav_{i}") for i in (1, 2, 4))
     assert [app.button(key=f"rail_{i}").label for i in (1, 2, 4)] == [
         "아이디어",
         "특허",
         "보고서",
     ]
+    assert not any(
+        button.key
+        in {"nav_1", "nav_2", "nav_4", "subnav_2", "subnav_3", "rail_history"}
+        for button in app.button
+    )
     assert not app.button(key="rail_1").disabled
     assert all(app.button(key=f"rail_{i}").disabled for i in (2, 3, 4))
+    assert all(
+        app.button(key=f"rail_{i}").icon == ":material/radio_button_unchecked:"
+        for i in (1, 2, 3, 4)
+    )
     assert any('href="#research-top"' in item.value for item in app.html)
 
 
@@ -45,7 +53,8 @@ def test_quick_history_preserves_input_and_returns_without_reanalysis():
     text = "공장 설비의 진동 데이터를 분석하는 새로운 서비스"
     app.text_area(key="raw_input").set_value(text).run()
     app.session_state.saved_memo = "검토 중인 메모"
-    app.button(key="rail_history").click().run()
+    assert not any(button.key == "rail_history" for button in app.button)
+    app.button(key="header_history").click().run()
     assert not app.exception
     assert app.session_state.page == "history"
     assert app.session_state.raw_input == text
@@ -157,3 +166,14 @@ def test_component_validation_and_legacy_report_helpers():
     output = report(DEMO_TEXT, "<script>", DEMO_PARTS, ["P1", "P2"], "<img>")
     assert "선택 근거 없음" in output
     assert "<script>" not in output and "<img>" not in output
+
+
+def test_research_rail_uses_distinct_mounts_and_nonshrinking_mobile_layout():
+    root = APP.parents[1]
+    nav_source = (root / "frontend" / "quick_nav.py").read_text(encoding="utf-8")
+    styles = (root / "frontend" / "styles.css").read_text(encoding="utf-8")
+    assert 'key="research_rail_public"' in nav_source
+    assert 'key="research_rail_workspace"' in nav_source
+    assert "overflow-x:auto" in styles
+    assert "flex:0 0 58px" in styles
+    assert "padding-bottom:calc(110px + env(safe-area-inset-bottom))" in styles

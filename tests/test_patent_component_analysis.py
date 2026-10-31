@@ -99,6 +99,53 @@ def test_patent_review_groups_citations_and_maps_each_idea_component():
     assert precheck.citation_ids == [1, 2]
 
 
+@pytest.mark.parametrize("reason", [None, "", "  ", float("nan"), "NaN", "nan", "null"])
+def test_llm_review_normalizes_missing_relevance_reason(reason):
+    idea = StructuredIdea(
+        title="검사 자동화",
+        problem="불량 검출",
+        technology="비전 검사",
+    )
+    evidence = [
+        PatentEvidence(
+            citation_id=1,
+            patent_id="P1",
+            title="검사 장치",
+            section="abstract",
+            quote="영상으로 검사를 수행한다",
+        )
+    ]
+
+    def fake_llm(_prompt, _payload):
+        return {
+            "patent_reviews": [
+                {
+                    "patent_id": "P1",
+                    "title": "검사 장치",
+                    "relevance_reason": reason,
+                    "component_comparisons": [
+                        {
+                            "component_id": "C1",
+                            "idea_component": "비전 검사",
+                            "status": "uncertain",
+                            "citation_ids": [],
+                            "overlap": "",
+                            "difference": "",
+                            "uncertainty": "근거 부족",
+                        }
+                    ],
+                }
+            ],
+            "patentability_precheck": {
+                "status": "insufficient_evidence",
+                "summary": "근거 부족",
+            },
+        }
+
+    reviews, _ = review_patents_by_component(idea, evidence, fake_llm)
+    assert reviews[0].relevance_reason == ""
+
+
 def test_component_review_bounds_total_evidence_and_reports_omitted_citations():
     idea = StructuredIdea(
         title="영상 검사",

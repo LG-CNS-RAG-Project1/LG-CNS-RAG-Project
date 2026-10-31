@@ -49,9 +49,14 @@ def test_refresh_reconnects_only_saved_job_without_starting_worker(monkeypatch):
         assert app.session_state.analysis_workflow_id == "saved-private-job"
         assert app.session_state.raw == IDEA
         assert app.session_state.stage == 2
-        assert app.button(key="nav_2")
-        assert app.button(key="subnav_3")
-        assert len(WORKFLOW_JOBS) == 1
+        assert app.button(key="rail_2")
+        assert app.button(key="rail_3")
+        button_keys = {button.key for button in app.button}
+        assert not any(
+            key in button_keys
+            for key in ("nav_1", "nav_2", "nav_4", "subnav_2", "subnav_3")
+        )
+        assert "saved-private-job" in WORKFLOW_JOBS
     finally:
         with WORKFLOW_JOBS_LOCK:
             WORKFLOW_JOBS.pop("saved-private-job", None)

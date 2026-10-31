@@ -1,6 +1,7 @@
+import math
 import re
 from typing import Literal
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 # 1. 사용자 아이디어
@@ -134,6 +135,9 @@ class PatentDocument(BaseModel):
 
     source: str = "KIPRIS Plus"
     source_url: str | None = None
+    representative_drawing_url: str | None = None
+    representative_thumbnail_url: str | None = None
+    representative_drawing_caption: str | None = None
     collected_at: str | None = None
     technology_area_ids: list[str] = Field(default_factory=list)
 
@@ -163,7 +167,11 @@ class PatentEvidence(BaseModel):
     quote: str = Field(min_length=1)
 
     similarity: float | None = Field(default=None, ge=0, le=1)
+    semantic_similarity: float | None = Field(default=None, ge=0, le=1)
     source_url: str | None = None
+    representative_drawing_url: str | None = None
+    representative_thumbnail_url: str | None = None
+    representative_drawing_caption: str | None = None
     application_number: str | None = None
     publication_number: str | None = None
     application_date: str | None = None
@@ -189,6 +197,34 @@ class PatentEvidence(BaseModel):
             "kipris_supplement",
         ]
     ] = Field(default_factory=list)
+
+    @field_validator("similarity", mode="before")
+    @classmethod
+    def normalize_similarity(cls, value):
+        """검색 점수가 숫자·유한값·0~1 범위일 때만 보존한다."""
+        if value is None:
+            return None
+        try:
+            score = float(value)
+        except (TypeError, ValueError):
+            return None
+        if not math.isfinite(score) or not 0 <= score <= 1:
+            return None
+        return score
+
+    @field_validator("semantic_similarity", mode="before")
+    @classmethod
+    def normalize_semantic_similarity(cls, value):
+        """임베딩 cosine 점수는 유한한 0~1 값만 보존한다."""
+        if value is None:
+            return None
+        try:
+            score = float(value)
+        except (TypeError, ValueError):
+            return None
+        if not math.isfinite(score) or not 0 <= score <= 1:
+            return None
+        return score
 
 
 # 7. 기술 비교 결과
@@ -248,6 +284,23 @@ class PatentDocumentReview(BaseModel):
         default_factory=list
     )
     unknowns: list[str] = Field(default_factory=list)
+
+    @field_validator("relevance_reason", mode="before")
+    @classmethod
+    def normalize_relevance_reason(cls, value):
+        """모델·저장 데이터의 결측 및 비유한 관련성 이유를 빈 값으로 정규화한다."""
+        if value is None:
+            return ""
+        if isinstance(value, (int, float)):
+            if not math.isfinite(float(value)):
+                return ""
+            value = str(value)
+        if not isinstance(value, str):
+            return ""
+        cleaned = value.strip()
+        if cleaned.casefold() in {"", "nan", "none", "null"}:
+            return ""
+        return cleaned
 
 
 class PatentabilityPrecheck(BaseModel):
@@ -347,6 +400,7 @@ class PatentReport(BaseModel):
 
     search_scope: str
     error_message: str | None = None
+    semantic_similarity_model: str | None = None
 
     @model_validator(mode="after")
     def validate_citations(self):
