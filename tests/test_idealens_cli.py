@@ -3,6 +3,7 @@
 import importlib.util
 import socket
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -124,7 +125,9 @@ def test_port_in_use_detects_listener():
 def test_run_handles_missing_command_and_space_in_args():
     result = idealens.run(["definitely-not-a-command-xyz"])
     assert result.returncode == 127
-    echoed = idealens.run(["python", "-c", "import sys; print(sys.argv[1])", "a b"])
+    echoed = idealens.run(
+        [sys.executable, "-c", "import sys; print(sys.argv[1])", "a b"]
+    )
     assert echoed.stdout.strip() == "a b"
 
 
@@ -139,7 +142,7 @@ def test_script_is_python39_compatible():
 
     ast.parse(SCRIPT.read_text(encoding="utf-8"), feature_version=(3, 9))
     result = subprocess.run(
-        ["python", str(SCRIPT), "--help"], capture_output=True, text=True
+        [sys.executable, str(SCRIPT), "--help"], capture_output=True, text=True
     )
     assert result.returncode == 0 and "doctor" in result.stdout
 
@@ -153,9 +156,9 @@ def test_subprocesses_do_not_consume_stdin(monkeypatch):
         return real_run(cmd, **kwargs)
 
     monkeypatch.setattr(idealens.subprocess, "run", spy)
-    idealens.run(["python", "-c", "print(1)"])
+    idealens.run([sys.executable, "-c", "print(1)"])
     assert seen == [subprocess.DEVNULL]
     code = idealens.stream(
-        ["python", "-c", "import sys; print(repr(sys.stdin.read()))"], {}
+        [sys.executable, "-c", "import sys; print(repr(sys.stdin.read()))"], {}
     )
     assert code == 0
