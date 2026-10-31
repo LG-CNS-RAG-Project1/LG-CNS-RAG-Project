@@ -5,6 +5,7 @@ from src.schemas import (
     PatentComparison,
     PatentDesignAnalysis,
     PatentDocumentReview,
+    PatentEvidence,
     PatentSearchRequest,
     PatentabilityPrecheck,
     StructuredIdea,
@@ -72,6 +73,93 @@ def compare_all(idea, evidence):
         )
         for item in evidence
     ]
+
+
+def test_semantic_similarity_uses_one_idea_query_for_every_patent(monkeypatch):
+    import src.services.patent_service as service
+
+    monkeypatch.setattr(
+        service,
+        "search_patents",
+        lambda query, **kwargs: [result("P1", rank=1), result("P2", rank=2)],
+    )
+    captured = {}
+
+    def score(idea, evidence, source_texts):
+        captured["idea"] = idea
+        captured["evidence"] = evidence
+        captured["source_texts"] = source_texts
+        return {"P1": 0.82, "P2": 0.47}
+
+    report = analyze_patents(
+        request(top_k=2),
+        collection=object(),
+        query_llm_fn=query_plan,
+        relevance_fn=judge_all,
+        claim_fetcher=lambda _: [],
+        kipris_search_fn=lambda *_: [],
+        comparison_fn=compare_all,
+        semantic_similarity_fn=score,
+    )
+
+    assert report.semantic_similarity_model == "text-embedding-3-small"
+    assert {item.patent_id: item.semantic_similarity for item in report.evidence} == {
+        "P1": 0.82,
+        "P2": 0.47,
+    }
+    assert captured["idea"].technical_components == ["비전 카메라", "결함 분류"]
+    assert set(captured["source_texts"]) == {
+        item.citation_id for item in captured["evidence"]
+    }
+
+
+def test_semantic_similarity_batches_abstracts_and_claims_with_shared_idea_query():
+    from src.services.patent_service import score_patent_semantic_similarity
+
+    evidence = [
+        PatentEvidence(
+            citation_id=1,
+            patent_id="P1",
+            title="특허 P1",
+            section="abstract",
+            quote="초록 인용",
+        ),
+        PatentEvidence(
+            citation_id=2,
+            patent_id="P1",
+            title="특허 P1",
+            section="claims",
+            quote="청구항 인용",
+            claim_number=1,
+        ),
+        PatentEvidence(
+            citation_id=3,
+            patent_id="P2",
+            title="특허 P2",
+            section="abstract",
+            quote="다른 초록",
+        ),
+    ]
+    vectors = [[1.0, 0.0], [0.8, 0.6], [0.0, 1.0]]
+    embedded_batches = []
+
+    def embed(texts):
+        embedded_batches.append(texts)
+        return vectors
+
+    scores = score_patent_semantic_similarity(
+        request().idea,
+        evidence,
+        {1: "초록 전체 내용", 2: "청구항 전체 내용", 3: "다른 초록 내용"},
+        embed,
+    )
+
+    assert scores == {"P1": 0.8, "P2": 0.0}
+    assert len(embedded_batches) == 1
+    assert len(embedded_batches[0]) == 3
+    assert "기술 구성요소: 비전 카메라 결함 분류" in embedded_batches[0][0]
+    assert "초록: 초록 전체 내용" in embedded_batches[0][1]
+    assert "청구항 1: 청구항 전체 내용" in embedded_batches[0][1]
 
 
 def test_analysis_limits_to_eight_patents_and_keeps_claim_citations(monkeypatch):

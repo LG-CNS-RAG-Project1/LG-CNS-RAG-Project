@@ -30,6 +30,9 @@ def patent_to_search_document(
             "ipc_codes": patent.ipc_codes,
             "cpc_codes": patent.cpc_codes,
             "source_url": patent.source_url,
+            "representative_drawing_url": patent.representative_drawing_url,
+            "representative_thumbnail_url": patent.representative_thumbnail_url,
+            "representative_drawing_caption": patent.representative_drawing_caption,
             "collected_at": patent.collected_at,
         },
     )

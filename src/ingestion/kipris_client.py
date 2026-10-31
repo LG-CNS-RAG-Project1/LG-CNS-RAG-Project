@@ -206,6 +206,15 @@ def search_patents(
                 or _get_text(item, "DetailLink")
                 or _get_text(item, "KiprisUrl")
             ),
+            "representative_drawing_url": (
+                _get_text(item, "DrawingPath") or _get_text(item, "ImagePath")
+            ),
+            "representative_thumbnail_url": (
+                _get_text(item, "ThumbnailPath")
+                or _get_text(item, "ThumbnailImagePath")
+            ),
+            "representative_drawing_caption": _get_text(item, "DrawingName")
+            or _get_text(item, "RepresentativeDrawingName"),
             "claims": None,
             "source": "KIPRIS Plus",
         }

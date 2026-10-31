@@ -67,6 +67,7 @@ def sources():
                 application_number="1020200000001",
                 claim_number=1,
                 claim_type="independent",
+                similarity=0.72,
                 source_url="https://example.com/p1",
             )
         ],
@@ -247,7 +248,7 @@ def confirm_draft(app):
     return app
 
 
-def test_direct_input_runs_followup_and_reaches_report(live):
+def test_direct_input_runs_followup_and_reaches_report(live, monkeypatch):
     app = structured_app()
     assert app.session_state.stage == 1 and live["parse"] == 1
     assert live["analyze"] == 0
@@ -267,6 +268,16 @@ def test_direct_input_runs_followup_and_reaches_report(live):
         [],
         sources=sources(),
     )
+    report = app.session_state.pipeline_result
+    patent = report.patent
+    evidence = patent.evidence[0].model_copy(
+        update={"similarity": float("nan"), "semantic_similarity": 0.72}
+    )
+    patent = patent.model_copy(update={"evidence": [evidence]})
+    review = patent.patent_reviews[0].model_copy(update={"relevance_reason": "NaN"})
+    app.session_state.pipeline_result = report.model_copy(
+        update={"patent": patent.model_copy(update={"patent_reviews": [review]})}
+    )
     app.session_state.stage = 2
     app.run()
     assert any("특허 비교 궤도" in item.value for item in app.subheader)
@@ -277,9 +288,13 @@ def test_direct_input_runs_followup_and_reaches_report(live):
     )
     assert app.button(key="patent_watchouts_").label == "2 상세 보기"
     assert app.button(key="patent_design_").label == "3 상세 보기"
+    assert any(
+        "다음 확인: 독립항 전문을 검토합니다." in item.value for item in app.markdown
+    )
     charts = app.get("vega_lite_chart")
     assert len(charts) == 1
-    assert json.loads(charts[0].proto.spec)["padding"] == {
+    chart_spec = json.loads(charts[0].proto.spec)
+    assert chart_spec["padding"] == {
         "top": 12,
         "right": 12,
         "bottom": 12,
@@ -289,13 +304,43 @@ def test_direct_input_runs_followup_and_reaches_report(live):
         "궤도 차트를 표시하지 못했습니다" in item.value for item in app.warning
     )
     serialized = json.dumps(json.loads(charts[0].proto.spec), ensure_ascii=False)
-    assert "핵심 요약" in serialized and "우선 확인 이유" in serialized
+    assert "우선 확인 이유" in serialized
+    assert "Dense 검색 점수" in serialized
+    assert "의미 유사도 (0~1)" in serialized
+    assert "dense_score_display" in serialized
+    assert "semantic_similarity_display" in serialized
+    assert "priority_reason_display" in serialized
+    assert '"format": "s"' not in serialized
+    assert '"미제공"' in serialized
+    assert "우선 확인 이유 미제공" in serialized
+    assert '"0.720"' in serialized
+
+    def walk(value):
+        if isinstance(value, dict):
+            yield value
+            for child in value.values():
+                yield from walk(child)
+        elif isinstance(value, list):
+            for child in value:
+                yield from walk(child)
+
+    plotted_point = next(
+        item
+        for item in walk(chart_spec)
+        if item.get("semantic_similarity_display") == "0.720"
+    )
+    assert plotted_point["dense_score_display"] == "미제공"
+    assert plotted_point["y"] == pytest.approx(-1.42584)
+    assert "핵심 요약" not in serialized
+    assert '"nan"' not in serialized.lower()
+    assert "외곽 배치" in " ".join(item.value for item in app.caption)
     assert not any("문헌 요약 선택" in item.label for item in app.selectbox)
     assert '"name": "patent_click"' in serialized
 
     app.button(key="patent_watchouts_").click().run()
     watchout_dialog = app.get("dialog")[0]
     assert any("독립항 구성 확인" in item.value for item in watchout_dialog.warning)
+    assert any("문헌 근거 연결" in item.value for item in watchout_dialog.warning)
     assert any("센서 설치 조건" in item.value for item in watchout_dialog.markdown)
     app.button(key="patent_design_").click().run()
     design_dialog = app.get("dialog")[0]
@@ -306,12 +351,62 @@ def test_direct_input_runs_followup_and_reaches_report(live):
     app.run()
     detail = app.get("dialog")[0]
     assert any("진동 기반 고장 예측 장치" in item.value for item in detail.subheader)
+    assert any("대표도면 경로가 없습니다" in item.value for item in detail.info)
+    assert any("우선 확인 이유 미제공" in item.value for item in detail.info)
     assert any("아이디어 구성요소별 비교" in item.value for item in detail.markdown)
     assert any(
         "<mark><u>진동 센서 분석</u></mark>" in item.value for item in detail.markdown
     )
     assert any("KIPRIS에서 출원번호 검색" in item.label for item in detail.link_button)
     assert any("P:1" in item.value for item in detail.caption)
+
+    from io import BytesIO
+    from PIL import Image
+    from frontend import patent_orbit
+
+    drawing = BytesIO()
+    Image.new("RGB", (2, 2), color="white").save(drawing, format="PNG")
+    report = app.session_state.pipeline_result
+    evidence = report.patent.evidence[0].model_copy(
+        update={
+            "representative_thumbnail_url": "https://plus.kipris.or.kr/thumb?arg=fixture",
+            "representative_drawing_url": "https://plus.kipris.or.kr/drawing?arg=fixture",
+        }
+    )
+    foreign_evidence = PatentEvidence(
+        citation_id=2,
+        patent_id="OTHER-PATENT",
+        title="다른 특허",
+        section="abstract",
+        quote="다른 특허의 도면 연결 여부를 확인한다.",
+        representative_thumbnail_url="https://plus.kipris.or.kr/other?arg=foreign",
+    )
+    patent = report.patent.model_copy(update={"evidence": [evidence, foreign_evidence]})
+    app.session_state.pipeline_result = report.model_copy(update={"patent": patent})
+    drawing_calls = []
+    monkeypatch.setattr(
+        patent_orbit,
+        "fetch_first_kipris_drawing",
+        lambda urls: (
+            drawing_calls.append(urls) or drawing.getvalue(),
+            "ok",
+            urls[0],
+        ),
+    )
+    app.session_state.selected_patent_detail_id = "1020200000001"
+    app.run()
+    detail = app.get("dialog")[0]
+    assert drawing_calls == [
+        (
+            "https://plus.kipris.or.kr/drawing?arg=fixture",
+            "https://plus.kipris.or.kr/thumb?arg=fixture",
+        )
+    ]
+    assert any("원본 도면 · 2×2 px · PNG" in item.value for item in detail.caption)
+    assert not any(
+        "대표도면 형식을 표시할 수 없습니다" in item.value for item in detail.info
+    )
+    assert any("KIPRIS 도면 원문" in item.label for item in detail.link_button)
 
     click(app, "시장성 보고서 →")
     assert app.session_state.stage == 3
@@ -329,10 +424,13 @@ def test_direct_input_runs_followup_and_reaches_report(live):
         assert app.session_state.stage == stage
         assert app.session_state.pipeline_result == previous
     assert live == previous_calls
-    for page in ("history", "about", "difference", "home"):
-        app.button(key=f"rail_{page}").click().run()
+    for key in ("header_about", "header_difference", "rail_home"):
+        app.button(key=key).click().run()
         assert not app.exception
         assert app.session_state.pipeline_result == previous
+    app.button(key="header_history").click().run()
+    assert app.session_state.page == "history"
+    assert app.session_state.pipeline_result == previous
     app.button(key="rail_resume").click().run()
     assert not app.exception
     assert app.session_state.stage == 4
@@ -368,6 +466,7 @@ def test_kipris_quota_failure_is_not_presented_as_patent_absence(live):
 
     assert any("검색 미완료" in item.value for item in app.warning)
     assert not any("표시할 특허 문헌이 없습니다" in item.value for item in app.info)
+    assert app.button(key="rail_2").icon == ":material/error:"
 
 
 def test_partial_patent_comparison_keeps_eight_sources_visible(live):
@@ -415,6 +514,7 @@ def test_partial_patent_comparison_keeps_eight_sources_visible(live):
         for item in app.warning
     )
     assert any("최종 비교 문헌 8건 · 목표 5~8건" in item.value for item in app.caption)
+    assert app.button(key="rail_2").icon == ":material/warning:"
 
 
 def test_four_report_stages_use_one_analysis_run(live):
@@ -432,11 +532,7 @@ def test_four_report_stages_use_one_analysis_run(live):
     assert app.session_state.stage == 2 and live["analyze"] == 1
 
 
-@pytest.mark.parametrize("navigation_key", ["rail_1"])
-def test_running_workflow_top_step_opens_idea_preview_without_leaving_current_stage(
-    live,
-    navigation_key,
-):
+def test_running_workflow_completed_idea_button_navigates_without_preview(live):
     app = analysis_app()
     draft = IdeaDraft(
         original_text=IDEA,
@@ -446,8 +542,9 @@ def test_running_workflow_top_step_opens_idea_preview_without_leaving_current_st
         status="complete",
     )
     patent = PatentReport(status="completed", search_scope="test")
+    job_id = "navigation-test"
     with WORKFLOW_JOBS_LOCK:
-        WORKFLOW_JOBS["navigation-test"] = {
+        WORKFLOW_JOBS[job_id] = {
             "patent_report": patent,
             "patent_run": PartRun(state="completed", seconds=1),
             "market_report": None,
@@ -461,28 +558,29 @@ def test_running_workflow_top_step_opens_idea_preview_without_leaving_current_st
             "updated_at": 0,
         }
     try:
-        app.session_state.analysis_workflow_id = "navigation-test"
+        app.session_state.analysis_workflow_id = job_id
         app.session_state.idea_draft = draft
         app.session_state.real_mode = True
         app.session_state.confirmed_context = True
         app.session_state.stage = 3
-        app.session_state.workflow_patent_displayed_at = 0
-        app.session_state.workflow_auto_patent_advanced = True
         app.run()
         assert not app.button(key="rail_1").disabled
-        assert not app.button(key="rail_2").disabled
-        app.button(key=navigation_key).click().run()
-        assert app.session_state.stage == 3
-        assert app.session_state.analysis_workflow_id == "navigation-test"
-        dialog = app.get("dialog")[0]
-        assert any("아이디어 구조화" in item.value for item in dialog.get("subheader"))
+        assert app.button(key="rail_1").icon == ":material/check_circle:"
+        assert app.button(key="rail_2").icon == ":material/check_circle:"
+        assert app.button(key="rail_3").icon == ":material/autorenew:"
+        assert app.button(key="rail_4").icon == ":material/radio_button_unchecked:"
+        app.button(key="rail_1").click().run()
+        assert not app.exception
+        assert app.session_state.stage == 1
+        assert app.session_state.analysis_workflow_id == job_id
+        assert len(app.get("dialog")) == 0
+        assert any("아이디어" in item.value for item in app.title)
     finally:
         with WORKFLOW_JOBS_LOCK:
-            WORKFLOW_JOBS.pop("navigation-test", None)
+            WORKFLOW_JOBS.pop(job_id, None)
 
 
-@pytest.mark.parametrize("navigation_key", ["rail_2"])
-def test_completed_stage_status_button_opens_read_only_dialog(live, navigation_key):
+def test_completed_patent_button_opens_existing_page_during_workflow(live):
     app = analysis_app()
     draft = IdeaDraft(
         original_text=IDEA,
@@ -492,8 +590,9 @@ def test_completed_stage_status_button_opens_read_only_dialog(live, navigation_k
         status="complete",
     )
     patent = sources().patent
+    job_id = "patent-page-navigation-test"
     with WORKFLOW_JOBS_LOCK:
-        WORKFLOW_JOBS["preview-test"] = {
+        WORKFLOW_JOBS[job_id] = {
             "patent_report": patent,
             "patent_run": PartRun(state="completed", seconds=1),
             "market_report": None,
@@ -507,41 +606,163 @@ def test_completed_stage_status_button_opens_read_only_dialog(live, navigation_k
             "updated_at": 0,
         }
     try:
-        app.session_state.analysis_workflow_id = "preview-test"
+        app.session_state.analysis_workflow_id = job_id
         app.session_state.idea_draft = draft
         app.session_state.real_mode = True
         app.session_state.confirmed_context = True
         app.session_state.stage = 3
-        app.session_state.workflow_patent_displayed_at = 0
-        app.session_state.workflow_auto_patent_advanced = True
         app.run()
-
-        assert not any(
-            (item.key or "").startswith("workflow_preview_") for item in app.button
-        )
-        assert "특허" in app.button(key="rail_2").label
-        assert app.button(key="rail_3").disabled
-        assert app.button(key="rail_3").disabled
-        assert app.button(key="rail_4").disabled
-        app.button(key=navigation_key).click().run()
-
-        assert app.session_state.analysis_workflow_id == "preview-test"
-        assert app.session_state.stage == 3
-        dialog = app.get("dialog")[0]
-        assert any("특허 비교 보고서" in item.value for item in dialog.get("subheader"))
-        assert any("특허 비교 궤도" in item.value for item in dialog.get("subheader"))
-        assert not any("선택한 문헌" in item.value for item in dialog.get("markdown"))
-        assert not any(
-            "문헌 요약 선택" in item.label for item in dialog.get("selectbox")
-        )
-        chart = dialog.get("vega_lite_chart")
-        assert chart and '"reason"' in chart[0].proto.spec
-        assert '"name": "patent_hover_preview"' in chart[0].proto.spec
-        assert "patent_click_preview" not in chart[0].proto.spec
-        assert app.session_state.stage == 3
+        assert not app.button(key="rail_2").disabled
+        app.button(key="rail_2").click().run()
+        assert not app.exception
+        assert app.session_state.stage == 2
+        assert app.session_state.analysis_workflow_id == job_id
+        assert app.session_state.pipeline_result is not None
+        assert len(app.get("dialog")) == 0
+        assert any("특허 비교 궤도" in item.value for item in app.subheader)
+        assert app.get("vega_lite_chart")
     finally:
         with WORKFLOW_JOBS_LOCK:
-            WORKFLOW_JOBS.pop("preview-test", None)
+            WORKFLOW_JOBS.pop(job_id, None)
+
+
+def test_cancelled_workflow_stage_is_not_shown_as_completed(live):
+    import time
+
+    app = analysis_app()
+    draft = IdeaDraft(
+        original_text=IDEA,
+        **FIELDS,
+        revenue="구독",
+        field_sources={field: "extracted" for field in FIELDS},
+        status="complete",
+    )
+    job_id = "cancelled-stage-state-test"
+    with WORKFLOW_JOBS_LOCK:
+        WORKFLOW_JOBS[job_id] = {
+            "patent_report": sources().patent,
+            "patent_run": PartRun(state="completed", seconds=1),
+            "market_report": None,
+            "market_run": None,
+            "phase": "market",
+            "result": None,
+            "sources": None,
+            "error": None,
+            "done": False,
+            "started_at": time.monotonic(),
+            "updated_at": time.monotonic(),
+        }
+    try:
+        app.session_state.analysis_workflow_id = job_id
+        app.session_state.idea_draft = draft
+        app.session_state.real_mode = True
+        app.session_state.confirmed_context = True
+        app.session_state.stage = 2
+        app.run()
+        app.button(key=f"cancel_workflow_{job_id}").click().run()
+        assert not app.exception
+        assert app.session_state.analysis_workflow_id is None
+        assert app.session_state.stage == 1
+        assert app.button(key="rail_1").icon == ":material/check_circle:"
+        assert app.button(key="rail_2").icon == ":material/check_circle:"
+        assert app.button(key="rail_3").icon == ":material/cancel:"
+        assert app.button(key="rail_4").icon == ":material/radio_button_unchecked:"
+    finally:
+        with WORKFLOW_JOBS_LOCK:
+            WORKFLOW_JOBS.pop(job_id, None)
+
+
+def test_market_navigation_shows_only_market_progress_during_patent_phase(live):
+    app = analysis_app()
+    draft = IdeaDraft(
+        original_text=IDEA,
+        **FIELDS,
+        revenue="구독",
+        field_sources={f: "extracted" for f in FIELDS},
+        status="complete",
+    )
+    job_id = "market-page-navigation-test"
+    with WORKFLOW_JOBS_LOCK:
+        WORKFLOW_JOBS[job_id] = {
+            "patent_report": PatentReport(status="completed", search_scope="test"),
+            "patent_run": PartRun(state="completed", seconds=1),
+            "market_report": None,
+            "market_run": None,
+            "phase": "market",
+            "result": None,
+            "sources": None,
+            "error": None,
+            "done": False,
+            "started_at": 0,
+            "updated_at": 0,
+        }
+    try:
+        app.session_state.analysis_workflow_id = job_id
+        app.session_state.idea_draft = draft
+        app.session_state.real_mode = True
+        app.session_state.confirmed_context = True
+        app.session_state.stage = 2
+        app.run()
+        assert not app.button(key="rail_3").disabled
+        app.button(key="rail_3").click().run()
+        assert not app.exception
+        assert app.session_state.stage == 3
+        assert app.session_state.analysis_workflow_id == job_id
+        assert any(item.value == "시장성 보고서" for item in app.title)
+        assert app.button(key="rail_2").icon == ":material/check_circle:"
+        assert app.button(key="rail_3").icon == ":material/autorenew:"
+        assert app.button(key="rail_4").icon == ":material/radio_button_unchecked:"
+        assert any("시장성 분석이 진행 중입니다" in item.value for item in app.caption)
+        assert not any("특허 비교 궤도" in item.value for item in app.subheader)
+        assert len(app.get("vega_lite_chart")) == 0
+        assert len(app.get("dialog")) == 0
+    finally:
+        with WORKFLOW_JOBS_LOCK:
+            WORKFLOW_JOBS.pop(job_id, None)
+
+
+def test_market_completed_stage_renders_market_page_without_patent_visualization(live):
+    app = analysis_app()
+    draft = IdeaDraft(
+        original_text=IDEA,
+        **FIELDS,
+        revenue="구독",
+        field_sources={f: "extracted" for f in FIELDS},
+        status="complete",
+    )
+    job_id = "market-complete-navigation-test"
+    with WORKFLOW_JOBS_LOCK:
+        WORKFLOW_JOBS[job_id] = {
+            "patent_report": PatentReport(status="completed", search_scope="test"),
+            "patent_run": PartRun(state="completed", seconds=1),
+            "market_report": MarketReport(status="completed", search_scope="test"),
+            "market_run": PartRun(state="completed", seconds=1),
+            "phase": "final_report",
+            "result": None,
+            "sources": None,
+            "error": None,
+            "done": False,
+            "started_at": 0,
+            "updated_at": 0,
+        }
+    try:
+        app.session_state.analysis_workflow_id = job_id
+        app.session_state.idea_draft = draft
+        app.session_state.real_mode = True
+        app.session_state.confirmed_context = True
+        app.session_state.stage = 2
+        app.run()
+        assert not app.button(key="rail_3").disabled
+        app.button(key="rail_3").click().run()
+        assert not app.exception
+        assert app.session_state.stage == 3
+        assert any(item.value == "시장성 보고서" for item in app.title)
+        assert not any("특허 비교 궤도" in item.value for item in app.subheader)
+        assert len(app.get("vega_lite_chart")) == 0
+        assert len(app.get("dialog")) == 0
+    finally:
+        with WORKFLOW_JOBS_LOCK:
+            WORKFLOW_JOBS.pop(job_id, None)
 
 
 def test_rejected_input_stays_on_first_step(live, monkeypatch):
@@ -653,7 +874,7 @@ def test_complete_draft_waits_for_user_and_uses_edited_values(live, monkeypatch)
     assert app.session_state.analysis_workflow_id or app.session_state.pipeline_result
 
 
-def test_completed_patent_preview_uses_current_orbit_report_ui(live):
+def test_stale_patent_preview_state_does_not_open_a_modal(live):
     from src.schemas import IdeaDraft
 
     draft = IdeaDraft(
@@ -686,17 +907,14 @@ def test_completed_patent_preview_uses_current_orbit_report_ui(live):
     app.session_state.workflow_preview_stage = 2
     app.run()
 
-    assert any("특허 비교 궤도" in item.value for item in app.subheader)
-    assert not any("선택한 문헌" in item.value for item in app.markdown)
-    assert not any("문헌 요약 선택" in item.label for item in app.selectbox)
-    assert app.get("vega_lite_chart")
-    chart_spec = app.get("vega_lite_chart")[0].proto.spec
-    assert '"name": "patent_hover_preview"' in chart_spec
-    assert "patent_click_preview" not in chart_spec
+    assert any(item.value == "시장성 보고서" for item in app.title)
+    assert not any("특허 비교 궤도" in item.value for item in app.subheader)
+    assert len(app.get("dialog")) == 0
     assert app.session_state.stage == 3
+    assert app.session_state.workflow_preview_stage is None
 
 
-def test_completed_idea_preview_marks_ai_hypotheses(live):
+def test_stale_idea_preview_state_does_not_open_a_modal(live):
     from src.schemas import IdeaDraft
 
     draft = IdeaDraft(
@@ -729,9 +947,10 @@ def test_completed_idea_preview_marks_ai_hypotheses(live):
     app.session_state.workflow_preview_stage = 1
     app.run()
 
-    assert any("검증 전 AI 가설" in item.value for item in app.markdown)
-    assert any("수익모델" in item.value for item in app.markdown)
+    assert any(item.value == "시장성 보고서" for item in app.title)
+    assert len(app.get("dialog")) == 0
     assert app.session_state.stage == 3
+    assert app.session_state.workflow_preview_stage is None
 
 
 def test_market_report_prioritizes_real_trend_network_and_dart_evidence(live):

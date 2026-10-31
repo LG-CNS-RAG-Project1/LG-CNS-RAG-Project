@@ -269,8 +269,9 @@ html{scroll-behavior:auto;}
 @media(prefers-reduced-motion:reduce){.st-key-hero_art .st-key-lens_start button:before{animation:none!important;transition:none!important;}}
 @media(min-width:901px) and (max-height:800px){.st-key-hero_art{max-width:490px;padding-bottom:45px;}.st-key-hero_art .paper-scene{aspect-ratio:1/1;}.st-key-hero_art .research-panels{margin-top:22px;}.st-key-hero_art .research-panel .research-drawing{height:105px;}.st-key-hero_art .st-key-lens_start{bottom:0;width:350px!important;}.st-key-hero_art .st-key-lens_start button{width:350px;height:435px;}.st-key-hero_art .st-key-lens_start button:after{bottom:15px;}}
 /* 조사 중에는 본문 밖의 작은 도구 모음에서 결과와 기록으로 이동한다. */
-.st-key-research_rail {
+:is(.st-key-research_rail_workspace,.st-key-research_rail_public) {
   position:fixed;
+  box-sizing:border-box;
   right:24px;
   top:50%;
   transform:translateY(-50%);
@@ -292,7 +293,7 @@ html{scroll-behavior:auto;}
   text-align:center;
   padding:1px 0 5px;
 }
-.st-key-research_rail button {
+:is(.st-key-research_rail_workspace,.st-key-research_rail_public) button {
   flex-direction:column;
   gap:3px;
   width:100%;
@@ -302,22 +303,23 @@ html{scroll-behavior:auto;}
   background:transparent;
   color:#42675c;
   padding:8px 3px;
+  transition:background-color .24s ease,color .24s ease,box-shadow .24s ease,opacity .24s ease;
 }
-.st-key-research_rail button>div {flex-direction:column;gap:3px!important;}
-.st-key-research_rail button [data-has-shortcut] {
+:is(.st-key-research_rail_workspace,.st-key-research_rail_public) button>div {flex-direction:column;gap:3px!important;}
+:is(.st-key-research_rail_workspace,.st-key-research_rail_public) button [data-has-shortcut] {
   flex-direction:column;
   gap:3px;
   white-space:nowrap;
 }
-.st-key-research_rail button p {font-size:11px!important;line-height:1.3;white-space:nowrap;}
-.st-key-research_rail button[kind="primary"] {background:#176b60;color:white;}
-.st-key-research_rail button:hover:not(:disabled) {
+:is(.st-key-research_rail_workspace,.st-key-research_rail_public) button p {font-size:11px!important;line-height:1.3;white-space:nowrap;}
+:is(.st-key-research_rail_workspace,.st-key-research_rail_public) button[kind="primary"] {background:#176b60;color:white;}
+:is(.st-key-research_rail_workspace,.st-key-research_rail_public) button:hover:not(:disabled) {
   background:#e4eee5;
   transform:none;
   box-shadow:none;
 }
-.st-key-research_rail button[kind="primary"]:hover {background:#12584f;}
-.st-key-research_rail button:disabled {color:#9da9a2;opacity:.65;}
+:is(.st-key-research_rail_workspace,.st-key-research_rail_public) button[kind="primary"]:hover {background:#12584f;}
+:is(.st-key-research_rail_workspace,.st-key-research_rail_public) button:disabled {color:#9da9a2;opacity:.65;}
 .rail-divider {height:1px;background:#dce5dc;margin:4px 6px;}
 .rail-top {
   display:flex;
@@ -333,7 +335,7 @@ html{scroll-behavior:auto;}
 }
 .rail-top span {font-size:23px;line-height:1.1;}
 .rail-top:hover {background:#e4eee5;}
-.st-key-research_rail button:focus-visible,.rail-top:focus-visible {
+:is(.st-key-research_rail_workspace,.st-key-research_rail_public) button:focus-visible,.rail-top:focus-visible {
   outline:3px solid #b69b42;
   outline-offset:2px;
 }
@@ -350,35 +352,103 @@ html{scroll-behavior:auto;}
 }
 #research-top {scroll-margin-top:70px;}
 @media(min-width:1101px) {
-  [data-testid="stMainBlockContainer"]:has(.st-key-research_rail) {
+  [data-testid="stMainBlockContainer"]:has(:is(.st-key-research_rail_workspace,.st-key-research_rail_public)) {
     max-width:1560px;
     padding-right:140px;
   }
 }
 @media(max-width:1100px) {
-  .st-key-research_rail {
+  :is(.st-key-research_rail_workspace,.st-key-research_rail_public) {
     top:auto;
     bottom:max(12px,env(safe-area-inset-bottom));
     left:50%;
     right:auto;
     transform:translateX(-50%);
+    display:flex;
     flex-direction:row!important;
+    flex-wrap:nowrap!important;
+    justify-content:flex-start;
     align-items:center;
-    width:min(450px,calc(100% - 24px))!important;
+    box-sizing:border-box;
+    width:min(450px,calc(100vw - 24px))!important;
     max-height:none;
-    overflow:visible;
+    overflow-x:auto;
+    overflow-y:hidden;
+    overscroll-behavior-x:contain;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:thin;
+    scroll-snap-type:x proximity;
     padding:6px;
-    gap:1px!important;
+    gap:2px!important;
     border-radius:22px;
   }
-  .st-key-research_rail>[data-testid="stElementContainer"] {flex:1;min-width:0;}
-  .st-key-research_rail>[data-testid="stElementContainer"]:has(.rail-caption),
-  .st-key-research_rail>[data-testid="stElementContainer"]:has(.rail-divider) {display:none;}
-  .st-key-research_rail button {min-height:52px;border-radius:16px;padding:4px 1px;}
-  .st-key-research_rail button p,.rail-top {font-size:10px!important;white-space:nowrap;}
-  .rail-top {min-height:52px;}
-  [data-testid="stMainBlockContainer"]:has(.st-key-research_rail) {
+  :is(.st-key-research_rail_workspace,.st-key-research_rail_public)>[data-testid="stElementContainer"] {flex:0 0 58px;width:58px;min-width:58px;scroll-snap-align:start;}
+  :is(.st-key-research_rail_workspace,.st-key-research_rail_public)>[data-testid="stElementContainer"]:has(.rail-caption),
+  :is(.st-key-research_rail_workspace,.st-key-research_rail_public)>[data-testid="stElementContainer"]:has(.rail-divider) {display:none;}
+  :is(.st-key-research_rail_workspace,.st-key-research_rail_public) button {box-sizing:border-box;min-width:58px;min-height:52px;border-radius:16px;padding:4px 2px;}
+  :is(.st-key-research_rail_workspace,.st-key-research_rail_public) button p,.rail-top {font-size:10px!important;white-space:normal;overflow-wrap:anywhere;text-align:center;}
+  .rail-top {box-sizing:border-box;width:58px;min-width:58px;min-height:52px;scroll-snap-align:start;}
+  [data-testid="stMainBlockContainer"]:has(:is(.st-key-research_rail_workspace,.st-key-research_rail_public)) {
     padding-bottom:calc(110px + env(safe-area-inset-bottom));
+  }
+}
+
+/* 조사 단계 상태는 실제 결과를 반영하고 단계 색과 상태 아이콘으로 함께 구분한다. */
+.st-key-rail_step_1_completed button,
+.st-key-rail_step_2_completed button,
+.st-key-rail_step_3_completed button,
+.st-key-rail_step_4_completed button {
+  background:#176b60!important;
+  color:#fff!important;
+  opacity:1!important;
+}
+.st-key-rail_step_1_active button,
+.st-key-rail_step_2_active button,
+.st-key-rail_step_3_active button,
+.st-key-rail_step_4_active button {
+  background:#eaf1fb!important;
+  color:#244f86!important;
+  box-shadow:inset 0 0 0 2px #527caf!important;
+  opacity:1!important;
+}
+.st-key-rail_step_1_pending button,
+.st-key-rail_step_2_pending button,
+.st-key-rail_step_3_pending button,
+.st-key-rail_step_4_pending button {opacity:.58!important;}
+.st-key-rail_step_1_partial button,
+.st-key-rail_step_2_partial button,
+.st-key-rail_step_3_partial button,
+.st-key-rail_step_4_partial button,
+.st-key-rail_step_1_insufficient button,
+.st-key-rail_step_2_insufficient button,
+.st-key-rail_step_3_insufficient button,
+.st-key-rail_step_4_insufficient button {
+  background:#fff4d8!important;
+  color:#805d14!important;
+  box-shadow:inset 0 0 0 1px #d9ad45!important;
+}
+.st-key-rail_step_1_failed button,
+.st-key-rail_step_2_failed button,
+.st-key-rail_step_3_failed button,
+.st-key-rail_step_4_failed button {
+  background:#fff0ed!important;
+  color:#a3362b!important;
+  box-shadow:inset 0 0 0 1px #d77b70!important;
+}
+.st-key-rail_step_1_cancelled button,
+.st-key-rail_step_2_cancelled button,
+.st-key-rail_step_3_cancelled button,
+.st-key-rail_step_4_cancelled button {
+  background:#f0f1ef!important;
+  color:#65716b!important;
+  box-shadow:inset 0 0 0 1px #aab3ad!important;
+}
+@media(prefers-reduced-motion:reduce) {
+  :is(.st-key-research_rail_workspace,.st-key-research_rail_public) {
+    scroll-behavior:auto;
+  }
+  :is(.st-key-research_rail_workspace,.st-key-research_rail_public) button {
+    transition:none;
   }
 }
 </style>

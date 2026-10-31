@@ -54,7 +54,10 @@ from src.schemas import (
     CostScenarioTotals,
 )
 from src.services.market_service import run_market_research
-from src.services.patent_service import analyze_patents
+from src.services.patent_service import (
+    analyze_patents,
+    score_patent_semantic_similarity,
+)
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 MARKET_CHROMA_DIR = ROOT_DIR / "data" / "market" / "chroma"
@@ -488,6 +491,7 @@ def _patent_defaults(event: threading.Event) -> dict:
     from src.retrieval.patent_search import call_query_llm
 
     guarded_review_llm = _guard(call_comparison_llm, event)
+    guarded_embed = _guard(embed_texts, event)
 
     def review(idea, evidence):
         return review_patents_by_component(idea, evidence, llm_fn=guarded_review_llm)
@@ -497,14 +501,20 @@ def _patent_defaults(event: threading.Event) -> dict:
             idea, evidence, reviews, precheck, llm_fn=guarded_review_llm
         )
 
+    def score_semantic_similarity(idea, evidence, source_texts):
+        return score_patent_semantic_similarity(
+            idea, evidence, source_texts, embed_fn=guarded_embed
+        )
+
     return {
-        "embed_fn": _guard(embed_texts, event),
+        "embed_fn": guarded_embed,
         "query_llm_fn": _guard(call_query_llm, event),
         "claim_fetcher": _guard(fetch_patent_claims, event),
         "kipris_search_fn": _guard(search_kipris, event),
         "patent_review_fn": review,
         "design_proposal_fn": design_proposals,
         "relevance_fn": _tolerant_relevance(event),
+        "semantic_similarity_fn": score_semantic_similarity,
     }
 
 
