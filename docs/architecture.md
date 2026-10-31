@@ -55,6 +55,8 @@ flowchart LR
   %% map src/services/patent_candidates.py services
   %% map src/services/patent_context.py services
   %% map src/schemas.py pipeline
+  %% map src/patent_schemas.py pipeline
+  %% map src/market_schemas.py pipeline
   %% map src/idea_schemas.py pipeline
   %% map src/generation/market_evidence.py generation
   %% map src/generation/report_formatting.py generation
@@ -122,7 +124,9 @@ IdeaLens/
 │
 ├── src/
 │   ├── __init__.py
-│   ├── schemas.py               # 특허·시장 데이터 계약 진입점
+│   ├── schemas.py               # 도메인 계약 호환 진입점
+│   ├── patent_schemas.py        # 특허 검색·근거·보고서 계약
+│   ├── market_schemas.py        # 시장 검색·근거·보고서 계약
 │   ├── idea_schemas.py          # 아이디어 입력·초안 계약
 │   ├── pipeline.py              # 파이프라인 진입점·보고서 구성
 │   ├── pipeline_execution.py    # 특허·시장 실행·시간 초과 격리

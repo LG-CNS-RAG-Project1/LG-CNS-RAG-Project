@@ -61,7 +61,9 @@
 │   ├── pipeline_execution.py     # 특허·시장 실행·시간 초과 격리
 │   ├── pipeline_cli.py           # 상태 점검·샘플 분석 CLI
 │   ├── pipeline_models.py        # 준비 상태·실행 결과 계약
-│   ├── schemas.py                # 특허·시장 데이터 계약의 호환 진입점
+│   ├── schemas.py                # 도메인 계약 호환 진입점
+│   ├── patent_schemas.py        # 특허 검색·근거·보고서 계약
+│   ├── market_schemas.py        # 시장 검색·근거·보고서 계약
 │   ├── idea_schemas.py           # 아이디어 입력·초안 데이터 계약
 │   ├── analysis/           # 특허 분류통계와 기술 동향 집계
 │   ├── ingestion/           # 자료 수집·전처리·청크 생성
