@@ -123,19 +123,38 @@ def test_dense_search_overfetches_chunks_to_return_distinct_patents():
             content="abstract",
         )
     ]
+    documents.extend(
+        SearchDocument(
+            chunk_id=f"p{index}-abstract",
+            source_id=f"p{index}",
+            source_type="patent",
+            title=f"Patent {index}",
+            content=f"abstract {index}",
+        )
+        for index in range(3, 13)
+    )
 
     class Collection:
+        get_requests = []
+
         def get(self, **kwargs):
+            requested_ids = kwargs.get("ids")
+            selected = [
+                item
+                for item in documents
+                if requested_ids is None or item.chunk_id in requested_ids
+            ]
+            self.get_requests.append((requested_ids, kwargs.get("include")))
             return {
-                "ids": [item.chunk_id for item in documents],
-                "documents": [item.content for item in documents],
+                "ids": [item.chunk_id for item in selected],
+                "documents": [item.content for item in selected],
                 "metadatas": [
                     {
                         "source_id": item.source_id,
                         "source_type": item.source_type,
                         "title": item.title,
                     }
-                    for item in documents
+                    for item in selected
                 ],
             }
 
@@ -158,5 +177,7 @@ def test_dense_search_overfetches_chunks_to_return_distinct_patents():
         ),
     )
 
-    assert collection.requested_n_results == 5
+    assert collection.requested_n_results == 8
     assert [item.document.source_id for item in results] == ["p1", "p2"]
+    assert collection.get_requests[0] == (None, [])
+    assert len(collection.get_requests[1][0]) == 8

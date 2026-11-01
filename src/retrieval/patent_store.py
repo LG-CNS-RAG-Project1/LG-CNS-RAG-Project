@@ -8,24 +8,26 @@ from src.retrieval.chroma_client import connect_chroma
 from typing import Callable
 from src.schemas import PatentChunk, PatentDocument
 from src.retrieval.adapters import patent_to_search_document
+from src.llm_client import embedding_collection_name
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 CHROMA_DIR = ROOT_DIR / "data" / "patents" / "chroma"
 COLLECTION_NAME = "patents"
+INDEX_BATCH_SIZE = 100
 
 
 def get_collection(
-    chroma_dir: Path = CHROMA_DIR,
+    chroma_dir: Path | None = None,
     name: str = COLLECTION_NAME,
     client: ClientAPI | None = None,
 ):
     """cosine 거리를 사용하는 특허 컬렉션을 반환한다."""
 
     if client is None:
-        client = connect_chroma(chroma_dir)
+        client = connect_chroma(chroma_dir or CHROMA_DIR)
 
     return client.get_or_create_collection(
-        name=name,
+        name=embedding_collection_name(name),
         metadata={"hnsw:space": "cosine"},
         embedding_function=None,
     )
@@ -114,12 +116,17 @@ def build_index(chunks, patents, collection, embed_fn):
             metadatas=[record[1] for record in metadata_only_records],
         )
 
-    if content_records:
+    for start in range(0, len(content_records), INDEX_BATCH_SIZE):
+        batch = content_records[start : start + INDEX_BATCH_SIZE]
+        texts = [record[1] for record in batch]
+        embeddings = embed_fn(texts)
+        if len(embeddings) != len(batch):
+            raise ValueError("embedding function must return one vector per chunk")
         collection.upsert(
-            ids=[record[0] for record in content_records],
-            documents=[record[1] for record in content_records],
-            metadatas=[record[2] for record in content_records],
-            embeddings=embed_fn([record[1] for record in content_records]),
+            ids=[record[0] for record in batch],
+            documents=texts,
+            metadatas=[record[2] for record in batch],
+            embeddings=embeddings,
         )
 
     return len(changed_records)

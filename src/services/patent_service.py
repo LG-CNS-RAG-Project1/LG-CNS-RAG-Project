@@ -19,7 +19,6 @@ from src.retrieval.patent_search import (
 )
 from src.retrieval.patent_relevance import judge_patent_candidates
 from src.retrieval.engine import RetrievalConfig
-from src.retrieval.schemas import RetrievalResult, SearchDocument
 from src.schemas import (
     PatentComparison,
     PatentDesignAnalysis,
@@ -30,11 +29,25 @@ from src.schemas import (
 )
 from src.ingestion.patent_processor import structure_claims
 
+from src.services.patent_candidates import (
+    KIPRIS_SUPPLEMENT_QUERY_LIMIT,
+    _candidate_rank_key,
+    _evidence_search_trace,
+    _kipris_supplement_queries,
+    _merge_retrieval_results,
+    _metadata_codes,
+    _retrieval_trace,
+    _supplement_result,
+    _tag_retrieval_result,
+)
+from src.services.patent_context import (
+    _build_patent_context,
+    _estimate_text_tokens,
+    _select_claims,
+)
+
 ROOT_DIR = Path(__file__).resolve().parents[2]
 
-# 특허 검색어 계획의 기술 요소별 한국어 질의를 최대 5개까지 보충 검색한다.
-# 5건 목표에 못 미칠 때만 호출하고, 후보가 충분해지면 즉시 멈춘다.
-KIPRIS_SUPPLEMENT_QUERY_LIMIT = 5
 MIN_RECOMMENDED_PATENTS = 5
 SEMANTIC_SIMILARITY_MODEL = "text-embedding-3-small"
 SEMANTIC_DOCUMENT_MAX_CHARS = 6000
@@ -77,180 +90,6 @@ def score_patent_semantic_similarity(idea, evidence, source_texts, embed_fn):
     return dict(zip(patent_ids, scores))
 
 
-def _metadata_codes(value) -> list[str]:
-    """검색 메타데이터의 코드 배열 또는 쉼표 문자열을 목록으로 정리한다."""
-    if isinstance(value, (list, tuple, set)):
-        values = value
-    else:
-        values = str(value or "").replace("|", ",").split(",")
-    return list(
-        dict.fromkeys(str(item).strip() for item in values if str(item).strip())
-    )
-
-
-def _kipris_supplement_queries(plan, idea) -> list[str]:
-    """KIPRIS 요청량을 제한하면서 LLM이 만든 한국어 기술 검색어를 우선 사용한다."""
-    queries = []
-    for item in plan.queries:
-        for query in item.korean_queries:
-            normalized = " ".join(query.split())
-            if normalized and normalized not in queries:
-                queries.append(normalized)
-                break
-        if len(queries) >= KIPRIS_SUPPLEMENT_QUERY_LIMIT:
-            break
-
-    if not queries:
-        fallback = " ".join((idea.technology or idea.title).split())[:100]
-        if fallback:
-            queries.append(fallback)
-    return queries
-
-
-def _supplement_result(record: dict) -> RetrievalResult | None:
-    """KIPRIS 결과를 공통 검색 결과로 변환한다."""
-    application_number = str(record.get("application_number") or "").strip()
-    if not application_number:
-        return None
-    title = str(record.get("title") or "").strip()
-    abstract = str(record.get("abstract") or "").strip()
-    content = abstract
-    if not content:
-        return None
-    document = SearchDocument(
-        chunk_id=f"{application_number}_abstract_0",
-        source_id=application_number,
-        source_type="patent",
-        title=title or application_number,
-        content=content,
-        metadata={
-            "section": "abstract",
-            "application_number": application_number,
-            "publication_number": record.get("publication_number"),
-            "registration_number": record.get("registration_number"),
-            "application_date": record.get("application_date"),
-            "publication_date": record.get("publication_date"),
-            "public_date": record.get("public_date"),
-            "source_url": record.get("source_url"),
-            "representative_drawing_url": record.get("representative_drawing_url"),
-            "representative_thumbnail_url": record.get("representative_thumbnail_url"),
-            "representative_drawing_caption": record.get(
-                "representative_drawing_caption"
-            ),
-            "applicant": record.get("applicant"),
-            "ipc_codes": record.get("ipc_codes") or [],
-            "cpc_codes": record.get("cpc_codes") or [],
-        },
-    )
-    return RetrievalResult(document=document)
-
-
-def _tag_retrieval_result(
-    result: RetrievalResult,
-    *,
-    query: str,
-    technical_element: str,
-    retrieval_scope: str,
-) -> RetrievalResult:
-    """검색 결과에 후보가 발견된 질의·기술 요소·검색 범위를 기록한다."""
-    metadata = dict(result.document.metadata)
-    trace = dict(metadata.get("retrieval_trace") or {})
-    trace["matched_queries"] = list(
-        dict.fromkeys([*trace.get("matched_queries", []), query])
-    )
-    trace["matched_technical_elements"] = list(
-        dict.fromkeys([*trace.get("matched_technical_elements", []), technical_element])
-    )
-    trace["retrieval_scopes"] = list(
-        dict.fromkeys([*trace.get("retrieval_scopes", []), retrieval_scope])
-    )
-    trace["matched_sections"] = list(
-        dict.fromkeys(
-            [*trace.get("matched_sections", []), metadata.get("section", "unknown")]
-        )
-    )
-    metadata["retrieval_trace"] = trace
-    document = result.document.model_copy(update={"metadata": metadata})
-    return result.model_copy(update={"document": document})
-
-
-def _merge_retrieval_results(
-    existing: RetrievalResult | None,
-    candidate: RetrievalResult,
-    retrieval_mode: str = "dense",
-) -> RetrievalResult:
-    """같은 특허의 검색 흔적을 합치고 가장 높은 점수의 청크를 대표로 둔다."""
-    if existing is None:
-        return candidate
-    existing_trace = existing.document.metadata.get("retrieval_trace", {})
-    candidate_trace = candidate.document.metadata.get("retrieval_trace", {})
-    score_field = {
-        "dense": "dense_score",
-        "bm25": "bm25_score",
-        "hybrid": "rrf_score",
-    }[retrieval_mode]
-
-    def score(item):
-        if item.rerank_score is not None:
-            return item.rerank_score
-        value = getattr(item, score_field)
-        return value if value is not None else float("-inf")
-
-    primary = candidate if score(candidate) > score(existing) else existing
-    metadata = dict(primary.document.metadata)
-    trace = {}
-    for key in (
-        "matched_queries",
-        "matched_technical_elements",
-        "retrieval_scopes",
-        "matched_sections",
-    ):
-        trace[key] = list(
-            dict.fromkeys(
-                [
-                    *existing_trace.get(key, []),
-                    *candidate_trace.get(key, []),
-                ]
-            )
-        )
-    metadata["retrieval_trace"] = trace
-    document = primary.document.model_copy(update={"metadata": metadata})
-    return primary.model_copy(update={"document": document})
-
-
-def _candidate_rank_key(
-    item: RetrievalResult, retrieval_mode: str
-) -> tuple[bool, float]:
-    """검색 모드의 점수 기준에 맞는 특허 후보 정렬 키를 만든다."""
-    score_field = {
-        "dense": "dense_score",
-        "bm25": "bm25_score",
-        "hybrid": "rrf_score",
-    }[retrieval_mode]
-    score = (
-        item.rerank_score
-        if item.rerank_score is not None
-        else getattr(item, score_field)
-    )
-    return score is not None, score if score is not None else float("-inf")
-
-
-def _retrieval_trace(metadata: dict) -> dict:
-    """PatentEvidence에 노출할 검색 추적 정보를 반환한다."""
-    return metadata.get("retrieval_trace") or {}
-
-
-def _evidence_search_trace(metadata: dict) -> dict:
-    """검색 질의와 범위 추적 정보를 근거 모델 필드로 변환한다."""
-    trace = _retrieval_trace(metadata)
-    return {
-        "matched_queries": trace.get("matched_queries", []),
-        "matched_technical_elements": trace.get("matched_technical_elements", []),
-        "matched_sections": trace.get("matched_sections", []),
-        "retrieval_scopes": trace.get("retrieval_scopes", []),
-    }
-
-
 def _normalize_quote(value: str) -> str:
     """특허 원문 비교용으로 공백만 정규화한다."""
     return " ".join(value.split())
@@ -267,137 +106,6 @@ def validate_patent_citations(
             raise ValueError(
                 f"Patent citation {item.citation_id} does not match source text"
             )
-
-
-def _select_claims(idea, claims: list, limit: int = 5) -> list:
-    """관련 청구항과 그 상위항을 한 묶음으로 선택한다."""
-    from src.retrieval.engine import tokenize
-
-    idea_text = " ".join(idea.technical_components or [idea.technology, idea.problem])
-    terms = set(tokenize(idea_text))
-    claims_by_number = {claim.claim_number: claim for claim in claims}
-    ranked = sorted(
-        claims,
-        key=lambda claim: (
-            len(terms & set(tokenize(claim.text))),
-            claim.claim_type == "independent",
-            -claim.claim_number,
-        ),
-        reverse=True,
-    )
-    selected = []
-    selected_numbers = set()
-    for claim in ranked:
-        if claim.claim_number in selected_numbers:
-            continue
-        ancestors = []
-        pending = list(claim.depends_on)
-        visited = set()
-        missing_parent = False
-        while pending:
-            number = pending.pop()
-            if number in visited or number in selected_numbers:
-                continue
-            visited.add(number)
-            parent = claims_by_number.get(number)
-            if not parent:
-                missing_parent = True
-                break
-            ancestors.append(parent)
-            pending.extend(parent.depends_on)
-        # 부모 원문이 빠져 있어도 인용 자체는 보존한다. 호출부가 미확인 경고를 붙이고,
-        # 비교기는 상위항 범위를 추정하지 않도록 프롬프트에서 제한한다.
-        additions = sorted(ancestors, key=lambda item: item.claim_number) + [claim]
-        additions = [
-            item for item in additions if item.claim_number not in selected_numbers
-        ]
-        if len(selected) + len(additions) <= limit:
-            selected.extend(additions)
-            selected_numbers.update(item.claim_number for item in additions)
-    return sorted(selected, key=lambda claim: claim.claim_number)
-
-
-def _estimate_text_tokens(text: str) -> int:
-    """특허 근거 문맥을 위한 보수적인 토큰 수 근사치를 계산한다.
-
-    한국어·영어가 섞인 원문에서 문자 길이만으로 예산을 과소평가하지 않도록
-    공백 단위 토큰과 문자 길이 기반 상한 중 큰 값을 사용한다.
-    """
-    normalized = " ".join(text.split())
-    if not normalized:
-        return 0
-    return max(len(normalized.split()), (len(normalized) + 2) // 3)
-
-
-def _build_patent_context(
-    idea, claims: list, *, max_tokens: int = 1800, max_claims: int = 5
-) -> tuple[list[PatentClaim], int, list[str]]:
-    """청구항 원문과 상위항 문맥을 예산 내에서 선택한다.
-
-    토큰 추정에는 검색 계획·아이디어·서식 오버헤드를 포함하지 않으므로,
-    호출부는 반환된 사용량을 전체 요청 한도로 간주하지 않아야 한다.
-    """
-    selected = _select_claims(idea, claims, limit=max_claims)
-    selected_numbers = {claim.claim_number for claim in selected}
-    claim_map = {claim.claim_number: claim for claim in claims}
-    notes = []
-
-    def cost(claim: PatentClaim) -> int:
-        return _estimate_text_tokens(claim.text)
-
-    while selected and sum(cost(claim) for claim in selected) > max_tokens:
-        removable = [
-            claim
-            for claim in selected
-            if claim.claim_type == "dependent"
-            and not any(claim.claim_number in other.depends_on for other in selected)
-        ]
-        if removable:
-            selected.remove(max(removable, key=cost))
-            selected_numbers = {claim.claim_number for claim in selected}
-            continue
-
-        # 독립항은 잘라 인용하지 않고, 원문 전체가 예산에 들지 않으면 보류한다.
-        independent = next(
-            (claim for claim in selected if claim.claim_type == "independent"), None
-        )
-        if independent:
-            selected.remove(independent)
-            selected_numbers = {claim.claim_number for claim in selected}
-            notes.append(
-                f"청구항 {independent.claim_number} 원문이 문맥 토큰 예산을 초과해 제외됨"
-            )
-            # 빠진 독립항에 의존하는 종속항도 함께 제외해 문맥이 잘리지 않게 한다.
-            changed = True
-            while changed:
-                changed = False
-                for claim in list(selected):
-                    if any(
-                        parent not in selected_numbers for parent in claim.depends_on
-                    ):
-                        selected.remove(claim)
-                        selected_numbers.remove(claim.claim_number)
-                        notes.append(
-                            f"청구항 {claim.claim_number} 상위항 문맥이 제외되어 함께 제외됨"
-                        )
-                        changed = True
-            continue
-
-        # 남은 종속항 집합이 상위항 관계를 모두 포함하지 않으면 추가 비교에 쓰지 않는다.
-        claim = max(selected, key=cost)
-        selected.remove(claim)
-        selected_numbers.remove(claim.claim_number)
-        notes.append(
-            f"청구항 {claim.claim_number} 원문이 문맥 토큰 예산을 초과해 제외됨"
-        )
-
-    for claim in selected:
-        missing = [number for number in claim.depends_on if number not in claim_map]
-        if missing:
-            notes.append(
-                f"청구항 {claim.claim_number} 상위항 {', '.join(map(str, missing))} 원문 미확보"
-            )
-    return selected, sum(cost(claim) for claim in selected), notes
 
 
 def analyze_patents(
