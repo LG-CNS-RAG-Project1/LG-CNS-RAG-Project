@@ -314,6 +314,7 @@ PR 분석 자동화용 `CODEX_AUTH_JSON`(ChatGPT 구독 로그인, `make review-
 ## 개발 도구와 협업 자동화
 
 - **코드 포맷**: Python 코드는 [black](https://black.readthedocs.io/)으로 통일한다. 버전은 `requirements-dev.txt`에 고정하고, `pyproject.toml`의 `required-version`으로 다른 주 버전 실행을 막는다.
+- **로컬 CLI 테스트**: 자식 Python 프로세스는 실행 중인 인터프리터를 사용해 호스트의 `python`·`python3` 별칭에 의존하지 않는다.
 - **커밋 전 검사**: `pre-commit install` 후 커밋마다 black, 병합 충돌 표시, 개인키 노출, 대용량 파일, 줄끝 공백을 검사한다.
 - **CI**: develop·main 대상 PR과 push에서 black 검사, pytest, 자동화 스크립트 테스트, Docker 이미지 빌드, SCC와 같은 Debian 11 환경의 SCC 전용 의존성 검사를 실행한다.
 - **main 승격 PR**: develop push의 CI가 성공하면 develop → main 배포 승격 PR을 열거나 갱신하고 리뷰어 1명을 요청한다. 병합(= SCC 배포)은 사람이 승인하며 Create a merge commit만 쓴다([배포 안내](docs/deploy-streamlit-cloud.md)).
