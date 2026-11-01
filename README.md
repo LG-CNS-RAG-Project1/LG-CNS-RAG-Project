@@ -203,6 +203,7 @@ python -m src.ingestion.patent_processor --field-id SF-05 --limit 20 --include-c
 - 검색어 계획으로 별도 수집·색인을 하려면 `python -m scripts.collect_patents --request <PatentSearchRequest.json> --field-id SF-02 --include-claims` 후 `python -m scripts.build_patent_index --field-id SF-02`를 실행한다. `PatentQueryPlan`은 기술 요소를 최대 8개(화면 핵심 구성요소 최대 7개 + 결합 기술 1개)까지 허용한다.
 - KIPRIS 검색·청구항 API 원본 XML과 키를 제외한 요청 메타데이터는 `data/patents/raw/`에 저장한다. 해당 폴더는 로컬 전용이며 Git 추적 대상에서 제외된다.
 - 색인 시 문서 임베딩 API 호출이 필요하다(`OPENAI_API_KEY`). 이후 문서 벡터는 로컬 Chroma에서 재사용한다. Dense/Hybrid 검색의 질의 임베딩은 검색 때 별도로 생성된다.
+- 특허·시장 색인은 공통 100건 임베딩 배치를 사용한다. 특허 색인은 배치별 임베딩 성공분을 저장하므로 실패 후 재실행하면 이미 저장된 같은 청크는 다시 임베딩하지 않는다.
 - 기본 Dense 검색은 Chroma 상위 청크 후보만 읽는다. BM25/Hybrid는 코퍼스 전체 BM25 순위를 계산하기 위해 전체 문서·메타데이터를 읽으며, 검색 결과 계약과 정렬 기준을 유지한다.
 - `PatentSearchRequest.technology_area_id`를 지정하면 검색 결과를 해당 분야로 제한한다. 원문 JSONL과 Chroma DB는 로컬에 저장되고 Git에는 포함되지 않는다.
 - `data/samples/ideas.json`의 SF-05와 시장 뉴스·DART 기업 연결은 지능형 공정제어 기준이다. 이전 SF-05(현장 작업자용 LLM 음성 어시스턴트)의 검색어는 `legacy_market_keywords`에 기록만 하며, 그 검색어로 수집한 기사는 정제 단계(`market_processor`)에서 제외한다. 시장 평가 라벨은 아직 이전 SF-05 기준이라 새 SF-05 시장 성능을 평가하려면 다시 라벨링해야 한다.

@@ -8,6 +8,7 @@ from src.retrieval.chroma_client import connect_chroma
 from typing import Callable
 from src.schemas import PatentChunk, PatentDocument
 from src.retrieval.adapters import patent_to_search_document
+from src.retrieval.config import EMBED_BATCH_SIZE
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 CHROMA_DIR = ROOT_DIR / "data" / "patents" / "chroma"
@@ -108,18 +109,23 @@ def build_index(chunks, patents, collection, embed_fn):
         record for record in changed_records if record[0] not in metadata_only_ids
     ]
 
+    if content_records:
+        for start in range(0, len(content_records), EMBED_BATCH_SIZE):
+            batch = content_records[start : start + EMBED_BATCH_SIZE]
+            embeddings = embed_fn([record[1] for record in batch])
+            if len(embeddings) != len(batch):
+                raise ValueError("embedding function must return one vector per chunk")
+            collection.upsert(
+                ids=[record[0] for record in batch],
+                documents=[record[1] for record in batch],
+                metadatas=[record[2] for record in batch],
+                embeddings=embeddings,
+            )
+
     if metadata_only_records:
         collection.update(
             ids=[record[0] for record in metadata_only_records],
             metadatas=[record[1] for record in metadata_only_records],
-        )
-
-    if content_records:
-        collection.upsert(
-            ids=[record[0] for record in content_records],
-            documents=[record[1] for record in content_records],
-            metadatas=[record[2] for record in content_records],
-            embeddings=embed_fn([record[1] for record in content_records]),
         )
 
     return len(changed_records)
