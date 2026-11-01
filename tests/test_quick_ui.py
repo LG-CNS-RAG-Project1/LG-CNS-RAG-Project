@@ -33,8 +33,7 @@ def test_landing_preserves_home_and_enters_compact_analysis(monkeypatch):
         for item in app.caption
     )
     assert any(
-        "외부 API 호출과 비용이 발생합니다" in item.value
-        for item in app.caption
+        "외부 API 호출과 비용이 발생합니다" in item.value for item in app.caption
     )
     assert not any("시연" in button.label for button in app.button)
     assert [app.button(key=f"rail_{i}").label for i in (1, 2, 4)] == [
@@ -202,5 +201,8 @@ def test_research_rail_uses_distinct_mounts_and_nonshrinking_mobile_layout():
     assert "align-items:center!important;justify-content:center!important" in styles
     assert "line-height:1.2!important;margin:0!important" in styles
     assert "padding-bottom:calc(110px + env(safe-area-inset-bottom))" in styles
-    assert "st-key-research_rail_public :is(.st-key-rail_menu_about,.st-key-rail_menu_difference) {row-gap:0!important;}" in styles
+    assert (
+        "st-key-research_rail_public :is(.st-key-rail_menu_about,.st-key-rail_menu_difference) {row-gap:0!important;}"
+        in styles
+    )
     assert ".st-key-research_rail_public>:has(.st-key-rail_menu_about)" in styles
