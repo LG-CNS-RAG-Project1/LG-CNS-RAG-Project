@@ -409,7 +409,7 @@ def claim_errors(
         return ["빈 문장"]
     if claim_type not in ("fact", "user_claim", "ai_hypothesis"):
         return [f"알 수 없는 claim_type: {claim_type}"]
-    if not all(isinstance(i, int) for i in citation_ids):
+    if not all(isinstance(i, int) and not isinstance(i, bool) for i in citation_ids):
         return [f"citation_ids는 정수 목록이어야 함: {citation_ids}"]
     if claim_type == "fact" and not citation_ids:
         return [f"인용 없는 fact 문장: {statement}"]
