@@ -33,8 +33,7 @@ def test_landing_preserves_home_and_enters_compact_analysis(monkeypatch):
         for item in app.caption
     )
     assert any(
-        "외부 API 호출과 비용이 발생합니다" in item.value
-        for item in app.caption
+        "외부 API 호출과 비용이 발생합니다" in item.value for item in app.caption
     )
     assert not any("시연" in button.label for button in app.button)
     assert [app.button(key=f"rail_{i}").label for i in (1, 2, 4)] == [
