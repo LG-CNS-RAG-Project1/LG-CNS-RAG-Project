@@ -1064,3 +1064,38 @@ def test_market_report_prioritizes_real_trend_network_and_dart_evidence(live):
     assert "상대 지수" in text and "인과" in text
     assert len(app.get("vega_lite_chart")) == 2
     assert not any("사업 승인 관점 요약" in item.value for item in app.subheader)
+
+
+def test_legacy_patent_detail_restores_optional_drawing_fields():
+    patent = sources().patent
+    evidence = patent.evidence[0]
+    for field in (
+        "representative_thumbnail_url",
+        "representative_drawing_url",
+        "representative_drawing_caption",
+    ):
+        evidence.__dict__.pop(field, None)
+    assert not hasattr(evidence, "representative_thumbnail_url")
+    app = AppTest.from_string("""
+import streamlit as st
+from frontend.patent_view import patent_detail_dialog
+patent_detail_dialog(st.session_state.patent, "1020200000001")
+""")
+    app.session_state.patent = patent
+    app.run()
+    assert not app.exception
+    assert any("대표도면 경로가 없습니다" in item.value for item in app.info)
+    assert any("진동 센서 분석" in item.value for item in app.markdown)
+    assert not hasattr(evidence, "representative_thumbnail_url")
+
+
+def test_invalid_saved_patent_detail_shows_recovery_message():
+    app = AppTest.from_string("""
+from frontend.patent_view import patent_detail_dialog
+patent_detail_dialog({"status": "completed", "evidence": [{"citation_id": 1}]}, "missing")
+""")
+    app.run()
+    assert not app.exception
+    assert any(
+        "저장된 특허 결과를 읽을 수 없습니다" in item.value for item in app.warning
+    )
