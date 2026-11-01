@@ -94,6 +94,7 @@ _SAFE_URL = re.compile(r"https?://[^\s()<>\"'`]+")
 
 
 class CriterionLink(BaseModel):
+    """통합 검토 기준 하나의 판단·인용·다음 확인 항목."""
     criterion: str
     assessment: str = "미확인"
     citation_ids: list[str] = Field(default_factory=list)
@@ -108,10 +109,12 @@ class CriterionLink(BaseModel):
     @field_validator("citation_ids", mode="before")
     @classmethod
     def _null_ids(cls, value):
+        """모델이 citation_ids를 null로 반환해도 빈 목록으로 처리한다."""
         return [] if value is None else value
 
 
 class QuestionLink(BaseModel):
+    """검토 질문 하나에 연결한 6개 기준별 통합 판단."""
     question_id: str
     status: str = Field(pattern="^(connected|partial|hold)$")
     summary: str
@@ -119,6 +122,7 @@ class QuestionLink(BaseModel):
 
 
 class LinkBatch(BaseModel):
+    """입력 질문 전체의 연결 결과 묶음."""
     links: list[QuestionLink]
 
 
@@ -157,6 +161,7 @@ def hold_link(question_id: str, summary: str = HOLD_SUMMARY) -> QuestionLink:
 
 
 def call_report_llm(system_prompt: str, user_text: str) -> dict:
+    """선택한 LLM provider에 JSON 통합 보고서 요청을 보낸다."""
     response = get_openai_client().chat.completions.create(
         model=chat_model(MODEL),
         temperature=0,
@@ -170,12 +175,14 @@ def call_report_llm(system_prompt: str, user_text: str) -> dict:
 
 
 def _evidence_ids(market: MarketReport, patent: PatentReport) -> tuple[set, set]:
+    """시장·특허 근거 ID를 영역 접두부와 함께 분리한다."""
     market_ids = {f"M:{item.citation_id}" for item in market.evidence}
     patent_ids = {f"P:{item.citation_id}" for item in patent.evidence}
     return market_ids, patent_ids
 
 
 def _apply_hold_rule(link: QuestionLink, market_ids: set, patent_ids: set) -> None:
+    """시장과 특허 양쪽 근거가 연결되지 않으면 판단을 보류한다."""
     used = {cid for criterion in link.criteria for cid in criterion.citation_ids}
     if not (market_ids and patent_ids) or not (used & market_ids and used & patent_ids):
         link.status = "hold"
@@ -183,6 +190,7 @@ def _apply_hold_rule(link: QuestionLink, market_ids: set, patent_ids: set) -> No
 
 
 def _link_payload(questions: list[dict], market: MarketReport, patent: PatentReport):
+    """질문과 두 영역 보고서, 기준 목록을 모델 입력으로 묶는다."""
     return {
         "questions": questions,
         "market": market.model_dump(),
@@ -278,6 +286,7 @@ def link_questions_with_retry(
     for attempt in range(attempts):
 
         def recording_fn(system_prompt, user_text, _feedback=last_error):
+            """검증 재시도 피드백을 추가하고 마지막 모델 원문을 보관한다."""
             nonlocal last_raw
             if _feedback:
                 user_text += (
@@ -300,6 +309,7 @@ def link_questions_with_retry(
 
 
 def _format_yyyymmdd(value) -> str | None:
+    """날짜 숫자를 보고서 표시용 ISO 날짜로 바꾸거나 비운다."""
     digits = re.sub(r"\D", "", str(value or ""))[:8]
     if len(digits) != 8:
         return None
@@ -341,6 +351,7 @@ def escaped_market_report(market: MarketReport) -> MarketReport:
     """시장 보고서의 외부 텍스트를 이스케이프하고 http(s)가 아닌 링크를 뺀 사본."""
 
     def esc(value):
+        """시장 보고서의 문자열 하나를 안전한 Markdown 텍스트로 변환한다."""
         return escape_md(value, table=False) if value else value
 
     return market.model_copy(
@@ -377,6 +388,7 @@ def escaped_market_report(market: MarketReport) -> MarketReport:
 
 
 def _brief_lines(draft: IdeaDraft) -> list[str]:
+    """아이디어 입력과 항목별 출처를 Markdown 줄로 만든다."""
     lines = ["## 확정 브리프", "", "| 항목 | 내용 | 출처 |", "|---|---|---|"]
     fields = [
         *((field, FIELD_LABELS[field], getattr(draft, field)) for field in IDEA_FIELDS),
@@ -397,6 +409,7 @@ def _brief_lines(draft: IdeaDraft) -> list[str]:
 
 
 def _run_lines(runs: dict) -> list[str]:
+    """특허·시장 실행 상태와 부분 실패 사유를 보고서 줄로 만든다."""
     lines = [
         "## 분석 실행 상태",
         "",
@@ -415,6 +428,7 @@ def _run_lines(runs: dict) -> list[str]:
 
 
 def _patent_lines(patent: PatentReport) -> list[str]:
+    """특허 근거·비교·한계를 통합 보고서 문장으로 정리한다."""
     lines = [
         "## 특허 조사",
         "",
@@ -521,6 +535,7 @@ def _patent_lines(patent: PatentReport) -> list[str]:
 
 
 def _business_review_lines(review: BusinessReview) -> list[str]:
+    """예비 사업 권고와 검증 행동을 보고서 문장으로 만든다."""
     lines = [
         "## 한눈에 보는 사업 실행 검토",
         "",
@@ -567,11 +582,13 @@ def _compact_text(value: str | None, limit: int = 140) -> str:
 
 
 def _compact_refs(values: list[int] | list[str], limit: int = 3) -> str:
+    """인용 ID를 짧은 표시용 목록으로 제한한다."""
     refs = [str(value) for value in values[:limit]]
     return ", ".join(refs) if refs else "근거 인용 없음"
 
 
 def _compact_patent_lines(patent: PatentReport) -> list[str]:
+    """요약 보고서에 넣을 특허 판단과 근거를 간결하게 만든다."""
     lines = ["## 특허 핵심", ""]
     if patent.status == "error":
         return lines + [f"- 조사 실패: {_compact_text(patent.error_message, 120)}", ""]
@@ -673,6 +690,7 @@ def _compact_patent_lines(patent: PatentReport) -> list[str]:
 
 
 def _compact_market_lines(market: MarketReport) -> list[str]:
+    """요약 보고서에 넣을 시장 상태와 인용 근거를 간결하게 만든다."""
     lines = ["## 시장성 핵심", ""]
     if market.status == "error":
         return lines + [f"- 조사 실패: {_compact_text(market.error_message, 120)}", ""]
@@ -740,6 +758,7 @@ def _compact_market_lines(market: MarketReport) -> list[str]:
 
 
 def _compact_business_lines(review: BusinessReview) -> list[str]:
+    """요약 보고서에 넣을 사업 권고와 한계를 압축한다."""
     lines = [
         "## 실행 전 판단",
         "",

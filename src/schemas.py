@@ -1,3 +1,9 @@
+"""아이디어 분석의 입력, 문서, 근거, 보고서 간 공유 데이터 계약을 정의한다.
+
+수집 원문에서 만들어진 문서·청크부터 검색 근거와 최종 보고서까지 같은
+식별자와 상태 의미를 유지하도록 Pydantic 모델과 검증 규칙을 모아 둔다.
+"""
+
 import math
 import re
 from typing import Literal
@@ -6,6 +12,8 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 
 # 1. 사용자 아이디어
 class StructuredIdea(BaseModel):
+    """사용자가 검토를 마친 특허·시장 분석용 아이디어."""
+
     title: str
     problem: str
     technology: str
@@ -38,6 +46,8 @@ IDEA_FIELDS: list[IdeaField] = [
 
 # 1-1. 구조화 중인 아이디어 (빈 항목 재질문 단계)
 class IdeaDraft(BaseModel):
+    """초안 작성 중인 값, 항목별 출처, 미확인 상태와 추가 질문."""
+
     original_text: str = Field(min_length=1)
     title: str = ""
     problem: str = ""
@@ -63,6 +73,7 @@ class IdeaDraft(BaseModel):
 
     @model_validator(mode="after")
     def validate_draft(self):
+        """추가 질문·완료·거절 상태가 입력 필드와 맞는지 검사한다."""
         if self.status == "complete" and self.missing_fields:
             raise ValueError("complete draft must not have missing fields")
         if self.status == "needs_input" and not self.missing_fields:
@@ -99,6 +110,8 @@ class IdeaDraft(BaseModel):
 
 # 2. 특허 검색 요청
 class PatentSearchRequest(BaseModel):
+    """특허 검색에 사용할 아이디어와 결과 수·분야 범위."""
+
     idea: StructuredIdea
     top_k: int = Field(default=8, ge=1, le=8)
     technology_area_id: str | None = None
@@ -106,6 +119,8 @@ class PatentSearchRequest(BaseModel):
 
 # 3. 특허 청구항
 class PatentClaim(BaseModel):
+    """청구항 번호·문구·종속 관계를 보존한 데이터."""
+
     claim_number: int = Field(ge=1)
     text: str = Field(min_length=1)
     claim_type: Literal["independent", "dependent", "unclassified"] = "unclassified"
@@ -115,6 +130,8 @@ class PatentClaim(BaseModel):
 
 # 4. 정제된 특허 문서
 class PatentDocument(BaseModel):
+    """출처와 분류 메타데이터를 포함한 정제 특허 문헌."""
+
     patent_id: str
     title: str
     abstract: str
@@ -144,6 +161,8 @@ class PatentDocument(BaseModel):
 
 # 5. 임베딩 대상 청크
 class PatentChunk(BaseModel):
+    """색인할 특허 청크와 원문·청구항 내 위치 정보."""
+
     chunk_id: str
     patent_id: str
     section: Literal["abstract", "claims"]
@@ -159,6 +178,8 @@ class PatentChunk(BaseModel):
 
 # 6. 검색 근거
 class PatentEvidence(BaseModel):
+    """특허 보고서에서 추적할 수 있는 인용 발췌와 검색 정보."""
+
     citation_id: int = Field(ge=1)
     patent_id: str
     title: str
@@ -229,6 +250,8 @@ class PatentEvidence(BaseModel):
 
 # 7. 기술 비교 결과
 class PatentComparison(BaseModel):
+    """아이디어와 특허 문헌의 기술 구성을 비교한 결과."""
+
     citation_id: int = Field(ge=1)
     similarity: str
     difference: str
@@ -237,6 +260,8 @@ class PatentComparison(BaseModel):
 
 
 class PatentComponentComparison(BaseModel):
+    """아이디어의 한 기술 요소와 문헌 근거·차이를 연결한 비교."""
+
     component_id: str
     idea_component: str
     status: Literal["overlap", "partial", "different", "not_found", "uncertain"]
@@ -248,6 +273,8 @@ class PatentComponentComparison(BaseModel):
 
 
 class PatentWatchout(BaseModel):
+    """특허 문헌을 검토할 때 확인할 쟁점과 다음 확인 방법."""
+
     issue: str
     why_it_matters: str
     citation_ids: list[int] = Field(default_factory=list)
@@ -255,6 +282,8 @@ class PatentWatchout(BaseModel):
 
 
 class PatentDesignRecommendation(BaseModel):
+    """기술 설계 대안과 근거 성격·후속 검증 항목."""
+
     recommendation: str
     rationale: str
     citation_ids: list[int] = Field(default_factory=list)
@@ -263,6 +292,7 @@ class PatentDesignRecommendation(BaseModel):
 
     @model_validator(mode="after")
     def validate_basis(self):
+        """근거 기반 설계 제안이 인용 근거를 갖는지 확인한다."""
         if self.basis == "evidence_based" and not self.citation_ids:
             raise ValueError("Evidence-based design recommendations require citations")
         if self.basis == "hypothesis" and self.citation_ids:
@@ -271,6 +301,8 @@ class PatentDesignRecommendation(BaseModel):
 
 
 class PatentDocumentReview(BaseModel):
+    """문헌별 관련성, 구성 비교, 주의점의 종합 검토."""
+
     patent_id: str
     title: str
     citation_ids: list[int] = Field(default_factory=list)
@@ -304,6 +336,8 @@ class PatentDocumentReview(BaseModel):
 
 
 class PatentabilityPrecheck(BaseModel):
+    """법률 판단이 아닌 특허 선행조사의 예비 검토와 한계."""
+
     status: Literal["overlap_concern", "potentially_distinct", "insufficient_evidence"]
     summary: str
     citation_ids: list[int] = Field(default_factory=list)
@@ -317,6 +351,8 @@ class PatentabilityPrecheck(BaseModel):
 
 
 class PatentTechnicalComponent(BaseModel):
+    """아이디어에서 추출한 검색 대상 기술 구성요소."""
+
     id: str
     name: str
     description: str
@@ -324,12 +360,16 @@ class PatentTechnicalComponent(BaseModel):
 
 
 class ProposalVerificationPlan(BaseModel):
+    """설계 대안을 실험·현장 확인으로 검증하는 계획."""
+
     method: str
     metrics: list[str] = Field(default_factory=list)
     success_criteria: str
 
 
 class PatentDesignProposal(BaseModel):
+    """기존 문헌과의 차이를 검토하기 위한 구체적 설계 제안."""
+
     proposal_id: str
     title: str
     target_component_ids: list[str] = Field(min_length=1)
@@ -348,6 +388,7 @@ class PatentDesignProposal(BaseModel):
 
     @model_validator(mode="after")
     def validate_evidence_status(self):
+        """설계 제안의 근거 상태와 인용 ID 사용이 일치하는지 검사한다."""
         if self.evidence_status == "grounded" and not self.citation_ids:
             raise ValueError("Grounded design proposals require citations")
         if self.evidence_status == "insufficient_evidence" and self.citation_ids:
@@ -356,6 +397,8 @@ class PatentDesignProposal(BaseModel):
 
 
 class PatentDesignAnalysis(BaseModel):
+    """특허 비교에서 파생된 설계 제안과 검증 계획."""
+
     status: Literal["success", "partial", "insufficient_evidence", "failed"]
     evidence_level: Literal[
         "claims_and_abstract", "claims_only", "abstract_only", "insufficient"
@@ -367,11 +410,15 @@ class PatentDesignAnalysis(BaseModel):
 
 
 class PatentStatisticItem(BaseModel):
+    """특허 통계의 한 분류 항목과 집계 값."""
+
     label: str
     count: int = Field(ge=0)
 
 
 class PatentTrendStatistics(BaseModel):
+    """보유 색인 범위에 한정된 특허 연도·분류 통계."""
+
     scope: str
     total_patents: int = Field(ge=0)
     ipc_coverage: int = Field(default=0, ge=0)
@@ -387,6 +434,8 @@ class PatentTrendStatistics(BaseModel):
 
 # 8. 최종 특허 RAG 결과
 class PatentReport(BaseModel):
+    """특허 검색 결과와 인용·검토·부분 실행 상태를 담는 보고서."""
+
     status: Literal["completed", "partial", "no_results", "error"]
 
     evidence: list[PatentEvidence] = Field(default_factory=list)
@@ -404,6 +453,7 @@ class PatentReport(BaseModel):
 
     @model_validator(mode="after")
     def validate_citations(self):
+        """특허 보고서 내부의 모든 인용 ID가 실제 근거를 가리키는지 확인한다."""
         ids = [e.citation_id for e in self.evidence]
 
         if len(ids) != len(set(ids)):
@@ -525,6 +575,7 @@ ALL_DIMENSIONS: list[MarketDimension] = [
 
 
 def _check_yyyymmdd(value: int | None, field_name: str) -> None:
+    """선택 날짜 값이 유효한 YYYYMMDD 정수인지 검증한다."""
     """YYYYMMDD 정수 형식의 날짜인지 확인한다."""
     if value is None:
         return
@@ -538,6 +589,8 @@ def _check_yyyymmdd(value: int | None, field_name: str) -> None:
 
 # 8. 시장 근거 검색 요청
 class MarketSearchRequest(BaseModel):
+    """시장 자료 검색 질의와 아이디어·자료 범위."""
+
     idea: StructuredIdea
     dimensions: list[MarketDimension] = Field(
         default_factory=lambda: list(ALL_DIMENSIONS)
@@ -548,12 +601,15 @@ class MarketSearchRequest(BaseModel):
 
     @model_validator(mode="after")
     def validate_date(self):
+        """시장 검색 시작일이 실제 달력 날짜인지 확인한다."""
         _check_yyyymmdd(self.date_from, "date_from")
         return self
 
 
 # 9. 정제된 시장 자료 (출처 원장 1행)
 class MarketDocument(BaseModel):
+    """뉴스·공시 등 시장 자료의 원문 출처와 근거 성격."""
+
     source_id: str = Field(min_length=1)
     source_type: MarketSourceType
     title: str
@@ -576,6 +632,7 @@ class MarketDocument(BaseModel):
 
     @model_validator(mode="after")
     def validate_document(self):
+        """시장 문서의 날짜 순서와 출처별 근거 성격을 검증한다."""
         _check_yyyymmdd(self.published_at, "published_at")
         _check_yyyymmdd(self.collected_at, "collected_at")
         if self.collected_at < self.published_at:
@@ -598,6 +655,8 @@ class MarketDocument(BaseModel):
 
 # 10. 임베딩 대상 시장 청크
 class MarketChunk(BaseModel):
+    """시장 문서에서 분리한 검색 단위와 문서 위치."""
+
     chunk_id: str  # "{source_id}#{chunk_index}"
     source_id: str
     text: str = Field(min_length=1)
@@ -607,6 +666,8 @@ class MarketChunk(BaseModel):
 
 # 11. 시장 검색 근거
 class MarketEvidence(BaseModel):
+    """시장 분석에 인용할 수 있는 문구와 출처 정보."""
+
     citation_id: int = Field(ge=1)
     source_id: str
     source_type: MarketSourceType
@@ -629,12 +690,15 @@ class MarketEvidence(BaseModel):
 
 # 12. 차원별 시장 주장
 class MarketClaim(BaseModel):
+    """시장 분석의 주장과 이를 뒷받침하는 인용 ID."""
+
     statement: str = Field(min_length=1)
     claim_type: ClaimType
     citation_ids: list[int] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def validate_claim(self):
+        """주장의 인용 ID와 근거 성격 조합이 허용되는지 검사한다."""
         if self.claim_type == "fact" and not self.citation_ids:
             raise ValueError("fact claims require at least one citation")
         return self
@@ -642,6 +706,8 @@ class MarketClaim(BaseModel):
 
 # 13. 차원별 판정 결과
 class MarketDimensionResult(BaseModel):
+    """수요·경쟁 등 한 차원의 근거, 판정, 제한 사항."""
+
     dimension: MarketDimension
     verdict: MarketVerdict
     claims: list[MarketClaim] = Field(default_factory=list, max_length=3)
@@ -657,6 +723,7 @@ class MarketDimensionResult(BaseModel):
 
     @model_validator(mode="after")
     def validate_verdict(self):
+        """판정에 인용 주장과 미확인 시 다음 행동이 있는지 확인한다."""
         cited = [c for c in self.claims if c.citation_ids]
         if self.verdict in ("confirmed", "signal_only") and not cited:
             raise ValueError(
@@ -668,6 +735,8 @@ class MarketDimensionResult(BaseModel):
 
 
 class MarketValidationAction(BaseModel):
+    """보고서가 제안하는 다음 고객·시장 검증 행동."""
+
     title: str
     target: str
     method: str
@@ -676,12 +745,16 @@ class MarketValidationAction(BaseModel):
 
 
 class MarketOpportunityFinding(BaseModel):
+    """시장 기회 검토에서 근거·가설과 검증 필요성을 묶은 항목."""
+
     topic: str
     statement: str
     citation_ids: list[int] = Field(default_factory=list)
 
 
 class MarketOpportunityReview(BaseModel):
+    """시장 기회 판단과 남아 있는 전제·한계."""
+
     status: Literal[
         "validated_demand", "buyer_signals", "indirect_signals", "insufficient_evidence"
     ]
@@ -709,6 +782,7 @@ class MarketAnalyticalHypothesis(BaseModel):
 
     @model_validator(mode="after")
     def require_basis_for_numeric_estimate(self):
+        """비용 수치에 근거·산식 또는 가정 설명을 요구한다."""
         if self.numeric_value is not None and not self.numeric_basis.strip():
             raise ValueError("Numeric market hypotheses require a stated basis")
         return self
@@ -733,6 +807,8 @@ class MarketCommercialAnalysis(BaseModel):
 
 
 class ImplementationCostItem(BaseModel):
+    """구현 비용 항목의 수량·단가·범위·출처."""
+
     name: str
     quantity: float = Field(ge=0)
     unit: str
@@ -745,12 +821,15 @@ class ImplementationCostItem(BaseModel):
 
     @model_validator(mode="after")
     def validate_range(self):
+        """비용 범위에서 낮음 ≤ 기준 ≤ 높음 순서를 지키는지 검사한다."""
         if not self.low_unit_cost <= self.base_unit_cost <= self.high_unit_cost:
             raise ValueError("Cost range must be low <= base <= high")
         return self
 
 
 class ImplementationCostEstimate(BaseModel):
+    """근거와 가정을 구분해 기록하는 구현 비용 추정."""
+
     status: Literal["estimated", "insufficient_data", "error"] = "insufficient_data"
     region: str = "대한민국"
     currency: str = "KRW"
@@ -766,6 +845,8 @@ class ImplementationCostEstimate(BaseModel):
 
 
 class CostScenarioTotals(BaseModel):
+    """비용 항목을 산식으로 합산한 시나리오별 결과."""
+
     initial_low: float = 0
     initial_base: float = 0
     initial_high: float = 0
@@ -779,6 +860,8 @@ class CostScenarioTotals(BaseModel):
 
 
 class MarketTrendPoint(BaseModel):
+    """기준 검색어에 대한 월별 상대 검색 관심도."""
+
     period: str  # YYYY-MM
     theme_ratio: float  # 같은 요청 안 최댓값을 100으로 둔 아이디어 주제어 검색량
     reference_ratio: float  # 같은 요청 안 기준 주제어(스마트공장) 검색량
@@ -804,6 +887,8 @@ class MarketSearchTrend(BaseModel):
 
 
 class MarketKeywordNode(BaseModel):
+    """뉴스 동시 출현 네트워크에 표시할 키워드."""
+
     term: str
     document_count: int  # 이 명사가 나온 기사 수
     cluster: int  # 키워드 묶음 번호 (0부터, 큰 묶음 순)
@@ -812,6 +897,8 @@ class MarketKeywordNode(BaseModel):
 
 
 class MarketKeywordEdge(BaseModel):
+    """같은 기사에서 함께 등장한 키워드 쌍."""
+
     source: str
     target: str
     weight: int  # 두 명사가 함께 나온 기사 수
@@ -893,6 +980,8 @@ class MarketProcurement(BaseModel):
 
 # 14. 최종 시장 근거 결과
 class MarketReport(BaseModel):
+    """시장 근거·차원별 결과·보조 자료의 통합 계약."""
+
     status: Literal["completed", "no_results", "error"]
 
     dimensions: list[MarketDimensionResult] = Field(default_factory=list)
@@ -911,6 +1000,7 @@ class MarketReport(BaseModel):
 
     @model_validator(mode="after")
     def validate_report(self):
+        """시장 보고서의 인용과 하위 결과 간 참조 무결성을 확인한다."""
         _check_yyyymmdd(self.data_as_of, "data_as_of")
 
         ids = [e.citation_id for e in self.evidence]

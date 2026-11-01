@@ -73,6 +73,7 @@ def extract_terms(
     stopwords = set(config["stopwords"])
 
     def flush():
+        """현재 이어진 형태소를 키워드로 인정할지 검사하고 집합에 넣는다."""
         if run and tags & CONTENT_TAGS:
             if 2 <= len(run) <= config["max_term_length"] and run not in stopwords:
                 terms.add(run)

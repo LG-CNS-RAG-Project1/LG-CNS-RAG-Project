@@ -407,6 +407,7 @@ def search_by_dimensions(
     queries = build_dimension_queries(request)
 
     def search(query, source_types, top_k, publishers=None):
+        """한 차원의 질의를 공통 시장 검색 함수에 전달한다."""
         return search_market(
             query,
             collection=collection,

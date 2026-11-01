@@ -12,6 +12,8 @@ from src.retrieval.schemas import RetrievalResult, SearchDocument
 
 @dataclass(frozen=True)
 class RetrievalConfig:
+    """후보 수, 중복 단위, 문서 필터와 RRF 상수를 묶은 검색 설정."""
+
     candidate_k: int = 50
     top_k: int = 5
     rrf_k: int = 60
@@ -20,12 +22,15 @@ class RetrievalConfig:
     metadata_filters: dict | None = None
 
     def __post_init__(self):
+        """잘못된 0 이하 검색 한도가 실행 전에 실패하게 한다."""
         if min(self.candidate_k, self.top_k, self.rrf_k) < 1:
             raise ValueError("candidate_k, top_k, rrf_k must be positive")
 
 
 @dataclass
 class RetrievalResponse:
+    """정렬된 최종 후보와 검색·재정렬에 걸린 시간을 반환한다."""
+
     results: list[RetrievalResult]
     search_ms: float
     rerank_ms: float = 0.0
@@ -66,6 +71,7 @@ def bm25_scores(query: str, documents: list[SearchDocument], k1=1.5, b=0.75):
 
 
 def _matches(document: SearchDocument, config: RetrievalConfig) -> bool:
+    """문서 종류와 메타데이터 필터를 모두 만족하는 후보만 남긴다."""
     if config.source_type and document.source_type != config.source_type:
         return False
     return all(
@@ -75,6 +81,7 @@ def _matches(document: SearchDocument, config: RetrievalConfig) -> bool:
 
 
 def _deduplicate(results: list[RetrievalResult], by_source: bool):
+    """청크 또는 원문 문헌 기준으로 첫 번째 순위 결과를 보존한다."""
     seen = set()
     unique = []
     for result in results:
@@ -176,6 +183,7 @@ def bge_reranker(
     """
 
     def score(query: str, documents: list[SearchDocument]) -> list[float]:
+        """질의와 제목·본문 쌍의 Cross-Encoder 점수를 같은 순서로 반환한다."""
         try:
             from sentence_transformers import CrossEncoder
         except ImportError as exc:

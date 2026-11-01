@@ -14,6 +14,7 @@ _INDEX_CACHE: dict[str, tuple[float, int, PatentTrendStatistics]] = {}
 
 
 def _values(value) -> list[str]:
+    """문자열·배열 메타데이터를 중복 없는 문자열 목록으로 정리한다."""
     if isinstance(value, (list, tuple, set)):
         values = value
     else:
@@ -24,6 +25,7 @@ def _values(value) -> list[str]:
 
 
 def _applicants(value) -> list[str]:
+    """출원인 메타데이터의 구분자를 해석해 이름 목록을 만든다."""
     if isinstance(value, (list, tuple, set)):
         values = value
     else:
@@ -34,6 +36,7 @@ def _applicants(value) -> list[str]:
 
 
 def _subclass(value) -> str | None:
+    """IPC/CPC 코드에서 통계에 사용할 subclass 접두부를 추출한다."""
     normalized = re.sub(r"\s+", "", str(value or "")).upper()
     match = re.match(r"^([A-H][0-9]{2}[A-Z])", normalized)
     return match.group(1) if match else None
@@ -93,6 +96,7 @@ def calculate_patent_statistics(
             applicants.update(patent_applicants)
 
     def items(counter: Counter, limit: int | None = None):
+        """집계표를 건수 내림차순으로 정렬하고 출력 모델로 바꾼다."""
         entries = sorted(counter.items(), key=lambda item: (-item[1], item[0]))
         if limit is not None:
             entries = entries[:limit]

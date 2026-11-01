@@ -107,6 +107,8 @@ if not LOG.handlers:
 
 
 class IndexState(BaseModel):
+    """선택한 색인의 위치·컬렉션·건수와 확인 실패 이유."""
+
     location: Literal["local", "remote"]
     collection: str
     count: int | None = None  # None이면 열지 못함(reason 참고)
@@ -115,6 +117,8 @@ class IndexState(BaseModel):
 
 
 class Readiness(BaseModel):
+    """외부 키 설정과 시장·특허 색인의 실행 준비 요약."""
+
     keys: dict[str, bool]  # 인증 정보와 provider 설정 여부. 실제 값은 담지 않는다
     chroma: Literal["local", "remote"]
     market_index: IndexState
@@ -126,6 +130,8 @@ class Readiness(BaseModel):
 
 
 class PartRun(BaseModel):
+    """한 분석 영역의 상태, 소요 시간, 사용자용 오류 안내."""
+
     state: RunState
     seconds: float | None = None
     message: str | None = None
@@ -144,6 +150,8 @@ class SourceAnalysis(BaseModel):
 
 
 class PipelineReport(BaseModel):
+    """특허·시장 분석을 통합한 화면·저장용 최종 보고서."""
+
     status: str
     title: str
     patent: PatentReport
@@ -175,12 +183,15 @@ class _GetCountCollection:
     """
 
     def __init__(self, collection):
+        """원격 컬렉션에 대한 count 호출을 호환 요청으로 감싼다."""
         self._collection = collection
 
     def count(self) -> int:
+        """문서 내용을 받지 않고 현재 컬렉션 건수를 센다."""
         return len(self._collection.get(include=[])["ids"])
 
     def __getattr__(self, name):
+        """count 이외의 컬렉션 동작은 원본 객체에 위임한다."""
         return getattr(self._collection, name)
 
 
@@ -188,12 +199,15 @@ class _EmptyCollection:
     """특허 로컬 색인이 없을 때 넘기는 빈 컬렉션. KIPRIS 보충 경로로 넘어가게 한다."""
 
     def count(self) -> int:
+        """빈 컬렉션의 건수를 0으로 보고한다."""
         return 0
 
     def get(self, *args, **kwargs) -> dict:
+        """저장 문서가 없는 Chroma get 응답 모양을 반환한다."""
         return {"ids": [], "documents": [], "metadatas": []}
 
     def query(self, *args, **kwargs) -> dict:
+        """저장 문서가 없는 Chroma query 응답 모양을 반환한다."""
         return {"ids": [[]], "distances": [[]]}
 
 
@@ -212,6 +226,7 @@ def redact(text: str | None) -> str | None:
 
 
 def _redacted(report):
+    """오류 문구와 미확인 항목을 비밀값 제거 후 복사한다."""
     return report.model_copy(
         update={
             "error_message": redact(report.error_message),
@@ -221,6 +236,7 @@ def _redacted(report):
 
 
 def _area_ids() -> list[str]:
+    """기술 분야 설정에서 색인 필터용 분야 ID를 읽는다."""
     try:
         config = yaml.safe_load(AREAS_PATH.read_text(encoding="utf-8")) or {}
     except OSError:
@@ -229,6 +245,7 @@ def _area_ids() -> list[str]:
 
 
 def _chroma_location() -> Literal["local", "remote"]:
+    """CHROMA_HOST 설정에 따라 로컬·공용 저장소 모드를 고른다."""
     return "remote" if os.getenv("CHROMA_HOST", "").strip() else "local"
 
 
@@ -332,6 +349,7 @@ def _market_dart_count(collection) -> int:
 
 
 def _market_collected_at(collection) -> int | None:
+    """시장 컬렉션 메타데이터에서 가장 최근 수집일을 찾는다."""
     try:
         metadatas = collection.get(include=["metadatas"])["metadatas"] or []
     except Exception:
@@ -429,7 +447,9 @@ def check_readiness(technology_area_id: str | None = None) -> Readiness:
 
 
 def _guard(fn: Callable, event: threading.Event) -> Callable:
+    """취소 이벤트를 분석 함수 호출 앞에서 확인하는 래퍼를 만든다."""
     def guarded(*args, **kwargs):
+        """취소 이벤트가 켜졌으면 새 호출을 막고 원래 함수를 실행한다."""
         if event.is_set():
             raise Cancelled("제한 시간이 지나 외부 호출을 중단했습니다.")
         return fn(*args, **kwargs)
@@ -447,9 +467,11 @@ def _tolerant_relevance(event: threading.Event) -> Callable:
     from src.retrieval import patent_relevance
 
     def judge(idea, results):
+        """특허 후보를 판정하고 불완전한 모델 응답을 안전하게 보완한다."""
         last = {}
 
         def llm(system_prompt, user_text):
+            """제한 시간을 확인한 뒤 모델 응답을 마지막 응답 기록에 보존한다."""
             if event.is_set():
                 raise Cancelled("제한 시간이 지나 외부 호출을 중단했습니다.")
             last["raw"] = patent_relevance.call_relevance_llm(system_prompt, user_text)
@@ -488,6 +510,7 @@ def _tolerant_relevance(event: threading.Event) -> Callable:
 
 
 def _market_defaults(event: threading.Event) -> dict:
+    """시장 분석 단계에 필요한 provider 호출과 자료 보강 함수를 연결한다."""
     from src.generation.market_analysis import call_analysis_llm
     from src.retrieval.market_relevance import call_relevance_llm
     from src.retrieval.market_search import embed_texts
@@ -508,6 +531,7 @@ def _market_defaults(event: threading.Event) -> dict:
 
 
 def _patent_defaults(event: threading.Event) -> dict:
+    """특허 분석 단계의 검색·판정·비교 함수를 취소 가드와 연결한다."""
     from src.generation.patent_analysis import (
         call_comparison_llm,
         review_patents_by_component,
@@ -522,14 +546,17 @@ def _patent_defaults(event: threading.Event) -> dict:
     guarded_embed = _guard(embed_texts, event)
 
     def review(idea, evidence):
+        """특허 근거를 기술 구성요소별로 검토한다."""
         return review_patents_by_component(idea, evidence, llm_fn=guarded_review_llm)
 
     def design_proposals(idea, evidence, reviews, precheck):
+        """특허 검토 결과에서 설계 제안과 검증 계획을 만든다."""
         return generate_patent_design_analysis(
             idea, evidence, reviews, precheck, llm_fn=guarded_review_llm
         )
 
     def score_semantic_similarity(idea, evidence, source_texts):
+        """선택한 임베딩 provider로 아이디어와 특허 근거를 비교한다."""
         return score_patent_semantic_similarity(
             idea, evidence, source_texts, embed_fn=guarded_embed
         )
@@ -547,12 +574,14 @@ def _patent_defaults(event: threading.Event) -> dict:
 
 
 def _timed(fn: Callable, *args, **kwargs):
+    """분석 결과와 실제 경과 시간을 함께 돌려준다."""
     started = time.monotonic()
     report = fn(*args, **kwargs)
     return report, time.monotonic() - started
 
 
 def _part_from_report(report, seconds: float) -> PartRun:
+    """하위 보고서의 상태와 오류를 영역 실행 상태로 옮긴다."""
     message = report.error_message if report.status in {"error", "partial"} else None
     return PartRun(
         state=report.status, seconds=round(seconds, 1), message=redact(message)
@@ -676,6 +705,7 @@ def analyze_sources(
 
 
 def _failed(kind: str, state: RunState, message: str, seconds: float | None):
+    """영역 실패를 올바른 보고서 타입과 실행 상태로 표현한다."""
     model = MarketReport if kind == "market" else PatentReport
     report = model(status="error", search_scope="조사 미완료", error_message=message)
     return report, PartRun(state=state, seconds=seconds, message=message)
@@ -716,6 +746,7 @@ def _run_jobs(
 
 
 def _collect(kind: str, future, timeout: float, event: threading.Event):
+    """영역 작업의 예외·시간 초과를 결과 상태로 바꾸고 성공 결과를 반환한다."""
     try:
         report, seconds = future.result(timeout=timeout)
     except FutureTimeout:

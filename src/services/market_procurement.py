@@ -68,6 +68,7 @@ def buyer_type(buyer: str, config: dict) -> str:
 
 
 def _amount(value) -> int | None:
+    """조달 예산 표현을 정수 금액으로 바꾸고 해석 불가 값은 비운다."""
     text = str(value or "").replace(",", "").strip()
     return int(float(text)) if text and text.replace(".", "").isdigit() else None
 

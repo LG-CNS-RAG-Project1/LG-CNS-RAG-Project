@@ -191,6 +191,7 @@ def _merge_retrieval_results(
     }[retrieval_mode]
 
     def score(item):
+        """가장 높은 검색 또는 재정렬 점수를 대표 청크 선택에 사용한다."""
         if item.rerank_score is not None:
             return item.rerank_score
         value = getattr(item, score_field)
@@ -343,6 +344,7 @@ def _build_patent_context(
     notes = []
 
     def cost(claim: PatentClaim) -> int:
+        """청구항 텍스트 토큰 수를 예산 산정용으로 추정한다."""
         return _estimate_text_tokens(claim.text)
 
     while selected and sum(cost(claim) for claim in selected) > max_tokens:

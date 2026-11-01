@@ -71,6 +71,7 @@ LLMFn = Callable[[str, str], dict]
 
 
 class SwotItem(BaseModel):
+    """SWOT 항목의 주장 성격과 연결 근거 ID."""
     text: str
     basis: Literal["evidence", "user_claim", "ai_hypothesis"]
     citation_ids: list[str] = Field(default_factory=list)

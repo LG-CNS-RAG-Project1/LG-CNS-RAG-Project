@@ -99,6 +99,7 @@ def call_analysis_llm(system_prompt: str, user_text: str) -> dict:
 
 
 def _to_date(value: int) -> date:
+    """YYYYMMDD 정수형 날짜를 Python 날짜 값으로 변환한다."""
     return datetime.strptime(str(value), "%Y%m%d").date()
 
 

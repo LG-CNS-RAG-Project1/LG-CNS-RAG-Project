@@ -75,6 +75,7 @@ _RND_TOTAL_LABELS = [
 
 
 def _cell_text(cell: str) -> str:
+    """DART XML 표 셀의 태그를 제거하고 읽을 수 있는 텍스트를 만든다."""
     return " ".join(html.unescape(_TAG_RE.sub(" ", cell)).split())
 
 

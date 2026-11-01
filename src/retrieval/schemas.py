@@ -1,9 +1,13 @@
+"""검색 백엔드와 도메인 분석기가 공유하는 후보·순위 계약."""
+
 from typing import Literal
 from pydantic import BaseModel, Field
 
 
 # 공통 스키마
 class SearchDocument(BaseModel):
+    """특허와 시장 문서를 같은 검색 인터페이스로 표현한다."""
+
     chunk_id: str = Field(min_length=1)
     source_id: str = Field(min_length=1)
     source_type: Literal["patent", "market"]
@@ -13,6 +17,8 @@ class SearchDocument(BaseModel):
 
 
 class RetrievalResult(BaseModel):
+    """한 검색 후보의 점수와 단계별 순위를 함께 보존한다."""
+
     document: SearchDocument
 
     dense_score: float | None = None

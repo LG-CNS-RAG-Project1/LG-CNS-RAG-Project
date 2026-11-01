@@ -162,6 +162,7 @@ def build_search_trend(
         fetch = fetch_fn or (lambda g, s, e: fetch_search_trend(g, s, e, config))
 
         def query(terms: list[str]) -> dict:
+            """주제어의 기준어 대비 월별 검색 지수와 추세 판정을 얻는다."""
             series = fetch(
                 [
                     {"groupName": reference["name"], "keywords": reference["keywords"]},

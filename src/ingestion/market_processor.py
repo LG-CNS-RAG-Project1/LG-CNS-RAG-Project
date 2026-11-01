@@ -78,10 +78,12 @@ def merge_by_source_id(records: list[dict]) -> list[dict]:
 
 
 def _normalize_title(title: str) -> str:
+    """중복 비교에 사용할 제목의 공백·문장부호를 정규화한다."""
     return _NON_WORD_RE.sub("", title).lower()
 
 
 def _days_between(a: int, b: int) -> int:
+    """두 YYYYMMDD 날짜 사이의 절대 일수를 계산한다."""
     fmt = "%Y%m%d"
     return abs((datetime.strptime(str(a), fmt) - datetime.strptime(str(b), fmt)).days)
 
@@ -105,6 +107,7 @@ def group_duplicates(
     parent = list(range(len(items)))
 
     def find(i: int) -> int:
+        """기준 제목과 유사한 뉴스 후보를 찾아 중복 그룹을 만든다."""
         while parent[i] != i:
             parent[i] = parent[parent[i]]
             i = parent[i]
