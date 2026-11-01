@@ -187,6 +187,43 @@ def test_search_market_orders_and_formats(indexed):
     }
 
 
+def test_dense_market_search_uses_only_server_returned_candidates():
+    metadata = {
+        "source_id": "news-a",
+        "source_type": "news",
+        "title": "협동로봇 도입 확대",
+        "publisher": "example.com",
+        "published_at": 20261020,
+        "reliability": "medium",
+        "evidence_nature": "business_signal",
+        "dup_group": "news-a",
+    }
+
+    class CandidateOnlyCollection:
+        get_called = False
+
+        def count(self):
+            return 100
+
+        def get(self, **kwargs):
+            self.get_called = True
+            raise AssertionError("Dense search should not load the full corpus")
+
+        def query(self, **kwargs):
+            return {
+                "ids": [["news-a#0"]],
+                "documents": [["협동로봇 도입 확대"]],
+                "metadatas": [[metadata]],
+                "distances": [[0.1]],
+            }
+
+    collection = CandidateOnlyCollection()
+    hits = search_market("협동로봇", collection=collection, embed_fn=fake_embed)
+
+    assert [hit["source_id"] for hit in hits] == ["news-a"]
+    assert not collection.get_called
+
+
 def test_search_market_returns_empty_for_filter_with_no_matches(indexed):
     assert (
         search_market(

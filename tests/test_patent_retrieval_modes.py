@@ -125,7 +125,11 @@ def test_dense_search_overfetches_chunks_to_return_distinct_patents():
     ]
 
     class Collection:
+        def count(self):
+            return len(documents)
+
         def get(self, **kwargs):
+            self.get_called = True
             return {
                 "ids": [item.chunk_id for item in documents],
                 "documents": [item.content for item in documents],
@@ -144,6 +148,17 @@ def test_dense_search_overfetches_chunks_to_return_distinct_patents():
             selected = documents[:n_results]
             return {
                 "ids": [[item.chunk_id for item in selected]],
+                "documents": [[item.content for item in selected]],
+                "metadatas": [
+                    [
+                        {
+                            "source_id": item.source_id,
+                            "source_type": item.source_type,
+                            "title": item.title,
+                        }
+                        for item in selected
+                    ]
+                ],
                 "distances": [[index / 100 for index, _ in enumerate(selected)]],
             }
 
@@ -159,4 +174,5 @@ def test_dense_search_overfetches_chunks_to_return_distinct_patents():
     )
 
     assert collection.requested_n_results == 5
+    assert not getattr(collection, "get_called", False)
     assert [item.document.source_id for item in results] == ["p1", "p2"]

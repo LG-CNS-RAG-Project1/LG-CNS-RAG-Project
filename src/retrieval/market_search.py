@@ -232,8 +232,26 @@ def search_market(
     )
     config = replace(config, top_k=config.candidate_k)
     where = build_where(idea_id, source_types, date_from, publishers)
-    records = collection.get(where=where, include=["documents", "metadatas"])
-    if not records["ids"]:
+    records = (
+        None
+        if retrieval_mode == "dense"
+        else collection.get(where=where, include=["documents", "metadatas"])
+    )
+    dense_results = []
+    if retrieval_mode in {"dense", "hybrid"}:
+        result = collection.query(
+            query_embeddings=embed_fn([query]),
+            n_results=min(config.candidate_k, count),
+            where=where,
+            include=["documents", "metadatas", "distances"],
+        )
+        if records is None:
+            records = {
+                "ids": result["ids"][0],
+                "documents": result["documents"][0],
+                "metadatas": result["metadatas"][0],
+            }
+    if not records or not records["ids"]:
         return []
     documents = [
         SearchDocument(
@@ -248,14 +266,7 @@ def search_market(
             records["ids"], records["documents"], records["metadatas"]
         )
     ]
-    dense_results = []
     if retrieval_mode in {"dense", "hybrid"}:
-        result = collection.query(
-            query_embeddings=embed_fn([query]),
-            n_results=min(config.candidate_k, count),
-            where=where,
-            include=["documents", "metadatas", "distances"],
-        )
         by_id = {document.chunk_id: document for document in documents}
         dense_results = [
             RetrievalResult(
