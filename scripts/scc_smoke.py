@@ -114,6 +114,7 @@ def click_wake_button(page) -> bool:
 
 
 def parse_args(argv=None) -> argparse.Namespace:
+    """스모크 실행 옵션과 점검 범위를 해석한다."""
     parser = argparse.ArgumentParser(description="SCC 배포 앱 기동 확인")
     parser.add_argument(
         "--url", required=True, help="앱 주소(https://<앱>.streamlit.app)"
@@ -139,6 +140,7 @@ def parse_args(argv=None) -> argparse.Namespace:
 
 
 def main(argv=None) -> int:
+    """명령행 인수를 해석해 해당 실행 동작으로 전달한다."""
     args = parse_args(argv)
     from playwright.sync_api import Error as PlaywrightError
     from playwright.sync_api import sync_playwright
@@ -147,6 +149,7 @@ def main(argv=None) -> int:
     deadline = started + args.initial_wait + args.timeout
 
     def log(message: str) -> None:
+        """스모크 점검 결과를 일관된 형식으로 출력한다."""
         print(f"[{int(time.monotonic() - started):>4}s] {message}", flush=True)
 
     if args.initial_wait:
@@ -156,6 +159,7 @@ def main(argv=None) -> int:
     state, obs, no_gate_since = "loading", None, None
 
     def gate_missing() -> bool:
+        """필수 의존 요소가 빠졌으면 후속 스모크 단계를 중단한다."""
         return bool(
             no_gate_since and time.monotonic() - no_gate_since >= args.no_gate_grace
         )

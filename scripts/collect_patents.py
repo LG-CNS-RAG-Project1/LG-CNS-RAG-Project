@@ -9,6 +9,7 @@ from src.schemas import PatentSearchRequest
 
 
 def main() -> None:
+    """명령행 인수를 해석해 해당 실행 동작으로 전달한다."""
     parser = argparse.ArgumentParser(description="아이디어에서 특허 문헌을 수집합니다")
     parser.add_argument(
         "--request",

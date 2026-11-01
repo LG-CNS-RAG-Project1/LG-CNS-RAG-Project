@@ -15,6 +15,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 
 def main() -> int:
+    """명령행 인수를 해석해 해당 실행 동작으로 전달한다."""
     print(f"SQLite {sqlite3.sqlite_version}")
     from chromadb.is_thin_client import is_thin_client
 

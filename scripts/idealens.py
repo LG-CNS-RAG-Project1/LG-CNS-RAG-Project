@@ -61,10 +61,12 @@ class Report:
     """점검 결과를 [OK]/[주의]/[실패]로 출력하고 실패 여부를 모은다."""
 
     def __init__(self) -> None:
+        """점검 결과를 모을 객체의 초기 상태를 설정한다."""
         self.failed = False
         self.lines: list[str] = []
 
     def emit(self, level: str, message: str) -> None:
+        """상태 메시지를 누적하고 콘솔에 표시하며 실패 여부를 갱신한다."""
         if level == "실패":
             self.failed = True
         line = f"[{level}] {message}"
@@ -72,16 +74,20 @@ class Report:
         print(line)
 
     def ok(self, message: str) -> None:
+        """점검 항목을 성공 상태로 기록한다."""
         self.emit("OK", message)
 
     def warn(self, message: str) -> None:
+        """점검 항목을 주의 상태로 기록한다."""
         self.emit("주의", message)
 
     def fail(self, message: str) -> None:
+        """점검 항목을 실패 상태로 기록한다."""
         self.emit("실패", message)
 
 
 def ui_port() -> int:
+    """환경 변수에 설정된 로컬 UI 포트를 정수로 반환한다."""
     return int(os.getenv("IDEALENS_UI_PORT", "8505"))
 
 
@@ -169,11 +175,13 @@ def stream(cmd: list[str], env: dict[str, str]) -> int:
 
 
 def parse_version(text: str) -> tuple[int, ...]:
+    """버전 문자열을 비교 가능한 숫자 튜플로 해석한다."""
     numbers = re.findall(r"\d+", text)
     return tuple(int(n) for n in numbers[:3]) if numbers else (0,)
 
 
 def docker_ready(report: Report) -> bool:
+    """Docker 및 Compose 실행 환경의 사용 가능 여부를 점검한다."""
     result = run(["docker", "info", "--format", "{{.ServerVersion}}"], timeout=20)
     if result.returncode != 0:
         report.fail("Docker 엔진에 연결할 수 없습니다. Docker Desktop을 실행하세요.")
@@ -191,22 +199,26 @@ def docker_ready(report: Report) -> bool:
 
 
 def image_exists() -> bool:
+    """로컬 컨테이너 이미지가 준비되어 있는지 확인한다."""
     return run(["docker", "image", "inspect", IMAGE], timeout=30).returncode == 0
 
 
 def required_version(package: str) -> str | None:
+    """서비스 실행에 필요한 버전 조건을 확인한다."""
     text = (ROOT / "requirements.txt").read_text(encoding="utf-8")
     match = re.search(rf"^{package}==([\w.]+)", text, re.M)
     return match.group(1) if match else None
 
 
 def port_in_use(port: int, host: str = "127.0.0.1") -> bool:
+    """지정 포트를 이미 다른 프로세스가 점유했는지 확인한다."""
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         sock.settimeout(0.5)
         return sock.connect_ex((host, port)) == 0
 
 
 def ui_running() -> bool:
+    """로컬 UI 주소의 응답 여부로 앱 실행 상태를 확인한다."""
     result = run(
         ["docker", "compose", "ps", "--status", "running", "--services"], timeout=30
     )
@@ -214,6 +226,7 @@ def ui_running() -> bool:
 
 
 def chroma_checks(env: dict[str, str], report: Report) -> None:
+    """Chroma 연결 설정과 컬렉션 상태를 점검한다."""
     host = env.get("CHROMA_HOST", "").strip()
     if not host:
         report.ok("Chroma: 로컬 색인 사용(CHROMA_HOST 없음)")
@@ -245,6 +258,7 @@ def chroma_checks(env: dict[str, str], report: Report) -> None:
 
 
 def count_text(count) -> str:
+    """출력 문자열에서 표시 가능한 결과 건수를 계산한다."""
     return "없음" if count is None else f"{count}건"
 
 
@@ -275,6 +289,7 @@ def pipeline_status(report: Report) -> dict | None:
 
 
 def cmd_doctor(args) -> int:
+    """필수 도구·환경 설정을 점검하고 민감한 값은 출력하지 않는다."""
     report = Report()
     env, env_warnings = read_env()
     if not ENV_PATH.exists():
@@ -359,6 +374,7 @@ def cmd_doctor(args) -> int:
 
 
 def cmd_setup(args) -> int:
+    """로컬 실행에 필요한 환경과 컨테이너 이미지를 준비한다."""
     example = ROOT / ".env.example"
     if ENV_PATH.exists():
         print("[OK] .env가 이미 있어 그대로 둡니다.")
@@ -372,6 +388,7 @@ def cmd_setup(args) -> int:
 
 
 def wait_health(port: int, seconds: int = HEALTH_WAIT_SECONDS) -> bool:
+    """서비스가 준비 상태가 될 때까지 제한 시간 안에서 확인한다."""
     deadline = time.monotonic() + seconds
     url = f"http://127.0.0.1:{port}/_stcore/health"
     while time.monotonic() < deadline:
@@ -386,6 +403,7 @@ def wait_health(port: int, seconds: int = HEALTH_WAIT_SECONDS) -> bool:
 
 
 def cmd_ui(args) -> int:
+    """Streamlit UI 실행 명령을 구성하고 브라우저를 연다."""
     report = Report()
     if not docker_ready(report):
         return 1
@@ -412,6 +430,7 @@ def cmd_ui(args) -> int:
 
 
 def confirm(prompt: str, assume_yes: bool) -> bool:
+    """파괴적이거나 비용이 드는 작업 전에 사용자의 명시적 확인을 받는다."""
     if assume_yes:
         return True
     try:
@@ -422,10 +441,12 @@ def confirm(prompt: str, assume_yes: bool) -> bool:
 
 
 def compose_app(*args: str) -> list[str]:
+    """프로젝트 컨테이너 실행에 필요한 Compose 명령을 만든다."""
     return ["docker", "compose", "run", "--rm", "-T", "app", *args]
 
 
 def market_keyword_ids() -> list[str]:
+    """시장 색인에 사용할 키워드 식별자를 결정한다."""
     result = run(
         compose_app(
             "python",
@@ -442,6 +463,7 @@ def market_keyword_ids() -> list[str]:
 
 
 def cmd_data(args) -> int:
+    """선택한 자료 수집·색인 작업을 실행한다."""
     report = Report()
     env, _ = read_env()
     if not docker_ready(report) or not image_exists():
@@ -525,19 +547,23 @@ def cmd_data(args) -> int:
 
 
 def cmd_test(args) -> int:
+    """프로젝트 테스트 명령을 호출한다."""
     code = stream(compose_app("python", "-m", "pytest", "-q"), read_env()[0])
     return 0 if code == 5 else code
 
 
 def cmd_logs(args) -> int:
+    """서비스 로그를 조회해 개발자가 실행 상태를 확인하게 한다."""
     return run(["docker", "compose", "logs", "-f", "ui"], capture=False).returncode
 
 
 def cmd_stop(args) -> int:
+    """로컬 실행 중인 서비스를 정지한다."""
     return run(["docker", "compose", "down"], capture=False).returncode
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """명령행 하위 명령과 옵션 계약을 정의한다."""
     parser = argparse.ArgumentParser(description="IdeaLens 통합 실행 도구")
     sub = parser.add_subparsers(dest="command", required=True)
     doctor = sub.add_parser("doctor", help="실행 환경 점검(키 값 미출력)")
@@ -576,6 +602,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """명령행 인수를 해석해 해당 실행 동작으로 전달한다."""
     for stream_ in (sys.stdout, sys.stderr):
         if hasattr(stream_, "reconfigure"):
             stream_.reconfigure(errors="replace")

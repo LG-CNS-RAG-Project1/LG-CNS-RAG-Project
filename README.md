@@ -75,6 +75,19 @@
 - 원문·가공 데이터·검색 색인·생성 보고서는 Git 추적에서 제외. Chroma 색인은 로컬 또는 공용 서버에 보관.
 - 서비스 연결 구조는 [docs/architecture.md](docs/architecture.md)의 mermaid 다이어그램으로 관리. 실제 구현·데이터 준비·V1.0 출시 게이트 기준선은 [RAG 서비스 현황](docs/rag-service-baseline.md)을 참고한다.
 
+## 코드 학습 순서
+
+처음 코드를 읽을 때는 파일을 계층별로 훑기보다 입력에서 보고서까지 한 번의 데이터 흐름을 따라간다. Python 모듈·클래스·함수의 docstring은 역할, 계약, 상태 전이를 설명하며, 실제 동작은 호출부와 테스트를 함께 확인한다.
+
+1. `src/schemas.py`: 아이디어, 특허·시장 근거와 보고서 사이에 전달되는 데이터 계약을 확인한다.
+2. `src/ingestion/`: 외부 원자료가 정규화 문서와 청크로 바뀌며 출처 정보가 보존되는 경로를 읽는다.
+3. `src/retrieval/`: Dense·BM25·Hybrid 검색, 결과 변환과 근거 식별자 전달을 확인한다.
+4. `src/services/`와 `src/pipeline.py`: 각 조사 진입점과 전체 실행·부분 실패·최종 통합 흐름을 따라간다.
+5. `src/generation/` 및 `prompts/`: 검색 근거가 분석 결과에 연결되고 검증되는 규칙을 살핀다.
+6. `frontend/app.py`와 `frontend/workflow.py`: 화면 단계, 세션 상태, 백그라운드 작업이 분석 결과를 어떻게 보존하는지 확인한다.
+7. `frontend/workspace_view.py`, `frontend/report_overview.py`, `frontend/decision_trace.py`: 보고서가 근거·상태를 사용자에게 보여 주는 방식을 읽는다.
+8. 위 경로에 대응하는 `tests/`와 `evaluation/` 자료를 확인해 계약과 품질 기준을 검증한다.
+
 ## 빠른 시작 (팀원용)
 
 필요: Docker Desktop 실행, Python 3.9 이상(통합 실행 도구용). macOS는 `python3`, Windows는 `py`(없으면 `python`)를 쓴다.
