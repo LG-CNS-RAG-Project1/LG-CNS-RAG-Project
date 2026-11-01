@@ -78,6 +78,8 @@ def compare_all(idea, evidence):
 def test_semantic_similarity_uses_one_idea_query_for_every_patent(monkeypatch):
     import src.services.patent_service as service
 
+    monkeypatch.setenv("LLM_PROVIDER", "ollama")
+    monkeypatch.setenv("OLLAMA_EMBEDDING_MODEL", "bge-m3")
     monkeypatch.setattr(
         service,
         "search_patents",
@@ -102,7 +104,7 @@ def test_semantic_similarity_uses_one_idea_query_for_every_patent(monkeypatch):
         semantic_similarity_fn=score,
     )
 
-    assert report.semantic_similarity_model == "text-embedding-3-small"
+    assert report.semantic_similarity_model == "bge-m3"
     assert {item.patent_id: item.semantic_similarity for item in report.evidence} == {
         "P1": 0.82,
         "P2": 0.47,
