@@ -34,7 +34,7 @@
 
 ## 통합 (B-GOAL-3)
 - B-INT-1 [초안] 공통 입력: 아이디어 한 문장을 문제·기술·고객·차별점·수익모델로 나누고(빈 항목은 최대 2회 재질문, 남으면 모름), 특허·시장 검색 요청으로 함께 바꾼다.
-- B-INT-2 [초안] 결과 계약: 특허·시장 결과는 `src/schemas.py`의 `PatentReport`·`MarketReport`로 주고받고, 서비스 진입점(`src/services/`)과 분석 흐름(`src/pipeline.py`)이 두 결과를 모은다. Streamlit은 서비스 진입점을 직접 부를 수 있고 FastAPI(`src/main.py`)는 선택이다. 응답 계약은 `docs/api_contract.md`에 적는다.
+- B-INT-2 [초안] 결과 계약: 특허·시장 결과는 `src/schemas.py`의 `PatentReport`·`MarketReport`로 주고받고, 서비스 진입점(`src/services/`)과 분석 흐름(`src/pipeline.py`)이 두 결과를 모은다. Streamlit은 파이프라인을 직접 호출한다. `src/main.py`는 빈 자리표시자이며 HTTP API는 구현되어 있지 않다. 응답 계약은 `docs/api_contract.md`의 함수 수준 연결 계약에 적는다.
 - B-INT-3 [초안] 질문별 연결: 검토 질문마다 시장(M:)·특허(P:) 근거 번호를 사용 맥락·과제·구성·성능·도입 제약·근거 범위 6개 기준으로 연결하고, 한쪽 근거가 없으면 통합 판단을 보류한다.
 - B-INT-4 [초안] 보고서·화면: Streamlit UI의 아이디어 입력 → 구성·검토 질문 → 근거·연결 검토 → 종합 보고서 4단계에 실제 결과를 보여 주고, 가상 시연 자료를 실제 결과로 표시하지 않는다.
 - B-INT-5 [초안] 구현 비용: 사용자가 입력하는 구현 비용표(항목·소계)는 보고서의 보조 자료이며 사업성 점수나 판단이 아니다.
@@ -62,7 +62,7 @@
 
 ## 담당 영역과 약속
 - B-MOD-1 [초안] 공통 데이터 계약은 `src/schemas.py`(StructuredIdea, PatentReport, Market* 모델)와 공통 검색 계약 `src/retrieval/schemas.py`(SearchDocument, RetrievalResult)다. 계약 변경은 사용하는 영역 전체에 영향을 준다.
-- B-MOD-2 [초안] 서비스 구조: 사용자 → `frontend/`(Streamlit UI) → `src/services/` → `src/pipeline.py` → `src/ingestion/`·`src/retrieval/`·`src/generation/`. `src/main.py`(FastAPI)는 선택 경로이고, 특허·시장 검색은 `src/retrieval/engine.py` 공통 엔진을 거친다.
+- B-MOD-2 [초안] 서비스 구조: 사용자 → `frontend/`(Streamlit UI) → `src/pipeline.py` → `src/services/` → `src/ingestion/`·`src/retrieval/`·`src/generation/`. `src/main.py`는 빈 자리표시자이며 HTTP API는 현재 지원하지 않는다. 특허·시장 검색은 `src/retrieval/engine.py` 공통 엔진을 거친다.
 - B-MOD-3 [초안] 비밀값(API 키)은 `.env`에만 두고 `.env.example`에는 이름만 둔다.
 
 ## 태그 규칙
