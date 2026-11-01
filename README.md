@@ -46,7 +46,7 @@
 ├── deploy/                  # 공용 Chroma·HTTPS 중계·개인 키 인증 배포 설정
 ├── docs/                    # 기획·설계·개발 환경 문서, 프로젝트 목표·PR 분석 안내서(review-baseline.md)
 ├── evaluation/              # 평가 질문·정답 근거·평가 실행
-├── frontend/                # 아이디어 검토 UI, 실제 분석 화면 보조(live.py), 스타일, 비용 계산과 예시 보고서, SCC 전용 의존성(requirements.txt)
+├── frontend/                # 아이디어 검토 UI와 단계별 결과 화면, 상태·보고서 도우미, 스타일과 예시 자료
 ├── prompts/                 # 아이디어 구조화·근거 검증·보고서 프롬프트
 ├── reports/                 # 생성한 경영진·R&D 보고서
 ├── scripts/
@@ -57,12 +57,19 @@
 │   ├── github/              # PR 리뷰어 무작위 지정, develop → main 승격 PR
 │   └── review/              # PR 자동 분석(규칙 점검·GPT 분석(Codex 구독 또는 API)·Notion PR 페이지와 영역 요약 카드 기록)
 ├── src/
-│   ├── main.py · pipeline.py · schemas.py  # main.py는 빈 자리표시자, 분석 흐름·공통 모델
+│   ├── pipeline.py               # 파이프라인 진입점·보고서 구성
+│   ├── pipeline_execution.py     # 특허·시장 실행·시간 초과 격리
+│   ├── pipeline_cli.py           # 상태 점검·샘플 분석 CLI
+│   ├── pipeline_models.py        # 준비 상태·실행 결과 계약
+│   ├── schemas.py                # 도메인 계약 호환 진입점
+│   ├── patent_schemas.py        # 특허 검색·근거·보고서 계약
+│   ├── market_schemas.py        # 시장 검색·근거·보고서 계약
+│   ├── idea_schemas.py           # 아이디어 입력·초안 데이터 계약
 │   ├── analysis/           # 특허 분류통계와 기술 동향 집계
 │   ├── ingestion/           # 자료 수집·전처리·청크 생성
 │   ├── retrieval/           # 공통 Dense·BM25·Hybrid 검색·색인 구축
-│   ├── generation/          # 근거 검증·역할별 보고서 생성
-│   └── services/            # 특허·시장 분석 진입점
+│   ├── generation/          # 근거 구성·검증·특허·시장·경영진 보고서 렌더링
+│   └── services/            # 특허·시장 진입점, 후보 정리, 청구항 문맥 구성
 ├── tests/                   # pytest 테스트
 ├── Dockerfile · compose.yaml · Makefile  # Docker 개발 환경과 공용 명령
 ├── pyproject.toml           # black·pytest 설정
@@ -77,16 +84,15 @@
 
 ## 코드 학습 순서
 
-처음 코드를 읽을 때는 파일을 계층별로 훑기보다 입력에서 보고서까지 한 번의 데이터 흐름을 따라간다. Python 모듈·클래스·함수의 docstring은 역할, 계약, 상태 전이를 설명하며, 실제 동작은 호출부와 테스트를 함께 확인한다.
+입력에서 보고서까지 한 번의 흐름을 따라 읽는다. 모듈·클래스·함수 docstring은 역할과 계약을 설명하며, 실제 동작은 호출부와 테스트를 함께 확인한다.
 
-1. `src/schemas.py`: 아이디어, 특허·시장 근거와 보고서 사이에 전달되는 데이터 계약을 확인한다.
-2. `src/ingestion/`: 외부 원자료가 정규화 문서와 청크로 바뀌며 출처 정보가 보존되는 경로를 읽는다.
-3. `src/retrieval/`: Dense·BM25·Hybrid 검색, 결과 변환과 근거 식별자 전달을 확인한다.
-4. `src/services/`와 `src/pipeline.py`: 각 조사 진입점과 전체 실행·부분 실패·최종 통합 흐름을 따라간다.
-5. `src/generation/` 및 `prompts/`: 검색 근거가 분석 결과에 연결되고 검증되는 규칙을 살핀다.
-6. `frontend/app.py`와 `frontend/workflow.py`: 화면 단계, 세션 상태, 백그라운드 작업이 분석 결과를 어떻게 보존하는지 확인한다.
-7. `frontend/workspace_view.py`, `frontend/report_overview.py`, `frontend/decision_trace.py`: 보고서가 근거·상태를 사용자에게 보여 주는 방식을 읽는다.
-8. 위 경로에 대응하는 `tests/`와 `evaluation/` 자료를 확인해 계약과 품질 기준을 검증한다.
+1. `src/idea_schemas.py`, `src/patent_schemas.py`, `src/market_schemas.py`: 입력·근거·결과 데이터 계약을 확인한다.
+2. `src/ingestion/`: 원자료가 문서와 청크로 정리되며 출처가 보존되는 경로를 읽는다.
+3. `src/retrieval/`: 색인, Dense·BM25·Hybrid 검색, 검색 결과 변환을 따라간다.
+4. `src/services/`와 `src/pipeline.py`, `src/pipeline_execution.py`: 조사 실행과 부분 실패 상태 전달을 확인한다.
+5. `src/generation/` 및 `prompts/`: 검색 근거가 판단·인용으로 구성되고 검증되는 규칙을 읽는다.
+6. `frontend/app.py`, `frontend/workflow.py`, `frontend/patent_view.py`, `frontend/market_view.py`: 화면 상태와 보고서 표시 흐름을 확인한다.
+7. 대응하는 `tests/`와 `evaluation/` 자료로 계약과 품질 평가 기준을 확인한다.
 
 ## 빠른 시작 (팀원용)
 
@@ -109,7 +115,7 @@ python3 scripts/idealens.py logs | stop | test
 - 공용 Chroma 키는 관리자에게 개인 메시지로 받아 개인 `.env`에만 둔다(Notion·GitHub 게시 금지). HTTPS 키 접속은 `CHROMA_PORT=443`·`CHROMA_SSL=true`다.
 - Python이 없으면 `docker compose up -d ui`로 화면만 실행할 수 있다.
 
-OpenAI API 사용 한도 없이 로컬 모델로 개발·평가하려면 Ollama를 설치하고 `ollama pull qwen3:4b`, `ollama pull bge-m3`를 실행한다. `.env`에서 `LLM_PROVIDER=ollama`로 설정한다. Python을 호스트에서 직접 실행하면 기본 주소 `http://localhost:11434`를 쓰고, Docker 컨테이너에서 macOS Ollama에 연결하면 `OLLAMA_BASE_URL=http://host.docker.internal:11434`로 바꾼다. `OLLAMA_CHAT_MODEL`과 `OLLAMA_EMBEDDING_MODEL`은 설치한 모델 이름에 맞춘다. 임베딩 차원이 다르므로 기존 OpenAI 벡터 색인은 Ollama에서 재사용할 수 없다. 시장은 `python -m src.retrieval.market_search build --rebuild`, 특허는 `python -m scripts.build_patent_index --field-id SF-05`로 Ollama 색인을 새로 만든다. Ollama 색인은 선택한 Ollama 임베딩 모델별 하위 경로·컬렉션에 저장하며, 기존 OpenAI 색인 위치는 유지한다. KIPRIS·NAVER 자료 수집에는 각각 기존 외부 API 키가 계속 필요하다.
+OpenAI API 사용 한도 없이 로컬 모델로 개발·평가하려면 Ollama를 설치하고 `ollama pull qwen3:4b`, `ollama pull bge-m3`를 실행한다. `.env`에서 `LLM_PROVIDER=ollama`로 설정한다. Python을 호스트에서 직접 실행하면 기본 주소 `http://localhost:11434`를 쓰고, Docker 컨테이너에서 macOS Ollama에 연결하면 `OLLAMA_BASE_URL=http://host.docker.internal:11434`로 바꾼다. `OLLAMA_CHAT_MODEL`과 `OLLAMA_EMBEDDING_MODEL`은 설치한 모델 이름에 맞춘다. 임베딩 차원이 다르므로 기존 OpenAI 벡터 색인은 Ollama에서 재사용할 수 없다. 시장은 `python -m src.retrieval.market_search build --rebuild`, 특허는 `python -m scripts.build_patent_index --field-id SF-05`로 Ollama 색인을 새로 만든다. 로컬·공용 Chroma 모두 provider·모델별 저장 공간을 사용한다. KIPRIS·NAVER 자료 수집에는 각각 기존 외부 API 키가 계속 필요하다.
 
 **문제 해결**
 
@@ -169,11 +175,11 @@ make patent-index ARGS="--field-id SF-02"
 
 아이디어 초안은 제목·문제·기술·고객·대안·세그먼트·구성요소·가치 가설을 확인·수정할 수 있다. 분석 실행 후에는 백그라운드에서 특허 조사 → 시장 분석 → 최종 검토를 진행한다. 실제 완료 콜백으로 대기·분석 중·완료·근거 부족·실패를 표시하고 경과 시간과 현재 작업을 설명한다. 화면을 이동해도 분석은 계속되며 읽던 결과 화면은 자동 전환하지 않는다. 취소 후 새 입력과 늦은 결과가 섞이지 않게 한다. 이미 전송한 요청은 즉시 중단되지 않아 비용이 발생할 수 있다.
 
-특허 보고서는 최종 비교 문헌 5~8건을 목표로 하고, 관련 근거가 부족하면 문헌 수를 임의로 채우지 않는다. 특허 비교 궤도 hover에는 제목·우선 확인 이유와 두 점수를 표시한다. `의미 유사도`는 아이디어 제목·문제·기술·기술 구성요소·차별점과 특허 제목·초록·확보 청구항을 선택한 임베딩 모델로 처리해 cosine 유사도를 계산한 값이다. 음수는 0으로 제한해 0~1로 표시하며, 관련성 확률은 아니다. OpenAI provider에서는 API 사용량에 따른 비용이 발생할 수 있고, Ollama provider에서는 설정된 로컬 Ollama 모델을 사용한다. 임베딩 실패 시 `계산 불가`로 표시하고 특허 검색 결과는 유지한다. `Dense 검색 점수`는 검색 경로의 별도 점수이며, KIPRIS 보충 문헌에는 해당 값이 없을 수 있다. 궤도 반경은 `2.8 - 1.35 × 의미 유사도`이며 점수가 높을수록 아이디어 중심에 가깝다. 의미 유사도가 없으면 임의 값을 만들지 않고 외곽에 배치한다. Dense 점수는 별도 검색 점수이며 궤도 거리에 사용하지 않는다. 행성 선택 상세는 관련성 정보 옆에 같은 문헌의 KIPRIS 대표도면을 작은 미리보기로 표시한다. 원본 도면을 먼저 가져오고, 실패하면 썸네일을 표시하며, 크게 보기 팝오버와 원문 링크를 제공한다. 이미지는 실제 픽셀 폭보다 크게 확대하지 않고 최대 폭을 제한하며, 형식과 픽셀 크기를 함께 표시한다. KIPRIS가 일반 바이너리 MIME으로 반환해도 이미지 시그니처를 확인한 경우 표시하며, 기존 특허 색인에 이미지 메타데이터가 없으면 KIPRIS 검색 결과를 다시 수집해 색인을 갱신해야 한다. 주의점·공통 개선 제안과 문헌별 설계 대안은 근거 연결 여부, 추가 확인, 검증 가설을 짧은 요약 및 한국어 상세 팝업에서 구분한다. 특허 통계는 종합보고서에서 검색 후보와 색인 범위를 분리해 표시하며, 출원연도·IPC 분포와 메타데이터 보유율을 함께 보여준다. 시장 보고서는 검색 관심도 시계열, 뉴스 키워드 동시 출현, 인용이 연결된 차원별 관찰과 추가 확인 항목을 중심으로 구성한다. 관련 검색에서 연결된 DART 기업의 공시 발췌는 회사·사업연도·섹션·근거 ID로 추적할 수 있지만, 경쟁사 여부나 특허 보유 관계를 단정하지 않는다. 종합 보고서는 `보고서 요약`과 `보고서 원문` 두 탭으로 구성한다. 요약에는 양쪽 근거 ID가 연결된 결론, 영역별 근거, 특허 검색 통계, 한계와 다음 확인을 우선 보여준다. 원문 탭에는 상세 인용 추적, 비용 분석·메모, PDF·Markdown 다운로드와 기록 보관을 둔다. 검색 관심도는 상대 지수이고 키워드 네트워크는 뉴스 내 동시 출현이므로 시장 수요 증거로 사용하지 않는다. 상세 인용은 보고서 원문 및 판단 근거에서 확인한다. 한 영역이 미완료이거나 양쪽 근거 연결이 없으면 통합 결론을 보류한다. 누락된 항목이나 수치를 추정하지 않으며 UI에서 추가 LLM 호출이나 데이터 재정제를 하지 않는다. 뉴스·기업 자료를 직접 구매 수요로 간주하지 않는다.
+특허 보고서는 최종 비교 문헌 5~8건을 목표로 하고, 관련 근거가 부족하면 문헌 수를 임의로 채우지 않는다. 특허 비교 궤도 hover에는 제목·우선 확인 이유와 두 점수를 표시한다. `의미 유사도`는 아이디어 제목·문제·기술·기술 구성요소·차별점과 특허 제목·초록·확보 청구항을 `text-embedding-3-small`로 임베딩해 cosine 유사도를 계산한 값이다. 음수는 0으로 제한해 0~1로 표시하며, 관련성 확률은 아니다. 특허 분석마다 질의와 최대 8개 후보 문헌을 한 번에 임베딩하므로 추가 API 사용량과 비용이 발생한다. 임베딩 실패 시 `계산 불가`로 표시하고 특허 검색 결과는 유지한다. `Dense 검색 점수`는 검색 경로의 별도 점수이며, KIPRIS 보충 문헌에는 해당 값이 없을 수 있다. 궤도 반경은 `2.8 - 1.35 × 의미 유사도`이며 점수가 높을수록 아이디어 중심에 가깝다. 의미 유사도가 없으면 임의 값을 만들지 않고 외곽에 배치한다. Dense 점수는 별도 검색 점수이며 궤도 거리에 사용하지 않는다. 행성 선택 상세는 관련성 정보 옆에 같은 문헌의 KIPRIS 대표도면을 작은 미리보기로 표시한다. 원본 도면을 먼저 가져오고, 실패하면 썸네일을 표시하며, 크게 보기 팝오버와 원문 링크를 제공한다. 이미지는 실제 픽셀 폭보다 크게 확대하지 않고 최대 폭을 제한하며, 형식과 픽셀 크기를 함께 표시한다. KIPRIS가 일반 바이너리 MIME으로 반환해도 이미지 시그니처를 확인한 경우 표시하며, 기존 특허 색인에 이미지 메타데이터가 없으면 KIPRIS 검색 결과를 다시 수집해 색인을 갱신해야 한다. 주의점·공통 개선 제안과 문헌별 설계 대안은 근거 연결 여부, 추가 확인, 검증 가설을 짧은 요약 및 한국어 상세 팝업에서 구분한다. 특허 통계는 종합보고서에서 검색 후보와 색인 범위를 분리해 표시하며, 출원연도·IPC 분포와 메타데이터 보유율을 함께 보여준다. 시장 보고서는 검색 관심도 시계열, 뉴스 키워드 동시 출현, 인용이 연결된 차원별 관찰과 추가 확인 항목을 중심으로 구성한다. 관련 검색에서 연결된 DART 기업의 공시 발췌는 회사·사업연도·섹션·근거 ID로 추적할 수 있지만, 경쟁사 여부나 특허 보유 관계를 단정하지 않는다. 종합 보고서는 `보고서 요약`과 `보고서 원문` 두 탭으로 구성한다. 요약에는 양쪽 근거 ID가 연결된 결론, 영역별 근거, 특허 검색 통계, 한계와 다음 확인을 우선 보여준다. 원문 탭에는 상세 인용 추적, 비용 분석·메모, PDF·Markdown 다운로드와 기록 보관을 둔다. 검색 관심도는 상대 지수이고 키워드 네트워크는 뉴스 내 동시 출현이므로 시장 수요 증거로 사용하지 않는다. 상세 인용은 보고서 원문 및 판단 근거에서 확인한다. 한 영역이 미완료이거나 양쪽 근거 연결이 없으면 통합 결론을 보류한다. 누락된 항목이나 수치를 추정하지 않으며 UI에서 추가 LLM 호출이나 데이터 재정제를 하지 않는다. 뉴스·기업 자료를 직접 구매 수요로 간주하지 않는다.
 
 PDF·Markdown 다운로드와 현재 세션 최대 20개 기록 보관, JSON 내보내기·불러오기를 제공한다. PDF는 ReportLab과 포함된 Nanum Gothic OFL 글꼴을 사용한다. 구조화된 시각화도 기록에 보관하지만 계정별 영구 DB 기록은 연결하지 않았다. 세션이 종료될 수 있으므로 개인 기록 파일로 보관한다. PDF는 인용과 표를 포함한 보고서 원문·비용·메모를 내보내며 화면 차트 이미지는 포함하지 않는다. 키는 기록이나 다운로드에 포함하지 않는다.
 
-화면은 `frontend/app.py`, 홈 연출은 `frontend/landing_motion.py`, 소개는 `frontend/introduction.py`, 보고서·기록은 `frontend/workspace_view.py`, 시각화는 `frontend/report_overview.py`, PDF는 `frontend/report_export.py`, 백그라운드 상태는 `frontend/workflow.py`에서 관리한다. [실행·시연 가이드](docs/ui-guide.md)와 [분석 계약](docs/idea-business-review.md)을 참고한다. `python scripts/idealens.py ui`로 실행하고 `.env` 변경은 `ui --recreate`로 반영한다. 실제 분석은 API 비용이 발생하며 시연 자료는 가상임을 표시한다.
+화면 흐름은 `frontend/app.py`, 특허 상세·보고서는 `frontend/patent_view.py`, 홈 연출은 `frontend/landing_motion.py`, 소개는 `frontend/introduction.py`, 보고서·기록은 `frontend/workspace_view.py`, 시각화는 `frontend/report_overview.py`, PDF는 `frontend/report_export.py`, 백그라운드 상태는 `frontend/workflow.py`에서 관리한다. [실행·시연 가이드](docs/ui-guide.md)와 [분석 계약](docs/idea-business-review.md)을 참고한다. `python scripts/idealens.py ui`로 실행하고 `.env` 변경은 `ui --recreate`로 반영한다. 실제 분석은 API 비용이 발생하며 시연 자료는 가상임을 표시한다.
 
 ### 시장 뉴스 수집·정제
 
@@ -217,9 +223,8 @@ python -m src.ingestion.patent_processor --field-id SF-05 --limit 20 --include-c
 - `--include-claims`는 문헌별 청구항 상세 API를 조회한다. API에서 확보하지 못한 청구항은 생성하지 않고 초록만 색인한다. `KIPRIS_API_KEY`와 청구항 API 이용 권한이 필요하다.
 - 검색어 계획으로 별도 수집·색인을 하려면 `python -m scripts.collect_patents --request <PatentSearchRequest.json> --field-id SF-02 --include-claims` 후 `python -m scripts.build_patent_index --field-id SF-02`를 실행한다. `PatentQueryPlan`은 기술 요소를 최대 8개(화면 핵심 구성요소 최대 7개 + 결합 기술 1개)까지 허용한다.
 - KIPRIS 검색·청구항 API 원본 XML과 키를 제외한 요청 메타데이터는 `data/patents/raw/`에 저장한다. 해당 폴더는 로컬 전용이며 Git 추적 대상에서 제외된다.
-- 색인 시 선택한 LLM provider로 문서를 임베딩한다. OpenAI 사용에는 `OPENAI_API_KEY`가 필요하고, Ollama는 설정한 로컬 모델을 사용한다. Ollama 임베딩은 모델별 Chroma 컬렉션을 사용해 OpenAI 벡터와 분리한다. OpenAI 색인 위치는 기존 호환성을 위해 유지한다.
-- 특허·시장 색인은 공통 100건 임베딩 배치를 사용한다. 특허 색인은 배치별 임베딩 성공분을 저장하므로 실패 후 재실행하면 이미 저장된 같은 청크는 다시 임베딩하지 않는다.
-- 기본 Dense 검색은 Chroma 상위 청크 후보만 읽는다. BM25/Hybrid는 코퍼스 전체 BM25 순위를 계산하기 위해 전체 문서·메타데이터를 읽으며, 검색 결과 계약과 정렬 기준을 유지한다.
+- 색인 시 선택한 LLM provider로 문서를 임베딩한다. 이후 벡터는 로컬 Chroma에서 재사용하고, Dense/Hybrid 검색의 질의 임베딩은 검색 때 별도로 생성한다.
+- 특허·시장 색인은 100건 배치로 임베딩·저장한다. 특허 색인은 저장 성공 배치를 보존해 재실행 시 같은 청크를 다시 임베딩하지 않는다. Dense 검색은 상위 후보 문서만 가져오며, BM25/Hybrid는 코퍼스 전체 순위를 계산하기 위해 전체 문서·메타데이터를 읽는다.
 - `PatentSearchRequest.technology_area_id`를 지정하면 검색 결과를 해당 분야로 제한한다. 원문 JSONL과 Chroma DB는 로컬에 저장되고 Git에는 포함되지 않는다.
 - `data/samples/ideas.json`의 SF-05와 시장 뉴스·DART 기업 연결은 지능형 공정제어 기준이다. 이전 SF-05(현장 작업자용 LLM 음성 어시스턴트)의 검색어는 `legacy_market_keywords`에 기록만 하며, 그 검색어로 수집한 기사는 정제 단계(`market_processor`)에서 제외한다. 시장 평가 라벨은 아직 이전 SF-05 기준이라 새 SF-05 시장 성능을 평가하려면 다시 라벨링해야 한다.
 
@@ -230,8 +235,7 @@ python -m src.retrieval.market_search build                                     
 python -m src.retrieval.market_search search "협동로봇 도입 확대" --idea-id SF-01   # 질의 검색
 ```
 
-- `data/market/processed/market_docs.jsonl`(뉴스)과 `dart_docs.jsonl`(DART)을 선택한 임베딩 모델로 임베딩해 Chroma `news` 컬렉션(cosine)에 저장한다. Ollama에서는 모델별 하위 경로·컬렉션을 사용하고 OpenAI 기존 위치는 유지한다. 출처는 `source_type`(`news`·`dart`)으로 구분한다. OpenAI는 `OPENAI_API_KEY`, Ollama는 로컬 서버와 임베딩 모델 설정이 필요하다.
-- 기본 Dense 검색은 Chroma에서 상위 후보의 문서·메타데이터만 가져온다. BM25와 Hybrid는 전체 코퍼스의 BM25 통계를 계산하므로 검색 시 문서·메타데이터를 로드한다.
+- `data/market/processed/market_docs.jsonl`(뉴스)과 `dart_docs.jsonl`(DART)을 선택한 임베딩 모델로 임베딩해 Chroma의 `news` 컬렉션(cosine)에 저장한다. 출처는 `source_type`(`news`·`dart`)으로 구분한다. 선택한 LLM provider 설정이 필요하다.
 - `search_by_dimensions`는 차원마다 뉴스 5건과 DART를 따로 검색해 합친다. DART는 먼저 기업을 최대 3곳 고르고 차원마다 그 기업에서 기업당 1건씩 가져온다. 기업은 관련성 판정 모델이 아이디어 항목과 기업별 주요 사업(`configs/dart_companies.yaml`의 `reason`)을 보고 같은 제품·공정 범주인 곳을 고르며(`choose_dart_companies`, `prompts/market_dart_companies.md`, 맞는 기업이 없으면 DART 없이 검색), 이 호출이 실패하면 아이디어 전체 문장과 가까운 기업을 쓴다(`route_dart_companies`). 보고서 검색 범위에 검색한 DART 기업을 표시한다. 통합 실행 준비 점검은 시장 색인에 DART가 없으면 사유를 표시한다.
 - 같은 텍스트로 이미 색인된 문서는 다시 임베딩하지 않고 메타데이터만 갱신하며, `--rebuild`로 전체를 다시 임베딩한다.
 - DART 청크를 다시 만들면 청크 수가 달라질 수 있다. `build --prune`은 색인이 끝난 뒤 정제 문서에 없는 ID를 지운다. 임베딩이 중간에 실패하면 기존 색인은 그대로 남는다.
@@ -261,8 +265,8 @@ python -m src.ingestion.trend_client 예지보전 예측정비                  
 
 - `--idea-id`는 `data/samples/ideas.json`에서 아이디어를 고르는 데 쓴다. 기본 실행은 화면 통합 실행과 같이 전체 색인을 검색하며, `--idea-filter`를 주면 그 아이디어에 연결된 뉴스·DART 기업으로 좁힌다. 답변 평가(`evaluation.market_answer_eval`)는 아이디어 연결 자료로 한정해 실행한다.
 
-- `run_market_research(MarketSearchRequest)`가 차원별 검색 → 관련성 판정 → 시장 분석 생성·인용 검증을 실행해 `MarketReport`(`src/schemas.py`)를 반환한다. 분석 규칙은 `prompts/market_analysis.md`, 생성·검증은 `src/generation/market_analysis.py`에서 관리한다. 선택한 LLM provider 설정이 필요하다.
-- 사실 문장은 해당 차원의 정수 인용 ID(`evidence`의 `citation_id`)가 있어야 하고, 인용 기사·아이디어 입력에 없는 숫자가 있거나 수치에 기준 연도가 없으면 재생성(최대 2회)하거나 해당 문장을 제거한다. 판정은 차원별 충분성 상태와 근거 성격으로 제한하고(근거 1건이거나 사업 신호뿐이면 최대 '신호만 확인'), 기대는 아이디어 항목이 모름이면 미확인으로 둔다(가격 ← 수익모델, 구매자 ← 고객). 뉴스의 근거 성격(구매 신호·간접 수요·사업 신호 등)은 관련성 판정과 같은 호출에서 정하고, 차원마다 확인되지 않은 이유(`limitation`)를 붙인다. DART 사업보고서를 인용한 문장은 "기업 사업보고서(FY연도)에 따르면"처럼 공시 기업을 밝힌다.
+- `run_market_research(MarketSearchRequest)`가 차원별 검색 → 관련성 판정 → 시장 분석 생성·인용 검증을 실행해 `MarketReport`(`src/schemas.py`)를 반환한다. 분석 규칙은 `prompts/market_analysis.md`, 생성 흐름은 `src/generation/market_analysis.py`, 문장 인용·수치 검증 규칙은 `src/generation/market_claims.py`에서 관리한다.
+- 사실 문장은 인용 근거(`evidence`의 `citation_id`)가 있어야 하고, 인용 기사·아이디어 입력에 없는 숫자가 있거나 수치에 기준 연도가 없으면 재생성(최대 2회)하거나 해당 문장을 제거한다. 판정은 차원별 충분성 상태와 근거 성격으로 제한하고(근거 1건이거나 사업 신호뿐이면 최대 '신호만 확인'), 기대는 아이디어 항목이 모름이면 미확인으로 둔다(가격 ← 수익모델, 구매자 ← 고객). 뉴스의 근거 성격(구매 신호·간접 수요·사업 신호 등)은 관련성 판정과 같은 호출에서 정하고, 차원마다 확인되지 않은 이유(`limitation`)를 붙인다. DART 사업보고서를 인용한 문장은 "기업 사업보고서(FY연도)에 따르면"처럼 공시 기업을 밝힌다.
 - 검색 관심도 흐름(`MarketReport.search_trend`): 아이디어 5개 항목에서 LLM이 검색 주제어(대표 범주 + 같은 범주의 다른 이름, 최대 3개, `prompts/market_trend_terms.md`)를 고르고, 네이버 검색어 트렌드로 기준 주제어(스마트공장·스마트팩토리)와 함께 최근 24개월 월별 검색량을 조회한다(`src/ingestion/trend_client.py`, 설정 `configs/search_trend.yaml`). 월별 '주제어 ÷ 기준 × 100' 지수의 최근 6개월 평균을 직전 6개월과 비교해 ±10% 이상이면 상승·둔화, 그 사이는 유지로 표시하고, 평균 검색량이 적으면 판단하지 않는다(`src/services/market_trend.py`). 시장 화면에 월별 선 그래프로 나오며(`frontend/market_trend_view.py`), 차원별 판정에는 쓰지 않는다. 화면 통합 실행과 CLI에서만 붙고, 같은 요청은 그날 `data/market/trends/`에 캐시한다. `NAVER_TREND_CLIENT_ID`·`NAVER_TREND_CLIENT_SECRET`이 필요하다.
 - 키워드 동시 출현 네트워크(`MarketReport.keyword_network`): 아이디어 전체 문장과 가까운 뉴스 100건의 제목·요약에서 `kiwipiepy`로 명사를 뽑고(붙어 쓴 명사는 합침), 전체 뉴스보다 이 아이디어 주변에서 두드러진 명사 30개(lift ≥ 1.5, 기사 수 × ln(lift) 순)를 같은 기사에 함께 나온 기사 수로 잇는다. `networkx`로 키워드 묶음(가중 모듈성)과 배치를 계산해 시장 화면에 연결망 그림과 묶음 목록으로 보여 준다(`src/services/market_network.py`, 설정 `configs/keyword_network.yaml`, 화면 `frontend/market_network_view.py`). LLM 없이 질의 임베딩 1회만 쓰며, 함께 나온 것은 같은 기사에서 다뤄졌다는 뜻이라 차원별 판정에는 쓰지 않는다. 화면 통합 실행과 CLI에서만 붙는다.
 - 인접 기업 재무 현황(`MarketReport.company_financials`): 차원별 검색에서 고른 DART 기업(최대 3곳)의 기준일 직전 사업연도 사업보고서 주요 재무 계정(OpenDART `fnlttSinglAcnt`)을 조회해, 최근 3개 사업연도 매출액과 최근 연도의 전년 대비 매출 증감·영업이익·영업이익률·당기순이익·연구개발비·연구개발비 비율을 억원 단위 표로 보여 준다. 연구개발비는 같은 사업보고서 본문의 '연구개발활동' 표에서 정부보조금 차감 전 총액을 우선해 뽑고(`src/ingestion/dart_processor.py` `extract_rnd_expense`), 비율은 회사 공시 비율 대신 같은 해 매출액으로 나눠 계산한다. 표 위에는 기업마다 세로축을 따로 둔 3개 연도 매출액 막대 그래프를 두고, 막대 색으로 그 연도 영업이익 흑자·적자를 구분한다(`src/services/market_financials.py`, 화면 `frontend/market_financials_view.py`). 연결재무제표가 없으면 별도재무제표를 쓰고, 직전 사업연도 공시가 아직 없으면 그 전 연도를 쓴다. 조회 결과는 `data/market/raw/dart/financials/`에, 사업보고서 본문은 수집 원본과 같은 `data/market/raw/dart/{rcept_no}.xml`에 캐시한다. 기업 실적일 뿐 시장 규모·구매 수요의 근거가 아니어서 차원별 판정에는 쓰지 않는다. 화면 통합 실행과 CLI에서만 붙고 `DART_API_KEY`가 필요하다.
@@ -334,7 +338,6 @@ PR 분석 자동화용 `CODEX_AUTH_JSON`(ChatGPT 구독 로그인, `make review-
 ## 개발 도구와 협업 자동화
 
 - **코드 포맷**: Python 코드는 [black](https://black.readthedocs.io/)으로 통일한다. 버전은 `requirements-dev.txt`에 고정하고, `pyproject.toml`의 `required-version`으로 다른 주 버전 실행을 막는다.
-- **로컬 CLI 테스트**: 자식 Python 프로세스는 실행 중인 인터프리터를 사용해 호스트의 `python`·`python3` 별칭에 의존하지 않는다.
 - **커밋 전 검사**: `pre-commit install` 후 커밋마다 black, 병합 충돌 표시, 개인키 노출, 대용량 파일, 줄끝 공백을 검사한다.
 - **CI**: develop·main 대상 PR과 push에서 black 검사, pytest, 자동화 스크립트 테스트, Docker 이미지 빌드, SCC와 같은 Debian 11 환경의 SCC 전용 의존성 검사를 실행한다.
 - **main 승격 PR**: develop push의 CI가 성공하면 develop → main 배포 승격 PR을 열거나 갱신하고 리뷰어 1명을 요청한다. 병합(= SCC 배포)은 사람이 승인하며 Create a merge commit만 쓴다([배포 안내](docs/deploy-streamlit-cloud.md)).
@@ -485,4 +488,4 @@ python -m evaluation.patent_fusion_experiment run
 
 내 기록은 세션별로 분리하며 공용 DB에 저장하지 않는다. ‘내 기록’의 ‘이 브라우저에 저장’을 직접 누르면 최대 20개·5MB의 기록을 현재 사이트의 브라우저 localStorage에 보관한다(`frontend/browser_records.py`). 다시 방문한 뒤 ‘저장한 기록 불러오기’로 복원할 수 있고, 브라우저 보관분과 현재 세션 기록을 각각 지울 수 있다. 복원 내용은 표시를 위해 현재 앱 세션으로 전달된다. 다른 기기·브라우저·사이트 주소와 동기화되지 않으며 공용 브라우저 프로필 사용자와는 공유될 수 있으므로 공용 기기에서는 파일 보관 또는 삭제를 권한다. API 키·환경변수는 저장 대상이 아니다. JSON 백업도 계속 지원한다.
 
-상단 서비스 소개·차별점·내 기록 메뉴를 제공한다. 조사 단계 이동은 고정 바로가기 바에서 제공하며, 보고서 화면의 상단 단계 메뉴는 표시하지 않는다. 같은 탭에서 새로고침한 뒤에는 ‘이전 분석 이어보기’로 서버에 남은 작업을 다시 연결할 수 있다. sessionStorage에는 무작위 작업 번호만 남기며, 입력·결과는 서버 메모리에 유지한다. 다른 탭·기기나 서버 재시작 후에는 복구되지 않으며 공용 실행 잠금을 강제로 해제하지 않는다.
+상단 서비스 소개·차별점·내 기록 메뉴를 제공한다. 조사 단계 이동은 고정 바로가기 바에서 제공하며, 보고서 화면의 상단 단계 메뉴는 표시하지 않는다. 좁은 화면의 하단 바로가기 바는 모든 메뉴 폭·버튼 높이·아이콘·레이블 정렬을 통일하고 남는 공간을 메뉴 사이에 고르게 나눈다. 같은 탭에서 새로고침한 뒤에는 ‘이전 분석 이어보기’로 서버에 남은 작업을 다시 연결할 수 있다. sessionStorage에는 무작위 작업 번호만 남기며, 입력·결과는 서버 메모리에 유지한다. 다른 탭·기기나 서버 재시작 후에는 복구되지 않으며 공용 실행 잠금을 강제로 해제하지 않는다.

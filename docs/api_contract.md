@@ -1,7 +1,7 @@
 # 서비스 연결 계약
 
-파이프라인(`src/pipeline.py`)과 Streamlit UI가 각 파트의 진입점을 부를 때의 함수 수준 입력·출력·오류 처리 약속이다. HTTP API 계약은 현재 구현되어 있지 않다.
-데이터 형식은 모두 `src/schemas.py`의 Pydantic 모델이며, JSON으로 주고받을 때는 `model_dump_json()`·`model_validate_json()`을 쓴다.
+파이프라인(`src/pipeline.py`)과 Streamlit UI가 각 파트의 진입점을 부를 때의 입력·출력·오류 처리 약속이다. 파이프라인의 외부 진입 함수는 `src.pipeline`에 두고, 영역 실행은 `src.pipeline_execution`, 결과 모델은 `src.pipeline_models`에서 관리한다.
+데이터 형식은 Pydantic 모델이며 아이디어·특허·시장 계약 정의는 각각 `src/idea_schemas.py`, `src/patent_schemas.py`, `src/market_schemas.py`에서 관리한다. `src.schemas`는 기존 호출부를 위한 호환 진입점으로 이 모델들을 다시 내보낸다. JSON으로 주고받을 때는 `model_dump_json()`·`model_validate_json()`을 쓴다.
 특허 파트와 통합 흐름의 계약은 각 담당이 이 문서에 추가한다.
 
 ## 1. 아이디어 입력
@@ -32,6 +32,8 @@
 |---|---|---|
 | `src.services.market_service.run_market_research(request, idea_id=None, trend_fn=None, network_fn=None)` | `MarketSearchRequest` (`build_requests`의 두 번째 값) | `MarketReport` |
 | `src.generation.market_markdown.market_report_to_markdown(report, heading_level=2)` | `MarketReport` | 종합 보고서용 마크다운 섹션 (str) |
+
+- 시장 분석 생성과 근거 검증의 구현은 각각 `src.generation.market_analysis`와 `src.generation.market_claims`에서 관리하며, 외부 호출 계약은 `run_market_research`와 `MarketReport`로 유지한다.
 
 - `idea_id`는 평가·시연용 샘플 아이디어(`data/samples/ideas.json`)의 수집 범위로 검색을 좁힐 때만 준다. 사용자가 새로 입력한 아이디어는 `None`.
 - `trend_fn`(`src.services.market_trend.build_search_trend`)을 주면 `search_trend`를 붙인다. 통합 실행(`src/pipeline.py`)과 CLI는 기본으로 넘기고, 평가·테스트는 넘기지 않는다. 주제어 선정 gpt-4o-mini 1회와 검색어 트렌드 API 1회가 추가된다.
@@ -73,7 +75,7 @@
 |---|---|---|
 | `src.services.patent_service.analyze_patents(request, ...)` | `PatentSearchRequest` | `PatentReport` |
 | `src.pipeline.run_pipeline(draft, questions, ...)` | complete `IdeaDraft`, `{id, question, condition}` 목록, 선택 `technology_area_id` | `PipelineReport` (특허·시장 보고서, 질문별 연결, 사업 실행 검토, Markdown) |
-| `src.generation.report_builder.build_question_links(questions, market, patent)` | 질문 목록, `MarketReport`, `PatentReport` | 질문별 6개 기준 연결 (`QuestionLink`) |
+| `src.generation.question_links.build_question_links(questions, market, patent)` | 질문 목록, `MarketReport`, `PatentReport` | 질문별 6개 기준 연결 (`QuestionLink`) |
 
 - 특허 검색은 요청별 기술요소 검색 결과를 문헌 단위로 합친 뒤 최대 20개 후보를 관련성 판정하고, 관련 후보에서 최대 8개 문헌을 분석한다. 후보가 부족하면 KIPRIS 검색 결과도 같은 판정을 통과해야 사용한다.
 - `PatentReport.status`는 `completed`·`no_results`·`error`다. 근거는 초록 또는 청구항 원문 인용과 출처 URL·문헌 번호·출원/공개일을 보존한다. 인용은 제공 원문에 포함되는지 검사한다. 기본 분석은 문헌별 `patent_reviews`에 구성요소 대응과 인용 ID를 묶고, `patentability_precheck`에 `overlap_concern`·`potentially_distinct`·`insufficient_evidence` 예비 신호를 기록한다. 레거시 호출자가 `comparison_fn`을 주입하면 citation별 `comparisons` 계약을 유지한다. 어느 상태도 등록 가능성이나 침해 여부를 법적으로 확정하지 않는다.

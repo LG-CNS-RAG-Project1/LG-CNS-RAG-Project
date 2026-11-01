@@ -35,7 +35,7 @@ python -m src.ingestion.patent_processor --field-id SF-02 --limit 20 --include-c
 python -m src.ingestion.patent_processor --field-id SF-05 --limit 20 --include-claims
 ```
 
-이 명령은 분야 검색어마다 최대 `--limit`건을 KIPRIS에서 찾아 출원번호로 중복 제거하고, 분야 ID를 문헌과 Chroma 메타데이터에 남긴다. `--include-claims`를 지정하면 청구항 상세 API를 호출하며, 호출이 실패하거나 권한이 없으면 오류를 기록하고 실제 확보된 초록만 색인한다. 새 문서 임베딩은 선택한 LLM provider로 생성하고 공통 100건 배치로 Chroma에 저장한다. 배치마다 임베딩과 저장을 마치므로 후속 배치가 실패해도 완료된 배치는 남고, 재실행 때 이미 저장된 같은 청크는 다시 임베딩하지 않는다. Ollama는 OpenAI와 다른 임베딩 모델별 컬렉션을 사용한다. 실행에는 `KIPRIS_API_KEY`, 청구항 조회 권한 및 선택한 LLM provider 설정이 필요하다.
+이 명령은 분야 검색어마다 최대 `--limit`건을 KIPRIS에서 찾아 출원번호로 중복 제거하고, 분야 ID를 문헌과 Chroma 메타데이터에 남긴다. `--include-claims`를 지정하면 청구항 상세 API를 호출하며, 호출이 실패하거나 권한이 없으면 오류를 기록하고 실제 확보된 초록만 색인한다. 새 문서 임베딩은 선택한 LLM provider로 생성하고 로컬 Chroma에 저장한다. Ollama 임베딩은 OpenAI 색인과 다른 모델별 하위 경로에 저장한다. 이미 내용과 메타데이터가 같은 청크는 재임베딩하지 않는다. 실행에는 `KIPRIS_API_KEY`, 청구항 조회 권한 및 선택한 LLM provider 설정이 필요하다.
 
 아이디어 기술 요소 기반 검색어 계획을 사용하려면 `PatentSearchRequest` JSON을 `scripts.collect_patents`에 입력한다. 계획은 1~5개 기술 요소로 검증되며, 한국어·영어 검색어를 KIPRIS 수집에 사용한다. 수집 단계는 원본 응답을 `data/patents/raw/`에 저장하고, `scripts.build_patent_index`는 저장된 JSONL을 별도로 색인한다. 원본 저장 메타데이터에는 API 키를 기록하지 않는다.
 

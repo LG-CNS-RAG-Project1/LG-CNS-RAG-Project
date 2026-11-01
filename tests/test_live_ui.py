@@ -7,7 +7,7 @@ import pytest
 from streamlit.testing.v1 import AppTest
 
 import src.generation.idea_parser as idea_parser
-import src.generation.report_builder as report_builder
+import src.generation.question_links as question_links
 import src.pipeline as pipeline
 from src.generation.report_builder import integrated_report_markdown
 from frontend.live import cost_markdown, cost_rows_list, patent_similarity_note
@@ -218,7 +218,7 @@ def live(monkeypatch):
 
     monkeypatch.setattr(idea_parser, "parse_idea", fake_parse)
     monkeypatch.setattr(pipeline, "analyze_sources", fake_analyze)
-    monkeypatch.setattr(report_builder, "call_report_llm", fake_link)
+    monkeypatch.setattr(question_links, "call_report_llm", fake_link)
     return calls
 
 

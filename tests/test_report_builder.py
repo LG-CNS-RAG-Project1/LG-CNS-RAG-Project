@@ -1,8 +1,7 @@
+from src.generation.question_links import CRITERIA, link_questions_with_retry
 from src.generation.report_builder import (
-    CRITERIA,
     escape_md,
     integrated_report_markdown,
-    link_questions_with_retry,
     patent_location,
     safe_url,
 )

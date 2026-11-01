@@ -129,16 +129,22 @@ def search_patents(
         collection = get_collection()
 
     where = {f"area_{technology_area_id}": True} if technology_area_id else None
-    matching_count = collection.count()
+    stored = None
+    if retrieval_mode in {"bm25", "hybrid"}:
+        stored = collection.get(where=where, include=["documents", "metadatas"])
+        matching_count = len(stored["ids"])
+    else:
+        matching_ids = collection.get(where=where, include=[])["ids"]
+        matching_count = len(matching_ids)
     if matching_count == 0:
         return []
+
     if embed_fn is None:
         from src.retrieval.market_search import embed_texts
 
         embed_fn = embed_texts
 
     dense_results = []
-    documents = []
     if retrieval_mode in {"dense", "hybrid"}:
         query_vector = embed_fn([query])[0]
         chunk_candidate_k = min(
@@ -149,50 +155,34 @@ def search_patents(
             query_embeddings=[query_vector],
             n_results=chunk_candidate_k,
             where=where,
-            include=["documents", "metadatas", "distances"],
+            include=["distances"],
         )
-        documents = [
-            SearchDocument(
-                chunk_id=chunk_id,
-                source_id=metadata["source_id"],
-                source_type="patent",
-                title=metadata["title"],
-                content=content,
-                metadata={
-                    key: value
-                    for key, value in metadata.items()
-                    if key not in {"source_id", "title"}
-                },
-            )
-            for chunk_id, content, metadata in zip(
-                results["ids"][0],
-                results["documents"][0],
-                results["metadatas"][0],
-            )
-        ]
-        if retrieval_mode == "hybrid":
-            stored = collection.get(where=where, include=["documents", "metadatas"])
-            documents = [
-                SearchDocument(
-                    chunk_id=chunk_id,
-                    source_id=metadata["source_id"],
-                    source_type="patent",
-                    title=metadata["title"],
-                    content=content,
-                    metadata={
-                        key: value
-                        for key, value in metadata.items()
-                        if key not in {"source_id", "title"}
-                    },
-                )
-                for chunk_id, content, raw_metadata in zip(
-                    stored["ids"], stored["documents"], stored["metadatas"]
-                )
-                for metadata in [dict(raw_metadata)]
-            ]
-        if not documents:
-            return []
-        by_id = {document.chunk_id: document for document in documents}
+        dense_ids = results["ids"][0]
+        dense_distances = results["distances"][0]
+
+    if retrieval_mode == "dense":
+        stored = collection.get(ids=dense_ids, include=["documents", "metadatas"])
+    elif stored is None:
+        stored = collection.get(where=where, include=["documents", "metadatas"])
+
+    by_id = {}
+    documents = []
+    for chunk_id, content, raw_metadata in zip(
+        stored["ids"], stored["documents"], stored["metadatas"]
+    ):
+        metadata = dict(raw_metadata)
+        document = SearchDocument(
+            chunk_id=chunk_id,
+            source_id=metadata.pop("source_id"),
+            source_type="patent",
+            title=metadata.pop("title"),
+            content=content,
+            metadata=metadata,
+        )
+        documents.append(document)
+        by_id[chunk_id] = document
+
+    if retrieval_mode in {"dense", "hybrid"}:
         dense_results = [
             RetrievalResult(
                 document=by_id[chunk_id],
@@ -200,27 +190,9 @@ def search_patents(
                 dense_rank=rank,
             )
             for rank, (chunk_id, distance) in enumerate(
-                zip(results["ids"][0], results["distances"][0]), 1
+                zip(dense_ids, dense_distances), 1
             )
         ]
-    else:
-        stored = collection.get(where=where, include=["documents", "metadatas"])
-        documents = [
-            SearchDocument(
-                chunk_id=chunk_id,
-                source_id=metadata.pop("source_id"),
-                source_type="patent",
-                title=metadata.pop("title"),
-                content=content,
-                metadata=metadata,
-            )
-            for chunk_id, content, raw_metadata in zip(
-                stored["ids"], stored["documents"], stored["metadatas"]
-            )
-            for metadata in [dict(raw_metadata)]
-        ]
-        if not documents:
-            return []
     response = retrieve(
         query,
         documents,

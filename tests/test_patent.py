@@ -946,6 +946,52 @@ def test_patent_build_index(tmp_path):
     assert collection.count() == 1
 
 
+def test_patent_build_index_keeps_completed_batches_and_resumes(tmp_path, monkeypatch):
+    from src.retrieval import patent_store
+
+    monkeypatch.setattr(patent_store, "EMBED_BATCH_SIZE", 2)
+    collection = get_collection(chroma_dir=tmp_path / "chroma")
+    patent = PatentDocument(
+        patent_id="P002",
+        title="배치 색인 테스트",
+        abstract="배치 저장 동작을 확인한다.",
+    )
+    chunks = [
+        PatentChunk(
+            chunk_id=f"P002#abstract#{index}",
+            patent_id="P002",
+            section="abstract",
+            text=f"테스트 청크 {index}",
+            chunk_index=index,
+        )
+        for index in range(3)
+    ]
+    calls = []
+
+    def fail_after_first_batch(texts):
+        calls.append(len(texts))
+        if len(calls) == 2:
+            raise RuntimeError("temporary embedding failure")
+        return [[0.1, 0.2, 0.3] for _ in texts]
+
+    with pytest.raises(RuntimeError, match="temporary embedding failure"):
+        build_index(chunks, [patent], collection, fail_after_first_batch)
+
+    assert collection.count() == 2
+    assert calls == [2, 1]
+
+    resumed = build_index(
+        chunks,
+        [patent],
+        collection,
+        lambda texts: calls.append(len(texts)) or [[0.1, 0.2, 0.3] for _ in texts],
+    )
+
+    assert resumed == 1
+    assert collection.count() == 3
+    assert calls == [2, 1, 1]
+
+
 def test_search_patents(tmp_path):
     collection = get_collection(chroma_dir=tmp_path / "chroma")
 
