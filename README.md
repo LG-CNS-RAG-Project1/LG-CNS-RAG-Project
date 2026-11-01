@@ -87,6 +87,7 @@
 입력에서 보고서까지 한 번의 흐름을 따라 읽는다. 모듈·클래스·함수 docstring은 역할과 계약을 설명하며, 실제 동작은 호출부와 테스트를 함께 확인한다.
 
 RAG 개념과 실습 순서는 [IdeaLens RAG 학습 안내서](docs/rag-learning-guide.md)를 참고한다.
+시각 학습 자료는 [IdeaLens RAG 학습 PDF](docs/idealens-rag-learning-guide.pdf)에서 볼 수 있다.
 
 1. `src/idea_schemas.py`, `src/patent_schemas.py`, `src/market_schemas.py`: 입력·근거·결과 데이터 계약을 확인한다.
 2. `src/ingestion/`: 원자료가 문서와 청크로 정리되며 출처가 보존되는 경로를 읽는다.
