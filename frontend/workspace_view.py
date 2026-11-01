@@ -12,7 +12,7 @@ import streamlit as st
 from frontend.report_overview import dashboard_data
 
 from frontend.live import (
-    COST_NOTE,
+    analysis_cost_note,
     LINK_LABELS,
     RUN_LOCK,
     cost_markdown,
@@ -85,7 +85,11 @@ def render_live_review(s, run, key_fn, navigate):
     )
     if s.pipeline_result is None:
         cached = s.analysis_sources is not None and s.analysis_key == key_fn()
-        st.info("기존 조사 결과로 질문 연결만 다시 만듭니다." if cached else COST_NOTE)
+        st.info(
+            "기존 조사 결과로 질문 연결만 다시 만듭니다."
+            if cached
+            else analysis_cost_note()
+        )
         if st.button(
             "질문 연결 다시 실행" if cached else "특허·시장 조사 실행",
             type="primary",

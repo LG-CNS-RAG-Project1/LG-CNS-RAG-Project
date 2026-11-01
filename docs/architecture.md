@@ -4,7 +4,7 @@
 
 - 계획 기준의 모듈·외부 서비스 연결 구조. 실제 구현이 바뀌면 함께 갱신한다.
 - 로컬 개발은 같은 이미지의 Docker `app`(개발)·`ui`(Streamlit) 컨테이너에서 실행한다. 벡터 저장소는 `CHROMA_HOST`가 비어 있으면 로컬 Chroma(특허 `data/patents/chroma/`, 시장 `data/market/chroma/`), 설정되어 있으면 팀 공용 Chroma 서버를 사용한다.
-- Streamlit UI는 `src.pipeline`을 직접 호출해 특허·시장 서비스를 실행한다. FastAPI는 별도 API 진입점이며 현재 화면 흐름의 중간 계층이 아니다. 통합 보고서는 특허 비교·시장성 결과와 근거 기반 다음 행동 권고를 함께 구성한다.
+- Streamlit UI는 `src.pipeline`을 직접 호출해 특허·시장 서비스를 실행한다. 현재 FastAPI HTTP API는 구현되어 있지 않으며, `docs/api_contract.md`는 Python 함수 간 계약을 설명한다. 통합 보고서는 특허 비교·시장성 결과와 근거 기반 다음 행동 권고를 함께 구성한다.
 - 아래 그림 안의 규칙 주석은 자동화가 읽는다. 새 모듈이나 외부 서비스를 추가하면 노드와 규칙을 함께 추가한다.
   - `%% map <경로> <노드ID>`: 파일이 속한 계층. PR 분석의 태그와 PR 페이지 서비스 아키텍처 그림의 계층 노드에 쓴다.
   - `%% ext import:<모듈> <노드ID> <라벨>`·`%% ext host:<호스트> <노드ID> <라벨>`: 코드의 import나 호출 주소로 찾는 외부 서비스. PR 페이지 그림의 외부 노드에 쓴다.
@@ -49,9 +49,23 @@ flowchart LR
   evaluation -.-> generation
 
   %% map frontend/ frontend
+  %% map frontend/market_view.py frontend
   %% map src/services/ services
   %% map src/pipeline.py pipeline
+  %% map src/pipeline_cli.py pipeline
+  %% map src/services/patent_candidates.py services
+  %% map src/services/patent_context.py services
   %% map src/schemas.py pipeline
+  %% map src/patent_schemas.py pipeline
+  %% map src/market_schemas.py pipeline
+  %% map src/idea_schemas.py pipeline
+  %% map src/generation/executive_models.py generation
+  %% map src/generation/executive_markdown.py generation
+  %% map src/generation/market_evidence.py generation
+  %% map src/generation/market_report_renderer.py generation
+  %% map src/generation/patent_presentation.py generation
+  %% map src/generation/report_formatting.py generation
+  %% map src/generation/report_summary.py generation
   %% map src/ingestion/ ingestion
   %% map scripts/collect_patents.py ingestion
   %% map src/retrieval/ retrieval
@@ -115,9 +129,14 @@ IdeaLens/
 │
 ├── src/
 │   ├── __init__.py
-│   ├── main.py                  # FastAPI
-│   ├── schemas.py               # 공통 데이터 모델
-│   ├── pipeline.py              # 전체 분석 흐름
+│   ├── schemas.py               # 도메인 계약 호환 진입점
+│   ├── patent_schemas.py        # 특허 검색·근거·보고서 계약
+│   ├── market_schemas.py        # 시장 검색·근거·보고서 계약
+│   ├── idea_schemas.py          # 아이디어 입력·초안 계약
+│   ├── pipeline.py              # 파이프라인 진입점·보고서 구성
+│   ├── pipeline_execution.py    # 특허·시장 실행·시간 초과 격리
+│   ├── pipeline_cli.py          # 상태 점검·샘플 분석 CLI
+│   ├── pipeline_models.py       # 준비 상태·실행 결과 계약
 │   │
 │   ├── ingestion/
 │   │   ├── __init__.py
@@ -139,19 +158,32 @@ IdeaLens/
 │   │   ├── __init__.py
 │   │   ├── input_guard.py       # 아이디어 입력 규칙 검사
 │   │   ├── idea_parser.py       # 아이디어 구조화
-│   │   ├── patent_analysis.py   # 선행특허 비교
-│   │   ├── market_analysis.py   # 시장 신호 분석
+│   │   ├── patent_analysis.py   # 선행특허 비교·근거 검증
+│   │   ├── patent_presentation.py # 특허 화면 표시용 상태·인용 서식
+│   │   ├── market_analysis.py   # 시장 보고서 생성 흐름
+│   │   ├── market_evidence.py   # 검색 결과의 근거 모델 변환
+│   │   ├── market_claims.py     # 문장 근거·수치 검증과 판정 규칙
+│   │   ├── executive_models.py   # 최종 경영진 검토 데이터 계약
+│   │   ├── executive_markdown.py # 최종 경영진 보고서 마크다운 렌더링
 │   │   ├── business_review.py   # 근거 기반 사업 검증 행동 권고
-│   │   ├── market_markdown.py   # 시장 결과 마크다운 섹션
-│   │   └── report_builder.py    # 최종 보고서 구성
+│   │   ├── market_markdown.py   # 시장 보고서 공통 서식·호환 진입점
+│   │   ├── market_report_renderer.py # 시장 보고서 섹션 구성
+│   │   ├── question_links.py    # 검토 질문별 근거 연결·검증
+│   │   ├── report_formatting.py # 안전한 보고서 텍스트·출처 서식
+│   │   ├── report_summary.py    # 특허·시장·사업 요약 렌더링
+│   │   └── report_builder.py    # 통합 보고서 구성·상세 렌더링
 │   │
 │   └── services/
 │       ├── __init__.py
-│       ├── patent_service.py    # 특허 RAG 진입점
+│       ├── patent_service.py    # 특허 RAG 진입점·흐름 조정
+│       ├── patent_candidates.py # 특허 후보 정규화·정렬·검색 흔적
+│       ├── patent_context.py    # 비교용 청구항 문맥 선택
 │       └── market_service.py    # 시장 조사 진입점
 │
 ├── frontend/
-│   └── app.py                   # Streamlit
+│   ├── app.py                   # Streamlit 흐름·탐색·분석 실행
+│   ├── market_view.py           # 시장 결과·근거 화면
+│   └── patent_view.py           # 특허 상세 대화상자·보고서 화면
 │
 ├── tests/
 │   ├── test_patent.py

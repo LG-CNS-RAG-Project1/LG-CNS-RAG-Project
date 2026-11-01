@@ -4,13 +4,12 @@ import json
 import math
 from typing import Callable
 
-from openai import OpenAI
 from pydantic import ValidationError
 
 from src.schemas import PatentSearchRequest
 from src.retrieval.schemas import PatentQueryPlan
 from pathlib import Path
-from dotenv import load_dotenv
+from src.llm_client import chat_model, get_openai_client
 
 from src.retrieval.patent_store import get_collection
 from src.retrieval.schemas import RetrievalResult, SearchDocument
@@ -56,12 +55,11 @@ SYSTEM_PROMPT = """
 
 
 def call_query_llm(system_prompt: str, user_text: str) -> dict:
-    """OpenAI API를 호출하여 검색어 생성 결과를 반환한다."""
-    load_dotenv(ROOT_DIR / ".env")
-    client = OpenAI()
+    """선택한 LLM provider를 호출하여 검색어 생성 결과를 반환한다."""
+    client = get_openai_client()
 
     response = client.chat.completions.create(
-        model=LLM_MODEL,
+        model=chat_model(LLM_MODEL),
         temperature=0,
         response_format={"type": "json_object"},
         messages=[
@@ -131,8 +129,13 @@ def search_patents(
         collection = get_collection()
 
     where = {f"area_{technology_area_id}": True} if technology_area_id else None
-    stored = collection.get(where=where, include=["documents", "metadatas"])
-    matching_count = len(stored["ids"])
+    stored = None
+    if retrieval_mode in {"bm25", "hybrid"}:
+        stored = collection.get(where=where, include=["documents", "metadatas"])
+        matching_count = len(stored["ids"])
+    else:
+        matching_ids = collection.get(where=where, include=[])["ids"]
+        matching_count = len(matching_ids)
     if matching_count == 0:
         return []
 
@@ -140,22 +143,6 @@ def search_patents(
         from src.retrieval.market_search import embed_texts
 
         embed_fn = embed_texts
-
-    documents = []
-    for chunk_id, content, raw_metadata in zip(
-        stored["ids"], stored["documents"], stored["metadatas"]
-    ):
-        metadata = dict(raw_metadata)
-        documents.append(
-            SearchDocument(
-                chunk_id=chunk_id,
-                source_id=metadata.pop("source_id"),
-                source_type="patent",
-                title=metadata.pop("title"),
-                content=content,
-                metadata=metadata,
-            )
-        )
 
     dense_results = []
     if retrieval_mode in {"dense", "hybrid"}:
@@ -170,7 +157,32 @@ def search_patents(
             where=where,
             include=["distances"],
         )
-        by_id = {document.chunk_id: document for document in documents}
+        dense_ids = results["ids"][0]
+        dense_distances = results["distances"][0]
+
+    if retrieval_mode == "dense":
+        stored = collection.get(ids=dense_ids, include=["documents", "metadatas"])
+    elif stored is None:
+        stored = collection.get(where=where, include=["documents", "metadatas"])
+
+    by_id = {}
+    documents = []
+    for chunk_id, content, raw_metadata in zip(
+        stored["ids"], stored["documents"], stored["metadatas"]
+    ):
+        metadata = dict(raw_metadata)
+        document = SearchDocument(
+            chunk_id=chunk_id,
+            source_id=metadata.pop("source_id"),
+            source_type="patent",
+            title=metadata.pop("title"),
+            content=content,
+            metadata=metadata,
+        )
+        documents.append(document)
+        by_id[chunk_id] = document
+
+    if retrieval_mode in {"dense", "hybrid"}:
         dense_results = [
             RetrievalResult(
                 document=by_id[chunk_id],
@@ -178,7 +190,7 @@ def search_patents(
                 dense_rank=rank,
             )
             for rank, (chunk_id, distance) in enumerate(
-                zip(results["ids"][0], results["distances"][0]), 1
+                zip(dense_ids, dense_distances), 1
             )
         ]
     response = retrieve(

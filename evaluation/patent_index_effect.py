@@ -15,15 +15,16 @@ from src.ingestion.patent_processor import OUTPUT_PATH, build_chunks
 from src.retrieval.market_search import EMBED_BATCH_SIZE, embed_texts
 from src.retrieval.patent_store import to_chroma_record
 from src.schemas import PatentDocument
+from src.llm_client import embedding_model, local_chroma_path
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 OUTPUT_DIR = ROOT_DIR / "data" / "patents" / "processed" / "domain_experiment"
-CHROMA_DIR = OUTPUT_DIR / "index_effect_chroma"
+CHROMA_DIR = local_chroma_path(OUTPUT_DIR / "index_effect_chroma")
 RESULT_PATH = OUTPUT_DIR / "index_effect.json"
 AREA_ID = "SF-05"
 COLLECTION_NAME = "sf05_index_effect"
 TOP_K = 5
-EMBEDDING_MODEL = "text-embedding-3-small"
+EMBEDDING_MODEL = embedding_model()
 
 
 def sha256(path: Path) -> str:

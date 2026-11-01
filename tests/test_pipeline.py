@@ -1,4 +1,4 @@
-from src.generation.report_builder import CRITERIA, build_question_links
+from src.generation.question_links import CRITERIA, build_question_links
 from src.pipeline import _part_from_report, run_pipeline
 from src.schemas import IdeaDraft, MarketReport, PatentReport
 

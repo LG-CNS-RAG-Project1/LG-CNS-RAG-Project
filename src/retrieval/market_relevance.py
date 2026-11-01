@@ -20,13 +20,11 @@ prompts/market_label_judge.md를 쓴다. 같은 호출에서 기사의 근거 �
 
 import argparse
 import json
-import os
 import re
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Callable
 
-from dotenv import load_dotenv
 
 from src.retrieval.market_search import (
     DART_COMPANY_K,
@@ -36,6 +34,7 @@ from src.retrieval.market_search import (
     search_by_dimensions,
 )
 from src.schemas import IDEA_FIELDS, MarketSearchRequest, StructuredIdea
+from src.llm_client import chat_model, get_openai_client, llm_is_configured
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 PROMPT_PATH = ROOT_DIR / "prompts" / "market_label_judge.md"
@@ -100,17 +99,14 @@ HEADLINE_TRAIL = " \"'“”‘’)]>」』!?."
 def call_relevance_llm(
     system_prompt: str, user_text: str, model: str = RELEVANCE_MODEL
 ) -> dict:
-    """OpenAI 채팅 API를 JSON 모드로 호출해 판정 결과를 dict로 반환한다.
+    """선택한 LLM provider의 JSON 채팅 API로 판정 결과를 반환한다.
 
-    .env의 OPENAI_API_KEY가 필요하며, 없으면 RuntimeError를 발생시킨다.
+    선택한 provider가 설정되지 않았으면 RuntimeError를 발생시킨다.
     """
-    from openai import OpenAI
-
-    load_dotenv(ROOT_DIR / ".env")
-    if not os.getenv("OPENAI_API_KEY"):
-        raise RuntimeError("OPENAI_API_KEY is not set in .env")
-    response = OpenAI().chat.completions.create(
-        model=model,
+    if not llm_is_configured():
+        raise RuntimeError("Selected LLM provider is not configured")
+    response = get_openai_client().chat.completions.create(
+        model=chat_model(model),
         temperature=0,
         response_format={"type": "json_object"},
         messages=[

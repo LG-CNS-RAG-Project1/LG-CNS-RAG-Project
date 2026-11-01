@@ -49,6 +49,27 @@ COST_NOTE = (
 )
 
 
+def input_transfer_note() -> str:
+    """입력 문장이 전달되는 LLM 서비스에 대해 안내한다."""
+    from src.llm_client import load_llm_settings
+
+    if load_llm_settings() == "ollama":
+        return "입력한 아이디어 문장은 설정된 Ollama 서버로 전송되며 OpenAI API를 호출하지 않습니다."
+    return "입력한 아이디어 문장은 OpenAI API로 전송됩니다."
+
+
+def analysis_cost_note() -> str:
+    """선택한 LLM provider와 외부 자료 조회에 맞는 호출·비용 안내를 반환한다."""
+    from src.llm_client import load_llm_settings
+
+    if load_llm_settings() == "ollama":
+        return (
+            "채팅·임베딩은 Ollama 서버에서 처리됩니다. KIPRIS·NAVER 등 외부 자료 조회는 "
+            "설정에 따라 별도 API 호출과 서비스별 사용 한도가 적용될 수 있습니다."
+        )
+    return COST_NOTE
+
+
 def app_password() -> str:
     """호스팅 배포에서 설정하는 접속 비밀번호. 비어 있으면 비밀번호 화면을 띄우지 않는다(로컬 실행)."""
     return os.getenv("IDEALENS_APP_PASSWORD", "").strip()
@@ -90,8 +111,10 @@ def build_version(root: Path) -> str:
 
 
 def live_available() -> bool:
-    """OpenAI 키가 있으면 실제 분석(AI 구조화·조사)을 쓸 수 있다."""
-    return bool(os.getenv("OPENAI_API_KEY", "").strip())
+    """선택한 LLM provider 설정이 있으면 실제 분석을 쓸 수 있다."""
+    from src.llm_client import llm_is_configured
+
+    return llm_is_configured()
 
 
 def analysis_key(draft, parts: list[str], area: str | None) -> str:
@@ -111,14 +134,29 @@ def friendly_error(exc: Exception) -> str:
     from src.pipeline import redact
 
     name = type(exc).__name__
+    from src.llm_client import load_llm_settings
+
+    try:
+        provider = load_llm_settings()
+    except ValueError:
+        provider = "openai"
+    provider_label = "Ollama" if provider == "ollama" else "OpenAI"
     if name == "AuthenticationError":
-        return "OpenAI 인증에 실패했습니다. OPENAI_API_KEY를 확인해 주세요."
+        return f"{provider_label} 인증에 실패했습니다. 설정을 확인해 주세요."
     if name == "RateLimitError":
-        return "OpenAI 사용 한도에 걸렸습니다. 잠시 후 다시 시도해 주세요."
+        return f"{provider_label} 사용 한도에 걸렸습니다. 잠시 후 다시 시도해 주세요."
     if name in ("APIConnectionError", "APITimeoutError", "ConnectionError"):
+        if provider == "ollama":
+            return (
+                "Ollama 서버에 연결하지 못했습니다. OLLAMA_BASE_URL과 Ollama 서버 실행 상태를 "
+                "확인한 뒤 다시 시도해 주세요."
+            )
         return "외부 API에 연결하지 못했습니다. 네트워크를 확인해 주세요."
-    if isinstance(exc, RuntimeError) and "OPENAI_API_KEY" in str(exc):
-        return "OPENAI_API_KEY가 없어 AI 구조화를 실행할 수 없습니다."
+    if isinstance(exc, RuntimeError) and any(
+        token in str(exc).lower()
+        for token in ("provider", "openai_api_key", "ollama_base_url")
+    ):
+        return "선택한 LLM provider 설정이 없어 AI 구조화를 실행할 수 없습니다."
     if isinstance(exc, ValueError):
         return redact(str(exc))[:300]
     return (
