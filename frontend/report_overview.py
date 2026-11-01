@@ -59,6 +59,7 @@ def market_verification_markdown(market):
 
 
 class Finding(BaseModel):
+    """통합 대시보드의 발견 항목과 그 근거 참조를 담는다."""
     label: str
     judgment: str
     implication: str = ""
@@ -70,6 +71,7 @@ class Finding(BaseModel):
 
 
 class DartContextEvidence(BaseModel):
+    """DART 원문에서 확인한 사업 맥락과 출처 위치를 표현한다."""
     evidence_id: str
     company: str
     period: str = ""
@@ -80,6 +82,7 @@ class DartContextEvidence(BaseModel):
 
 
 class MarketContext(BaseModel):
+    """시장 보고서에서 대시보드가 읽는 차원별 판단 자료를 묶는다."""
     dart_evidence: list[DartContextEvidence] = Field(default_factory=list, max_length=3)
     search_trend: MarketSearchTrend | None = None
     keyword_network: MarketKeywordNetwork | None = None
@@ -87,11 +90,13 @@ class MarketContext(BaseModel):
 
 
 class PatentStatisticsContext(BaseModel):
+    """특허 통계와 기술 분야 맥락을 대시보드 표시용으로 전달한다."""
     indexed: PatentTrendStatistics | None = None
     related_candidates: PatentTrendStatistics | None = None
 
 
 class Dashboard(BaseModel):
+    """특허·시장·비용 발견을 한 화면에서 표시하기 위한 읽기 모델이다."""
     conclusion: str = ""
     summary: str = ""
     scope: str = ""
@@ -545,6 +550,7 @@ def _render_market_context(context: MarketContext) -> None:
 
 
 def render_dashboard(raw):
+    """분석 결과에서 대시보드 읽기 모델을 만들고 주요 발견을 렌더링한다."""
     data = Dashboard.model_validate(raw)
     if data.conclusion:
         st.subheader("종합 결론")

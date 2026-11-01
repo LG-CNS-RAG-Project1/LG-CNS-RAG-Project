@@ -9,10 +9,12 @@ ASSETS = Path(__file__).with_name("assets") / "showcase"
 
 
 def load_showcase():
+    """저장된 시연 자료를 안전하게 읽어 예시 화면 데이터로 반환한다."""
     return json.loads((ASSETS / "manifest.json").read_text(encoding="utf-8"))
 
 
 def asset_file(relative):
+    """패키지 자산의 경로를 찾아 화면에서 사용할 파일로 반환한다."""
     if not relative:
         return None
     path = (ASSETS / relative).resolve()
@@ -22,6 +24,7 @@ def asset_file(relative):
 
 
 def render_showcase():
+    """시연용 가상 자료임을 구분해 사례 화면을 표시한다."""
     data = load_showcase()
     st.caption("IDEALENS · 결과를 읽는 방법")
     st.title("어떤 결과를 보고, 무엇을 확인하나요?")

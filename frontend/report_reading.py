@@ -29,6 +29,7 @@ def grounded_review_result(result):
 
 
 def market_brief(market):
+    """시장 결과의 핵심 항목을 근거와 함께 읽기 쉬운 요약으로 구성한다."""
     labels = {
         "validated_demand": "고객 검증 자료가 있습니다. 표본과 실제 구매 조건을 확인하세요.",
         "buyer_signals": "구매자 관련 신호가 있지만, 이 아이디어의 구매 의사는 아직 확인되지 않았습니다.",
@@ -71,6 +72,7 @@ def market_brief(market):
 
 
 def render_market_brief(market):
+    """이미 생성된 시장 요약을 화면에 표시한다."""
     brief = market_brief(market)
     st.subheader("그래서, 이 아이디어에 어떤 의미인가요?")
     st.info(brief["summary"])

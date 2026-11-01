@@ -111,6 +111,7 @@ TASKS = [
 
 
 def example_costs():
+    """예시 아이디어용 비용 항목을 제공하며 실제 견적과 구분한다."""
     return deepcopy(
         [
             {
@@ -146,6 +147,7 @@ def example_costs():
 
 
 def empty_costs():
+    """비용이 아직 산정되지 않은 기본 데이터 상태를 만든다."""
     return [
         {
             "항목": "견적 요청 항목",
@@ -180,6 +182,7 @@ def cost_summary(rows):
 
 
 def is_example(brief):
+    """현재 자료가 실제 조사 결과가 아닌 시연용인지 판별한다."""
     return brief == EXAMPLE
 
 
@@ -191,6 +194,7 @@ def md(value):
 
 
 def export_report(brief, rows, note, done):
+    """현재 보고서 데이터를 사용해 선택한 형식의 내보내기 자료를 만든다."""
     sample = is_example(brief)
     cost = cost_summary(rows)
     lines = [

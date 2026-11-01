@@ -18,6 +18,7 @@ SUBMENUS = {
 
 
 def _navigate(open_page, page, view):
+    """정보 메뉴에서 선택한 하위 안내 화면으로 이동한다."""
     if page == "about":
         st.session_state.introduction_view = view
     elif page == "difference":
@@ -38,6 +39,7 @@ def render_submenu(page, open_page, *, scope="header"):
 
 
 def render_information_header(open_page):
+    """정보 페이지 상단 탐색과 선택 상태를 표시한다."""
     st.html(process_styles())
     with st.container(key="brandbar"):
         brand, intro, difference, records = st.columns([2.6, 1, 1.2, 0.8])

@@ -8,6 +8,7 @@ from xml.sax.saxutils import escape
 
 
 def make_pdf(title: str, markdown: str) -> bytes:
+    """Markdown 보고서 내용을 외부 링크 실행 없이 한글 PDF 바이트로 변환한다."""
     from reportlab.lib import colors
     from reportlab.lib.enums import TA_LEFT
     from reportlab.lib.styles import ParagraphStyle
@@ -56,6 +57,7 @@ def make_pdf(title: str, markdown: str) -> bytes:
 
     def text(line):
         # Keep readable titles and URLs without executing or fetching report content.
+        """PDF 문단에 넣을 텍스트를 링크 표시만 읽기 좋은 형태로 바꾸고 HTML 특수문자를 이스케이프한다."""
         line = re.sub(r"\[([^\]]+)\]\(([^)]+)\)", r"\1 (\2)", line)
         return escape(line.replace("**", "").replace("`", ""))
 
@@ -127,6 +129,7 @@ def make_pdf(title: str, markdown: str) -> bytes:
         i += 1
 
     def footer(canvas, doc):
+        """PDF 각 페이지에 반복할 페이지 정보를 그린다."""
         canvas.saveState()
         canvas.setFont(name, 8)
         canvas.setFillColor(colors.HexColor("#6b817b"))

@@ -18,6 +18,7 @@ DEMO_PARTS = [
 
 
 def candidates(text):
+    """가상 시연 아이디어에만 예시 문헌을 제공하며 실제 입력에는 가상 자료를 섞지 않는다."""
     return (
         [
             dict(
@@ -36,6 +37,7 @@ def candidates(text):
 
 
 def validate_parts(parts):
+    """기술 구성요소 개수·빈 항목·중복 여부를 확인하고 오류 문구를 반환한다."""
     if not 1 <= len(parts) <= 7:
         return "핵심 구성은 1~7개로 작성해 주세요."
     values = [p.strip() for p in parts]
@@ -47,6 +49,7 @@ def validate_parts(parts):
 
 
 def selected_sources(text, ids):
+    """현재 아이디어와 선택 ID에 해당하는 시연 근거만 반환한다."""
     return [s for s in candidates(text) if s["id"] in ids]
 
 
@@ -59,6 +62,7 @@ ORIGIN_LABELS = {
 
 
 def report(text, title, parts, ids, memo, questions=None, links=None):
+    """가상 자료임을 표시한 시연용 Markdown 보고서를 구성한다."""
     sources = selected_sources(text, ids)
     lines = [
         "# 시장·특허 종합 검토 보고서",
@@ -154,6 +158,7 @@ DEMO_QUESTIONS = [
 
 
 def validate_questions(questions):
+    """검토 질문 입력의 형식과 필수 값을 확인한다."""
     if not 1 <= len(questions) <= 5:
         return "검토 질문은 1~5개로 작성해 주세요."
     values = [q["question"].strip() for q in questions]
@@ -225,6 +230,7 @@ def review_rows(text, parts, ids, questions, links):
 
 
 def validate_link(link, text, parts, selected, questions):
+    """질문과 근거 연결 편집값의 허용 상태를 확인한다."""
     if link.get("question_id") not in {q["id"] for q in questions}:
         return "현재 검토 질문을 선택해 주세요."
     sources = {s["id"]: s for s in selected_sources(text, selected)}

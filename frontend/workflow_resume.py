@@ -18,6 +18,7 @@ export default function({data,setStateValue}) {
 
 
 def browser_workflow(active):
+    """브라우저 작업 상태를 복원해 진행 중인 분석을 다시 보여준다."""
     return _bridge(
         data={"active": active or ""},
         key="workflow_resume",

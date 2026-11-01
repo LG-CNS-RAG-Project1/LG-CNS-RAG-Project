@@ -4,11 +4,13 @@ import streamlit as st
 
 
 def _select_intro(view):
+    """소개 화면에서 선택한 안내 주제를 세션에 저장하고 상단으로 이동한다."""
     st.session_state.introduction_view = view
     st.session_state.scroll_to_top = True
 
 
 def _render_journey():
+    """서비스 사용 단계를 설명하는 정적 소개 흐름을 표시한다."""
     st.html("""<section class="info-journey" aria-label="IdeaLens의 사용 흐름">
     <article><small>01 / IDEA</small><h2>생각을 구체화합니다</h2><p>한 줄의 아이디어에서 문제·기술·고객을 정리합니다. 빠진 내용은 질문으로 확인합니다.</p></article>
     <article><small>02 / EVIDENCE</small><h2>두 근거를 찾습니다</h2><p>특허에서는 기술 구성의 차이를, 시장에서는 고객과 도입 조건을 살펴봅니다.</p></article>
@@ -33,6 +35,7 @@ def _render_journey():
 
 
 def render_introduction(page):
+    """소개 페이지와 차별점 페이지의 선택된 콘텐츠를 렌더링한다."""
     with st.container(key="introduction"):
         if page == "about":
             from frontend.process_guide import process_styles, render_process_guide

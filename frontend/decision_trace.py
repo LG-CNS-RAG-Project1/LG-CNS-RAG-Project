@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 
 
 def _market_source_location(evidence) -> str:
+    """시장 근거의 종류·발행처·기간·문서 위치를 한 줄 출처로 만든다."""
     source_labels = {
         "dart": "DART 사업보고서",
         "news": "뉴스",
@@ -26,6 +27,7 @@ def _market_source_location(evidence) -> str:
 
 
 class TraceSource(BaseModel):
+    """주장에 연결된 원문 인용과 출처 위치를 담는 화면 전용 계약이다."""
     ref: str
     title: str
     quote: str
@@ -34,6 +36,7 @@ class TraceSource(BaseModel):
 
 
 class TraceFinding(BaseModel):
+    """기존 분석의 판단·영향·근거 ID를 담는 추적 항목이다."""
     title: str
     judgment: str
     implication: str = ""
@@ -42,6 +45,7 @@ class TraceFinding(BaseModel):
 
 
 class DecisionTrace(BaseModel):
+    """판단 목록과 출처 목록을 묶어 UI에 전달하는 읽기 모델이다."""
     findings: list[TraceFinding] = Field(default_factory=list, max_length=30)
     sources: list[TraceSource] = Field(default_factory=list, max_length=1000)
 
