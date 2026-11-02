@@ -1,6 +1,21 @@
 """특허 상세 대화상자와 특허 보고서 화면을 렌더링한다."""
 
 import streamlit as st
+from pydantic import ValidationError
+
+from src.schemas import PatentReport
+
+
+def current_patent_report(patent):
+    """저장된 분석을 현재 계약으로 복원하고 누락된 선택 항목을 채운다."""
+    try:
+        payload = patent.model_dump() if hasattr(patent, "model_dump") else patent
+        return PatentReport.model_validate(payload)
+    except (ValidationError, AttributeError, TypeError):
+        st.warning(
+            "저장된 특허 결과를 읽을 수 없습니다. 조사 화면에서 결과를 다시 확인해 주세요."
+        )
+        return None
 
 
 def clear_patent_detail():
@@ -23,6 +38,10 @@ def patent_detail_dialog(patent, patent_id):
         kipris_drawing_url,
         tooltip_text,
     )
+
+    patent = current_patent_report(patent)
+    if patent is None:
+        return
 
     review = next(
         (item for item in patent.patent_reviews if item.patent_id == patent_id), None
@@ -408,6 +427,10 @@ def render_patent_report(patent, *, widget_suffix="", preview=False):
         patent_orbit_category,
         patent_review_priority,
     )
+
+    patent = current_patent_report(patent)
+    if patent is None:
+        return
 
     if patent.status == "error":
         st.error("특허 비교 보고서를 완성하지 못했습니다.")

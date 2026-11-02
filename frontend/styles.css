@@ -454,4 +454,15 @@ html{scroll-behavior:auto;}
     transition:none;
   }
 }
+/* 문서와 돋보기를 같은 기준으로 축소해 짧은 화면에서도 비율을 유지한다. */
+.st-key-hero_art{width:100%!important;margin:0 auto;transform:none;padding-bottom:45px;}
+.st-key-hero_art .st-key-lens_start{left:auto;right:3%;bottom:8%;width:64%!important;transform:none;}
+.st-key-hero_art .st-key-lens_start button{width:100%;height:auto;aspect-ratio:430/535;}
+.st-key-hero_art .st-key-lens_start button:after{right:0;bottom:0;font-size:clamp(12px,1vw,16px);padding:10px 16px;}
+@media(min-width:901px){
+  .st-key-hero_art{max-width:clamp(360px,calc((100svh - 245px)/1.06),630px);}
+}
+@media(max-width:900px){
+  .st-key-hero_art{max-width:530px;}
+}
 </style>
