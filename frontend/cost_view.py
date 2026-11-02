@@ -4,6 +4,7 @@ import streamlit as st
 
 
 def render_cost_estimate(result):
+    """계산된 비용 범위·가정·미확인 항목을 사용자에게 표시한다."""
     final_markdown = result.markdown
     st.subheader("구현비용과 사업성 가설")
     estimate = result.cost_estimate

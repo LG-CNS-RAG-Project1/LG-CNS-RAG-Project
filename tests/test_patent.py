@@ -949,7 +949,7 @@ def test_patent_build_index(tmp_path):
 def test_patent_build_index_keeps_completed_batches_and_resumes(tmp_path, monkeypatch):
     from src.retrieval import patent_store
 
-    monkeypatch.setattr(patent_store, "INDEX_BATCH_SIZE", 2)
+    monkeypatch.setattr(patent_store, "EMBED_BATCH_SIZE", 2)
     collection = get_collection(chroma_dir=tmp_path / "chroma")
     patent = PatentDocument(
         patent_id="P002",

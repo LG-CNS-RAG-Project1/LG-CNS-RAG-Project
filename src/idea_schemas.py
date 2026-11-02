@@ -7,6 +7,8 @@ from pydantic import BaseModel, Field, model_validator
 
 # 1. 사용자 아이디어
 class StructuredIdea(BaseModel):
+    """사용자가 검토를 마친 특허·시장 분석용 아이디어."""
+
     title: str
     problem: str
     technology: str
@@ -39,6 +41,8 @@ IDEA_FIELDS: list[IdeaField] = [
 
 # 1-1. 구조화 중인 아이디어 (빈 항목 재질문 단계)
 class IdeaDraft(BaseModel):
+    """초안 작성 중인 값, 항목별 출처, 미확인 상태와 추가 질문."""
+
     original_text: str = Field(min_length=1)
     title: str = ""
     problem: str = ""
@@ -64,6 +68,7 @@ class IdeaDraft(BaseModel):
 
     @model_validator(mode="after")
     def validate_draft(self):
+        """추가 질문·완료·거절 상태가 입력 필드와 맞는지 검사한다."""
         if self.status == "complete" and self.missing_fields:
             raise ValueError("complete draft must not have missing fields")
         if self.status == "needs_input" and not self.missing_fields:

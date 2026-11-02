@@ -24,6 +24,7 @@ from frontend.workspace import cost_summary
 
 
 def _criteria(link):
+    """질문 연결 결과의 검토 기준을 표 표시용 행으로 변환한다."""
     return [
         {
             "검토 기준": c.criterion,
@@ -35,6 +36,7 @@ def _criteria(link):
 
 
 def _evidence(items, label, key, patent=False):
+    """근거를 선택해 인용·메타데이터와 원문 링크를 표시한다."""
     from src.generation.report_builder import patent_location, safe_url
 
     if not items:
@@ -63,6 +65,7 @@ def _evidence(items, label, key, patent=False):
 
 
 def _links(items):
+    """질문별 연결 상태와 판단 기준을 표시하며 점수로 해석하지 않도록 안내한다."""
     if not items:
         st.info("질문별 연결 결과가 없습니다.")
         return
@@ -79,6 +82,7 @@ def _links(items):
 
 
 def render_live_review(s, run, key_fn, navigate):
+    """실제 조사 결과와 질문별 연결을 함께 확인하는 화면을 그린다."""
     st.title("특허와 시장, 나란히 검토하기")
     st.caption(
         "문헌을 선택하면 해당 근거만 표시됩니다. 연결 검토에서 질문별 판단 과정을 확인하세요."
@@ -208,6 +212,7 @@ def report_payload(s):
 
 
 def render_report(s, payload, archived=False):
+    """저장된 분석 결과를 요약·상세 근거 화면으로 표시한다."""
     if payload is None:
         st.warning(
             "이전 버전의 분석 결과를 현재 보고서 형식으로 읽을 수 없습니다. 아이디어를 유지한 채 분석을 다시 실행해 주세요."
@@ -408,6 +413,7 @@ def validate_records(raw):
 
 
 def render_history(s):
+    """보관된 분석 기록을 선택·복원할 수 있게 표시한다."""
     st.title("내 조사 기록")
     st.caption(
         "현재 세션의 기록은 최대 20개입니다. 다음에도 보려면 이 브라우저에 저장하거나 JSON 파일로 보관하세요. 계정별 서버 저장은 하지 않습니다."

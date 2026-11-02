@@ -6,6 +6,8 @@ from pydantic import BaseModel, Field, model_validator
 
 
 class IntegratedFinding(BaseModel):
+    """특허·시장 근거를 연결한 통합 판단 한 건."""
+
     label: str
     judgment: str
     business_implication: str
@@ -14,6 +16,8 @@ class IntegratedFinding(BaseModel):
 
 
 class ApprovalGate(BaseModel):
+    """결정 전에 담당자와 증거를 확인해야 하는 승인 조건."""
+
     question: str
     owner: str
     proof_needed: str
@@ -36,6 +40,7 @@ class DomainEvidenceSummary(BaseModel):
 
     @model_validator(mode="after")
     def validate_evidence_ids(self):
+        """영역별 근거 ID의 접두부와 중복 여부를 검사한다."""
         prefix = "P:" if self.domain == "patent" else "M:"
         if any(not value.startswith(prefix) for value in self.evidence_ids):
             raise ValueError(f"{self.domain} summary has a foreign evidence ID")
@@ -45,6 +50,8 @@ class DomainEvidenceSummary(BaseModel):
 
 
 class ExecutiveReview(BaseModel):
+    """양쪽 조사 상태·근거·제한·다음 행동을 묶은 경영진 요약."""
+
     recommendation: str
     scope: str
     confidence: str
@@ -59,6 +66,7 @@ class ExecutiveReview(BaseModel):
 
     @model_validator(mode="after")
     def validate_domain_summaries(self):
+        """특허·시장 요약이 각각 최대 한 건인지 확인한다."""
         domains = [summary.domain for summary in self.domain_summaries]
         if len(domains) != len(set(domains)):
             raise ValueError("Executive review has duplicate domain summaries")

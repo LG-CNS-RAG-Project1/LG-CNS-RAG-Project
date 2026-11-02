@@ -4,6 +4,7 @@ import streamlit as st
 
 
 def _page_button(page, label, icon, current_page, open_page):
+    """공통 탐색 버튼을 렌더링하고 클릭 시 지정된 페이지 이동 콜백을 실행한다."""
     st.button(
         label,
         key=f"rail_{page}",
@@ -16,6 +17,7 @@ def _page_button(page, label, icon, current_page, open_page):
 
 
 def _top_link():
+    """페이지 상단으로 이동하는 보조 링크를 표시한다."""
     st.html(
         '<a class="rail-top" href="#research-top" target="_self" '
         'aria-label="화면 맨 위로 이동"><span aria-hidden="true">↑</span>맨 위로</a>'

@@ -22,11 +22,13 @@ def _compact_text(value: str | None, limit: int = 140) -> str:
 
 
 def _compact_refs(values: list[int] | list[str], limit: int = 3) -> str:
+    """인용 ID를 짧은 표시용 목록으로 제한한다."""
     refs = [str(value) for value in values[:limit]]
     return ", ".join(refs) if refs else "근거 인용 없음"
 
 
 def _compact_patent_lines(patent: PatentReport) -> list[str]:
+    """요약 보고서에 넣을 특허 판단과 근거를 간결하게 만든다."""
     lines = ["## 특허 핵심", ""]
     if patent.status == "error":
         return lines + [f"- 조사 실패: {_compact_text(patent.error_message, 120)}", ""]
@@ -128,6 +130,7 @@ def _compact_patent_lines(patent: PatentReport) -> list[str]:
 
 
 def _compact_market_lines(market: MarketReport) -> list[str]:
+    """요약 보고서에 넣을 시장 상태와 인용 근거를 간결하게 만든다."""
     lines = ["## 시장성 핵심", ""]
     if market.status == "error":
         return lines + [f"- 조사 실패: {_compact_text(market.error_message, 120)}", ""]
@@ -195,6 +198,7 @@ def _compact_market_lines(market: MarketReport) -> list[str]:
 
 
 def _compact_business_lines(review: BusinessReview) -> list[str]:
+    """요약 보고서에 넣을 사업 권고와 한계를 압축한다."""
     lines = [
         "## 실행 전 판단",
         "",

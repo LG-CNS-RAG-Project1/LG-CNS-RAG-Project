@@ -77,6 +77,7 @@ def _build_patent_context(
     notes = []
 
     def cost(claim: PatentClaim) -> int:
+        """청구항 텍스트 토큰 수를 예산 산정용으로 추정한다."""
         return _estimate_text_tokens(claim.text)
 
     while selected and sum(cost(claim) for claim in selected) > max_tokens:

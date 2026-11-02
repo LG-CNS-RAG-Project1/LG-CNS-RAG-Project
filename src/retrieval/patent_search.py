@@ -219,6 +219,7 @@ def bi_encoder_reranker(embed_fn=None):
         embed_fn = embed_texts
 
     def score(query: str, documents: list[SearchDocument]) -> list[float]:
+        """질의와 특허 후보 텍스트의 임베딩 코사인 점수를 계산한다."""
         texts = [query] + [f"{item.title}\n{item.content}" for item in documents]
         vectors = embed_fn(texts)
         if len(vectors) != len(texts):

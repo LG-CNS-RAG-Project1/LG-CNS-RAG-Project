@@ -29,17 +29,23 @@ class _EmptyCollection:
     """특허 색인이 없을 때 KIPRIS 보충 검색 경로로 넘기는 빈 컬렉션."""
 
     def count(self) -> int:
+        """문서 내용을 받지 않고 현재 컬렉션 건수를 센다."""
         return 0
 
     def get(self, *args, **kwargs) -> dict:
+        """저장 문서가 없는 Chroma get 응답 모양을 반환한다."""
         return {"ids": [], "documents": [], "metadatas": []}
 
     def query(self, *args, **kwargs) -> dict:
+        """저장 문서가 없는 Chroma query 응답 모양을 반환한다."""
         return {"ids": [[]], "distances": [[]]}
 
 
 def _guard(fn: Callable, event: threading.Event) -> Callable:
+    """취소 이벤트를 분석 함수 호출 앞에서 확인하는 래퍼를 만든다."""
+
     def guarded(*args, **kwargs):
+        """취소 이벤트가 켜졌으면 새 호출을 막고 원래 함수를 실행한다."""
         if event.is_set():
             raise Cancelled("제한 시간이 지나 외부 호출을 중단했습니다.")
         return fn(*args, **kwargs)
@@ -57,9 +63,11 @@ def _tolerant_relevance(event: threading.Event) -> Callable:
     from src.retrieval import patent_relevance
 
     def judge(idea, results):
+        """특허 후보를 판정하고 불완전한 모델 응답을 안전하게 보완한다."""
         last = {}
 
         def llm(system_prompt, user_text):
+            """제한 시간을 확인한 뒤 모델 응답을 마지막 응답 기록에 보존한다."""
             if event.is_set():
                 raise Cancelled("제한 시간이 지나 외부 호출을 중단했습니다.")
             last["raw"] = patent_relevance.call_relevance_llm(system_prompt, user_text)
@@ -98,6 +106,7 @@ def _tolerant_relevance(event: threading.Event) -> Callable:
 
 
 def _market_defaults(event: threading.Event) -> dict:
+    """시장 분석 단계에 필요한 provider 호출과 자료 보강 함수를 연결한다."""
     from src.generation.market_analysis import call_analysis_llm
     from src.retrieval.market_relevance import call_relevance_llm
     from src.retrieval.market_search import embed_texts
@@ -118,6 +127,7 @@ def _market_defaults(event: threading.Event) -> dict:
 
 
 def _patent_defaults(event: threading.Event) -> dict:
+    """특허 분석 단계의 검색·판정·비교 함수를 취소 가드와 연결한다."""
     from src import pipeline
     from src.generation.patent_analysis import (
         call_comparison_llm,
@@ -133,14 +143,17 @@ def _patent_defaults(event: threading.Event) -> dict:
     guarded_embed = _guard(embed_texts, event)
 
     def review(idea, evidence):
+        """특허 근거를 기술 구성요소별로 검토한다."""
         return review_patents_by_component(idea, evidence, llm_fn=guarded_review_llm)
 
     def design_proposals(idea, evidence, reviews, precheck):
+        """특허 검토 결과에서 설계 제안과 검증 계획을 만든다."""
         return generate_patent_design_analysis(
             idea, evidence, reviews, precheck, llm_fn=guarded_review_llm
         )
 
     def score_semantic_similarity(idea, evidence, source_texts):
+        """선택한 임베딩 provider로 아이디어와 특허 근거를 비교한다."""
         return pipeline.score_patent_semantic_similarity(
             idea, evidence, source_texts, embed_fn=guarded_embed
         )
@@ -158,12 +171,14 @@ def _patent_defaults(event: threading.Event) -> dict:
 
 
 def _timed(fn: Callable, *args, **kwargs):
+    """분석 결과와 실제 경과 시간을 함께 돌려준다."""
     started = time.monotonic()
     report = fn(*args, **kwargs)
     return report, time.monotonic() - started
 
 
 def _part_from_report(report, seconds: float) -> PartRun:
+    """하위 보고서의 상태와 오류를 영역 실행 상태로 옮긴다."""
     from src import pipeline
 
     message = report.error_message if report.status in {"error", "partial"} else None
@@ -298,6 +313,7 @@ def analyze_sources(
 
 
 def _failed(kind: str, state: RunState, message: str, seconds: float | None):
+    """영역 실패를 올바른 보고서 타입과 실행 상태로 표현한다."""
     model = MarketReport if kind == "market" else PatentReport
     report = model(status="error", search_scope="조사 미완료", error_message=message)
     return report, PartRun(state=state, seconds=seconds, message=message)
@@ -338,6 +354,7 @@ def _run_jobs(
 
 
 def _collect(kind: str, future, timeout: float, event: threading.Event):
+    """영역 작업의 예외·시간 초과를 결과 상태로 바꾸고 성공 결과를 반환한다."""
     from src import pipeline
 
     try:

@@ -48,6 +48,7 @@ def load_procurement_config(path: Path = CONFIG_PATH) -> dict:
 
 
 def _service_key() -> str:
+    """나라장터 API 인증값을 환경변수에서 읽고 설정 오류를 알린다."""
     load_dotenv(ROOT_DIR / ".env")
     key = os.getenv("DATA_GO_KR_SERVICE_KEY")
     if not key:

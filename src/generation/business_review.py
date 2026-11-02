@@ -8,12 +8,16 @@ from src.schemas import IdeaDraft, MarketReport, PatentReport
 
 
 class BusinessReviewReason(BaseModel):
+    """권고 이유·기회·위험 한 건과 연결된 시장 근거."""
+
     topic: str
     finding: str
     citation_ids: list[str] = Field(default_factory=list)
 
 
 class BusinessReviewAction(BaseModel):
+    """담당 대상과 성공 신호를 포함한 다음 검증 행동."""
+
     horizon: str
     target: str
     action: str
@@ -22,6 +26,8 @@ class BusinessReviewAction(BaseModel):
 
 
 class BusinessReview(BaseModel):
+    """특허·시장 증거를 종합한 예비 사업 검토와 다음 단계."""
+
     recommendation: Literal[
         "validate_demand", "limited_pilot", "research_more", "hold_redesign"
     ]

@@ -28,6 +28,7 @@ def canvas_item_line(item) -> str:
 
 
 def _render_block(canvas: BusinessCanvas, name: str) -> None:
+    """비즈니스 모델 캔버스의 한 블록을 결과 데이터에 맞춰 표시한다."""
     with st.container(border=True):
         st.markdown(f"**{BLOCK_LABELS[name]}**")
         items = getattr(canvas, name)

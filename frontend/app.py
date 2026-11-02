@@ -166,6 +166,7 @@ def open_example_draft(text, title):
 
 
 def clear_workflow_preview():
+    """진행 중인 분석 작업은 유지하고 단계 미리보기만 닫는다."""
     s.workflow_preview_stage = None
 
 
@@ -173,6 +174,7 @@ password_gate()
 
 
 def invalidate_context():
+    """아이디어 구성이나 연결 근거가 바뀌었을 때 이전 확인·선택·보고서 스냅샷을 무효화한다."""
     s.confirmed_context = False
     s.selected = []
     s.links = {}
@@ -182,6 +184,7 @@ def invalidate_context():
 
 
 def sync_context():
+    """Streamlit 위젯에 임시 보관된 구성과 질문 값을 세션의 도메인 상태에 반영한다."""
     parts = [s.get(f"part_{s.version}_{i}", p) for i, p in enumerate(s.parts)]
     questions = [
         dict(
@@ -198,6 +201,7 @@ def sync_context():
 
 
 def input_changed():
+    """새 아이디어 입력에 맞춰 기존 초안·분석 결과·근거 연결 상태를 초기화한다."""
     invalidate_context()
     s.idea_draft = None
     s.selected_patent_detail_id = None
@@ -212,6 +216,7 @@ def input_changed():
 
 
 def prepare_input():
+    """입력 길이를 확인하고 분석에 사용할 아이디어와 기본 검토 질문을 세션에 준비한다."""
     text = s.get("raw_input", s.raw).strip()
     title = s.get("title_input", s.research_title).strip()
     if len(text) < MIN_IDEA_CHARS:
@@ -250,6 +255,7 @@ def apply_complete_draft(draft):
 
 
 def make_ai_draft():
+    """현재 아이디어 문장을 구조화 초안으로 바꾸고 실패는 화면용 안전 오류로 보관한다."""
     from src.generation.idea_parser import parse_idea
 
     try:
@@ -263,6 +269,7 @@ def make_ai_draft():
 
 
 def apply_ai_answers():
+    """사용자의 답변을 현재 초안에 반영해 다음 질문 라운드의 초안을 갱신한다."""
     from src.generation.idea_parser import apply_answers
 
     rounds = s.idea_draft.rounds
@@ -279,6 +286,7 @@ def apply_ai_answers():
 
 
 def current_analysis_key():
+    """아이디어와 기술 구성을 식별하는 캐시 키를 계산해 같은 조사 입력인지 판별한다."""
     return analysis_key(s.idea_draft, s.parts, s.technology_area_id)
 
 
@@ -588,6 +596,7 @@ def partial_workflow_result(job):
 
 
 def current_workflow_job():
+    """세션이 가리키는 백그라운드 작업을 잠금 아래에서 복사해 읽는다."""
     job_id = s.get("analysis_workflow_id")
     if not job_id:
         return None
@@ -598,6 +607,7 @@ def current_workflow_job():
 
 @st.fragment(run_every=1)
 def workflow_progress_fragment(compact=False):
+    """백그라운드 조사 상태를 주기적으로 읽어 진행·부분 결과를 화면에 반영한다."""
     job_id = s.get("analysis_workflow_id")
     if not job_id:
         return
@@ -616,6 +626,7 @@ def workflow_progress_fragment(compact=False):
     phase = snapshot.get("phase", "patent")
 
     def report_state(report, run, active):
+        """app 흐름에서 report state 책임을 수행한다. 입력과 상태 변경은 호출부 및 반환값을 함께 확인한다."""
         if run and run.state in {"error", "timeout"}:
             return "실패"
         if report is not None:
@@ -870,6 +881,7 @@ def workflow_stage_result_dialog(stage, draft, job, pipeline_result):
 
 
 def effective_links():
+    """자동 연결, 사용자의 제외 표시, 수동 수정 결과를 우선순위에 따라 합친다."""
     generated = automatic_links(s.raw, s.parts, s.selected, s.questions)
     result = {
         qid: link for qid, link in generated.items() if qid not in s.excluded_questions
@@ -885,6 +897,7 @@ def effective_links():
 
 
 def snapshot():
+    """현재 확정된 입력·근거·질문 연결을 화면 이동 후에도 사용할 보고서 스냅샷으로 저장한다."""
     s.report_snapshot = {
         "raw": s.raw,
         "title": s.research_title,
@@ -897,6 +910,7 @@ def snapshot():
 
 
 def can_visit(number):
+    """단계별 선행 확인과 현재 작업 상태를 기준으로 화면 이동 가능 여부를 판단한다."""
     job = current_workflow_job() if s.get("analysis_workflow_id") else None
     if job:
         if number == s.stage:
@@ -928,6 +942,7 @@ def can_visit(number):
 
 
 def _stage_result_state(report, run=None):
+    """보고서와 실행 상태를 화면에서 쓰는 완료·부분·실패 등의 단계 상태로 변환한다."""
     if run is not None and getattr(run, "state", None) in {"error", "timeout"}:
         return "failed"
     status = getattr(report, "status", None)
@@ -1014,6 +1029,7 @@ _STAGE_STATE_ICONS = {
 
 
 def navigate(number):
+    """권한이 확인된 분석 단계로 이동하고 필요한 부분 결과나 스냅샷을 준비한다."""
     s.workflow_preview_stage = None
     s.page = "workspace"
     s.app_view = "analysis"
@@ -1039,6 +1055,7 @@ def navigate(number):
 
 
 def load(text, title=""):
+    """선택한 아이디어를 새 입력으로 불러오며 이전 분석 결과를 현재 입력과 혼합하지 않는다."""
     s.page = "workspace"
     s.app_view = "analysis"
     input_changed()
@@ -1053,6 +1070,7 @@ def load(text, title=""):
 
 
 def add_question():
+    """검토 질문을 추가하고 입력 버전을 올려 이전 연결 결과를 무효화한다."""
     sync_context()
     s.questions.append({"id": f"Q{s.next_qid}", "question": "", "condition": ""})
     s.next_qid += 1
@@ -1061,6 +1079,7 @@ def add_question():
 
 
 def remove_question(qid):
+    """질문을 제거하고 기존 연결 스냅샷을 무효화한다."""
     sync_context()
     s.questions = [q for q in s.questions if q["id"] != qid]
     s.version += 1
@@ -1068,6 +1087,7 @@ def remove_question(qid):
 
 
 def edit_part(index, direction):
+    """기술 구성요소를 제거하거나 순서를 바꾸고 확인 상태를 초기화한다."""
     sync_context()
     values = [s.get(f"part_{s.version}_{i}", p) for i, p in enumerate(s.parts)]
     if direction == 0:
@@ -1081,6 +1101,7 @@ def edit_part(index, direction):
 
 
 def add_part():
+    """빈 기술 구성요소 입력란을 추가하고 현재 검토 맥락을 무효화한다."""
     sync_context()
     s.parts = [s.get(f"part_{s.version}_{i}", p) for i, p in enumerate(s.parts)] + [""]
     s.version += 1
@@ -1088,6 +1109,7 @@ def add_part():
 
 
 def select(source_id):
+    """시연 자료 선택을 토글하고 선택 변경을 반영하도록 보고서 스냅샷을 지운다."""
     s.selected = (
         [i for i in s.selected if i != source_id]
         if source_id in s.selected
@@ -1102,10 +1124,12 @@ if s.stage in (3, 4) and not s.confirmed_context:
 
 
 def save_memo():
+    """현재 메모를 기록 화면용 보관 값으로 복사한다."""
     s.saved_memo = s.memo
 
 
 def restore_link(qid):
+    """사용자 제외·수동 연결을 지우고 자동 연결이 다시 계산되게 한다."""
     s.links.pop(qid, None)
     s.excluded_questions = [i for i in s.excluded_questions if i != qid]
     s.link_version += 1
@@ -1113,6 +1137,7 @@ def restore_link(qid):
 
 
 def drop_link(qid):
+    """특정 질문의 연결 판단을 사용자가 보류하도록 기록한다."""
     s.links.pop(qid, None)
     s.excluded_questions = list(set(s.excluded_questions + [qid]))
     s.link_version += 1
@@ -1120,6 +1145,7 @@ def drop_link(qid):
 
 
 def open_page(page):
+    """상단 탐색 대상과 스크롤 상태를 갱신하며 홈 첫 진입 상태를 보존한다."""
     if s.page == "home" and page != "home":
         s.home_intro_played = True
     if s.page == "workspace" and s.idea_page_view == "input":
@@ -1129,6 +1155,7 @@ def open_page(page):
 
 
 def start_research():
+    """조사 화면으로 진입하거나 이미 실행 중인 작업을 이어서 연다."""
     s.home_intro_played = True
     if s.get("analysis_workflow_id"):
         resume_research()
@@ -1311,6 +1338,7 @@ active_job = current_workflow_job() if s.get("analysis_workflow_id") else None
 
 
 def review_navigation(number, label, column, key, *, icon=None):
+    """단계 상태와 접근 가능 여부를 표시하고 선택 시 해당 분석 단계로 이동한다."""
     state = workspace_stage_state(number)
     with column.container(key=f"rail_step_{number}_{state}"):
         if column.button(

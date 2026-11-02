@@ -6,6 +6,7 @@ from src.ingestion.patent_processor import build_patent_index, load_technology_a
 
 
 def main() -> None:
+    """명령행 인수를 해석해 해당 실행 동작으로 전달한다."""
     parser = argparse.ArgumentParser(description="특허 JSONL을 Chroma에 색인합니다")
     parser.add_argument(
         "--field-id",

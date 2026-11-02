@@ -206,6 +206,7 @@ def test_claim_errors():
     )
     assert "인용" in claim_errors(fact("근거 없음"), {1, 2}, by_id, "")[0]
     assert "근거에 없는 인용" in claim_errors(fact("다른 차원", 1), {2}, by_id, "")[0]
+    assert "정수 목록" in claim_errors(fact("불리언 인용", True), {1}, by_id, "")[0]
     hypothesis = {"statement": "약 10% 절감 가능", "claim_type": "ai_hypothesis"}
     assert claim_errors(hypothesis, {2}, by_id, "")
     certain = {

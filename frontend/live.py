@@ -70,6 +70,26 @@ def analysis_cost_note() -> str:
     return COST_NOTE
 
 
+def patent_similarity_note() -> str:
+    """선택된 임베딩 provider·모델에 맞는 특허 유사도 안내를 만든다."""
+    from src.llm_client import embedding_model, load_llm_settings
+
+    model = embedding_model()
+    if load_llm_settings() == "ollama":
+        provider_note = (
+            f"Ollama `{model}` 모델에서 처리되며 OpenAI API 비용은 발생하지 않습니다."
+        )
+    else:
+        provider_note = f"OpenAI `{model}` 임베딩 API를 호출하므로 사용량에 따라 비용이 발생할 수 있습니다."
+    return (
+        "의미 유사도는 아이디어 기술 내용과 특허 제목·초록·확보 청구항을 같은 임베딩 모델로 "
+        f"계산한 cosine 유사도(0~1, 음수는 0으로 제한)입니다. {provider_note} "
+        "Dense 검색 점수와 다른 지표이며 관련성 확률이 아닙니다. 궤도는 Dense 점수가 있으면 이를, "
+        "없으면 외곽 배치를 사용합니다. 색상은 구성 비교 근거에 따른 검토 우선순위이며 "
+        "법률상 위험 등급이 아닙니다."
+    )
+
+
 def app_password() -> str:
     """호스팅 배포에서 설정하는 접속 비밀번호. 비어 있으면 비밀번호 화면을 띄우지 않는다(로컬 실행)."""
     return os.getenv("IDEALENS_APP_PASSWORD", "").strip()

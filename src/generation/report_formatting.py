@@ -70,6 +70,7 @@ def safe_url(url: str | None) -> str | None:
 
 
 def _format_yyyymmdd(value) -> str | None:
+    """날짜 숫자를 보고서 표시용 ISO 날짜로 바꾸거나 비운다."""
     digits = re.sub(r"\D", "", str(value or ""))[:8]
     if len(digits) != 8:
         return None
@@ -111,6 +112,7 @@ def escaped_market_report(market: MarketReport) -> MarketReport:
     """시장 보고서의 외부 텍스트를 이스케이프하고 http(s)가 아닌 링크를 뺀 사본."""
 
     def esc(value):
+        """시장 보고서의 문자열 하나를 안전한 Markdown 텍스트로 변환한다."""
         return escape_md(value, table=False) if value else value
 
     return market.model_copy(

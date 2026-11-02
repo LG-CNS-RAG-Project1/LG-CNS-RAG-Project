@@ -28,6 +28,7 @@ from src.schemas import IDEA_FIELDS, MarketDocument, MarketSearchRequest
 from src.retrieval.engine import RetrievalConfig, retrieve
 from src.llm_client import embedding_collection_name, embedding_model, get_openai_client
 from src.retrieval.schemas import RetrievalResult, SearchDocument
+from src.retrieval.config import EMBED_BATCH_SIZE
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 DOCS_PATH = ROOT_DIR / "data" / "market" / "processed" / "market_docs.jsonl"
@@ -39,7 +40,6 @@ DART_COMPANY_K = 3
 DART_ROUTING_POOL = 40
 COLLECTION_NAME = "news"
 EMBEDDING_MODEL = "text-embedding-3-small"
-EMBED_BATCH_SIZE = 100
 CANDIDATE_MULTIPLIER = 4
 
 # 차원별 검색 질의 템플릿. {필드}는 StructuredIdea의 5개 항목 값으로 채우며, 빈 항목은 빠진다.
@@ -226,8 +226,26 @@ def search_market(
     )
     config = replace(config, top_k=config.candidate_k)
     where = build_where(idea_id, source_types, date_from, publishers)
-    records = collection.get(where=where, include=["documents", "metadatas"])
-    if not records["ids"]:
+    records = (
+        None
+        if retrieval_mode == "dense"
+        else collection.get(where=where, include=["documents", "metadatas"])
+    )
+    dense_results = []
+    if retrieval_mode in {"dense", "hybrid"}:
+        result = collection.query(
+            query_embeddings=embed_fn([query]),
+            n_results=min(config.candidate_k, count),
+            where=where,
+            include=["documents", "metadatas", "distances"],
+        )
+        if records is None:
+            records = {
+                "ids": result["ids"][0],
+                "documents": result["documents"][0],
+                "metadatas": result["metadatas"][0],
+            }
+    if not records or not records["ids"]:
         return []
     documents = [
         SearchDocument(
@@ -242,14 +260,7 @@ def search_market(
             records["ids"], records["documents"], records["metadatas"]
         )
     ]
-    dense_results = []
     if retrieval_mode in {"dense", "hybrid"}:
-        result = collection.query(
-            query_embeddings=embed_fn([query]),
-            n_results=min(config.candidate_k, count),
-            where=where,
-            include=["documents", "metadatas", "distances"],
-        )
         by_id = {document.chunk_id: document for document in documents}
         dense_results = [
             RetrievalResult(
@@ -396,6 +407,7 @@ def search_by_dimensions(
     queries = build_dimension_queries(request)
 
     def search(query, source_types, top_k, publishers=None):
+        """한 차원의 질의를 공통 시장 검색 함수에 전달한다."""
         return search_market(
             query,
             collection=collection,

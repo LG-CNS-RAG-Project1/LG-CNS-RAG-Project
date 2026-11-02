@@ -1,3 +1,5 @@
+"""KIPRIS Plus 특허·청구항 API를 호출하고 안전한 원문 파싱을 제공한다."""
+
 import hashlib
 import json
 import os
@@ -55,6 +57,7 @@ def _save_raw_response(
 
 
 def _get_text(element, tag):
+    """XML 요소에서 네임스페이스 유무와 관계없이 자식 텍스트를 읽는다."""
     value = element.findtext(tag)
     return value.strip() if value else None
 
@@ -67,6 +70,7 @@ def _classification_codes(value: str | None) -> list[str]:
 
 
 def _local_name(tag: str) -> str:
+    """XML 태그에서 네임스페이스 접두부를 제외한 이름을 얻는다."""
     return tag.rsplit("}", 1)[-1].lower()
 
 

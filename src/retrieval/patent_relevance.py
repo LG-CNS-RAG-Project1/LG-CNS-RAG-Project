@@ -13,6 +13,8 @@ MODEL = "gpt-4o-mini"
 
 
 class RelevanceVerdict(BaseModel):
+    """검색된 특허 한 건의 관련성 판정과 설명."""
+
     source_id: str
     relevant: bool
     confidence: str = Field(pattern="^(high|medium|low)$")
@@ -20,10 +22,13 @@ class RelevanceVerdict(BaseModel):
 
 
 class RelevanceBatch(BaseModel):
+    """후보 집합 전체에 대한 일대일 관련성 판정 묶음."""
+
     judgments: list[RelevanceVerdict]
 
 
 def call_relevance_llm(system_prompt: str, user_text: str) -> dict:
+    """선택한 LLM provider에 판정 요청을 보내 JSON 객체를 읽는다."""
     response = get_openai_client().chat.completions.create(
         model=chat_model(MODEL),
         temperature=0,

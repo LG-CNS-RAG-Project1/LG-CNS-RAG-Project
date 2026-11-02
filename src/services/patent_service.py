@@ -28,6 +28,7 @@ from src.schemas import (
     PatentSearchRequest,
 )
 from src.ingestion.patent_processor import structure_claims
+from src.llm_client import embedding_model
 
 from src.services.patent_candidates import (
     KIPRIS_SUPPLEMENT_QUERY_LIMIT,
@@ -49,7 +50,6 @@ from src.services.patent_context import (
 ROOT_DIR = Path(__file__).resolve().parents[2]
 
 MIN_RECOMMENDED_PATENTS = 5
-SEMANTIC_SIMILARITY_MODEL = "text-embedding-3-small"
 SEMANTIC_DOCUMENT_MAX_CHARS = 6000
 
 
@@ -541,7 +541,7 @@ def analyze_patents(
 
         semantic_similarity_model = None
         if semantic_similarity_fn is not None:
-            semantic_similarity_model = SEMANTIC_SIMILARITY_MODEL
+            semantic_similarity_model = embedding_model()
             try:
                 scores = semantic_similarity_fn(request.idea, evidence, source_texts)
                 evidence = [

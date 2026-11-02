@@ -109,12 +109,15 @@ class _GetCountCollection:
     """
 
     def __init__(self, collection):
+        """원격 컬렉션에 대한 count 호출을 호환 요청으로 감싼다."""
         self._collection = collection
 
     def count(self) -> int:
+        """문서 내용을 받지 않고 현재 컬렉션 건수를 센다."""
         return len(self._collection.get(include=[])["ids"])
 
     def __getattr__(self, name):
+        """count 이외의 컬렉션 동작은 원본 객체에 위임한다."""
         return getattr(self._collection, name)
 
 
@@ -133,6 +136,7 @@ def redact(text: str | None) -> str | None:
 
 
 def _redacted(report):
+    """오류 문구와 미확인 항목을 비밀값 제거 후 복사한다."""
     return report.model_copy(
         update={
             "error_message": redact(report.error_message),
@@ -142,6 +146,7 @@ def _redacted(report):
 
 
 def _area_ids() -> list[str]:
+    """기술 분야 설정에서 색인 필터용 분야 ID를 읽는다."""
     try:
         config = yaml.safe_load(AREAS_PATH.read_text(encoding="utf-8")) or {}
     except OSError:
@@ -150,6 +155,7 @@ def _area_ids() -> list[str]:
 
 
 def _chroma_location() -> Literal["local", "remote"]:
+    """CHROMA_HOST 설정에 따라 로컬·공용 저장소 모드를 고른다."""
     return "remote" if os.getenv("CHROMA_HOST", "").strip() else "local"
 
 
@@ -253,6 +259,7 @@ def _market_dart_count(collection) -> int:
 
 
 def _market_collected_at(collection) -> int | None:
+    """시장 컬렉션 메타데이터에서 가장 최근 수집일을 찾는다."""
     try:
         metadatas = collection.get(include=["metadatas"])["metadatas"] or []
     except Exception:

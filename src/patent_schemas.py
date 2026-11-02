@@ -10,6 +10,8 @@ from src.idea_schemas import StructuredIdea
 
 # 2. 특허 검색 요청
 class PatentSearchRequest(BaseModel):
+    """특허 검색에 사용할 아이디어와 결과 수·분야 범위."""
+
     idea: StructuredIdea
     top_k: int = Field(default=8, ge=1, le=8)
     technology_area_id: str | None = None
@@ -17,6 +19,8 @@ class PatentSearchRequest(BaseModel):
 
 # 3. 특허 청구항
 class PatentClaim(BaseModel):
+    """청구항 번호·문구·종속 관계를 보존한 데이터."""
+
     claim_number: int = Field(ge=1)
     text: str = Field(min_length=1)
     claim_type: Literal["independent", "dependent", "unclassified"] = "unclassified"
@@ -26,6 +30,8 @@ class PatentClaim(BaseModel):
 
 # 4. 정제된 특허 문서
 class PatentDocument(BaseModel):
+    """출처와 분류 메타데이터를 포함한 정제 특허 문헌."""
+
     patent_id: str
     title: str
     abstract: str
@@ -55,6 +61,8 @@ class PatentDocument(BaseModel):
 
 # 5. 임베딩 대상 청크
 class PatentChunk(BaseModel):
+    """색인할 특허 청크와 원문·청구항 내 위치 정보."""
+
     chunk_id: str
     patent_id: str
     section: Literal["abstract", "claims"]
@@ -70,6 +78,8 @@ class PatentChunk(BaseModel):
 
 # 6. 검색 근거
 class PatentEvidence(BaseModel):
+    """특허 보고서에서 추적할 수 있는 인용 발췌와 검색 정보."""
+
     citation_id: int = Field(ge=1)
     patent_id: str
     title: str
@@ -140,6 +150,8 @@ class PatentEvidence(BaseModel):
 
 # 7. 기술 비교 결과
 class PatentComparison(BaseModel):
+    """아이디어와 특허 문헌의 기술 구성을 비교한 결과."""
+
     citation_id: int = Field(ge=1)
     similarity: str
     difference: str
@@ -148,6 +160,8 @@ class PatentComparison(BaseModel):
 
 
 class PatentComponentComparison(BaseModel):
+    """아이디어의 한 기술 요소와 문헌 근거·차이를 연결한 비교."""
+
     component_id: str
     idea_component: str
     status: Literal["overlap", "partial", "different", "not_found", "uncertain"]
@@ -159,6 +173,8 @@ class PatentComponentComparison(BaseModel):
 
 
 class PatentWatchout(BaseModel):
+    """특허 문헌을 검토할 때 확인할 쟁점과 다음 확인 방법."""
+
     issue: str
     why_it_matters: str
     citation_ids: list[int] = Field(default_factory=list)
@@ -166,6 +182,8 @@ class PatentWatchout(BaseModel):
 
 
 class PatentDesignRecommendation(BaseModel):
+    """기술 설계 대안과 근거 성격·후속 검증 항목."""
+
     recommendation: str
     rationale: str
     citation_ids: list[int] = Field(default_factory=list)
@@ -174,6 +192,7 @@ class PatentDesignRecommendation(BaseModel):
 
     @model_validator(mode="after")
     def validate_basis(self):
+        """근거 기반 설계 제안이 인용 근거를 갖는지 확인한다."""
         if self.basis == "evidence_based" and not self.citation_ids:
             raise ValueError("Evidence-based design recommendations require citations")
         if self.basis == "hypothesis" and self.citation_ids:
@@ -182,6 +201,8 @@ class PatentDesignRecommendation(BaseModel):
 
 
 class PatentDocumentReview(BaseModel):
+    """문헌별 관련성, 구성 비교, 주의점의 종합 검토."""
+
     patent_id: str
     title: str
     citation_ids: list[int] = Field(default_factory=list)
@@ -215,6 +236,8 @@ class PatentDocumentReview(BaseModel):
 
 
 class PatentabilityPrecheck(BaseModel):
+    """법률 판단이 아닌 특허 선행조사의 예비 검토와 한계."""
+
     status: Literal["overlap_concern", "potentially_distinct", "insufficient_evidence"]
     summary: str
     citation_ids: list[int] = Field(default_factory=list)
@@ -228,6 +251,8 @@ class PatentabilityPrecheck(BaseModel):
 
 
 class PatentTechnicalComponent(BaseModel):
+    """아이디어에서 추출한 검색 대상 기술 구성요소."""
+
     id: str
     name: str
     description: str
@@ -235,12 +260,16 @@ class PatentTechnicalComponent(BaseModel):
 
 
 class ProposalVerificationPlan(BaseModel):
+    """설계 대안을 실험·현장 확인으로 검증하는 계획."""
+
     method: str
     metrics: list[str] = Field(default_factory=list)
     success_criteria: str
 
 
 class PatentDesignProposal(BaseModel):
+    """기존 문헌과의 차이를 검토하기 위한 구체적 설계 제안."""
+
     proposal_id: str
     title: str
     target_component_ids: list[str] = Field(min_length=1)
@@ -259,6 +288,7 @@ class PatentDesignProposal(BaseModel):
 
     @model_validator(mode="after")
     def validate_evidence_status(self):
+        """설계 제안의 근거 상태와 인용 ID 사용이 일치하는지 검사한다."""
         if self.evidence_status == "grounded" and not self.citation_ids:
             raise ValueError("Grounded design proposals require citations")
         if self.evidence_status == "insufficient_evidence" and self.citation_ids:
@@ -267,6 +297,8 @@ class PatentDesignProposal(BaseModel):
 
 
 class PatentDesignAnalysis(BaseModel):
+    """특허 비교에서 파생된 설계 제안과 검증 계획."""
+
     status: Literal["success", "partial", "insufficient_evidence", "failed"]
     evidence_level: Literal[
         "claims_and_abstract", "claims_only", "abstract_only", "insufficient"
@@ -278,11 +310,15 @@ class PatentDesignAnalysis(BaseModel):
 
 
 class PatentStatisticItem(BaseModel):
+    """특허 통계의 한 분류 항목과 집계 값."""
+
     label: str
     count: int = Field(ge=0)
 
 
 class PatentTrendStatistics(BaseModel):
+    """보유 색인 범위에 한정된 특허 연도·분류 통계."""
+
     scope: str
     total_patents: int = Field(ge=0)
     ipc_coverage: int = Field(default=0, ge=0)
@@ -298,6 +334,8 @@ class PatentTrendStatistics(BaseModel):
 
 # 8. 최종 특허 RAG 결과
 class PatentReport(BaseModel):
+    """특허 검색 결과와 인용·검토·부분 실행 상태를 담는 보고서."""
+
     status: Literal["completed", "partial", "no_results", "error"]
 
     evidence: list[PatentEvidence] = Field(default_factory=list)
@@ -315,6 +353,7 @@ class PatentReport(BaseModel):
 
     @model_validator(mode="after")
     def validate_citations(self):
+        """특허 보고서 내부의 모든 인용 ID가 실제 근거를 가리키는지 확인한다."""
         ids = [e.citation_id for e in self.evidence]
 
         if len(ids) != len(set(ids)):

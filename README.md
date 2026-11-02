@@ -82,6 +82,21 @@
 - 원문·가공 데이터·검색 색인·생성 보고서는 Git 추적에서 제외. Chroma 색인은 로컬 또는 공용 서버에 보관.
 - 서비스 연결 구조는 [docs/architecture.md](docs/architecture.md)의 mermaid 다이어그램으로 관리. 실제 구현·데이터 준비·V1.0 출시 게이트 기준선은 [RAG 서비스 현황](docs/rag-service-baseline.md)을 참고한다.
 
+## 코드 학습 순서
+
+입력에서 보고서까지 한 번의 흐름을 따라 읽는다. 모듈·클래스·함수 docstring은 역할과 계약을 설명하며, 실제 동작은 호출부와 테스트를 함께 확인한다.
+
+RAG 개념과 실습 순서는 [IdeaLens RAG 학습 안내서](docs/rag-learning-guide.md)를 참고한다.
+시각 학습 자료는 [IdeaLens RAG 학습 PDF](docs/idealens-rag-learning-guide.pdf)에서 볼 수 있다.
+
+1. `src/idea_schemas.py`, `src/patent_schemas.py`, `src/market_schemas.py`: 입력·근거·결과 데이터 계약을 확인한다.
+2. `src/ingestion/`: 원자료가 문서와 청크로 정리되며 출처가 보존되는 경로를 읽는다.
+3. `src/retrieval/`: 색인, Dense·BM25·Hybrid 검색, 검색 결과 변환을 따라간다.
+4. `src/services/`와 `src/pipeline.py`, `src/pipeline_execution.py`: 조사 실행과 부분 실패 상태 전달을 확인한다.
+5. `src/generation/` 및 `prompts/`: 검색 근거가 판단·인용으로 구성되고 검증되는 규칙을 읽는다.
+6. `frontend/app.py`, `frontend/workflow.py`, `frontend/patent_view.py`, `frontend/market_view.py`: 화면 상태와 보고서 표시 흐름을 확인한다.
+7. 대응하는 `tests/`와 `evaluation/` 자료로 계약과 품질 평가 기준을 확인한다.
+
 ## 빠른 시작 (팀원용)
 
 필요: Docker Desktop 실행, Python 3.9 이상(통합 실행 도구용). macOS는 `python3`, Windows는 `py`(없으면 `python`)를 쓴다.
@@ -212,6 +227,7 @@ python -m src.ingestion.patent_processor --field-id SF-05 --limit 20 --include-c
 - 검색어 계획으로 별도 수집·색인을 하려면 `python -m scripts.collect_patents --request <PatentSearchRequest.json> --field-id SF-02 --include-claims` 후 `python -m scripts.build_patent_index --field-id SF-02`를 실행한다. `PatentQueryPlan`은 기술 요소를 최대 8개(화면 핵심 구성요소 최대 7개 + 결합 기술 1개)까지 허용한다.
 - KIPRIS 검색·청구항 API 원본 XML과 키를 제외한 요청 메타데이터는 `data/patents/raw/`에 저장한다. 해당 폴더는 로컬 전용이며 Git 추적 대상에서 제외된다.
 - 색인 시 선택한 LLM provider로 문서를 임베딩한다. 이후 벡터는 로컬 Chroma에서 재사용하고, Dense/Hybrid 검색의 질의 임베딩은 검색 때 별도로 생성한다.
+- 특허·시장 색인은 100건 배치로 임베딩·저장한다. 특허 색인은 저장 성공 배치를 보존해 재실행 시 같은 청크를 다시 임베딩하지 않는다. Dense 검색은 상위 후보 문서만 가져오며, BM25/Hybrid는 코퍼스 전체 순위를 계산하기 위해 전체 문서·메타데이터를 읽는다.
 - `PatentSearchRequest.technology_area_id`를 지정하면 검색 결과를 해당 분야로 제한한다. 원문 JSONL과 Chroma DB는 로컬에 저장되고 Git에는 포함되지 않는다.
 - `data/samples/ideas.json`의 SF-05와 시장 뉴스·DART 기업 연결은 지능형 공정제어 기준이다. 이전 SF-05(현장 작업자용 LLM 음성 어시스턴트)의 검색어는 `legacy_market_keywords`에 기록만 하며, 그 검색어로 수집한 기사는 정제 단계(`market_processor`)에서 제외한다. 시장 평가 라벨은 아직 이전 SF-05 기준이라 새 SF-05 시장 성능을 평가하려면 다시 라벨링해야 한다.
 

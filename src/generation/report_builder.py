@@ -65,6 +65,7 @@ LINK_STATUS_LABELS = {"connected": "연결", "partial": "부분 연결", "hold":
 
 
 def _brief_lines(draft: IdeaDraft) -> list[str]:
+    """아이디어 입력과 항목별 출처를 Markdown 줄로 만든다."""
     lines = ["## 확정 브리프", "", "| 항목 | 내용 | 출처 |", "|---|---|---|"]
     fields = [
         *((field, FIELD_LABELS[field], getattr(draft, field)) for field in IDEA_FIELDS),
@@ -85,6 +86,7 @@ def _brief_lines(draft: IdeaDraft) -> list[str]:
 
 
 def _run_lines(runs: dict) -> list[str]:
+    """특허·시장 실행 상태와 부분 실패 사유를 보고서 줄로 만든다."""
     lines = [
         "## 분석 실행 상태",
         "",
@@ -103,6 +105,7 @@ def _run_lines(runs: dict) -> list[str]:
 
 
 def _patent_lines(patent: PatentReport) -> list[str]:
+    """특허 근거·비교·한계를 통합 보고서 문장으로 정리한다."""
     lines = [
         "## 특허 조사",
         "",
@@ -209,6 +212,7 @@ def _patent_lines(patent: PatentReport) -> list[str]:
 
 
 def _business_review_lines(review: BusinessReview) -> list[str]:
+    """예비 사업 권고와 검증 행동을 보고서 문장으로 만든다."""
     lines = [
         "## 한눈에 보는 사업 실행 검토",
         "",

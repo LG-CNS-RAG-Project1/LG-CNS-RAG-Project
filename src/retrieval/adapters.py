@@ -1,3 +1,5 @@
+"""도메인 문서와 청크를 공통 검색 문서로 변환한다."""
+
 from src.schemas import PatentChunk, PatentDocument
 from src.retrieval.schemas import SearchDocument
 
@@ -6,6 +8,7 @@ def patent_to_search_document(
     chunk: PatentChunk,
     patent: PatentDocument,
 ) -> SearchDocument:
+    """특허 청크 내용에 원문 추적용 번호·분류 메타데이터를 붙인다."""
     if chunk.patent_id != patent.patent_id:
         raise ValueError("Patent ID mismatch")
 
@@ -45,6 +48,7 @@ def market_to_search_document(
     chunk: MarketChunk,
     market: MarketDocument,
 ) -> SearchDocument:
+    """시장 청크를 출처·발행일·근거 성격이 있는 검색 문서로 바꾼다."""
     if chunk.source_id != market.source_id:
         raise ValueError("Market source ID mismatch")
 

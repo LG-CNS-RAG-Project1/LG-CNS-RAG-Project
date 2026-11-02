@@ -25,6 +25,8 @@ BOTH_SIDES_SUMMARY = "시장·특허 양쪽 근거가 연결되지 않아 통합
 
 
 class CriterionLink(BaseModel):
+    """통합 검토 기준 하나의 판단·인용·다음 확인 항목."""
+
     criterion: str
     assessment: str = "미확인"
     citation_ids: list[str] = Field(default_factory=list)
@@ -39,10 +41,13 @@ class CriterionLink(BaseModel):
     @field_validator("citation_ids", mode="before")
     @classmethod
     def _null_ids(cls, value):
+        """모델이 citation_ids를 null로 반환해도 빈 목록으로 처리한다."""
         return [] if value is None else value
 
 
 class QuestionLink(BaseModel):
+    """검토 질문 하나에 연결한 6개 기준별 통합 판단."""
+
     question_id: str
     status: str = Field(pattern="^(connected|partial|hold)$")
     summary: str
@@ -50,6 +55,8 @@ class QuestionLink(BaseModel):
 
 
 class LinkBatch(BaseModel):
+    """입력 질문 전체의 연결 결과 묶음."""
+
     links: list[QuestionLink]
 
 
@@ -72,6 +79,7 @@ def hold_link(question_id: str, summary: str = HOLD_SUMMARY) -> QuestionLink:
 
 
 def call_report_llm(system_prompt: str, user_text: str) -> dict:
+    """선택한 LLM provider에 JSON 통합 보고서 요청을 보낸다."""
     response = get_openai_client().chat.completions.create(
         model=chat_model(MODEL),
         temperature=0,
@@ -85,12 +93,14 @@ def call_report_llm(system_prompt: str, user_text: str) -> dict:
 
 
 def _evidence_ids(market: MarketReport, patent: PatentReport) -> tuple[set, set]:
+    """시장·특허 근거 ID를 영역 접두부와 함께 분리한다."""
     market_ids = {f"M:{item.citation_id}" for item in market.evidence}
     patent_ids = {f"P:{item.citation_id}" for item in patent.evidence}
     return market_ids, patent_ids
 
 
 def _apply_hold_rule(link: QuestionLink, market_ids: set, patent_ids: set) -> None:
+    """시장과 특허 양쪽 근거가 연결되지 않으면 판단을 보류한다."""
     used = {cid for criterion in link.criteria for cid in criterion.citation_ids}
     if not (market_ids and patent_ids) or not (used & market_ids and used & patent_ids):
         link.status = "hold"
@@ -98,6 +108,7 @@ def _apply_hold_rule(link: QuestionLink, market_ids: set, patent_ids: set) -> No
 
 
 def _link_payload(questions: list[dict], market: MarketReport, patent: PatentReport):
+    """질문과 두 영역 보고서, 기준 목록을 모델 입력으로 묶는다."""
     return {
         "questions": questions,
         "market": market.model_dump(),

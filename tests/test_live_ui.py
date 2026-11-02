@@ -10,7 +10,7 @@ import src.generation.idea_parser as idea_parser
 import src.generation.question_links as question_links
 import src.pipeline as pipeline
 from src.generation.report_builder import integrated_report_markdown
-from frontend.live import cost_markdown, cost_rows_list
+from frontend.live import cost_markdown, cost_rows_list, patent_similarity_note
 from src.generation.report_builder import CRITERIA
 from src.pipeline import PartRun, SourceAnalysis
 from frontend.workflow import WORKFLOW_JOBS, WORKFLOW_JOBS_LOCK
@@ -39,6 +39,20 @@ FIELDS = dict(
     customers="중소 제조사",
     difference="저비용 설치",
 )
+
+
+def test_patent_similarity_note_follows_selected_llm_provider(monkeypatch):
+    monkeypatch.setenv("LLM_PROVIDER", "ollama")
+    monkeypatch.setenv("OLLAMA_EMBEDDING_MODEL", "bge-m3")
+    ollama_note = patent_similarity_note()
+    assert "Ollama `bge-m3`" in ollama_note
+    assert "OpenAI API 비용은 발생하지 않습니다" in ollama_note
+
+    monkeypatch.setenv("LLM_PROVIDER", "openai")
+    monkeypatch.setenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small")
+    openai_note = patent_similarity_note()
+    assert "OpenAI `text-embedding-3-small` 임베딩 API" in openai_note
+    assert "비용이 발생할 수 있습니다" in openai_note
 
 
 def needs_input_draft(text):

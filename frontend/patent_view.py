@@ -568,8 +568,25 @@ def render_patent_report(patent, *, widget_suffix="", preview=False):
                 )
 
             st.subheader("특허 비교 궤도")
+            from src.llm_client import load_llm_settings
+
+            model_name = patent.semantic_similarity_model
+            if model_name:
+                provider = load_llm_settings()
+                if provider == "ollama":
+                    call_note = (
+                        f"선택한 Ollama 임베딩 모델 {model_name}로 로컬 처리합니다."
+                    )
+                else:
+                    call_note = f"OpenAI {model_name} 임베딩 API 호출로 비용이 발생할 수 있습니다."
+            else:
+                call_note = "이번 결과에서는 의미 유사도를 계산하지 않았습니다."
             st.caption(
-                "의미 유사도는 아이디어 기술 내용과 특허 제목·초록·확보 청구항을 text-embedding-3-small로 임베딩해 cosine 유사도(0~1, 음수는 0으로 제한)로 계산합니다. 분석마다 한 번의 추가 임베딩 API 호출이 발생합니다. Dense 검색 점수와 다른 지표이며 관련성 확률이 아닙니다. 궤도는 Dense 점수가 있으면 이를, 없으면 외곽 배치를 사용합니다. 색상은 구성 비교 근거에 따른 검토 우선순위이며 법률상 위험 등급이 아닙니다."
+                "의미 유사도는 아이디어 기술 내용과 특허 제목·초록·확보 청구항의 "
+                "cosine 유사도(0~1, 음수는 0으로 제한)입니다. "
+                f"{call_note} Dense 검색 점수와 다른 지표이며 관련성 확률이 아닙니다. "
+                "궤도는 의미 유사도가 높을수록 중심에 가깝고, 점수가 없으면 외곽 배치합니다. "
+                "색상은 구성 비교 근거에 따른 검토 우선순위이며 법률상 위험 등급이 아닙니다."
             )
             legend = st.columns(4)
             for column, category in zip(legend, ("red", "yellow", "green", "blue")):

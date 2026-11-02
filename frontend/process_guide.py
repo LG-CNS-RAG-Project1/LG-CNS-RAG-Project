@@ -139,6 +139,7 @@ GUIDES = {
 
 
 def render_process_guide(track):
+    """선택된 조사 과정의 단계별 설명을 렌더링한다."""
     from html import escape
 
     guide = GUIDES[track]
@@ -286,6 +287,7 @@ def render_process_guide(track):
 
 
 def process_styles():
+    """소개 과정 도식에 필요한 스타일 문자열을 반환한다."""
     from pathlib import Path
 
     return (
@@ -296,6 +298,7 @@ def process_styles():
 
 
 def _flow_diagram(track):
+    """조사 단계 사이의 데이터 흐름을 설명하는 도식을 표시한다."""
     labels = (
         ("기술 질의", "특허 문헌", "청구항 비교")
         if track == "patent"

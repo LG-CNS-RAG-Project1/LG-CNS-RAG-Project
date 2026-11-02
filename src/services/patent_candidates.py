@@ -120,6 +120,7 @@ def _merge_retrieval_results(
     }[retrieval_mode]
 
     def score(item):
+        """가장 높은 검색 또는 재정렬 점수를 대표 청크 선택에 사용한다."""
         if item.rerank_score is not None:
             return item.rerank_score
         value = getattr(item, score_field)

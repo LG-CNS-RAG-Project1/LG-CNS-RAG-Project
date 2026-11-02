@@ -19,6 +19,8 @@ RunState = Literal["completed", "partial", "no_results", "error", "skipped", "ti
 
 
 class IndexState(BaseModel):
+    """선택한 색인의 위치·컬렉션·건수와 확인 실패 이유."""
+
     location: Literal["local", "remote"]
     collection: str
     count: int | None = None  # None이면 열지 못함(reason 참고)
@@ -27,6 +29,8 @@ class IndexState(BaseModel):
 
 
 class Readiness(BaseModel):
+    """외부 키 설정과 시장·특허 색인의 실행 준비 요약."""
+
     keys: dict[str, bool]  # 인증 정보와 provider 설정 여부. 실제 값은 담지 않는다
     chroma: Literal["local", "remote"]
     market_index: IndexState
@@ -38,6 +42,8 @@ class Readiness(BaseModel):
 
 
 class PartRun(BaseModel):
+    """한 분석 영역의 상태, 소요 시간, 사용자용 오류 안내."""
+
     state: RunState
     seconds: float | None = None
     message: str | None = None
@@ -56,6 +62,8 @@ class SourceAnalysis(BaseModel):
 
 
 class PipelineReport(BaseModel):
+    """특허·시장 분석을 통합한 화면·저장용 최종 보고서."""
+
     status: str
     title: str
     patent: PatentReport

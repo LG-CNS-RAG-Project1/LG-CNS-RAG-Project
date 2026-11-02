@@ -65,6 +65,8 @@ LLMFn = Callable[[str, str], dict]
 
 
 class CanvasItem(BaseModel):
+    """비즈니스 캔버스 블록의 문구와 근거·가설 구분."""
+
     text: str  # 블록 안 짧은 제목
     detail: str = ""  # 누가·어떻게·왜를 밝히는 설명 한 문장 (없을 수 있음)
     basis: Literal["evidence", "user_claim", "ai_hypothesis"]

@@ -51,6 +51,7 @@ def network_rows(network) -> tuple[list[dict], list[dict]]:
 
 
 def _theme() -> str:
+    """네트워크 시각화의 노드·간선 표현 설정을 반환한다."""
     try:
         return "dark" if st.context.theme.type == "dark" else "light"
     except Exception:  # 테마 정보를 읽을 수 없는 실행 환경

@@ -55,6 +55,8 @@ def _check_yyyymmdd(value: int | None, field_name: str) -> None:
 
 # 8. 시장 근거 검색 요청
 class MarketSearchRequest(BaseModel):
+    """시장 자료 검색 질의와 아이디어·자료 범위."""
+
     idea: StructuredIdea
     dimensions: list[MarketDimension] = Field(
         default_factory=lambda: list(ALL_DIMENSIONS)
@@ -65,12 +67,15 @@ class MarketSearchRequest(BaseModel):
 
     @model_validator(mode="after")
     def validate_date(self):
+        """시장 검색 시작일이 실제 달력 날짜인지 확인한다."""
         _check_yyyymmdd(self.date_from, "date_from")
         return self
 
 
 # 9. 정제된 시장 자료 (출처 원장 1행)
 class MarketDocument(BaseModel):
+    """뉴스·공시 등 시장 자료의 원문 출처와 근거 성격."""
+
     source_id: str = Field(min_length=1)
     source_type: MarketSourceType
     title: str
@@ -93,6 +98,7 @@ class MarketDocument(BaseModel):
 
     @model_validator(mode="after")
     def validate_document(self):
+        """시장 문서의 날짜 순서와 출처별 근거 성격을 검증한다."""
         _check_yyyymmdd(self.published_at, "published_at")
         _check_yyyymmdd(self.collected_at, "collected_at")
         if self.collected_at < self.published_at:
@@ -115,6 +121,8 @@ class MarketDocument(BaseModel):
 
 # 10. 임베딩 대상 시장 청크
 class MarketChunk(BaseModel):
+    """시장 문서에서 분리한 검색 단위와 문서 위치."""
+
     chunk_id: str  # "{source_id}#{chunk_index}"
     source_id: str
     text: str = Field(min_length=1)
@@ -124,6 +132,8 @@ class MarketChunk(BaseModel):
 
 # 11. 시장 검색 근거
 class MarketEvidence(BaseModel):
+    """시장 분석에 인용할 수 있는 문구와 출처 정보."""
+
     citation_id: int = Field(ge=1)
     source_id: str
     source_type: MarketSourceType
@@ -146,12 +156,15 @@ class MarketEvidence(BaseModel):
 
 # 12. 차원별 시장 주장
 class MarketClaim(BaseModel):
+    """시장 분석의 주장과 이를 뒷받침하는 인용 ID."""
+
     statement: str = Field(min_length=1)
     claim_type: ClaimType
     citation_ids: list[int] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def validate_claim(self):
+        """주장의 인용 ID와 근거 성격 조합이 허용되는지 검사한다."""
         if self.claim_type == "fact" and not self.citation_ids:
             raise ValueError("fact claims require at least one citation")
         return self
@@ -159,6 +172,8 @@ class MarketClaim(BaseModel):
 
 # 13. 차원별 판정 결과
 class MarketDimensionResult(BaseModel):
+    """수요·경쟁 등 한 차원의 근거, 판정, 제한 사항."""
+
     dimension: MarketDimension
     verdict: MarketVerdict
     claims: list[MarketClaim] = Field(default_factory=list, max_length=3)
@@ -174,6 +189,7 @@ class MarketDimensionResult(BaseModel):
 
     @model_validator(mode="after")
     def validate_verdict(self):
+        """판정에 인용 주장과 미확인 시 다음 행동이 있는지 확인한다."""
         cited = [c for c in self.claims if c.citation_ids]
         if self.verdict in ("confirmed", "signal_only") and not cited:
             raise ValueError(
@@ -185,6 +201,8 @@ class MarketDimensionResult(BaseModel):
 
 
 class MarketValidationAction(BaseModel):
+    """보고서가 제안하는 다음 고객·시장 검증 행동."""
+
     title: str
     target: str
     method: str
@@ -193,12 +211,16 @@ class MarketValidationAction(BaseModel):
 
 
 class MarketOpportunityFinding(BaseModel):
+    """시장 기회 검토에서 근거·가설과 검증 필요성을 묶은 항목."""
+
     topic: str
     statement: str
     citation_ids: list[int] = Field(default_factory=list)
 
 
 class MarketOpportunityReview(BaseModel):
+    """시장 기회 판단과 남아 있는 전제·한계."""
+
     status: Literal[
         "validated_demand", "buyer_signals", "indirect_signals", "insufficient_evidence"
     ]
@@ -226,6 +248,7 @@ class MarketAnalyticalHypothesis(BaseModel):
 
     @model_validator(mode="after")
     def require_basis_for_numeric_estimate(self):
+        """비용 수치에 근거·산식 또는 가정 설명을 요구한다."""
         if self.numeric_value is not None and not self.numeric_basis.strip():
             raise ValueError("Numeric market hypotheses require a stated basis")
         return self
@@ -250,6 +273,8 @@ class MarketCommercialAnalysis(BaseModel):
 
 
 class ImplementationCostItem(BaseModel):
+    """구현 비용 항목의 수량·단가·범위·출처."""
+
     name: str
     quantity: float = Field(ge=0)
     unit: str
@@ -262,12 +287,15 @@ class ImplementationCostItem(BaseModel):
 
     @model_validator(mode="after")
     def validate_range(self):
+        """비용 범위에서 낮음 ≤ 기준 ≤ 높음 순서를 지키는지 검사한다."""
         if not self.low_unit_cost <= self.base_unit_cost <= self.high_unit_cost:
             raise ValueError("Cost range must be low <= base <= high")
         return self
 
 
 class ImplementationCostEstimate(BaseModel):
+    """근거와 가정을 구분해 기록하는 구현 비용 추정."""
+
     status: Literal["estimated", "insufficient_data", "error"] = "insufficient_data"
     region: str = "대한민국"
     currency: str = "KRW"
@@ -283,6 +311,8 @@ class ImplementationCostEstimate(BaseModel):
 
 
 class CostScenarioTotals(BaseModel):
+    """비용 항목을 산식으로 합산한 시나리오별 결과."""
+
     initial_low: float = 0
     initial_base: float = 0
     initial_high: float = 0
@@ -296,6 +326,8 @@ class CostScenarioTotals(BaseModel):
 
 
 class MarketTrendPoint(BaseModel):
+    """기준 검색어에 대한 월별 상대 검색 관심도."""
+
     period: str  # YYYY-MM
     theme_ratio: float  # 같은 요청 안 최댓값을 100으로 둔 아이디어 주제어 검색량
     reference_ratio: float  # 같은 요청 안 기준 주제어(스마트공장) 검색량
@@ -321,6 +353,8 @@ class MarketSearchTrend(BaseModel):
 
 
 class MarketKeywordNode(BaseModel):
+    """뉴스 동시 출현 네트워크에 표시할 키워드."""
+
     term: str
     document_count: int  # 이 명사가 나온 기사 수
     cluster: int  # 키워드 묶음 번호 (0부터, 큰 묶음 순)
@@ -329,6 +363,8 @@ class MarketKeywordNode(BaseModel):
 
 
 class MarketKeywordEdge(BaseModel):
+    """같은 기사에서 함께 등장한 키워드 쌍."""
+
     source: str
     target: str
     weight: int  # 두 명사가 함께 나온 기사 수
@@ -410,6 +446,8 @@ class MarketProcurement(BaseModel):
 
 # 14. 최종 시장 근거 결과
 class MarketReport(BaseModel):
+    """시장 근거·차원별 결과·보조 자료의 통합 계약."""
+
     status: Literal["completed", "no_results", "error"]
 
     dimensions: list[MarketDimensionResult] = Field(default_factory=list)
@@ -428,6 +466,7 @@ class MarketReport(BaseModel):
 
     @model_validator(mode="after")
     def validate_report(self):
+        """시장 보고서의 인용과 하위 결과 간 참조 무결성을 확인한다."""
         _check_yyyymmdd(self.data_as_of, "data_as_of")
 
         ids = [e.citation_id for e in self.evidence]

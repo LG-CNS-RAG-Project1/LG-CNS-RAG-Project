@@ -9,11 +9,11 @@ from typing import Callable
 from src.schemas import PatentChunk, PatentDocument
 from src.retrieval.adapters import patent_to_search_document
 from src.llm_client import embedding_collection_name
+from src.retrieval.config import EMBED_BATCH_SIZE
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
 CHROMA_DIR = ROOT_DIR / "data" / "patents" / "chroma"
 COLLECTION_NAME = "patents"
-INDEX_BATCH_SIZE = 100
 
 
 def get_collection(
@@ -116,8 +116,8 @@ def build_index(chunks, patents, collection, embed_fn):
             metadatas=[record[1] for record in metadata_only_records],
         )
 
-    for start in range(0, len(content_records), INDEX_BATCH_SIZE):
-        batch = content_records[start : start + INDEX_BATCH_SIZE]
+    for start in range(0, len(content_records), EMBED_BATCH_SIZE):
+        batch = content_records[start : start + EMBED_BATCH_SIZE]
         texts = [record[1] for record in batch]
         embeddings = embed_fn(texts)
         if len(embeddings) != len(batch):

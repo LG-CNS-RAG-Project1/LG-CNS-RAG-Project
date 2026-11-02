@@ -7,6 +7,7 @@ from functools import lru_cache
 
 
 def _drawing(match):
+    """보고서 내보내기에서 사용하는 문서 그리기 요소를 만든다."""
     svg = (
         match.group()
         .replace(
@@ -24,6 +25,7 @@ def _drawing(match):
 
 
 def hero():
+    """홈 소개 영역의 텍스트와 시작 행동을 렌더링한다."""
     markup = """<section class="paper-hero" aria-label="아이디어를 구체화하는 조사 노트">
       <div class="hero-copy"><span class="eyebrow">IDEALENS · IDEA TO EVIDENCE</span>
       <h1><span class="hero-title-line">한 장의 생각에서,</span><span class="hero-title-line">근거 있는 아이디어로.</span></h1>

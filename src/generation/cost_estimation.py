@@ -18,6 +18,7 @@ PROMPT = ROOT / "prompts" / "cost_estimation.md"
 
 
 def call_cost_llm(system_prompt: str, user_text: str) -> dict:
+    """선택한 LLM provider로 비용 가설 생성을 요청한다."""
     from src.retrieval.market_relevance import call_relevance_llm
 
     return call_relevance_llm(system_prompt, user_text, model="gpt-4o-mini")

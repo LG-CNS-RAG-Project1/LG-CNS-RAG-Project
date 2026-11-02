@@ -31,6 +31,7 @@ def load_trend_config(path: Path = CONFIG_PATH) -> dict:
 
 
 def _credentials() -> tuple[str, str]:
+    """네이버 검색어 트렌드 요청에 필요한 인증값을 읽는다."""
     load_dotenv(ROOT_DIR / ".env")
     client_id = os.getenv("NAVER_TREND_CLIENT_ID")
     client_secret = os.getenv("NAVER_TREND_CLIENT_SECRET")
