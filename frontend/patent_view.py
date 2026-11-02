@@ -6,6 +6,13 @@ from pydantic import ValidationError
 from src.schemas import PatentReport
 
 
+def _evidence_value(evidence, field, default=None):
+    """Read optional evidence fields safely across older stored report versions."""
+    if isinstance(evidence, dict):
+        return evidence.get(field, default)
+    return getattr(evidence, field, default)
+
+
 def current_patent_report(patent):
     """저장된 분석을 현재 계약으로 복원하고 누락된 선택 항목을 채운다."""
     try:
@@ -60,8 +67,8 @@ def patent_detail_dialog(patent, patent_id):
         " · ".join(
             value
             for value in (
-                f"출원번호 {next((item.application_number for item in evidence_by_id.values() if item.application_number), '미확인')}",
-                f"공개번호 {next((item.publication_number for item in evidence_by_id.values() if item.publication_number), '미확인')}",
+                f"출원번호 {next((_evidence_value(item, 'application_number') for item in evidence_by_id.values() if _evidence_value(item, 'application_number')), '미확인')}",
+                f"공개번호 {next((_evidence_value(item, 'publication_number') for item in evidence_by_id.values() if _evidence_value(item, 'publication_number')), '미확인')}",
             )
         )
     )
@@ -69,7 +76,8 @@ def patent_detail_dialog(patent, patent_id):
         (
             item
             for item in evidence_by_id.values()
-            if item.representative_thumbnail_url or item.representative_drawing_url
+            if _evidence_value(item, "representative_thumbnail_url")
+            or _evidence_value(item, "representative_drawing_url")
         ),
         None,
     )
@@ -79,14 +87,14 @@ def patent_detail_dialog(patent, patent_id):
     if drawing_evidence:
         image_bytes, image_status, loaded_url = fetch_first_kipris_drawing(
             (
-                drawing_evidence.representative_drawing_url,
-                drawing_evidence.representative_thumbnail_url,
+                _evidence_value(drawing_evidence, "representative_drawing_url"),
+                _evidence_value(drawing_evidence, "representative_thumbnail_url"),
             )
         )
     full_drawing_url = (
         kipris_drawing_url(
-            drawing_evidence.representative_drawing_url
-            or drawing_evidence.representative_thumbnail_url
+            _evidence_value(drawing_evidence, "representative_drawing_url")
+            or _evidence_value(drawing_evidence, "representative_thumbnail_url")
         )
         if drawing_evidence
         else None
@@ -110,13 +118,15 @@ def patent_detail_dialog(patent, patent_id):
                     image_bytes
                 )
                 original_url = kipris_drawing_url(
-                    drawing_evidence.representative_drawing_url
+                    _evidence_value(drawing_evidence, "representative_drawing_url")
                 )
                 is_original = loaded_url == original_url
                 resolution_note = "원본 도면" if is_original else "썸네일 · 저해상도"
-                caption = drawing_evidence.representative_drawing_caption or (
+                caption = _evidence_value(
+                    drawing_evidence, "representative_drawing_caption"
+                ) or (
                     f"KIPRIS 대표도면 · 출원번호 "
-                    f"{drawing_evidence.application_number or patent_id}"
+                    f"{_evidence_value(drawing_evidence, 'application_number') or patent_id}"
                 )
                 st.image(image_bytes, caption=caption, width=min(image_width, 240))
                 st.caption(
@@ -252,9 +262,9 @@ def patent_detail_dialog(patent, patent_id):
 
     application_number = next(
         (
-            item.application_number
+            _evidence_value(item, "application_number")
             for item in evidence_by_id.values()
-            if item.application_number
+            if _evidence_value(item, "application_number")
         ),
         None,
     )
